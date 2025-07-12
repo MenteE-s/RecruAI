@@ -65,7 +65,7 @@ const Hero = () => {
                 </span>
               </h1>
               
-              <p className="mt-8 text-2xl text-secondary-600 leading-relaxed animate-fade-in-up" style={{animationDelay: '0.6s'}}>
+              <p className="mt-8 text-1xl text-secondary-600 leading-relaxed animate-fade-in-up" style={{animationDelay: '0.6s'}}>
                 <strong className="text-primary-600">For Job Seekers:</strong> Realistic mock interviews with instant AI feedback.<br/>
                 <strong className="text-accent-600">For Organizations:</strong> Automated, unbiased candidate screening.
               </p>
