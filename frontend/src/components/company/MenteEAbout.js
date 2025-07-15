@@ -1,168 +1,167 @@
 import React from 'react';
 
 const MenteEAbout = () => {
-  const stats = [
-    { number: "2025", label: "Founded", icon: "🚀" },
-    { number: "1+", label: "Products Live", icon: "💡" },
-    { number: "10K+", label: "Users Served", icon: "👥" },
-    { number: "95%", label: "Success Rate", icon: "📈" }
-  ];
-
   const values = [
     {
-      title: "Innovation First",
-      description: "We push the boundaries of what's possible with AI to create transformative professional development solutions.",
-      icon: "🔬",
-      gradient: "from-primary-500 to-accent-500"
+      icon: "🎯",
+      title: "Mission-driven",
+      description: "We believe everyone deserves access to tools that can accelerate their professional growth."
     },
     {
-      title: "Human-Centered AI",
-      description: "Our AI amplifies human potential rather than replacing it, focusing on empowerment and growth.",
-      icon: "🤝",
-      gradient: "from-accent-500 to-success-500"
+      icon: "🤖",
+      title: "AI-first",
+      description: "We leverage cutting-edge AI to provide personalized, scalable solutions for career development."
     },
     {
-      title: "Accessibility",
-      description: "We believe everyone deserves access to world-class professional development, regardless of background.",
-      icon: "🌍",
-      gradient: "from-success-500 to-primary-500"
+      icon: "📊",
+      title: "Data-informed",
+      description: "Every feature is built on insights from real interview data and career progression patterns."
     },
     {
-      title: "Continuous Learning",
-      description: "We practice what we preach - constantly learning, iterating, and improving our solutions.",
-      icon: "📚",
-      gradient: "from-primary-600 to-accent-600"
+      icon: "🌟",
+      title: "User-focused",
+      description: "We obsess over user experience, making complex AI accessible and actionable for everyone."
     }
+  ];
+
+  const team = [
+    {
+      name: "Syed Syab Ahmad",
+      role: "Developer",
+      background: "SE Graduate, Machine Learning Engineer",
+      image: "Profile Picture.jpg"
+    },
+    {
+      name: "Hamza Rustam",
+      role: "Developer",
+      background: "SE Graduate, Python Developer",
+      image: "Hamza.jpeg"
+    },
+    {
+      name: "Sania Shakeel",
+      role: "Developer", 
+      background: "CS Undergraduate, Junior Scientist",
+      image: "sania.jpg"
+    },
+    {
+      name: "Mahboob Iqbal",
+      role: "Developer",
+      background: "SE Graduate, Web Developer",
+      image: "mahboob.jpeg"
+    },
+    
   ];
 
   return (
     <section id="about" className="py-20 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
+        
+        {/* About Header */}
         <div className="text-center mb-16">
-          <div className="inline-flex items-center px-4 py-2 bg-primary-100 border border-primary-200 rounded-full text-sm font-medium text-primary-600 mb-6">
-            🎯 About MenteE
-          </div>
           <h2 className="text-4xl md:text-5xl font-display font-bold text-secondary-900 mb-6">
-            Empowering Careers Through{' '}
-            <span className="bg-gradient-to-r from-primary-600 to-accent-600 bg-clip-text text-transparent">
-              AI Innovation
-            </span>
+            Building the future of professional development
           </h2>
-          <p className="text-xl text-secondary-600 max-w-3xl mx-auto leading-relaxed">
-            MenteE is on a mission to democratize professional development through cutting-edge AI solutions. 
-            We're building the future where everyone has access to personalized, scalable career growth tools.
+          <p className="text-xl text-secondary-600 max-w-4xl mx-auto leading-relaxed">
+            MenteE was founded on the belief that AI can democratize access to high-quality career 
+            development resources. We're building tools that help professionals at every stage 
+            reach their full potential.
           </p>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 mb-20">
-          {stats.map((stat, index) => (
-            <div
-              key={index}
-              className="text-center p-6 bg-gradient-to-br from-secondary-50 to-primary-50 rounded-xl border border-secondary-100 hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
-            >
-              <div className="text-3xl mb-2">{stat.icon}</div>
-              <div className="text-3xl md:text-4xl font-display font-bold text-primary-600 mb-1">
-                {stat.number}
-              </div>
-              <div className="text-sm text-secondary-600 font-medium">
-                {stat.label}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Mission & Vision */}
-        <div className="grid lg:grid-cols-2 gap-12 mb-20">
-          <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-br from-primary-100 to-accent-100 rounded-3xl transform rotate-3"></div>
-            <div className="relative bg-white p-8 rounded-3xl border border-secondary-200 shadow-xl">
-              <div className="flex items-center mb-6">
-                <div className="w-12 h-12 bg-gradient-to-r from-primary-500 to-accent-500 rounded-xl flex items-center justify-center mr-4">
-                  <span className="text-2xl">🎯</span>
-                </div>
-                <h3 className="text-2xl font-bold text-secondary-900">Our Mission</h3>
-              </div>
-              <p className="text-secondary-600 leading-relaxed text-lg">
-                To democratize access to world-class professional development by leveraging AI to create 
-                personalized, scalable, and effective learning experiences that empower individuals to 
-                achieve their career goals.
+        {/* Story */}
+        <div className="grid lg:grid-cols-2 gap-12 items-center mb-20">
+          <div>
+            <h3 className="text-3xl font-bold text-secondary-900 mb-6">Our story</h3>
+            <div className="space-y-4 text-lg text-secondary-600">
+              <p>
+                After seeing countless talented individuals struggle with interview preparation 
+                and career advancement, our founders decided to build AI-powered solutions 
+                that level the playing field.
+              </p>
+              <p>
+                What started as RecruAI - an interview practice platform - has evolved into 
+                a comprehensive suite of AI tools designed to support professionals throughout 
+                their entire career journey.
+              </p>
+              <p>
+                We're currently in beta with early adopters providing valuable feedback. 
+                Our goal is to launch with a product that truly makes a difference in people's careers.
               </p>
             </div>
           </div>
-
-          <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-br from-accent-100 to-success-100 rounded-3xl transform -rotate-3"></div>
-            <div className="relative bg-white p-8 rounded-3xl border border-secondary-200 shadow-xl">
-              <div className="flex items-center mb-6">
-                <div className="w-12 h-12 bg-gradient-to-r from-accent-500 to-success-500 rounded-xl flex items-center justify-center mr-4">
-                  <span className="text-2xl">🔮</span>
-                </div>
-                <h3 className="text-2xl font-bold text-secondary-900">Our Vision</h3>
+          <div className="bg-secondary-50 rounded-2xl p-8">
+            <div className="grid grid-cols-2 gap-6">
+              <div className="text-center">
+                <div className="text-3xl font-bold text-primary-600 mb-2">2024</div>
+                <div className="text-secondary-600">Founded</div>
               </div>
-              <p className="text-secondary-600 leading-relaxed text-lg">
-                A world where every professional has access to AI-powered tools that accelerate their 
-                growth, where career development is personalized, efficient, and aligned with both 
-                individual aspirations and market demands.
-              </p>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-primary-600 mb-2">500+</div>
+                <div className="text-secondary-600">Beta signups</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-primary-600 mb-2">$500K</div>
+                <div className="text-secondary-600">Pre-seed funding</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-primary-600 mb-2">8</div>
+                <div className="text-secondary-600">Team members</div>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Values */}
-        <div>
-          <div className="text-center mb-12">
-            <h3 className="text-3xl md:text-4xl font-display font-bold text-secondary-900 mb-4">
-              Our Core Values
-            </h3>
-            <p className="text-lg text-secondary-600 max-w-2xl mx-auto">
-              These principles guide everything we do, from product development to customer relationships.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-8">
+        <div className="mb-20">
+          <h3 className="text-3xl font-bold text-secondary-900 text-center mb-12">Our values</h3>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             {values.map((value, index) => (
-              <div
-                key={index}
-                className="group p-8 bg-white rounded-2xl border border-secondary-200 hover:shadow-xl transition-all duration-500 hover:-translate-y-2"
-              >
-                <div className={`w-16 h-16 bg-gradient-to-r ${value.gradient} rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300`}>
-                  <span className="text-2xl">{value.icon}</span>
-                </div>
-                <h4 className="text-xl font-bold text-secondary-900 mb-4">
-                  {value.title}
-                </h4>
-                <p className="text-secondary-600 leading-relaxed">
-                  {value.description}
-                </p>
+              <div key={index} className="text-center">
+                <div className="text-4xl mb-4">{value.icon}</div>
+                <h4 className="text-xl font-bold text-secondary-900 mb-3">{value.title}</h4>
+                <p className="text-secondary-600">{value.description}</p>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Team CTA */}
-        <div className="mt-20 text-center">
-          <div className="bg-gradient-to-r from-primary-600 to-accent-600 rounded-3xl p-12 text-white">
-            <h3 className="text-3xl font-bold mb-4">Join Our Mission</h3>
-            <p className="text-xl text-primary-100 mb-8 max-w-2xl mx-auto">
-              We're always looking for passionate individuals who want to shape the future of professional development.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <a
-                href="#careers"
-                className="bg-white text-primary-600 hover:bg-primary-50 px-8 py-4 rounded-xl font-semibold transition-all transform hover:scale-105 shadow-lg"
-              >
-                View Open Positions
-              </a>
-              <a
-                href="#contact"
-                className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-primary-600 px-8 py-4 rounded-xl font-semibold transition-all transform hover:scale-105"
-              >
-                Get In Touch
-              </a>
-            </div>
-          </div>
+        {/* Team */}
+              <div>
+              <h3 className="text-3xl font-bold text-secondary-900 text-center mb-12">Meet the team</h3>
+              <div className="relative overflow-hidden">
+                <div className="flex animate-scroll-slow">
+                {[...team, ...team].map((member, index) => (
+                  <div key={index} className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 p-6 text-center flex-shrink-0 w-72 mx-4">
+                  <div className="mb-6 flex justify-center">
+                    <img 
+                    src={member.image} 
+                    alt={member.name} 
+                    className="w-32 h-32 rounded-full object-cover border-4 border-primary-100" 
+                    />
+                  </div>
+                  <h4 className="text-lg font-bold text-secondary-900 mb-2">{member.name}</h4>
+                  <p className="text-primary-600 font-semibold mb-3">{member.role}</p>
+                  <p className="text-sm text-secondary-600 leading-relaxed">{member.background}</p>
+                  </div>
+                ))}
+                </div>
+              </div>
+              </div>
+
+              {/* CTA */}
+        <div className="text-center mt-20 bg-gradient-to-r from-primary-50 to-accent-50 rounded-2xl p-12">
+          <h3 className="text-3xl font-bold text-secondary-900 mb-4">
+            Join our mission
+          </h3>
+          <p className="text-xl text-secondary-600 mb-8">
+            Be part of the revolution in professional development. Join our beta waitlist today.
+          </p>
+          <button 
+            onClick={() => window.open('https://forms.gle/WfroWeDqDcNCYF9s5', '_blank')}
+            className="bg-primary-600 hover:bg-primary-700 text-white px-8 py-4 rounded-xl font-semibold transition-all transform hover:scale-105"
+          >
+            Join Beta Waitlist
+          </button>
         </div>
       </div>
     </section>
