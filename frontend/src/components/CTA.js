@@ -10,11 +10,11 @@ const CTA = () => {
       
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <h2 className="text-4xl md:text-5xl font-display font-bold text-white mb-6">
-          Ready to transform your career?
+          Help us build the future of interviews
         </h2>
         <p className="text-xl text-primary-100 mb-12 max-w-3xl mx-auto">
-          Join our beta program and be among the first to experience the future of interview preparation. 
-          Limited spots available with exclusive benefits.
+          Join our beta program and help shape RecruAI. Your feedback will directly influence 
+          our product development and you'll get exclusive early access.
         </p>
         
         <div className="flex flex-col lg:flex-row gap-6 justify-center items-center max-w-4xl mx-auto">
@@ -38,7 +38,7 @@ const CTA = () => {
             <h3 className="text-2xl font-bold text-white mb-4">🏢 For Organizations</h3>
             <p className="text-primary-100 mb-6">Shape our enterprise features</p>
             <button 
-              onClick={() => window.open('mailto:enterprise@mentee.com?subject=Enterprise Beta Interest', '_blank')}
+              onClick={() => window.open('mailto:support@menteee.com?subject=Enterprise Beta Interest', '_blank')}
               className="w-full bg-accent-500 text-white hover:bg-accent-600 px-8 py-4 rounded-xl text-lg font-semibold transition-all transform hover:scale-105 shadow-lg mb-4"
             >
               Schedule Demo
@@ -54,19 +54,19 @@ const CTA = () => {
             <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
             </svg>
-            <span>First 100 users get premium benefits</span>
+            <span>First 100 beta users get lifetime benefits</span>
           </div>
           <div className="flex items-center">
             <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
             </svg>
-            <span>No credit card required</span>
+            <span>No credit card required for beta</span>
           </div>
           <div className="flex items-center">
             <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
             </svg>
-            <span>Cancel anytime</span>
+            <span>Direct influence on product features</span>
           </div>
         </div>
       </div>

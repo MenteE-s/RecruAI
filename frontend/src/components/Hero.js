@@ -45,15 +45,15 @@ const Hero = () => {
             {/* Beta Stats */}
             <div className="flex gap-8 mb-10">
               <div>
-                <div className="text-3xl font-bold text-primary-600">300+</div>
+                <div className="text-3xl font-bold text-primary-600">50+</div>
                 <div className="text-sm text-secondary-600">Beta signups</div>
               </div>
               <div>
-                <div className="text-3xl font-bold text-primary-600">20+</div>
+                <div className="text-3xl font-bold text-primary-600">5+</div>
                 <div className="text-sm text-secondary-600">Partner companies</div>
               </div>
               <div>
-                <div className="text-3xl font-bold text-primary-600">5★</div>
+                <div className="text-3xl font-bold text-primary-600">4.8★</div>
                 <div className="text-sm text-secondary-600">Early feedback</div>
               </div>
             </div>
@@ -73,7 +73,7 @@ const Hero = () => {
 
             {/* Trust Indicators */}
             <div className="mt-8 text-sm text-secondary-500">
-              🎯 First 50 users get lifetime 50% discount • 📧 Launch notification • 💎 Beta access
+              🎯 First 100 users get lifetime 50% discount • 📧 Launch notification • 💎 Beta access
             </div>
           </div>
 

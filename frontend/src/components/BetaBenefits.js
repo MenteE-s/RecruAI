@@ -6,32 +6,32 @@ const BetaBenefits = () => {
     {
       icon: "🎁",
       title: "Free Beta Access",
-      description: "Complete access to all features during beta period - no credit card required"
+      description: "Complete access during our beta period - help us build something amazing"
     },
     {
       icon: "💎",
-      title: "50% Lifetime Discount",
-      description: "Lock in 50% off regular pricing when we launch - exclusively for beta users"
+      title: "50% Launch Discount",
+      description: "Lock in half-price for your first year when we officially launch"
     },
     {
       icon: "🏆",
-      title: "Founder Recognition",
-      description: "Special beta user badge and recognition as a founding member of our community"
+      title: "Beta Contributor Badge",
+      description: "Recognition as one of our founding users who helped shape the product"
     },
     {
       icon: "🚀",
-      title: "Shape the Product",
-      description: "Your feedback directly influences features and development priorities"
+      title: "Shape Our Product",
+      description: "Your feedback directly influences features - be part of our development process"
     },
     {
       icon: "📧",
-      title: "VIP Updates",
-      description: "Exclusive updates, behind-the-scenes content, and early access to new features"
+      title: "Insider Updates",
+      description: "Behind-the-scenes development updates and first access to new features"
     },
     {
       icon: "🎯",
-      title: "Priority Support",
-      description: "Direct line to our team with priority customer support and personalized help"
+      title: "Direct Support",
+      description: "Direct line to our small team - we'll personally help you succeed"
     }
   ];
 

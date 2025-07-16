@@ -5,30 +5,30 @@ const MenteEProducts = () => {
   const products = [
     {
       name: "RecruAI",
-      status: "Available",
-      description: "AI-powered interview preparation and recruitment automation",
+      status: "Beta Coming Soon",
+      description: "AI-powered interview preparation and practice platform",
       features: ["Mock AI Interviews", "Real-time Feedback", "Progress Tracking", "Company-specific Prep"],
-      stats: { users: "10K+", rating: "4.9", success: "95%" },
+      stats: { waitlist: "100+", features: "15+", launch: "Q2 2025" },
       link: "/recruai",
       gradient: "from-primary-500 to-accent-500",
       icon: "🎯"
     },
     {
       name: "SkillAI",
-      status: "Coming Q2 2025",
-      description: "Personalized skill assessment and learning path recommendations",
-      features: ["Skill Gap Analysis", "Custom Learning Paths", "Industry Benchmarks", "Certification Tracking"],
-      stats: { waitlist: "5K+", industries: "20+", skills: "500+" },
+      status: "Coming Q3 2025",
+      description: "Personalized skill assessment and learning recommendations",
+      features: ["Skill Gap Analysis", "Learning Paths", "Industry Benchmarks", "Progress Tracking"],
+      stats: { planned: "Q3 2025", skills: "100+", industries: "10+" },
       link: "#waitlist",
       gradient: "from-accent-500 to-success-500",
       icon: "📈"
     },
     {
       name: "CareerAI",
-      status: "Coming Q3 2025",
-      description: "AI career coach for strategic professional growth and transitions",
-      features: ["Career Planning", "Market Insights", "Network Building", "Salary Optimization"],
-      stats: { careers: "100+", transitions: "85%", growth: "40%" },
+      status: "Coming 2026",
+      description: "AI career coach for strategic professional growth",
+      features: ["Career Planning", "Market Insights", "Network Building", "Growth Tracking"],
+      stats: { planned: "2026", research: "Active", concept: "Early" },
       link: "#waitlist",
       gradient: "from-success-500 to-primary-500",
       icon: "🚀"

@@ -43,10 +43,10 @@ const MenteENavbar = () => {
                 Solutions
               </a>
               <a 
-                href="#blog" 
+                href="#roadmap" 
                 className="text-secondary-700 hover:text-primary-600 font-medium transition-colors"
               >
-                Blog
+                Roadmap
               </a>
               <a 
                 href="#about" 

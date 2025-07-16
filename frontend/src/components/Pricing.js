@@ -7,109 +7,101 @@ const Pricing = () => {
 
   const individualPlans = [
     {
-      name: "Free Trial",
-      description: "Try it out with limited access",
+      name: "Beta Access",
+      description: "Free during beta period",
       price: "Free",
-      duration: "7 days trial",
+      duration: "during beta",
+      betaNote: "Limited to first 100 users",
       features: [
-        "5 AI interviews (~10 mins each)",
+        "10 mock interviews during beta",
         "Basic AI feedback",
-        "No referrals in trial",
-        "Community support"
-      ],
-      popular: false,
-      cta: "Start Free Trial",
-      gradient: "from-success-400 to-primary-600",
-      badge: "🆓 Free Trial"
-    },
-    {
-      name: "Monthly Plan",
-      description: "Pay per month, flexible usage",
-      price: "$30",
-      duration: "per month",
-      features: [
-        "30 AI interviews (~30 mins each)",
-        "Advanced AI feedback & analytics",
-        "Resume optimization tips",
-        "Referral bonus: Earn $3 per referral",
-        "Priority support"
+        "Progress tracking",
+        "Community support",
+        "🎁 50% discount when we launch",
+        "🏆 Beta contributor badge"
       ],
       popular: true,
-      cta: "Subscribe Monthly",
-      gradient: "from-accent-500 to-primary-600",
-      badge: "🔥 Popular"
+      cta: "Join Beta Waitlist",
+      gradient: "from-success-400 to-primary-600",
+      badge: "🎁 Free Beta"
     },
     {
-      name: "Yearly Plan",
-      description: "Best value for full year access",
-      price: "$300",
-      duration: "per year",
+      name: "Early Bird",
+      description: "Post-launch pricing for beta users",
+      price: "$15",
+      duration: "month",
+      originalPrice: "$30",
+      betaNote: "50% off for beta users (first year)",
       features: [
-        "400 AI interviews (~30 mins each)",
-        "Advanced AI feedback & analytics",
-        "Resume optimization tips",
-        "Referral bonus: Earn $5 per referral",
-        "Priority support"
+        "Unlimited mock interviews",
+        "Advanced AI feedback",
+        "Industry-specific questions",
+        "Performance analytics",
+        "Priority support",
+        "New features first"
       ],
       popular: false,
-      cta: "Subscribe Yearly",
-      gradient: "from-accent-700 to-primary-700",
-      badge: "💎 Best Value"
+      cta: "Reserve Your Spot",
+      gradient: "from-accent-500 to-primary-600",
+      badge: "50% Off"
+    },
+    {
+      name: "Full Price",
+      description: "Regular pricing after launch",
+      price: "$30",
+      duration: "month",
+      betaNote: "Standard pricing for new users",
+      features: [
+        "Unlimited mock interviews",
+        "Advanced AI feedback",
+        "Industry-specific questions",
+        "Performance analytics",
+        "Standard support",
+        "All features"
+      ],
+      popular: false,
+      cta: "Coming Soon",
+      gradient: "from-secondary-400 to-secondary-600"
     }
   ];
 
   const organizationPlans = [
     {
-      name: "Free Trial",
-      description: "Try it with your team",
+      name: "Team Beta",
+      description: "For small recruiting teams",
       price: "Free",
-      duration: "7 days trial",
+      duration: "during beta",
+      betaNote: "Help us build the perfect solution",
       features: [
-        "10 candidate interviews (~15 mins each)",
-        "Basic AI screening & scoring",
-        "No referrals in trial",
-        "Basic support"
-      ],
-      popular: false,
-      cta: "Start Free Trial",
-      gradient: "from-success-400 to-primary-600",
-      badge: "🆓 Free Trial"
-    },
-    {
-      name: "Monthly Plan",
-      description: "Flexible recruiting access",
-      price: "$60",
-      duration: "per recruiter / month",
-      features: [
-        "~20 mins Interview each",
-        "AI candidate screening & scoring",
-        "Team analytics dashboard",
-        "Referral bonus: $15 credit per referred org",
-        "ATS integrations",
-        "Dedicated support"
+        "Up to 5 recruiter accounts",
+        "Basic candidate screening",
+        "Team dashboard",
+        "Email support",
+        "Beta feedback program",
+        "🎁 50% off when we launch"
       ],
       popular: true,
-      cta: "Subscribe Monthly",
-      gradient: "from-accent-500 to-primary-600",
-      badge: "🔥 Popular"
+      cta: "Join Beta Program",
+      gradient: "from-success-400 to-primary-600",
+      badge: "🚀 Beta Partner"
     },
     {
-      name: "Yearly Plan",
-      description: "Best value for recruiting teams",
-      price: "$600",
-      duration: "per recruiter / year",
+      name: "Professional",
+      description: "Full-featured solution",
+      price: "Custom",
+      duration: "contact us",
+      betaNote: "Launching Q3 2025",
       features: [
-        "~30 mins Interview each",
-        "Custom AI models",
-        "Advanced integrations & analytics",
-        "Referral bonus: $50 credit per referred org",
-        "Dedicated account manager",
-        "Priority training & support"
+        "Unlimited recruiter accounts",
+        "Advanced AI screening",
+        "Custom integrations",
+        "Dedicated support",
+        "Custom training",
+        "Priority features"
       ],
       popular: false,
-      cta: "Subscribe Yearly",
-      gradient: "from-accent-700 to-primary-700",
-      badge: "💎 Best Value"
+      cta: "Schedule Demo",
+      gradient: "from-accent-500 to-primary-600"
     }
   ];
 
@@ -134,7 +126,7 @@ const Pricing = () => {
 
   const handleCTAClick = (plan) => {
     if (plan.cta.includes("Schedule Demo")) {
-      window.open('mailto:demo@mentee.com?subject=Enterprise Demo Request', '_blank');
+      window.open('mailto:support@menteee.com?subject=Enterprise Demo Request', '_blank');
     } else {
       window.open('https://forms.gle/WfroWeDqDcNCYF9s5', '_blank');
     }
@@ -260,7 +252,7 @@ const Pricing = () => {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button 
-                onClick={() => window.open('mailto:support@mentee.com', '_blank')}
+                onClick={() => window.open('mailto:support@menteee.com', '_blank')}
                 className="bg-primary-600 hover:bg-primary-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
               >
                 Contact Us

@@ -43,15 +43,15 @@ const MenteEHero = () => {
           {/* Early Adopter Stats */}
           <div className="flex flex-col sm:flex-row gap-12 justify-center mb-16 text-center">
             <div>
-              <div className="text-4xl font-bold text-primary-600 mb-2">500+</div>
+              <div className="text-4xl font-bold text-primary-600">75+</div>
               <div className="text-secondary-600">Beta applicants</div>
             </div>
             <div>
-              <div className="text-4xl font-bold text-primary-600 mb-2">50+</div>
-              <div className="text-secondary-600">Industry experts</div>
+              <div className="text-4xl font-bold text-primary-600">10+</div>
+              <div className="text-secondary-600">Industry advisors</div>
             </div>
             <div>
-              <div className="text-4xl font-bold text-primary-600 mb-2">10+</div>
+              <div className="text-4xl font-bold text-primary-600">3</div>
               <div className="text-secondary-600">Partner companies</div>
             </div>
           </div>

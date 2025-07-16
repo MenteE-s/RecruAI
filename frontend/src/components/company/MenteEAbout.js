@@ -74,37 +74,38 @@ const MenteEAbout = () => {
             <h3 className="text-3xl font-bold text-secondary-900 mb-6">Our story</h3>
             <div className="space-y-4 text-lg text-secondary-600">
               <p>
-                After seeing countless talented individuals struggle with interview preparation 
-                and career advancement, our founders decided to build AI-powered solutions 
-                that level the playing field.
+                After experiencing the challenges of interview preparation firsthand, 
+                our small team decided to explore how AI could make the process more 
+                accessible and effective for everyone.
               </p>
               <p>
-                What started as RecruAI - an interview practice platform - has evolved into 
-                a comprehensive suite of AI tools designed to support professionals throughout 
-                their entire career journey.
+                What started as a simple idea for AI-powered interview practice has grown 
+                into a vision for comprehensive career development tools. We're building 
+                RecruAI as our first step toward that goal.
               </p>
               <p>
-                We're currently in beta with early adopters providing valuable feedback. 
-                Our goal is to launch with a product that truly makes a difference in people's careers.
+                We're currently developing our beta with input from early supporters and 
+                industry advisors. Our goal is to launch with a product that genuinely 
+                helps people succeed in their career goals.
               </p>
             </div>
           </div>
           <div className="bg-secondary-50 rounded-2xl p-8">
             <div className="grid grid-cols-2 gap-6">
               <div className="text-center">
-                <div className="text-3xl font-bold text-primary-600 mb-2">2024</div>
+                <div className="text-3xl font-bold text-primary-600 mb-2">2023</div>
                 <div className="text-secondary-600">Founded</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-primary-600 mb-2">500+</div>
+                <div className="text-3xl font-bold text-primary-600 mb-2">100+</div>
                 <div className="text-secondary-600">Beta signups</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-primary-600 mb-2">$500K</div>
-                <div className="text-secondary-600">Pre-seed funding</div>
+                <div className="text-3xl font-bold text-primary-600 mb-2">Pre-seed</div>
+                <div className="text-secondary-600">Development stage</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-primary-600 mb-2">8</div>
+                <div className="text-3xl font-bold text-primary-600 mb-2">4</div>
                 <div className="text-secondary-600">Team members</div>
               </div>
             </div>

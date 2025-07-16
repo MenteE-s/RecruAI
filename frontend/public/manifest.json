@@ -1,9 +1,9 @@
 {
-  "short_name": "RecruAI",
-  "name": "RecruAI - AI Interview Practice Platform",
+  "short_name": "MenteE",
+  "name": "MenteE - AI-Powered Career Growth Platform",
   "icons": [
     {
-      "src": "favicon.ico",
+      "src": "logos/favicon.ico",
       "sizes": "64x64 32x32 24x24 16x16",
       "type": "image/x-icon"
     },
@@ -22,5 +22,9 @@
   "display": "standalone",
   "theme_color": "#3B82F6",
   "background_color": "#ffffff",
-  "description": "Master your interviews with AI-powered practice sessions and personalized feedback."
+  "description": "Transform your career with AI-powered interview practice, skill development, and career coaching.",
+  "categories": ["business", "education", "productivity"],
+  "lang": "en",
+  "scope": "/",
+  "orientation": "portrait-primary"
 }

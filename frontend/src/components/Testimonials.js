@@ -8,29 +8,29 @@ const Testimonials = () => {
     {
       name: "Sarah Chen",
       role: "Software Engineer",
-      company: "Tech Startup",
+      company: "Early Beta Tester",
       image: "👩‍💻",
-      quote: "I wish RecruAI existed when I was job hunting! The concept of AI-powered interview practice is exactly what I needed. Can't wait for the beta launch.",
+      quote: "The concept behind RecruAI is exactly what I needed during my job search. Looking forward to the beta launch!",
       rating: 5,
-      badge: "Early Supporter"
+      badge: "Beta Interest"
     },
     {
       name: "Michael Rodriguez",
-      role: "Product Manager",
-      company: "Fortune 500",
+      role: "Recent Graduate",
+      company: "University Student",
       image: "👨‍💼",
-      quote: "As someone who's been through countless interviews, this platform would have saved me weeks of preparation time. The AI feedback concept is brilliant.",
+      quote: "Interview prep is so stressful. Having an AI coach to practice with sounds like it would be incredibly helpful.",
       rating: 5,
-      badge: "Beta Interested"
+      badge: "Waitlist Member"
     },
     {
       name: "Emily Johnson",
-      role: "Recent Graduate",
-      company: "University",
+      role: "Career Changer",
+      company: "Professional",
       image: "👩‍🎓",
-      quote: "Interview anxiety is real! Having an AI coach to practice with before facing real interviewers sounds like a game-changer. Signed up immediately.",
+      quote: "Switching careers means lots of interviews. An AI platform that gives personalized feedback could be a game-changer.",
       rating: 5,
-      badge: "Waitlist Member"
+      badge: "Early Supporter"
     }
   ];
 

@@ -35,8 +35,8 @@ const RecruAINavbar = () => {
               <a href="#pricing" className="text-secondary-700 hover:text-primary-600 px-3 py-2 text-sm font-medium transition-colors">
                 Pricing
               </a>
-              <a href="#testimonials" className="text-secondary-700 hover:text-primary-600 px-3 py-2 text-sm font-medium transition-colors">
-                Testimonials
+              <a href="#faq" className="text-secondary-700 hover:text-primary-600 px-3 py-2 text-sm font-medium transition-colors">
+                FAQ
               </a>
             </div>
           </div>
