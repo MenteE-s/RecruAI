@@ -81,7 +81,7 @@ const Pricing = () => {
       price: "$60",
       duration: "per recruiter / month",
       features: [
-        "60 candidate interviews (~20 mins each)",
+        "~20 mins Interview each",
         "AI candidate screening & scoring",
         "Team analytics dashboard",
         "Referral bonus: $15 credit per referred org",
@@ -99,7 +99,7 @@ const Pricing = () => {
       price: "$600",
       duration: "per recruiter / year",
       features: [
-        "800 candidate interviews (~30 mins each)",
+        "~30 mins Interview each",
         "Custom AI models",
         "Advanced integrations & analytics",
         "Referral bonus: $50 credit per referred org",

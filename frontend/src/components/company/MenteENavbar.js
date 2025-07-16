@@ -9,10 +9,16 @@ const MenteENavbar = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
+
           <div className="flex items-center">
             <Link to="/" className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-primary-600 to-accent-600 rounded-xl flex items-center justify-center">
-                <span className="text-white font-bold text-lg">M</span>
+              <div className="w-20 h-20 flex items-center justify-center">
+                <img 
+                  src="logos/MenteER.png" 
+                  // src="logos/ms-icon-310x310.png" 
+                  alt="MenteE Logo" 
+                  className="w-full h-full object-contain"
+                />
               </div>
               <div>
                 <div className="text-xl font-display font-bold text-secondary-900">MenteE</div>
