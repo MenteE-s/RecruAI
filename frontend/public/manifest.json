@@ -1,9 +1,9 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "MenteE",
+  "name": "MenteE - AI-Powered Career Growth Platform",
   "icons": [
     {
-      "src": "favicon.ico",
+      "src": "logos/favicon.ico",
       "sizes": "64x64 32x32 24x24 16x16",
       "type": "image/x-icon"
     },
@@ -20,6 +20,11 @@
   ],
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#000000",
-  "background_color": "#ffffff"
+  "theme_color": "#3B82F6",
+  "background_color": "#ffffff",
+  "description": "Transform your career with AI-powered interview practice, skill development, and career coaching.",
+  "categories": ["business", "education", "productivity"],
+  "lang": "en",
+  "scope": "/",
+  "orientation": "portrait-primary"
 }

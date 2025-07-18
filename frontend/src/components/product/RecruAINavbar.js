@@ -5,24 +5,25 @@ const RecruAINavbar = () => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <nav className="bg-white shadow-lg fixed w-full z-50">
+    <nav className="bg-white shadow-sm border-b border-secondary-200 fixed w-full z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
+          {/* Logo with Breadcrumb */}
           <div className="flex items-center">
             <div className="flex-shrink-0">
               <div className="flex items-center space-x-3">
-                {/* Breadcrumb Style Branding */}
                 <Link to="/" className="text-lg font-display font-bold text-secondary-500 hover:text-primary-600 transition-colors">
                   MenteE
                 </Link>
-                {/* <span className="text-secondary-400">/</span>
+                <span className="text-secondary-400">/</span>
                 <div className="text-2xl font-display font-bold text-primary-600">
                   RecruAI
-                </div> */}
+                </div>
               </div>
             </div>
           </div>
           
+          {/* Desktop Navigation */}
           <div className="hidden md:block">
             <div className="ml-10 flex items-baseline space-x-4">
               <a href="#features" className="text-secondary-700 hover:text-primary-600 px-3 py-2 text-sm font-medium transition-colors">
@@ -34,23 +35,25 @@ const RecruAINavbar = () => {
               <a href="#pricing" className="text-secondary-700 hover:text-primary-600 px-3 py-2 text-sm font-medium transition-colors">
                 Pricing
               </a>
-              <a href="#testimonials" className="text-secondary-700 hover:text-primary-600 px-3 py-2 text-sm font-medium transition-colors">
-                Testimonials
+              <a href="#faq" className="text-secondary-700 hover:text-primary-600 px-3 py-2 text-sm font-medium transition-colors">
+                FAQ
               </a>
             </div>
           </div>
 
+          {/* Auth Links */}
           <div className="hidden md:block">
             <div className="ml-4 flex items-center md:ml-6 space-x-4">
-              <button className="text-secondary-700 hover:text-primary-600 px-4 py-2 text-sm font-medium transition-colors">
-                Sign In
-              </button>
-              <button className="bg-primary-600 hover:bg-primary-700 text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors">
+              <Link to="/login" className="text-secondary-700 hover:text-primary-600 px-4 py-2 text-sm font-medium transition-colors">
+                Join Waitlist
+              </Link>
+              <Link to="/signup" className="bg-primary-600 hover:bg-primary-700 text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors">
                 Start Free Trial
-              </button>
+              </Link>
             </div>
           </div>
 
+          {/* Mobile menu button */}
           <div className="md:hidden">
             <button
               onClick={() => setIsOpen(!isOpen)}
@@ -64,22 +67,9 @@ const RecruAINavbar = () => {
         </div>
       </div>
 
+      {/* Mobile Navigation */}
       {isOpen && (
         <div className="md:hidden">
-            <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <div className="flex items-center space-x-3">
-                {/* Breadcrumb Style Branding */}
-                <Link to="/" className="text-lg font-display font-bold text-secondary-500 hover:text-primary-600 transition-colors">
-                  MenteE
-                </Link>
-                <span className="text-secondary-400">/</span>
-                <div className="text-2xl font-display font-bold text-primary-600">
-                  RecruAI
-                </div>
-              </div>
-            </div>
-          </div>
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white shadow-lg">
             <a href="#features" className="text-secondary-700 hover:text-primary-600 block px-3 py-2 text-base font-medium">
               Features
@@ -94,12 +84,12 @@ const RecruAINavbar = () => {
               Testimonials
             </a>
             <div className="pt-4 pb-3 border-t border-secondary-200">
-              <button className="text-secondary-700 hover:text-primary-600 block px-3 py-2 text-base font-medium">
-                Sign In
-              </button>
-              <button className="bg-primary-600 hover:bg-primary-700 text-white block px-3 py-2 rounded-lg text-base font-medium mt-2 w-full">
+              <Link to="/login" className="text-secondary-700 hover:text-primary-600 block px-3 py-2 text-base font-medium">
+                Join Waitlist
+              </Link>
+              <Link to="/signup" className="bg-primary-600 hover:bg-primary-700 text-white block px-3 py-2 rounded-lg text-base font-medium mt-2 w-full text-center">
                 Start Free Trial
-              </button>
+              </Link>
             </div>
           </div>
         </div>

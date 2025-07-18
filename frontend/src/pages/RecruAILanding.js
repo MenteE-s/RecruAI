@@ -1,24 +1,24 @@
 import React from 'react';
+import RecruAINavbar from '../components/product/RecruAINavbar';
 import Hero from '../components/Hero';
 import Features from '../components/Features';
 import HowItWorks from '../components/HowItWorks';
-import CustomerSegments from '../components/CustomerSegments';
-import Pricing from '../components/Pricing';
 import Testimonials from '../components/Testimonials';
+import Pricing from '../components/Pricing';
+import FAQ from '../components/FAQ'; // Add this import
 import CTA from '../components/CTA';
 import Footer from '../components/Footer';
-import RecruAINavbar from '../components/product/RecruAINavbar';
 
 const RecruAILanding = () => {
   return (
-    <div className="min-h-screen">
-        <RecruAINavbar />
+    <div className="min-h-screen bg-white">
+      <RecruAINavbar />
       <Hero />
       <Features />
       <HowItWorks />
-      <CustomerSegments />
-      <Pricing />
       <Testimonials />
+      <Pricing />
+      <FAQ /> {/* Add FAQ before final CTA */}
       <CTA />
       <Footer />
     </div>

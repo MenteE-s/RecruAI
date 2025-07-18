@@ -1,3 +1,23 @@
 # https://www.robotstxt.org/robotstxt.html
 User-agent: *
-Disallow:
+Allow: /
+
+# Important pages
+Sitemap: https://menteee.com/sitemap.xml
+
+# Block admin areas (when you add them)
+Disallow: /admin/
+Disallow: /api/internal/
+
+# Allow specific bots
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: LinkedInBot
+Allow: /
+
+User-agent: TwitterBot
+Allow: /

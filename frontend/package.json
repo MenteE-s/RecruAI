@@ -17,7 +17,12 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "build:prod": "NODE_ENV=production npm run build",
+    "serve": "serve -s build -l 3000",
+    "deploy": "npm run build:prod && echo 'Build complete! Ready for deployment to menteee.com'",
+    "lint": "eslint src/**/*.{js,jsx}",
+    "lint:fix": "eslint src/**/*.{js,jsx} --fix"
   },
   "eslintConfig": {
     "extends": [
@@ -38,6 +43,8 @@
     ]
   },
   "devDependencies": {
-    "tailwindcss": "^3.4.17"
-  }
+    "tailwindcss": "^3.4.17",
+    "serve": "^14.2.1"
+  },
+  "homepage": "https://menteee.com"
 }
