@@ -4,6 +4,8 @@ import "./App.css";
 
 // RecruAI Product Pages
 import RecruAILanding from "./pages/RecruAILanding";
+import Register from "./pages/Register";
+import SignIn from "./pages/SignIn";
 
 function App() {
   return (
@@ -11,6 +13,8 @@ function App() {
       <Routes>
         {/* MenteE Company Landing */}
         <Route path="/" element={<RecruAILanding />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/signin" element={<SignIn />} />
       </Routes>
     </Router>
   );

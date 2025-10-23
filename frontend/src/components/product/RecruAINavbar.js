@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState } from "react";
+import { Link } from "react-router-dom";
 
 const RecruAINavbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -12,9 +12,10 @@ const RecruAINavbar = () => {
             <div className="flex-shrink-0">
               <div className="flex items-center space-x-3">
                 {/* Breadcrumb Style Branding */}
-                <Link to="/" className="text-lg font-display font-bold text-secondary-500 hover:text-primary-600 transition-colors">
-                  
-                </Link>
+                <Link
+                  to="/"
+                  className="text-lg font-display font-bold text-secondary-500 hover:text-primary-600 transition-colors"
+                ></Link>
                 {/* <span className="text-secondary-400">/</span>
                 <div className="text-2xl font-display font-bold text-primary-600">
                   RecruAI
@@ -22,19 +23,31 @@ const RecruAINavbar = () => {
               </div>
             </div>
           </div>
-          
+
           <div className="hidden md:block">
             <div className="ml-10 flex items-baseline space-x-4">
-              <a href="#features" className="text-secondary-700 hover:text-primary-600 px-3 py-2 text-sm font-medium transition-colors">
+              <a
+                href="#features"
+                className="text-secondary-700 hover:text-primary-600 px-3 py-2 text-sm font-medium transition-colors"
+              >
                 Features
               </a>
-              <a href="#how-it-works" className="text-secondary-700 hover:text-primary-600 px-3 py-2 text-sm font-medium transition-colors">
+              <a
+                href="#how-it-works"
+                className="text-secondary-700 hover:text-primary-600 px-3 py-2 text-sm font-medium transition-colors"
+              >
                 How it Works
               </a>
-              <a href="#pricing" className="text-secondary-700 hover:text-primary-600 px-3 py-2 text-sm font-medium transition-colors">
+              <a
+                href="#pricing"
+                className="text-secondary-700 hover:text-primary-600 px-3 py-2 text-sm font-medium transition-colors"
+              >
                 Pricing
               </a>
-              <a href="#testimonials" className="text-secondary-700 hover:text-primary-600 px-3 py-2 text-sm font-medium transition-colors">
+              <a
+                href="#testimonials"
+                className="text-secondary-700 hover:text-primary-600 px-3 py-2 text-sm font-medium transition-colors"
+              >
                 Testimonials
               </a>
             </div>
@@ -42,12 +55,18 @@ const RecruAINavbar = () => {
 
           <div className="hidden md:block">
             <div className="ml-4 flex items-center md:ml-6 space-x-4">
-              <button className="text-secondary-700 hover:text-primary-600 px-4 py-2 text-sm font-medium transition-colors">
+              <Link
+                to="/signin"
+                className="text-secondary-700 hover:text-primary-600 px-4 py-2 text-sm font-medium transition-colors"
+              >
                 Sign In
-              </button>
-              <button className="bg-primary-600 hover:bg-primary-700 text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors">
+              </Link>
+              <Link
+                to="/register"
+                className="bg-primary-600 hover:bg-primary-700 text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors"
+              >
                 Start Free Trial
-              </button>
+              </Link>
             </div>
           </div>
 
@@ -56,8 +75,18 @@ const RecruAINavbar = () => {
               onClick={() => setIsOpen(!isOpen)}
               className="text-secondary-700 hover:text-primary-600 p-2"
             >
-              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              <svg
+                className="h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
               </svg>
             </button>
           </div>
@@ -66,13 +95,14 @@ const RecruAINavbar = () => {
 
       {isOpen && (
         <div className="md:hidden">
-            <div className="flex items-center">
+          <div className="flex items-center">
             <div className="flex-shrink-0">
               <div className="flex items-center space-x-3">
                 {/* Breadcrumb Style Branding */}
-                <Link to="/" className="text-lg font-display font-bold text-secondary-500 hover:text-primary-600 transition-colors">
-                  
-                </Link>
+                <Link
+                  to="/"
+                  className="text-lg font-display font-bold text-secondary-500 hover:text-primary-600 transition-colors"
+                ></Link>
                 <span className="text-secondary-400">/</span>
                 <div className="text-2xl font-display font-bold text-primary-600">
                   RecruAI
@@ -81,25 +111,43 @@ const RecruAINavbar = () => {
             </div>
           </div>
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white shadow-lg">
-            <a href="#features" className="text-secondary-700 hover:text-primary-600 block px-3 py-2 text-base font-medium">
+            <a
+              href="#features"
+              className="text-secondary-700 hover:text-primary-600 block px-3 py-2 text-base font-medium"
+            >
               Features
             </a>
-            <a href="#how-it-works" className="text-secondary-700 hover:text-primary-600 block px-3 py-2 text-base font-medium">
+            <a
+              href="#how-it-works"
+              className="text-secondary-700 hover:text-primary-600 block px-3 py-2 text-base font-medium"
+            >
               How it Works
             </a>
-            <a href="#pricing" className="text-secondary-700 hover:text-primary-600 block px-3 py-2 text-base font-medium">
+            <a
+              href="#pricing"
+              className="text-secondary-700 hover:text-primary-600 block px-3 py-2 text-base font-medium"
+            >
               Pricing
             </a>
-            <a href="#testimonials" className="text-secondary-700 hover:text-primary-600 block px-3 py-2 text-base font-medium">
+            <a
+              href="#testimonials"
+              className="text-secondary-700 hover:text-primary-600 block px-3 py-2 text-base font-medium"
+            >
               Testimonials
             </a>
             <div className="pt-4 pb-3 border-t border-secondary-200">
-              <button className="text-secondary-700 hover:text-primary-600 block px-3 py-2 text-base font-medium">
+              <Link
+                to="/signin"
+                className="text-secondary-700 hover:text-primary-600 block px-3 py-2 text-base font-medium"
+              >
                 Sign In
-              </button>
-              <button className="bg-primary-600 hover:bg-primary-700 text-white block px-3 py-2 rounded-lg text-base font-medium mt-2 w-full">
+              </Link>
+              <Link
+                to="/register"
+                className="bg-primary-600 hover:bg-primary-700 text-white block px-3 py-2 rounded-lg text-base font-medium mt-2 w-full"
+              >
                 Start Free Trial
-              </button>
+              </Link>
             </div>
           </div>
         </div>

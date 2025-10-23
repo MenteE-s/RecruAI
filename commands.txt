@@ -1,0 +1,2 @@
+python -m flask db migrate -m "describe change here"
+python -m flask db upgrade
