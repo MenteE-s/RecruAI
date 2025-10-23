@@ -47,14 +47,14 @@ const Hero = () => {
               {/* Brand Hierarchy Badge */}
               <div className="inline-flex items-center px-4 py-2 bg-white/80 backdrop-blur-sm border border-primary-200 rounded-full text-sm font-medium text-primary-600 mb-6">
                 <span className="relative">
-                  🚀 <strong>MenteE</strong> presents <strong>RecruAI</strong> - Coming Soon
+                  🚀 <strong></strong> presents <strong>RecruAI</strong> - Coming Soon
                 </span>
               </div>
               
               {/* Product Title with Brand Hierarchy */}
               <h1 className="text-4xl tracking-tight font-display font-bold text-secondary-900 sm:text-7xl md:text-8xl lg:text-7xl xl:text-7xl">
                 {/* <span className="block animate-fade-in-up text-2xl md:text-3xl text-secondary-600 font-medium mb-3">
-                  by MenteE
+                  by 
                 </span> */}
                 <span className="block animate-fade-in-up">Master Your</span>
                 <span className="block bg-gradient-to-r from-primary-600 via-accent-500 to-primary-700 bg-clip-text text-transparent animate-fade-in-up" style={{animationDelay: '0.2s'}}>
@@ -126,7 +126,7 @@ const Hero = () => {
                   {/* Typing Animation */}
                   <div className="text-center">
                     <h3 className="text-2xl font-bold text-secondary-900 mb-2">RecruAI Coach</h3>
-                    <p className="text-sm text-secondary-600 mb-4">Powered by MenteE</p>
+                    <p className="text-sm text-secondary-600 mb-4">Powered by </p>
                     <div className="bg-secondary-100 rounded-lg p-4 mb-4">
                       <p className="text-secondary-700 font-medium">
                         "Tell me about yourself..."

@@ -13,7 +13,7 @@ const RecruAINavbar = () => {
               <div className="flex items-center space-x-3">
                 {/* Breadcrumb Style Branding */}
                 <Link to="/" className="text-lg font-display font-bold text-secondary-500 hover:text-primary-600 transition-colors">
-                  MenteE
+                  
                 </Link>
                 {/* <span className="text-secondary-400">/</span>
                 <div className="text-2xl font-display font-bold text-primary-600">
@@ -71,7 +71,7 @@ const RecruAINavbar = () => {
               <div className="flex items-center space-x-3">
                 {/* Breadcrumb Style Branding */}
                 <Link to="/" className="text-lg font-display font-bold text-secondary-500 hover:text-primary-600 transition-colors">
-                  MenteE
+                  
                 </Link>
                 <span className="text-secondary-400">/</span>
                 <div className="text-2xl font-display font-bold text-primary-600">

@@ -1,4 +1,4 @@
-// filepath: h:\Code\Startup\MenteE\RecruAI\frontend\src\components\Footer.js
+// filepath: h:\Code\Startup\\RecruAI\frontend\src\components\Footer.js
 import React from 'react';
 
 const Footer = () => {
@@ -9,7 +9,7 @@ const Footer = () => {
           <div className="lg:col-span-1">
             <div className="flex items-center space-x-3 mb-4">
               <h3 className="text-2xl font-display font-bold text-white">
-                MenteE
+                
               </h3>
               <div className="h-6 w-px bg-secondary-700"></div>
               <span className="text-xl font-semibold text-secondary-300">
@@ -20,7 +20,7 @@ const Footer = () => {
               Empowering AI-powered interviews for job seekers and recruiters. Transforming interview preparation with realistic mock interviews and personalized feedback.
             </p>
             <p className="text-sm text-secondary-400 mb-4">
-              A product by <strong className="text-primary-400">MenteE</strong> - Leading AI innovation in professional development and recruitment.
+              A product by <strong className="text-primary-400"></strong> - Leading AI innovation in professional development and recruitment.
             </p>
             <div className="flex space-x-4">
               <a href="#" className="text-secondary-400 hover:text-white transition-colors">
@@ -54,7 +54,7 @@ const Footer = () => {
           <div>
             <h4 className="text-lg font-semibold text-white mb-4">Company</h4>
             <ul className="space-y-2">
-              <li><a href="#" className="text-secondary-300 hover:text-white transition-colors">About MenteE</a></li>
+              <li><a href="#" className="text-secondary-300 hover:text-white transition-colors">About </a></li>
               <li><a href="#" className="text-secondary-300 hover:text-white transition-colors">Our Products</a></li>
               <li><a href="#" className="text-secondary-300 hover:text-white transition-colors">Careers</a></li>
               <li><a href="#" className="text-secondary-300 hover:text-white transition-colors">Blog</a></li>
@@ -75,7 +75,7 @@ const Footer = () => {
         <div className="border-t border-secondary-800 mt-12 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <p className="text-secondary-400 text-sm">
-              © 2025 <strong>MenteE</strong>. RecruAI and all related products are trademarks of MenteE Inc. All rights reserved.
+              © 2025 <strong></strong>. RecruAI and all related products are trademarks of  Inc. All rights reserved.
             </p>
             <div className="flex space-x-6 mt-4 md:mt-0">
               <a href="#" className="text-secondary-400 hover:text-white text-sm transition-colors">Privacy Policy</a>
