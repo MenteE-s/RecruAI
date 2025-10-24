@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { useToast } from "../components/ui/ToastContext";
 
 export default function Register() {
   const [email, setEmail] = useState("");
@@ -12,6 +13,7 @@ export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const { showToast } = useToast();
 
   useEffect(() => {
     const update = (e) => setMousePosition({ x: e.clientX, y: e.clientY });
@@ -39,7 +41,14 @@ export default function Register() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error || "Registration failed");
+        const msg = data.error || "Registration failed";
+        setError(msg);
+        showToast({
+          message: msg,
+          type: "error",
+          position: "side",
+          duration: 3500,
+        });
         setLoading(false);
         return;
       }
@@ -53,9 +62,21 @@ export default function Register() {
         } else {
           localStorage.setItem("authRole", role);
         }
+        showToast({
+          message: "Account created — signed in",
+          type: "success",
+          position: "side",
+          duration: 2400,
+        });
         navigate("/dashboard", { replace: true });
       } else {
         // otherwise go to sign-in page so user can authenticate
+        showToast({
+          message: "Registration complete — please sign in",
+          type: "success",
+          position: "side",
+          duration: 2400,
+        });
         navigate("/signin", { replace: true });
       }
     } catch (err) {

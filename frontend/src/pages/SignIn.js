@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { useToast } from "../components/ui/ToastContext";
 
 export default function SignIn() {
   const [email, setEmail] = useState("");
@@ -10,6 +11,7 @@ export default function SignIn() {
   const [role, setRole] = useState("individual");
   const navigate = useNavigate();
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const { showToast } = useToast();
 
   useEffect(() => {
     const update = (e) => setMousePosition({ x: e.clientX, y: e.clientY });
@@ -30,16 +32,29 @@ export default function SignIn() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error || "Sign in failed");
+        const msg = data.error || "Sign in failed";
+        setError(msg);
+        // show side toast for errors
+        showToast({
+          message: msg,
+          type: "error",
+          position: "side",
+          duration: 3500,
+        });
         setLoading(false);
         return;
       }
       // If the user selected a role in the UI, ensure it matches the server-verified role.
       // This prevents signing in as `individual` when the account is an organization (and vice-versa).
       if (data.user && data.user.role && role && data.user.role !== role) {
-        setError(
-          `Account role mismatch: this email is registered as '${data.user.role}'. Please switch to '${data.user.role}' to sign in.`
-        );
+        const msg = `Account role mismatch: this email is registered as '${data.user.role}'. Please switch to '${data.user.role}' to sign in.`;
+        setError(msg);
+        showToast({
+          message: msg,
+          type: "error",
+          position: "center",
+          duration: 4500,
+        });
         setLoading(false);
         return;
       }
@@ -53,6 +68,13 @@ export default function SignIn() {
       if (data.user && data.user.role) {
         localStorage.setItem("authRole", data.user.role);
       }
+      // show success toast
+      showToast({
+        message: "Signed in",
+        type: "success",
+        position: "side",
+        duration: 2200,
+      });
       navigate("/dashboard", { replace: true });
     } catch (err) {
       setError("Network error");

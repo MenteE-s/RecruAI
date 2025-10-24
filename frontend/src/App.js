@@ -2,6 +2,7 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import "./App.css";
+import { ToastProvider } from "./components/ui/ToastContext";
 
 // Public Pages
 import RecruAILanding from "./pages/RecruAILanding";
@@ -14,22 +15,24 @@ import DashboardSwitcher from "./pages/DashboardSwitcher";
 function App() {
   return (
     <Router>
-      <Routes>
-        {/* Public Routes */}
-        <Route path="/" element={<RecruAILanding />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/signin" element={<SignIn />} />
+      <ToastProvider>
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/" element={<RecruAILanding />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/signin" element={<SignIn />} />
 
-        {/* Protected Dashboard Route */}
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <DashboardSwitcher />
-            </ProtectedRoute>
-          }
-        />
-      </Routes>
+          {/* Protected Dashboard Route */}
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <DashboardSwitcher />
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </ToastProvider>
     </Router>
   );
 }
