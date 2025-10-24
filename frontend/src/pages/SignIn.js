@@ -7,6 +7,7 @@ export default function SignIn() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [role, setRole] = useState("individual");
   const navigate = useNavigate();
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
@@ -24,6 +25,7 @@ export default function SignIn() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        // do not send client-side role — server determines role from the user record
         body: JSON.stringify({ email, password }),
       });
       const data = await res.json();
@@ -32,11 +34,26 @@ export default function SignIn() {
         setLoading(false);
         return;
       }
-      // store token and redirect
+      // If the user selected a role in the UI, ensure it matches the server-verified role.
+      // This prevents signing in as `individual` when the account is an organization (and vice-versa).
+      if (data.user && data.user.role && role && data.user.role !== role) {
+        setError(
+          `Account role mismatch: this email is registered as '${data.user.role}'. Please switch to '${data.user.role}' to sign in.`
+        );
+        setLoading(false);
+        return;
+      }
+      // store token, mark authenticated and redirect to dashboard
       if (data.access_token) {
         localStorage.setItem("access_token", data.access_token);
       }
-      navigate("/", { replace: true });
+      // mark auth for frontend-only checks
+      localStorage.setItem("isAuthenticated", "true");
+      // use server-verified role from response (do not trust the client-side role selector)
+      if (data.user && data.user.role) {
+        localStorage.setItem("authRole", data.user.role);
+      }
+      navigate("/dashboard", { replace: true });
     } catch (err) {
       setError("Network error");
     } finally {
@@ -89,6 +106,30 @@ export default function SignIn() {
             </Link>
           </div>
           <h2 className="text-2xl font-bold mb-2">Sign in</h2>
+          <div className="flex items-center gap-2 mb-4">
+            <button
+              type="button"
+              onClick={() => setRole("individual")}
+              className={`px-3 py-1 rounded-full text-sm ${
+                role === "individual"
+                  ? "bg-white text-primary-700 shadow"
+                  : "bg-transparent text-secondary-600"
+              }`}
+            >
+              Individual
+            </button>
+            <button
+              type="button"
+              onClick={() => setRole("organization")}
+              className={`px-3 py-1 rounded-full text-sm ${
+                role === "organization"
+                  ? "bg-white text-primary-700 shadow"
+                  : "bg-transparent text-secondary-600"
+              }`}
+            >
+              Organization
+            </button>
+          </div>
           {error && <div className="text-red-600 mb-2">{error}</div>}
 
           <div className="flex flex-col sm:flex-row gap-3 mb-4">

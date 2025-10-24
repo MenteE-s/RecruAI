@@ -12,6 +12,11 @@ class User(db.Model):
     name = db.Column(db.String(120), nullable=True)
     # Use Text for password_hash to avoid truncation of modern hash formats (scrypt, argon2, pbkdf2)
     password_hash = db.Column(db.Text, nullable=True)
+    # user role: 'individual' or 'organization'
+    role = db.Column(db.String(32), nullable=False, default="individual")
+    # optional organization FK
+    organization_id = db.Column(db.Integer, db.ForeignKey("organizations.id"), nullable=True)
+    organization = db.relationship("Organization", back_populates="users")
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def __repr__(self):
@@ -30,5 +35,17 @@ class User(db.Model):
             "id": self.id,
             "email": self.email,
             "name": self.name,
+            "role": self.role,
+            "organization": self.organization.name if self.organization else None,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
+
+
+class Organization(db.Model):
+    __tablename__ = "organizations"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(255), unique=True, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    users = db.relationship("User", back_populates="organization")

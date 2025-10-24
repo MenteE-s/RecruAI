@@ -5,6 +5,8 @@ export default function Register() {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
+  const [role, setRole] = useState("individual");
+  const [organizationName, setOrganizationName] = useState("");
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -25,7 +27,15 @@ export default function Register() {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, name, password }),
+        // include role and optional organization name for organizations
+        body: JSON.stringify({
+          email,
+          name,
+          password,
+          role,
+          organization_name:
+            role === "organization" ? organizationName : undefined,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -33,8 +43,21 @@ export default function Register() {
         setLoading(false);
         return;
       }
-      // registration success — redirect to sign in
-      navigate("/signin", { replace: true });
+      // registration success — if backend returned token, sign in immediately
+      if (data.access_token) {
+        localStorage.setItem("access_token", data.access_token);
+        localStorage.setItem("isAuthenticated", "true");
+        // use server-verified role instead of trusting the local `role` variable
+        if (data.user && data.user.role) {
+          localStorage.setItem("authRole", data.user.role);
+        } else {
+          localStorage.setItem("authRole", role);
+        }
+        navigate("/dashboard", { replace: true });
+      } else {
+        // otherwise go to sign-in page so user can authenticate
+        navigate("/signin", { replace: true });
+      }
     } catch (err) {
       setError("Network error");
     } finally {
@@ -87,6 +110,30 @@ export default function Register() {
             </Link>
           </div>
           <h2 className="text-2xl font-bold mb-2">Create an account</h2>
+          <div className="flex items-center gap-2 mb-4">
+            <button
+              type="button"
+              onClick={() => setRole("individual")}
+              className={`px-3 py-1 rounded-full text-sm ${
+                role === "individual"
+                  ? "bg-white text-primary-700 shadow"
+                  : "bg-transparent text-secondary-600"
+              }`}
+            >
+              Individual
+            </button>
+            <button
+              type="button"
+              onClick={() => setRole("organization")}
+              className={`px-3 py-1 rounded-full text-sm ${
+                role === "organization"
+                  ? "bg-white text-primary-700 shadow"
+                  : "bg-transparent text-secondary-600"
+              }`}
+            >
+              Organization
+            </button>
+          </div>
           {error && <div className="text-red-600 mb-2">{error}</div>}
 
           <div className="flex flex-col sm:flex-row gap-3 mb-4">
@@ -154,6 +201,16 @@ export default function Register() {
                 required
               />
             </label>
+            {role === "organization" && (
+              <label className="block mb-2">
+                <span className="text-sm">Organization name</span>
+                <input
+                  className="mt-1 block w-full border px-3 py-2 rounded"
+                  value={organizationName}
+                  onChange={(e) => setOrganizationName(e.target.value)}
+                />
+              </label>
+            )}
             <label className="block mb-2">
               <span className="text-sm">Name (optional)</span>
               <input

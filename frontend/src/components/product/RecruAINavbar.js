@@ -14,12 +14,14 @@ const RecruAINavbar = () => {
                 {/* Breadcrumb Style Branding */}
                 <Link
                   to="/"
-                  className="text-lg font-display font-bold text-secondary-500 hover:text-primary-600 transition-colors"
-                ></Link>
-                {/* <span className="text-secondary-400">/</span>
+                  className="text-lg font-display font-bold text-accent-600 hover:text-secondary-500 transition-colors"
+                >
+                  MenteE
+                </Link>
+                <span className="text-secondary-400">/</span>
                 <div className="text-2xl font-display font-bold text-primary-600">
                   RecruAI
-                </div> */}
+                </div>
               </div>
             </div>
           </div>
