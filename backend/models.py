@@ -19,6 +19,8 @@ class User(db.Model):
     organization = db.relationship("Organization", back_populates="users")
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    interviews = db.relationship("Interview", back_populates="user", cascade="all, delete-orphan")
+
     def __repr__(self):
         return f"<User {self.email}>"
 
@@ -49,3 +51,27 @@ class Organization(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     users = db.relationship("User", back_populates="organization")
+
+
+class Interview(db.Model):
+    __tablename__ = "interviews"
+
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    scheduled_at = db.Column(db.DateTime, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+
+    user = db.relationship("User", back_populates="interviews")
+
+    def __repr__(self):
+        return f"<Interview {self.title}>"
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "title": self.title,
+            "description": self.description,
+            "scheduled_at": self.scheduled_at.isoformat() if self.scheduled_at else None,
+            "user_id": self.user_id,
+        }

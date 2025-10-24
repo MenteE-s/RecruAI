@@ -1,8 +1,54 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 
 const RecruAINavbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+
+  const navigate = useNavigate();
+  const [signedIn, setSignedIn] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    async function verify() {
+      try {
+        // quick local flag check then server verify for accuracy
+        const cached =
+          typeof window !== "undefined" &&
+          localStorage.getItem("isAuthenticated") === "true";
+        if (cached && mounted) setSignedIn(true);
+        const { verifyTokenWithServer } = await import("../../utils/auth");
+        const user = await verifyTokenWithServer();
+        if (!mounted) return;
+        setSignedIn(!!user);
+      } catch (e) {
+        if (mounted) setSignedIn(false);
+      }
+    }
+    verify();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  function handleSignOut() {
+    (async () => {
+      try {
+        await fetch("/api/auth/logout", {
+          method: "POST",
+          credentials: "include",
+        });
+      } catch (e) {
+        // ignore
+      }
+      try {
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("isAuthenticated");
+        localStorage.removeItem("authRole");
+      } catch (e) {}
+      setSignedIn(false);
+      navigate("/signin", { replace: true });
+    })();
+  }
 
   return (
     <nav className="bg-white shadow-lg fixed w-full z-50">
@@ -57,18 +103,37 @@ const RecruAINavbar = () => {
 
           <div className="hidden md:block">
             <div className="ml-4 flex items-center md:ml-6 space-x-4">
-              <Link
-                to="/signin"
-                className="text-secondary-700 hover:text-primary-600 px-4 py-2 text-sm font-medium transition-colors"
-              >
-                Sign In
-              </Link>
-              <Link
-                to="/register"
-                className="bg-primary-600 hover:bg-primary-700 text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors"
-              >
-                Start Free Trial
-              </Link>
+              {!signedIn ? (
+                <>
+                  <Link
+                    to="/signin"
+                    className="text-secondary-700 hover:text-primary-600 px-4 py-2 text-sm font-medium transition-colors"
+                  >
+                    Sign In
+                  </Link>
+                  <Link
+                    to="/register"
+                    className="bg-primary-600 hover:bg-primary-700 text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors"
+                  >
+                    Start Free Trial
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link
+                    to="/dashboard"
+                    className="text-secondary-700 hover:text-primary-600 px-4 py-2 text-sm font-medium transition-colors"
+                  >
+                    Dashboard
+                  </Link>
+                  <button
+                    onClick={handleSignOut}
+                    className="text-secondary-700 hover:text-primary-600 px-4 py-2 text-sm font-medium"
+                  >
+                    Sign out
+                  </button>
+                </>
+              )}
             </div>
           </div>
 
@@ -138,18 +203,37 @@ const RecruAINavbar = () => {
               Testimonials
             </a>
             <div className="pt-4 pb-3 border-t border-secondary-200">
-              <Link
-                to="/signin"
-                className="text-secondary-700 hover:text-primary-600 block px-3 py-2 text-base font-medium"
-              >
-                Sign In
-              </Link>
-              <Link
-                to="/register"
-                className="bg-primary-600 hover:bg-primary-700 text-white block px-3 py-2 rounded-lg text-base font-medium mt-2 w-full"
-              >
-                Start Free Trial
-              </Link>
+              {!signedIn ? (
+                <>
+                  <Link
+                    to="/signin"
+                    className="text-secondary-700 hover:text-primary-600 block px-3 py-2 text-base font-medium"
+                  >
+                    Sign In
+                  </Link>
+                  <Link
+                    to="/register"
+                    className="bg-primary-600 hover:bg-primary-700 text-white block px-3 py-2 rounded-lg text-base font-medium mt-2 w-full"
+                  >
+                    Start Free Trial
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link
+                    to="/dashboard"
+                    className="text-secondary-700 hover:text-primary-600 block px-3 py-2 text-base font-medium"
+                  >
+                    Dashboard
+                  </Link>
+                  <button
+                    onClick={handleSignOut}
+                    className="text-secondary-700 hover:text-primary-600 block px-3 py-2 text-base font-medium"
+                  >
+                    Sign out
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>

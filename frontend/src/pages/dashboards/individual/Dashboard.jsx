@@ -1,4 +1,4 @@
-import DashboardLayout from "../../../components/layout/individual/DashboardLayout";
+import IndividualDashboardLayout from "../../../components/layout/individual/IndividualDashboardLayout";
 import StatCard from "../../../components/ui/individual/StatCard";
 import Card from "../../../components/ui/individual/Card";
 import {
@@ -8,9 +8,9 @@ import {
   FiDollarSign,
 } from "react-icons/fi";
 
-export default function Dashboard() {
+export default function IndividualDashboard() {
   return (
-    <DashboardLayout>
+    <IndividualDashboardLayout>
       <div className="mb-6">
         <div className="rounded-2xl p-6 bg-gradient-to-br from-indigo-600/80 via-purple-600/60 to-cyan-500/60 text-white shadow-lg">
           <div className="flex items-center justify-between">
@@ -73,6 +73,6 @@ export default function Dashboard() {
           </div>
         </Card>
       </div>
-    </DashboardLayout>
+    </IndividualDashboardLayout>
   );
 }

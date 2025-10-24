@@ -1,11 +1,11 @@
-import DashboardLayout from "../../../components/layout/organization/DashboardLayout";
+﻿import OrganizationDashboardLayout from "../../../components/layout/organization/OrganizationDashboardLayout";
 import StatCard from "../../../components/ui/organization/StatCard";
 import Card from "../../../components/ui/organization/Card";
 import { FiUsers, FiBarChart2, FiBriefcase, FiStar } from "react-icons/fi";
 
-export default function Dashboard() {
+export default function OrganizationDashboard() {
   return (
-    <DashboardLayout>
+    <OrganizationDashboardLayout>
       <div className="mb-6">
         <div className="rounded-2xl p-6 bg-gradient-to-br from-yellow-600/90 via-amber-600/80 to-purple-700/70 text-white shadow-xl">
           <div className="flex items-center justify-between">
@@ -16,14 +16,6 @@ export default function Dashboard() {
               <p className="mt-1 text-white/90">
                 Premium organization insights and team management.
               </p>
-            </div>
-            <div className="hidden md:flex items-center space-x-4">
-              <button className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded text-sm">
-                Invite members
-              </button>
-              <button className="px-4 py-2 bg-white text-amber-600 rounded font-semibold">
-                New Campaign
-              </button>
             </div>
           </div>
         </div>
@@ -78,6 +70,6 @@ export default function Dashboard() {
           </div>
         </Card>
       </div>
-    </DashboardLayout>
+    </OrganizationDashboardLayout>
   );
 }

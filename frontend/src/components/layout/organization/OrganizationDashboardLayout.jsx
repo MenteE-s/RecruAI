@@ -1,10 +1,15 @@
 import { useState } from "react";
 import Sidebar from "../Sidebar";
 import Footer from "../Footer";
+import OrganizationNavbar from "../OrganizationNavbar";
 
 // Organization dashboard layout
 export default function OrganizationDashboardLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const signedIn =
+    typeof window !== "undefined" &&
+    localStorage.getItem("isAuthenticated") === "true";
 
   return (
     <div className="relative flex min-h-screen bg-gray-100">
@@ -20,6 +25,8 @@ export default function OrganizationDashboardLayout({ children }) {
 
       {/* Main Content */}
       <div className="flex flex-col flex-1">
+        <OrganizationNavbar isAuthenticated={signedIn} />
+
         {/* Overlay for mobile */}
         {sidebarOpen && (
           <div

@@ -21,6 +21,27 @@ export default function Register() {
     return () => window.removeEventListener("mousemove", update);
   }, []);
 
+  // Verify stored token with the server on mount. If valid, redirect to dashboard.
+  useEffect(() => {
+    let mounted = true;
+    async function run() {
+      try {
+        const { verifyTokenWithServer } = await import("../utils/auth");
+        if (!mounted) return;
+        const user = await verifyTokenWithServer();
+        if (user) {
+          navigate("/dashboard", { replace: true });
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+    run();
+    return () => {
+      mounted = false;
+    };
+  }, [navigate]);
+
   async function submit(e) {
     e.preventDefault();
     setError(null);
@@ -29,6 +50,7 @@ export default function Register() {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         // include role and optional organization name for organizations
         body: JSON.stringify({
           email,
@@ -54,9 +76,8 @@ export default function Register() {
       }
       // registration success — if backend returned token, sign in immediately
       if (data.access_token) {
-        localStorage.setItem("access_token", data.access_token);
+        // server set cookie; set local flags and role (server-verified)
         localStorage.setItem("isAuthenticated", "true");
-        // use server-verified role instead of trusting the local `role` variable
         if (data.user && data.user.role) {
           localStorage.setItem("authRole", data.user.role);
         } else {

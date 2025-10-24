@@ -1,5 +1,11 @@
-from flask import request, jsonify
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+from flask import request, jsonify, make_response
+from flask_jwt_extended import (
+    create_access_token,
+    jwt_required,
+    get_jwt_identity,
+    set_access_cookies,
+    unset_jwt_cookies,
+)
 
 from . import api_bp
 from ..extensions import db
@@ -43,8 +49,14 @@ def register():
     # include role and organization_id as additional claims so frontend and protected APIs
     # can make quick decisions without trusting client-sent values
     additional_claims = {"role": user.role, "organization_id": user.organization_id}
-    access_token = create_access_token(identity=user.id, additional_claims=additional_claims)
-    return jsonify({"user": user.to_dict(), "access_token": access_token}), 201
+    # ensure the JWT "sub" (subject) is a string to satisfy the JWT library
+    # and Flask-JWT-Extended expectations
+    access_token = create_access_token(identity=str(user.id), additional_claims=additional_claims)
+    # set token in an HttpOnly cookie for safer storage; also return token in
+    # body for backward compatibility
+    resp = make_response(jsonify({"user": user.to_dict(), "access_token": access_token}), 201)
+    set_access_cookies(resp, access_token)
+    return resp
 
 
 @api_bp.route("/auth/login", methods=["POST"])
@@ -62,8 +74,20 @@ def login():
 
     # Always issue tokens based on the server-side role and organization membership.
     additional_claims = {"role": user.role, "organization_id": user.organization_id}
-    access_token = create_access_token(identity=user.id, additional_claims=additional_claims)
-    return jsonify({"access_token": access_token, "user": user.to_dict()}), 200
+    # use a string identity so the token's `sub` claim is a string
+    access_token = create_access_token(identity=str(user.id), additional_claims=additional_claims)
+    # set cookie and return response
+    resp = make_response(jsonify({"access_token": access_token, "user": user.to_dict()}), 200)
+    set_access_cookies(resp, access_token)
+    return resp
+
+
+@api_bp.route("/auth/logout", methods=["POST"])
+def logout():
+    # Unset JWT cookies on logout
+    resp = make_response(jsonify({"msg": "logged out"}), 200)
+    unset_jwt_cookies(resp)
+    return resp
 
 
 @api_bp.route("/auth/me", methods=["GET"])

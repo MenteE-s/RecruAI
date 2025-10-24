@@ -65,14 +65,55 @@ def create_app(config_object: object | None = None):
 	try:
 		from flask_cors import CORS  # type: ignore
 
-		# allow cross-origin requests to /api/* from any origin in dev
-		CORS(app, resources={r"/api/*": {"origins": "*"}})
+		# Restrict CORS origins to the frontend origin when available. In local
+		# development frontend commonly runs on http://localhost:3000; prefer an
+		# explicit origin over a wildcard to reduce CSRF risk for APIs.
+		frontend_origin = os.getenv("FRONTEND_ORIGIN", "http://localhost:3000")
+		CORS(app, resources={r"/api/*": {"origins": frontend_origin}}, supports_credentials=True)
 	except Exception:
 		# flask-cors not installed or not needed in production
 		pass
 
 	# register blueprints
 	app.register_blueprint(api_bp, url_prefix="/api")
+
+	# Security: set safer cookie flags for session cookies. These defaults help
+	# prevent client-side script access to session cookies and allow enabling
+	# Secure in environments that terminate TLS.
+	app.config.setdefault("SESSION_COOKIE_HTTPONLY", True)
+	app.config.setdefault(
+		"SESSION_COOKIE_SECURE",
+		os.getenv("SESSION_COOKIE_SECURE", "0") == "1",
+	)
+
+	# Warn if secret keys are left as defaults - helpful during development to
+	# avoid accidentally running with weak keys in staging/production.
+	if app.config.get("SECRET_KEY") in (None, "dev-secret") or app.config.get("JWT_SECRET_KEY") in (None, app.config.get("SECRET_KEY")):
+		print("WARNING: SECRET_KEY or JWT_SECRET_KEY appears to be using a default value.\nSet SECRET_KEY and JWT_SECRET_KEY in backend/.env for secure deployments.")
+
+	# Add common security response headers to reduce several classes of attacks.
+	@app.after_request
+	def set_security_headers(response):
+		# Prevent MIME type sniffing
+		response.headers.setdefault("X-Content-Type-Options", "nosniff")
+		# Clickjacking protection
+		response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
+		# Basic referrer policy
+		response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+		# Feature-Policy / Permissions-Policy can be tightened as needed
+		# response.headers.setdefault("Permissions-Policy", "geolocation=(), microphone=()")
+		# HSTS only when explicitly enabled (set ENABLE_HSTS=1 in production)
+		if os.getenv("ENABLE_HSTS", "0") == "1":
+			response.headers.setdefault("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload")
+		return response
+
+	# debug: log Authorization header for /api/auth/me to help diagnose token issues
+	@app.before_request
+	def log_auth_header():
+		from flask import request
+		if request.path == "/api/auth/me":
+			# print the raw Authorization header (may be None)
+			print("DEBUG: Authorization header:", request.headers.get("Authorization"))
 
 	@app.route("/")
 	def index():

@@ -1,10 +1,15 @@
 import { useState } from "react";
 import Sidebar from "../Sidebar";
 import Footer from "../Footer";
+import IndividualNavbar from "../IndividualNavbar";
 
-// Organization dashboard layout
-export default function OrganizationDashboardLayout({ children }) {
+// Individual dashboard layout
+export default function IndividualDashboardLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const signedIn =
+    typeof window !== "undefined" &&
+    localStorage.getItem("isAuthenticated") === "true";
 
   return (
     <div className="relative flex min-h-screen bg-gray-100">
@@ -12,14 +17,16 @@ export default function OrganizationDashboardLayout({ children }) {
         open={sidebarOpen}
         toggleSidebar={() => setSidebarOpen(!sidebarOpen)}
         items={[
-          { name: "Team Members", link: "/organization/team" },
-          { name: "Open Reqs", link: "/organization/reqs" },
-          { name: "Pipeline", link: "/organization/pipeline" },
+          { name: "Upcoming Interviews", link: "/interviews/upcoming" },
+          { name: "Interview History", link: "/interviews/history" },
+          { name: "Schedule Interview", link: "/interviews/schedule" },
         ]}
       />
 
       {/* Main Content */}
       <div className="flex flex-col flex-1">
+        <IndividualNavbar isAuthenticated={signedIn} />
+
         {/* Overlay for mobile */}
         {sidebarOpen && (
           <div
