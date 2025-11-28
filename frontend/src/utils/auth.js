@@ -1,4 +1,14 @@
 // helper utilities for token verification and auth state
+import {
+  FiUser,
+  FiCalendar,
+  FiClock,
+  FiBookmark,
+  FiBarChart2,
+  FiFileText,
+  FiBell,
+  FiUsers,
+} from "react-icons/fi";
 export async function verifyTokenWithServer() {
   try {
     if (typeof window === "undefined") return null;
@@ -50,45 +60,69 @@ export function clearLocalAuth() {
 
 export function getSidebarItems(role, plan) {
   if (role === "individual") {
-    if (plan === "free") {
+    if (plan === "trial") {
       return [
-        { name: "Profile", link: "/profile" },
-        { name: "Upcoming Interviews", link: "/interviews/upcoming" },
-        { name: "Interview History", link: "/interviews/history" },
-        { name: "Saved Jobs", link: "/jobs/saved" },
+        { name: "Profile", link: "/profile", icon: FiUser },
+        {
+          name: "Upcoming Interviews",
+          link: "/interviews/upcoming",
+          icon: FiCalendar,
+        },
+        {
+          name: "Interview History",
+          link: "/interviews/history",
+          icon: FiClock,
+        },
+        { name: "Saved Jobs", link: "/jobs/saved", icon: FiBookmark },
       ];
     } else {
       // pro
       return [
-        { name: "Profile", link: "/profile" },
-        { name: "Upcoming Interviews", link: "/interviews/upcoming" },
-        { name: "Interview History", link: "/interviews/history" },
-        { name: "Saved Jobs", link: "/jobs/saved" },
-        { name: "Analytics", link: "/analytics" },
-        { name: "Resume Builder", link: "/resume/builder" },
-        { name: "Job Alerts", link: "/jobs/alerts" },
-        { name: "Career Coaching", link: "/coaching" },
+        { name: "Profile", link: "/profile", icon: FiUser },
+        {
+          name: "Upcoming Interviews",
+          link: "/interviews/upcoming",
+          icon: FiCalendar,
+        },
+        {
+          name: "Interview History",
+          link: "/interviews/history",
+          icon: FiClock,
+        },
+        { name: "Saved Jobs", link: "/jobs/saved", icon: FiBookmark },
+        { name: "Analytics", link: "/analytics", icon: FiBarChart2 },
+        { name: "Resume Builder", link: "/resume/builder", icon: FiFileText },
+        { name: "Job Alerts", link: "/jobs/alerts", icon: FiBell },
+        { name: "Career Coaching", link: "/coaching", icon: FiUsers },
       ];
     }
   } else if (role === "organization") {
-    if (plan === "free") {
+    if (plan === "trial") {
       return [
-        { name: "Team Members", link: "/organization/team" },
-        { name: "Job Posts", link: "/organization/jobs" },
-        { name: "Candidates", link: "/organization/candidates" },
-        { name: "Pipeline", link: "/organization/pipeline" },
+        { name: "Team Members", link: "/organization/team", icon: FiUsers },
+        { name: "Job Posts", link: "/organization/jobs", icon: FiFileText },
+        { name: "Candidates", link: "/organization/candidates", icon: FiUser },
+        { name: "Pipeline", link: "/organization/pipeline", icon: FiBarChart2 },
       ];
     } else {
       // pro
       return [
-        { name: "Team Members", link: "/organization/team" },
-        { name: "Job Posts", link: "/organization/jobs" },
-        { name: "Candidates", link: "/organization/candidates" },
-        { name: "Pipeline", link: "/organization/pipeline" },
-        { name: "Analytics", link: "/organization/analytics" },
-        { name: "Reports", link: "/organization/reports" },
-        { name: "Integrations", link: "/organization/integrations" },
-        { name: "AI Insights", link: "/organization/insights" },
+        { name: "Team Members", link: "/organization/team", icon: FiUsers },
+        { name: "Job Posts", link: "/organization/jobs", icon: FiFileText },
+        { name: "Candidates", link: "/organization/candidates", icon: FiUser },
+        { name: "Pipeline", link: "/organization/pipeline", icon: FiBarChart2 },
+        {
+          name: "Analytics",
+          link: "/organization/analytics",
+          icon: FiBarChart2,
+        },
+        { name: "Reports", link: "/organization/reports", icon: FiFileText },
+        {
+          name: "Integrations",
+          link: "/organization/integrations",
+          icon: FiBell,
+        },
+        { name: "AI Insights", link: "/organization/insights", icon: FiUsers },
       ];
     }
   }

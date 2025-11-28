@@ -1,24 +1,12 @@
 // src/components/layout/Sidebar.jsx
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import {
-  FiHome,
-  FiBarChart2,
-  FiUsers,
-  FiSettings,
-  FiMenu,
-} from "react-icons/fi";
+import { FiMenu } from "react-icons/fi";
 
-const navItems = [
-  { name: "Dashboard", icon: FiHome, href: "/dashboard" },
-  { name: "Analytics", icon: FiBarChart2, href: "/analytics" },
-  { name: "Users", icon: FiUsers, href: "/users" },
-  { name: "Settings", icon: FiSettings, href: "/settings" },
-];
-
-export default function Sidebar({ open, toggleSidebar }) {
-  const topItems = navItems.filter((i) => i.name !== "Settings");
-  const settingsItem = navItems.find((i) => i.name === "Settings");
+export default function Sidebar({ open, toggleSidebar, items = [] }) {
+  // Separate settings from other items if it exists
+  const topItems = items.filter((i) => i.name !== "Settings");
+  const settingsItem = items.find((i) => i.name === "Settings");
 
   return (
     <>
@@ -49,7 +37,7 @@ export default function Sidebar({ open, toggleSidebar }) {
             {topItems.map((item) => (
               <li key={item.name}>
                 <Link
-                  to={item.href}
+                  to={item.link}
                   className="flex items-center space-x-3 px-4 py-3 text-secondary-700 hover:bg-primary-50 hover:text-primary-700 rounded-lg transition"
                 >
                   <item.icon className="h-5 w-5" />
@@ -64,7 +52,7 @@ export default function Sidebar({ open, toggleSidebar }) {
         {settingsItem && (
           <div className="p-4 border-t border-secondary-200 mt-auto">
             <Link
-              to={settingsItem.href}
+              to={settingsItem.link}
               className="flex items-center space-x-3 px-4 py-3 text-secondary-700 hover:bg-primary-50 hover:text-primary-700 rounded-lg transition"
             >
               <settingsItem.icon className="h-5 w-5" />

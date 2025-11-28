@@ -22,7 +22,7 @@ def upgrade():
         batch_op.add_column(sa.Column('plan', sa.String(length=32), nullable=True))
 
     # Set default plan for existing users
-    op.execute("UPDATE users SET plan = 'free' WHERE plan IS NULL")
+    op.execute("UPDATE users SET plan = 'trial' WHERE plan IS NULL")
 
     # Make column not nullable
     with op.batch_alter_table('users', schema=None) as batch_op:

@@ -15,8 +15,16 @@ import RecruAILanding from "./pages/RecruAILanding";
 import Register from "./pages/Register";
 import SignIn from "./pages/SignIn";
 import ProtectedRoute from "./components/ProtectedRoute";
-// Dashboard Page (new)
+// Dashboard Pages
 import DashboardSwitcher from "./pages/DashboardSwitcher";
+import Profile from "./pages/individual/Profile";
+import UpcomingInterviews from "./pages/individual/UpcomingInterviews";
+import InterviewHistory from "./pages/individual/InterviewHistory";
+import SavedJobs from "./pages/individual/SavedJobs";
+import Analytics from "./pages/individual/Analytics";
+import ResumeBuilder from "./pages/individual/ResumeBuilder";
+import JobAlerts from "./pages/individual/JobAlerts";
+import CareerCoaching from "./pages/individual/CareerCoaching";
 
 import { verifyTokenWithServer } from "./utils/auth";
 
@@ -64,12 +72,76 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/signin" element={<SignIn />} />
 
-          {/* Protected Dashboard Route */}
+          {/* Protected Routes */}
           <Route
             path="/dashboard"
             element={
               <ProtectedRoute>
                 <DashboardSwitcher />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/interviews/upcoming"
+            element={
+              <ProtectedRoute>
+                <UpcomingInterviews />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/interviews/history"
+            element={
+              <ProtectedRoute>
+                <InterviewHistory />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/jobs/saved"
+            element={
+              <ProtectedRoute>
+                <SavedJobs />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/analytics"
+            element={
+              <ProtectedRoute>
+                <Analytics />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/resume/builder"
+            element={
+              <ProtectedRoute>
+                <ResumeBuilder />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/jobs/alerts"
+            element={
+              <ProtectedRoute>
+                <JobAlerts />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/coaching"
+            element={
+              <ProtectedRoute>
+                <CareerCoaching />
               </ProtectedRoute>
             }
           />
