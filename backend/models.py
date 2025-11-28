@@ -41,6 +41,7 @@ class User(db.Model):
             "name": self.name,
             "role": self.role,
             "plan": self.plan,
+            "organization_id": self.organization_id,
             "organization": self.organization.name if self.organization else None,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
@@ -56,12 +57,65 @@ class Organization(db.Model):
     contact_email = db.Column(db.String(255), nullable=True)
     contact_name = db.Column(db.String(255), nullable=True)
     location = db.Column(db.String(255), nullable=True)
+    company_size = db.Column(db.String(50), nullable=True)
+    industry = db.Column(db.String(100), nullable=True)
+    mission = db.Column(db.Text, nullable=True)
+    vision = db.Column(db.Text, nullable=True)
+    social_media_links = db.Column(db.Text, nullable=True)  # JSON string
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     users = db.relationship("User", back_populates="organization")
     posts = db.relationship("Post", back_populates="organization", cascade="all, delete-orphan")
+    team_members = db.relationship("TeamMember", back_populates="organization", cascade="all, delete-orphan")
+
+    def to_dict(self):
+        import json
+        return {
+            "id": self.id,
+            "name": self.name,
+            "description": self.description,
+            "website": self.website,
+            "contact_email": self.contact_email,
+            "contact_name": self.contact_name,
+            "location": self.location,
+            "company_size": self.company_size,
+            "industry": self.industry,
+            "mission": self.mission,
+            "vision": self.vision,
+            "social_media_links": json.loads(self.social_media_links) if self.social_media_links else [],
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
 
 
+class TeamMember(db.Model):
+    __tablename__ = "team_members"
+
+    id = db.Column(db.Integer, primary_key=True)
+    organization_id = db.Column(db.Integer, db.ForeignKey("organizations.id"), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    role = db.Column(db.String(100), nullable=False)  # e.g., 'Admin', 'HR', 'Manager'
+    permissions = db.Column(db.Text, nullable=True)  # JSON string of permissions
+    join_date = db.Column(db.Date, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    organization = db.relationship("Organization", back_populates="team_members")
+    user = db.relationship("User", backref="team_memberships")
+
+    def to_dict(self):
+        import json
+        return {
+            "id": self.id,
+            "organization_id": self.organization_id,
+            "user_id": self.user_id,
+            "role": self.role,
+            "permissions": json.loads(self.permissions) if self.permissions else [],
+            "join_date": self.join_date.isoformat() if self.join_date else None,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "organization": self.organization.name if self.organization else None,
+            "user": self.user.name if self.user else None,
+        }
+    
+    
 class Interview(db.Model):
     __tablename__ = "interviews"
 

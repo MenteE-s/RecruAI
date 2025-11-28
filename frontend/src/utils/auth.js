@@ -102,6 +102,7 @@ export function getSidebarItems(role, plan) {
   } else if (role === "organization") {
     if (plan === "trial") {
       return [
+        { name: "Profile", link: "/organization/profile", icon: FiUser },
         { name: "Team Members", link: "/organization/team", icon: FiUsers },
         { name: "Job Posts", link: "/organization/jobs", icon: FiFileText },
         { name: "Candidates", link: "/organization/candidates", icon: FiUser },
@@ -116,6 +117,7 @@ export function getSidebarItems(role, plan) {
     } else {
       // pro
       return [
+        { name: "Profile", link: "/organization/profile", icon: FiUser },
         { name: "Team Members", link: "/organization/team", icon: FiUsers },
         { name: "Job Posts", link: "/organization/jobs", icon: FiFileText },
         { name: "Candidates", link: "/organization/candidates", icon: FiUser },

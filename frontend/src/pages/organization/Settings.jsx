@@ -1,7 +1,8 @@
+import { useState, useEffect } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
 import Card from "../../components/ui/Card";
-import { getSidebarItems } from "../../utils/auth";
+import { getSidebarItems, verifyTokenWithServer } from "../../utils/auth";
 
 export default function OrganizationSettings() {
   const role =
@@ -9,6 +10,68 @@ export default function OrganizationSettings() {
   const plan =
     typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
   const sidebarItems = getSidebarItems(role, plan);
+
+  const [user, setUser] = useState(null);
+  const [organization, setOrganization] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const userData = await verifyTokenWithServer();
+        setUser(userData);
+        if (userData && userData.organization_id) {
+          const orgRes = await fetch(
+            `/api/organizations/${userData.organization_id}`
+          );
+          if (orgRes.ok) {
+            const orgData = await orgRes.json();
+            setOrganization(orgData);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch data:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const handleProfileUpdate = async (e) => {
+    e.preventDefault();
+    if (!organization) return;
+
+    setSaving(true);
+    try {
+      const payload = {
+        company_size: organization.company_size,
+        industry: organization.industry,
+        mission: organization.mission,
+        vision: organization.vision,
+        social_media_links: organization.social_media_links,
+      };
+      const res = await fetch(`/api/organizations/${organization.id}/profile`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) {
+        const updatedOrg = await res.json();
+        setOrganization(updatedOrg);
+        alert("Profile updated successfully!");
+      } else {
+        alert("Failed to update profile");
+      }
+    } catch (err) {
+      console.error("Error updating profile:", err);
+      alert("Error updating profile");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <DashboardLayout
@@ -22,6 +85,117 @@ export default function OrganizationSettings() {
       </div>
 
       <div className="space-y-6">
+        {/* Organization Profile */}
+        <Card>
+          <h3 className="font-semibold text-gray-800 mb-4">
+            Organization Profile
+          </h3>
+          {loading ? (
+            <p>Loading...</p>
+          ) : organization ? (
+            <form onSubmit={handleProfileUpdate} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Company Size
+                  </label>
+                  <input
+                    type="text"
+                    value={organization.company_size || ""}
+                    onChange={(e) =>
+                      setOrganization({
+                        ...organization,
+                        company_size: e.target.value,
+                      })
+                    }
+                    className="mt-1 block w-full border border-gray-300 rounded px-3 py-2"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Industry
+                  </label>
+                  <input
+                    type="text"
+                    value={organization.industry || ""}
+                    onChange={(e) =>
+                      setOrganization({
+                        ...organization,
+                        industry: e.target.value,
+                      })
+                    }
+                    className="mt-1 block w-full border border-gray-300 rounded px-3 py-2"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Mission
+                </label>
+                <textarea
+                  value={organization.mission || ""}
+                  onChange={(e) =>
+                    setOrganization({
+                      ...organization,
+                      mission: e.target.value,
+                    })
+                  }
+                  rows={3}
+                  className="mt-1 block w-full border border-gray-300 rounded px-3 py-2"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Vision
+                </label>
+                <textarea
+                  value={organization.vision || ""}
+                  onChange={(e) =>
+                    setOrganization({ ...organization, vision: e.target.value })
+                  }
+                  rows={3}
+                  className="mt-1 block w-full border border-gray-300 rounded px-3 py-2"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Social Media Links (JSON array)
+                </label>
+                <textarea
+                  value={JSON.stringify(
+                    organization.social_media_links || [],
+                    null,
+                    2
+                  )}
+                  onChange={(e) => {
+                    try {
+                      const links = JSON.parse(e.target.value);
+                      setOrganization({
+                        ...organization,
+                        social_media_links: links,
+                      });
+                    } catch (err) {
+                      // invalid JSON, ignore
+                    }
+                  }}
+                  rows={3}
+                  className="mt-1 block w-full border border-gray-300 rounded px-3 py-2 font-mono text-sm"
+                  placeholder='[{"platform": "LinkedIn", "url": "https://linkedin.com/company/..."}]'
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={saving}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+              >
+                {saving ? "Saving..." : "Save Profile"}
+              </button>
+            </form>
+          ) : (
+            <p>No organization data available.</p>
+          )}
+        </Card>
+
         {/* Current Plan */}
         <Card>
           <h3 className="font-semibold text-gray-800 mb-4">Current Plan</h3>

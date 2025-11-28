@@ -28,6 +28,7 @@ import ResumeBuilder from "./pages/individual/ResumeBuilder";
 import JobAlerts from "./pages/individual/JobAlerts";
 import CareerCoaching from "./pages/individual/CareerCoaching";
 // Organization Pages
+import OrganizationProfile from "./pages/organization/Profile";
 import TeamMembers from "./pages/organization/TeamMembers";
 import JobPosts from "./pages/organization/JobPosts";
 import Candidates from "./pages/organization/Candidates";
@@ -162,6 +163,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <InterviewManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/organization/profile"
+            element={
+              <ProtectedRoute>
+                <OrganizationProfile />
               </ProtectedRoute>
             }
           />
