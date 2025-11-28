@@ -14,6 +14,8 @@ class User(db.Model):
     password_hash = db.Column(db.Text, nullable=True)
     # user role: 'individual' or 'organization'
     role = db.Column(db.String(32), nullable=False, default="individual")
+    # user plan: 'free' or 'pro'
+    plan = db.Column(db.String(32), nullable=False, default="free")
     # optional organization FK
     organization_id = db.Column(db.Integer, db.ForeignKey("organizations.id"), nullable=True)
     organization = db.relationship("Organization", back_populates="users")
@@ -38,6 +40,7 @@ class User(db.Model):
             "email": self.email,
             "name": self.name,
             "role": self.role,
+            "plan": self.plan,
             "organization": self.organization.name if self.organization else None,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
@@ -48,9 +51,15 @@ class Organization(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(255), unique=True, nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    website = db.Column(db.String(255), nullable=True)
+    contact_email = db.Column(db.String(255), nullable=True)
+    contact_name = db.Column(db.String(255), nullable=True)
+    location = db.Column(db.String(255), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     users = db.relationship("User", back_populates="organization")
+    posts = db.relationship("Post", back_populates="organization", cascade="all, delete-orphan")
 
 
 class Interview(db.Model):
@@ -74,4 +83,30 @@ class Interview(db.Model):
             "description": self.description,
             "scheduled_at": self.scheduled_at.isoformat() if self.scheduled_at else None,
             "user_id": self.user_id,
+        }
+
+
+class Post(db.Model):
+    __tablename__ = "posts"
+
+    id = db.Column(db.Integer, primary_key=True)
+    organization_id = db.Column(db.Integer, db.ForeignKey("organizations.id"), nullable=False)
+    title = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    location = db.Column(db.String(255), nullable=True)
+    employment_type = db.Column(db.String(64), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    organization = db.relationship("Organization", back_populates="posts")
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "title": self.title,
+            "description": self.description,
+            "location": self.location,
+            "employment_type": self.employment_type,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "organization_id": self.organization_id,
+            "organization": self.organization.name if self.organization else None,
         }

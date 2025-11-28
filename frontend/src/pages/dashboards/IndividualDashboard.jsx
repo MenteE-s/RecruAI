@@ -1,6 +1,8 @@
 import DashboardLayout from "../../components/layout/DashboardLayout";
+import IndividualNavbar from "../../components/layout/IndividualNavbar";
 import StatCard from "../../components/ui/StatCard";
 import Card from "../../components/ui/Card";
+import { getSidebarItems } from "../../utils/auth";
 import {
   FiUsers,
   FiActivity,
@@ -9,8 +11,17 @@ import {
 } from "react-icons/fi";
 
 export default function IndividualDashboard() {
+  const role =
+    typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
+  const plan =
+    typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
+  const sidebarItems = getSidebarItems(role, plan);
+
   return (
-    <DashboardLayout>
+    <DashboardLayout
+      NavbarComponent={IndividualNavbar}
+      sidebarItems={sidebarItems}
+    >
       <div className="mb-6">
         <div className="rounded-2xl p-6 bg-gradient-to-br from-indigo-600/80 via-purple-600/60 to-cyan-500/60 text-white shadow-lg">
           <div className="flex items-center justify-between">

@@ -1,11 +1,22 @@
 import DashboardLayout from "../../components/layout/DashboardLayout";
+import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
 import StatCard from "../../components/ui/StatCard";
 import Card from "../../components/ui/Card";
+import { getSidebarItems } from "../../utils/auth";
 import { FiUsers, FiBarChart2, FiBriefcase, FiStar } from "react-icons/fi";
 
 export default function OrganizationDashboard() {
+  const role =
+    typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
+  const plan =
+    typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
+  const sidebarItems = getSidebarItems(role, plan);
+
   return (
-    <DashboardLayout>
+    <DashboardLayout
+      NavbarComponent={OrganizationNavbar}
+      sidebarItems={sidebarItems}
+    >
       <div className="mb-6">
         <div className="rounded-2xl p-6 bg-gradient-to-br from-yellow-600/90 via-amber-600/80 to-purple-700/70 text-white shadow-xl">
           <div className="flex items-center justify-between">
@@ -36,6 +47,7 @@ export default function OrganizationDashboard() {
           change="+8%"
           icon={FiUsers}
           trend="up"
+          variant="gradient"
         />
         <StatCard
           title="Open Reqs"
@@ -43,6 +55,7 @@ export default function OrganizationDashboard() {
           change="-2"
           icon={FiBriefcase}
           trend="down"
+          variant="gradient"
         />
         <StatCard
           title="Pipeline"
@@ -50,6 +63,7 @@ export default function OrganizationDashboard() {
           change="+12%"
           icon={FiBarChart2}
           trend="up"
+          variant="gradient"
         />
         <StatCard
           title="Premium Score"
@@ -57,11 +71,12 @@ export default function OrganizationDashboard() {
           change="+1"
           icon={FiStar}
           trend="up"
+          variant="gradient"
         />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
+        <Card bgOpacity="95" shadow="lg">
           <h3 className="font-semibold text-secondary-800 mb-4">
             Hiring Funnel
           </h3>
@@ -69,7 +84,7 @@ export default function OrganizationDashboard() {
             Funnel chart placeholder
           </div>
         </Card>
-        <Card>
+        <Card bgOpacity="95" shadow="lg">
           <h3 className="font-semibold text-secondary-800 mb-4">
             Top Candidates
           </h3>
