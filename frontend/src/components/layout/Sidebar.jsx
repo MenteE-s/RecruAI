@@ -27,7 +27,7 @@ export default function Sidebar({ open, toggleSidebar, items = [] }) {
       >
         <div className="p-6 border-b border-secondary-200">
           <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-br from-primary-600 to-accent-500 font-display">
-            MenteE Dashboard
+            RecruAI
           </h1>
         </div>
 

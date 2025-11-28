@@ -16,8 +16,7 @@ export default function InterviewHistory() {
       sidebarItems={sidebarItems}
     >
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Interview History</h1>
-        <p className="text-gray-600 mt-2">
+        <p className="text-gray-600">
           Review your past interviews and feedback.
         </p>
       </div>

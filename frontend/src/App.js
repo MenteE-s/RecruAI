@@ -17,6 +17,7 @@ import SignIn from "./pages/SignIn";
 import ProtectedRoute from "./components/ProtectedRoute";
 // Dashboard Pages
 import DashboardSwitcher from "./pages/DashboardSwitcher";
+import SettingsSwitcher from "./pages/SettingsSwitcher";
 import Profile from "./pages/individual/Profile";
 import UpcomingInterviews from "./pages/individual/UpcomingInterviews";
 import InterviewHistory from "./pages/individual/InterviewHistory";
@@ -142,6 +143,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <CareerCoaching />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <SettingsSwitcher />
               </ProtectedRoute>
             }
           />

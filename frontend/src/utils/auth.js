@@ -8,6 +8,7 @@ import {
   FiFileText,
   FiBell,
   FiUsers,
+  FiSettings,
 } from "react-icons/fi";
 export async function verifyTokenWithServer() {
   try {
@@ -74,6 +75,7 @@ export function getSidebarItems(role, plan) {
           icon: FiClock,
         },
         { name: "Saved Jobs", link: "/jobs/saved", icon: FiBookmark },
+        { name: "Settings", link: "/settings", icon: FiSettings },
       ];
     } else {
       // pro
@@ -94,6 +96,7 @@ export function getSidebarItems(role, plan) {
         { name: "Resume Builder", link: "/resume/builder", icon: FiFileText },
         { name: "Job Alerts", link: "/jobs/alerts", icon: FiBell },
         { name: "Career Coaching", link: "/coaching", icon: FiUsers },
+        { name: "Settings", link: "/settings", icon: FiSettings },
       ];
     }
   } else if (role === "organization") {
@@ -103,6 +106,7 @@ export function getSidebarItems(role, plan) {
         { name: "Job Posts", link: "/organization/jobs", icon: FiFileText },
         { name: "Candidates", link: "/organization/candidates", icon: FiUser },
         { name: "Pipeline", link: "/organization/pipeline", icon: FiBarChart2 },
+        { name: "Settings", link: "/settings", icon: FiSettings },
       ];
     } else {
       // pro
@@ -123,6 +127,7 @@ export function getSidebarItems(role, plan) {
           icon: FiBell,
         },
         { name: "AI Insights", link: "/organization/insights", icon: FiUsers },
+        { name: "Settings", link: "/settings", icon: FiSettings },
       ];
     }
   }
