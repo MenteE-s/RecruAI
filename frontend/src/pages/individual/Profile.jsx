@@ -7,8 +7,6 @@ import {
   FiPlus,
   FiX,
   FiEdit2,
-  FiMapPin,
-  FiCalendar,
   FiAward,
   FiBook,
   FiCode,
@@ -20,17 +18,38 @@ import {
   FiTrash2,
 } from "react-icons/fi";
 
+// Date formatting utility
+const formatDate = (dateString, format = "year") => {
+  if (!dateString) return "";
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return "";
+
+  switch (format) {
+    case "full":
+      return date.toLocaleDateString();
+    case "year":
+    default:
+      return date.getFullYear().toString();
+  }
+};
+
 // Modal Component
 const Modal = ({ isOpen, onClose, children }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-title"
+    >
       <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
         {children}
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+          aria-label="Close modal"
         >
           <FiXIcon size={24} />
         </button>
@@ -87,6 +106,35 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
         authors: [],
         publication_url: "",
         doi: "",
+        issuer: "",
+        date: "",
+        date_obtained: "",
+        expiry_date: "",
+        credential_id: "",
+        proficiency_level: "beginner",
+        organization: "",
+        duration: "",
+        membership_id: "",
+        patent_number: "",
+        filing_date: "",
+        grant_date: "",
+        inventors: [],
+        provider: "",
+        completion_date: "",
+        platform: "",
+        url: "",
+        username: "",
+        email: "",
+        phone: "",
+        relationship: "",
+        category: "",
+        event_name: "",
+        event_type: "",
+        audience_size: "",
+        issuing_authority: "",
+        license_number: "",
+        issue_date: "",
+        is_active: true,
         ...itemData,
       });
     } else {
@@ -110,6 +158,35 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
         authors: [],
         publication_url: "",
         doi: "",
+        issuer: "",
+        date: "",
+        date_obtained: "",
+        expiry_date: "",
+        credential_id: "",
+        proficiency_level: "beginner",
+        organization: "",
+        duration: "",
+        membership_id: "",
+        patent_number: "",
+        filing_date: "",
+        grant_date: "",
+        inventors: [],
+        provider: "",
+        completion_date: "",
+        platform: "",
+        url: "",
+        username: "",
+        email: "",
+        phone: "",
+        relationship: "",
+        category: "",
+        event_name: "",
+        event_type: "",
+        audience_size: "",
+        issuing_authority: "",
+        license_number: "",
+        issue_date: "",
+        is_active: true,
       });
     }
   }, [itemData]);
@@ -153,6 +230,21 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               }
               className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
             />
+            <select
+              value={formData.employment_type || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, employment_type: e.target.value })
+              }
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Select Employment Type</option>
+              <option value="full-time">Full-time</option>
+              <option value="part-time">Part-time</option>
+              <option value="contract">Contract</option>
+              <option value="freelance">Freelance</option>
+              <option value="internship">Internship</option>
+              <option value="apprenticeship">Apprenticeship</option>
+            </select>
             <div className="grid grid-cols-2 gap-2">
               <input
                 type="date"
@@ -237,6 +329,24 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
                 className="p-2 border rounded focus:ring-2 focus:ring-blue-500"
               />
             </div>
+            <input
+              type="text"
+              placeholder="GPA (optional)"
+              value={formData.gpa || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, gpa: e.target.value })
+              }
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+            />
+            <textarea
+              placeholder="Achievements/Awards (optional)"
+              value={formData.achievements || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, achievements: e.target.value })
+              }
+              className="w-full p-2 border rounded resize-none focus:ring-2 focus:ring-blue-500"
+              rows={3}
+            />
           </div>
         );
 
@@ -265,6 +375,19 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               <option value="advanced">Advanced</option>
               <option value="expert">Expert</option>
             </select>
+            <input
+              type="number"
+              placeholder="Years of Experience (optional)"
+              value={formData.years_experience || ""}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  years_experience: parseInt(e.target.value) || null,
+                })
+              }
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              min="0"
+            />
           </div>
         );
 
@@ -392,6 +515,762 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
           </div>
         );
 
+      case "awards":
+        return (
+          <div className="space-y-4">
+            <input
+              type="text"
+              placeholder="Award Title"
+              value={formData.title || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, title: e.target.value })
+              }
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              required
+            />
+            <input
+              type="text"
+              placeholder="Issuer/Organization"
+              value={formData.issuer || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, issuer: e.target.value })
+              }
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              required
+            />
+            <input
+              type="date"
+              placeholder="Date Received"
+              value={formData.date || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, date: e.target.value })
+              }
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+            />
+            <textarea
+              placeholder="Description"
+              value={formData.description || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, description: e.target.value })
+              }
+              className="w-full p-2 border rounded resize-none focus:ring-2 focus:ring-blue-500"
+              rows={3}
+            />
+          </div>
+        );
+
+      case "certifications":
+        return (
+          <div className="space-y-4">
+            <input
+              type="text"
+              placeholder="Certification Name"
+              value={formData.name || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              required
+            />
+            <input
+              type="text"
+              placeholder="Issuer/Organization"
+              value={formData.issuer || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, issuer: e.target.value })
+              }
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              required
+            />
+            <div className="grid grid-cols-2 gap-2">
+              <input
+                type="date"
+                placeholder="Date Obtained"
+                value={formData.date_obtained || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, date_obtained: e.target.value })
+                }
+                className="p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              />
+              <input
+                type="date"
+                placeholder="Expiry Date"
+                value={formData.expiry_date || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, expiry_date: e.target.value })
+                }
+                className="p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <input
+              type="text"
+              placeholder="Credential ID"
+              value={formData.credential_id || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, credential_id: e.target.value })
+              }
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        );
+
+      case "languages":
+        return (
+          <div className="space-y-4">
+            <input
+              type="text"
+              placeholder="Language Name (e.g., English, Spanish)"
+              value={formData.name || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              required
+            />
+            <select
+              value={formData.proficiency_level || "beginner"}
+              onChange={(e) =>
+                setFormData({ ...formData, proficiency_level: e.target.value })
+              }
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="beginner">Beginner</option>
+              <option value="intermediate">Intermediate</option>
+              <option value="advanced">Advanced</option>
+              <option value="native">Native</option>
+            </select>
+          </div>
+        );
+
+      case "volunteerExperiences":
+        return (
+          <div className="space-y-4">
+            <input
+              type="text"
+              placeholder="Role/Title"
+              value={formData.title || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, title: e.target.value })
+              }
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              required
+            />
+            <input
+              type="text"
+              placeholder="Organization"
+              value={formData.organization || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, organization: e.target.value })
+              }
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              required
+            />
+            <input
+              type="text"
+              placeholder="Location"
+              value={formData.location || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, location: e.target.value })
+              }
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+            />
+            <div className="grid grid-cols-2 gap-2">
+              <input
+                type="date"
+                placeholder="Start Date"
+                value={formData.start_date || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, start_date: e.target.value })
+                }
+                className="p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              />
+              <input
+                type="date"
+                placeholder="End Date"
+                value={formData.end_date || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, end_date: e.target.value })
+                }
+                className="p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <textarea
+              placeholder="Description"
+              value={formData.description || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, description: e.target.value })
+              }
+              className="w-full p-2 border rounded resize-none focus:ring-2 focus:ring-blue-500"
+              rows={3}
+            />
+          </div>
+        );
+
+      case "references":
+        return (
+          <div className="space-y-4">
+            <input
+              type="text"
+              placeholder="Full Name"
+              value={formData.name || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              required
+            />
+            <input
+              type="text"
+              placeholder="Title/Position"
+              value={formData.title || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, title: e.target.value })
+              }
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+            />
+            <input
+              type="text"
+              placeholder="Company/Organization"
+              value={formData.company || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, company: e.target.value })
+              }
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+            />
+            <input
+              type="email"
+              placeholder="Email Address"
+              value={formData.email || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, email: e.target.value })
+              }
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+            />
+            <input
+              type="tel"
+              placeholder="Phone Number"
+              value={formData.phone || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, phone: e.target.value })
+              }
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+            />
+            <input
+              type="text"
+              placeholder="Relationship (e.g., Former Manager)"
+              value={formData.relationship || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, relationship: e.target.value })
+              }
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        );
+
+      case "hobbyInterests":
+        return (
+          <div className="space-y-4">
+            <input
+              type="text"
+              placeholder="Hobby/Interest Name"
+              value={formData.name || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              required
+            />
+            <textarea
+              placeholder="Description (optional)"
+              value={formData.description || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, description: e.target.value })
+              }
+              className="w-full p-2 border rounded resize-none focus:ring-2 focus:ring-blue-500"
+              rows={3}
+            />
+          </div>
+        );
+
+      case "professionalMemberships":
+        return (
+          <div className="space-y-4">
+            <input
+              type="text"
+              placeholder="Organization Name"
+              value={formData.organization || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, organization: e.target.value })
+              }
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              required
+            />
+            <input
+              type="text"
+              placeholder="Membership ID (optional)"
+              value={formData.membership_id || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, membership_id: e.target.value })
+              }
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+            />
+            <div className="grid grid-cols-2 gap-2">
+              <input
+                type="date"
+                placeholder="Start Date"
+                value={formData.start_date || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, start_date: e.target.value })
+                }
+                className="p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              />
+              <input
+                type="date"
+                placeholder="End Date"
+                value={formData.end_date || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, end_date: e.target.value })
+                }
+                className="p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <textarea
+              placeholder="Description (optional)"
+              value={formData.description || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, description: e.target.value })
+              }
+              className="w-full p-2 border rounded resize-none focus:ring-2 focus:ring-blue-500"
+              rows={3}
+            />
+          </div>
+        );
+
+      case "patents":
+        return (
+          <div className="space-y-4">
+            <input
+              type="text"
+              placeholder="Patent Title"
+              value={formData.title || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, title: e.target.value })
+              }
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              required
+            />
+            <input
+              type="text"
+              placeholder="Patent Number"
+              value={formData.patent_number || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, patent_number: e.target.value })
+              }
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+            />
+            <div className="grid grid-cols-2 gap-2">
+              <input
+                type="date"
+                placeholder="Filing Date"
+                value={formData.filing_date || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, filing_date: e.target.value })
+                }
+                className="p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              />
+              <input
+                type="date"
+                placeholder="Grant Date"
+                value={formData.grant_date || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, grant_date: e.target.value })
+                }
+                className="p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <input
+              type="text"
+              placeholder="Inventors (comma-separated)"
+              value={
+                Array.isArray(formData.inventors)
+                  ? formData.inventors.join(", ")
+                  : ""
+              }
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  inventors: e.target.value
+                    ? e.target.value.split(",").map((i) => i.trim())
+                    : [],
+                })
+              }
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+            />
+            <textarea
+              placeholder="Description"
+              value={formData.description || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, description: e.target.value })
+              }
+              className="w-full p-2 border rounded resize-none focus:ring-2 focus:ring-blue-500"
+              rows={3}
+            />
+          </div>
+        );
+
+      case "courseTrainings":
+        return (
+          <div className="space-y-4">
+            <input
+              type="text"
+              placeholder="Course/Training Name"
+              value={formData.name || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              required
+            />
+            <input
+              type="text"
+              placeholder="Provider/Platform"
+              value={formData.provider || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, provider: e.target.value })
+              }
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+            />
+            <input
+              type="date"
+              placeholder="Completion Date"
+              value={formData.completion_date || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, completion_date: e.target.value })
+              }
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+            />
+            <input
+              type="text"
+              placeholder="Credential ID"
+              value={formData.credential_id || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, credential_id: e.target.value })
+              }
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+            />
+            <textarea
+              placeholder="Description (optional)"
+              value={formData.description || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, description: e.target.value })
+              }
+              className="w-full p-2 border rounded resize-none focus:ring-2 focus:ring-blue-500"
+              rows={3}
+            />
+          </div>
+        );
+
+      case "socialMediaLinks":
+        return (
+          <div className="space-y-4">
+            <select
+              value={formData.platform || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, platform: e.target.value })
+              }
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              required
+            >
+              <option value="">Select Platform</option>
+              <option value="LinkedIn">LinkedIn</option>
+              <option value="Twitter">Twitter</option>
+              <option value="GitHub">GitHub</option>
+              <option value="Facebook">Facebook</option>
+              <option value="Instagram">Instagram</option>
+              <option value="YouTube">YouTube</option>
+              <option value="Website">Personal Website</option>
+              <option value="Other">Other</option>
+            </select>
+            <input
+              type="url"
+              placeholder="Profile URL"
+              value={formData.url || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, url: e.target.value })
+              }
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              required
+            />
+            <input
+              type="text"
+              placeholder="Username/Handle (optional)"
+              value={formData.username || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, username: e.target.value })
+              }
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        );
+
+      case "keyAchievements":
+        return (
+          <div className="space-y-4">
+            <input
+              type="text"
+              placeholder="Achievement Title"
+              value={formData.title || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, title: e.target.value })
+              }
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              required
+            />
+            <select
+              value={formData.category || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, category: e.target.value })
+              }
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Select Category</option>
+              <option value="Professional">Professional</option>
+              <option value="Academic">Academic</option>
+              <option value="Personal">Personal</option>
+              <option value="Community">Community</option>
+            </select>
+            <input
+              type="date"
+              placeholder="Date Achieved"
+              value={formData.date || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, date: e.target.value })
+              }
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+            />
+            <textarea
+              placeholder="Description"
+              value={formData.description || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, description: e.target.value })
+              }
+              className="w-full p-2 border rounded resize-none focus:ring-2 focus:ring-blue-500"
+              rows={3}
+            />
+          </div>
+        );
+
+      case "conferences":
+        return (
+          <div className="space-y-4">
+            <input
+              type="text"
+              placeholder="Conference/Seminar Name"
+              value={formData.name || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              required
+            />
+            <select
+              value={formData.role || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, role: e.target.value })
+              }
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Select Role</option>
+              <option value="Attendee">Attendee</option>
+              <option value="Speaker">Speaker</option>
+              <option value="Organizer">Organizer</option>
+              <option value="Panelist">Panelist</option>
+              <option value="Moderator">Moderator</option>
+            </select>
+            <input
+              type="text"
+              placeholder="Location"
+              value={formData.location || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, location: e.target.value })
+              }
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+            />
+            <input
+              type="date"
+              placeholder="Date"
+              value={formData.date || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, date: e.target.value })
+              }
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+            />
+            <textarea
+              placeholder="Description (optional)"
+              value={formData.description || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, description: e.target.value })
+              }
+              className="w-full p-2 border rounded resize-none focus:ring-2 focus:ring-blue-500"
+              rows={3}
+            />
+          </div>
+        );
+
+      case "speakingEngagements":
+        return (
+          <div className="space-y-4">
+            <input
+              type="text"
+              placeholder="Presentation/Speech Title"
+              value={formData.title || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, title: e.target.value })
+              }
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              required
+            />
+            <input
+              type="text"
+              placeholder="Event Name"
+              value={formData.event_name || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, event_name: e.target.value })
+              }
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+            />
+            <select
+              value={formData.event_type || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, event_type: e.target.value })
+              }
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Select Event Type</option>
+              <option value="Conference">Conference</option>
+              <option value="Webinar">Webinar</option>
+              <option value="Workshop">Workshop</option>
+              <option value="Seminar">Seminar</option>
+              <option value="Meetup">Meetup</option>
+              <option value="Other">Other</option>
+            </select>
+            <input
+              type="text"
+              placeholder="Location"
+              value={formData.location || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, location: e.target.value })
+              }
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+            />
+            <input
+              type="date"
+              placeholder="Date"
+              value={formData.date || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, date: e.target.value })
+              }
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+            />
+            <input
+              type="number"
+              placeholder="Audience Size (optional)"
+              value={formData.audience_size || ""}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  audience_size: parseInt(e.target.value) || null,
+                })
+              }
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              min="0"
+            />
+            <textarea
+              placeholder="Description"
+              value={formData.description || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, description: e.target.value })
+              }
+              className="w-full p-2 border rounded resize-none focus:ring-2 focus:ring-blue-500"
+              rows={3}
+            />
+          </div>
+        );
+
+      case "licenses":
+        return (
+          <div className="space-y-4">
+            <input
+              type="text"
+              placeholder="License Name"
+              value={formData.name || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              required
+            />
+            <input
+              type="text"
+              placeholder="Issuing Authority"
+              value={formData.issuing_authority || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, issuing_authority: e.target.value })
+              }
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+            />
+            <input
+              type="text"
+              placeholder="License Number"
+              value={formData.license_number || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, license_number: e.target.value })
+              }
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+            />
+            <div className="grid grid-cols-2 gap-2">
+              <input
+                type="date"
+                placeholder="Issue Date"
+                value={formData.issue_date || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, issue_date: e.target.value })
+                }
+                className="p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              />
+              <input
+                type="date"
+                placeholder="Expiry Date"
+                value={formData.expiry_date || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, expiry_date: e.target.value })
+                }
+                className="p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                checked={formData.is_active || false}
+                onChange={(e) =>
+                  setFormData({ ...formData, is_active: e.target.checked })
+                }
+                className="mr-2"
+              />
+              License is currently active
+            </label>
+            <textarea
+              placeholder="Description (optional)"
+              value={formData.description || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, description: e.target.value })
+              }
+              className="w-full p-2 border rounded resize-none focus:ring-2 focus:ring-blue-500"
+              rows={3}
+            />
+          </div>
+        );
+
       default:
         return null;
     }
@@ -399,7 +1278,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
-      <h2 className="text-xl font-bold text-gray-900 mb-4">
+      <h2 className="text-xl font-bold text-gray-900 mb-4" id="modal-title">
         {itemData ? "Edit" : "Add"} {itemType.slice(0, -1)}
       </h2>
       <form onSubmit={handleSubmit}>
@@ -446,6 +1325,20 @@ export default function Profile() {
     skills: [],
     projects: [],
     publications: [],
+    awards: [],
+    certifications: [],
+    languages: [],
+    volunteerExperiences: [],
+    references: [],
+    hobbyInterests: [],
+    professionalMemberships: [],
+    patents: [],
+    courseTrainings: [],
+    socialMediaLinks: [],
+    keyAchievements: [],
+    conferences: [],
+    speakingEngagements: [],
+    licenses: [],
   });
 
   const [loading, setLoading] = useState(true);
@@ -459,35 +1352,123 @@ export default function Profile() {
     const loadProfileData = async () => {
       try {
         // Load all profile data in parallel
-        const [aboutRes, expRes, eduRes, skillsRes, projectsRes, pubRes] =
-          await Promise.all([
-            fetch("/api/profile/sections", { credentials: "include" }),
-            fetch("/api/profile/experiences", { credentials: "include" }),
-            fetch("/api/profile/education", { credentials: "include" }),
-            fetch("/api/profile/skills", { credentials: "include" }),
-            fetch("/api/profile/projects", { credentials: "include" }),
-            fetch("/api/profile/publications", { credentials: "include" }),
-          ]);
+        const [
+          aboutRes,
+          expRes,
+          eduRes,
+          skillsRes,
+          projectsRes,
+          pubRes,
+          awardsRes,
+          certRes,
+          langRes,
+          volRes,
+          refRes,
+          hobbyRes,
+          pmRes,
+          patentRes,
+          courseRes,
+          socialRes,
+          keyAchRes,
+          confRes,
+          speakRes,
+          licRes,
+        ] = await Promise.all([
+          fetch("/api/profile/sections", { credentials: "include" }),
+          fetch("/api/profile/experiences", { credentials: "include" }),
+          fetch("/api/profile/educations", { credentials: "include" }),
+          fetch("/api/profile/skills", { credentials: "include" }),
+          fetch("/api/profile/projects", { credentials: "include" }),
+          fetch("/api/profile/publications", { credentials: "include" }),
+          fetch("/api/profile/awards", { credentials: "include" }),
+          fetch("/api/profile/certifications", { credentials: "include" }),
+          fetch("/api/profile/languages", { credentials: "include" }),
+          fetch("/api/profile/volunteer-experiences", {
+            credentials: "include",
+          }),
+          fetch("/api/profile/references", { credentials: "include" }),
+          fetch("/api/profile/hobby-interests", { credentials: "include" }),
+          fetch("/api/profile/professional-memberships", {
+            credentials: "include",
+          }),
+          fetch("/api/profile/patents", { credentials: "include" }),
+          fetch("/api/profile/course-trainings", { credentials: "include" }),
+          fetch("/api/profile/social-media-links", { credentials: "include" }),
+          fetch("/api/profile/key-achievements", { credentials: "include" }),
+          fetch("/api/profile/conferences", { credentials: "include" }),
+          fetch("/api/profile/speaking-engagements", {
+            credentials: "include",
+          }),
+          fetch("/api/profile/licenses", { credentials: "include" }),
+        ]);
 
-        const [aboutData, expData, eduData, skillsData, projectsData, pubData] =
-          await Promise.all([
-            aboutRes.ok ? aboutRes.json() : { sections: [] },
-            expRes.ok ? expRes.json() : { experiences: [] },
-            eduRes.ok ? eduRes.json() : { education: [] },
-            skillsRes.ok ? skillsRes.json() : { skills: [] },
-            projectsRes.ok ? projectsRes.json() : { projects: [] },
-            pubRes.ok ? pubRes.json() : { publications: [] },
-          ]);
+        const [
+          aboutData,
+          expData,
+          eduData,
+          skillsData,
+          projectsData,
+          pubData,
+          awardsData,
+          certData,
+          langData,
+          volData,
+          refData,
+          hobbyData,
+          pmData,
+          patentData,
+          courseData,
+          socialData,
+          keyAchData,
+          confData,
+          speakData,
+          licData,
+        ] = await Promise.all([
+          aboutRes.ok ? aboutRes.json() : { sections: [] },
+          expRes.ok ? expRes.json() : { experiences: [] },
+          eduRes.ok ? eduRes.json() : { educations: [] },
+          skillsRes.ok ? skillsRes.json() : { skills: [] },
+          projectsRes.ok ? projectsRes.json() : { projects: [] },
+          pubRes.ok ? pubRes.json() : { publications: [] },
+          awardsRes.ok ? awardsRes.json() : { awards: [] },
+          certRes.ok ? certRes.json() : { certifications: [] },
+          langRes.ok ? langRes.json() : { languages: [] },
+          volRes.ok ? volRes.json() : { volunteer_experiences: [] },
+          refRes.ok ? refRes.json() : { references: [] },
+          hobbyRes.ok ? hobbyRes.json() : { hobby_interests: [] },
+          pmRes.ok ? pmRes.json() : { professional_memberships: [] },
+          patentRes.ok ? patentRes.json() : { patents: [] },
+          courseRes.ok ? courseRes.json() : { course_trainings: [] },
+          socialRes.ok ? socialRes.json() : { social_media_links: [] },
+          keyAchRes.ok ? keyAchRes.json() : { key_achievements: [] },
+          confRes.ok ? confRes.json() : { conferences: [] },
+          speakRes.ok ? speakRes.json() : { speaking_engagements: [] },
+          licRes.ok ? licRes.json() : { licenses: [] },
+        ]);
 
         // Update state with loaded data
         setProfileData({
           about: aboutData.sections.find((s) => s.section_type === "about")
             ?.section_data || { summary: "" },
           experiences: expData.experiences || [],
-          educations: eduData.education || [],
+          educations: eduData.educations || [],
           skills: skillsData.skills || [],
           projects: projectsData.projects || [],
           publications: pubData.publications || [],
+          awards: awardsData.awards || [],
+          certifications: certData.certifications || [],
+          languages: langData.languages || [],
+          volunteerExperiences: volData.volunteer_experiences || [],
+          references: refData.references || [],
+          hobbyInterests: hobbyData.hobby_interests || [],
+          professionalMemberships: pmData.professional_memberships || [],
+          patents: patentData.patents || [],
+          courseTrainings: courseData.course_trainings || [],
+          socialMediaLinks: socialData.social_media_links || [],
+          keyAchievements: keyAchData.key_achievements || [],
+          conferences: confData.conferences || [],
+          speakingEngagements: speakData.speaking_engagements || [],
+          licenses: licData.licenses || [],
         });
       } catch (error) {
         console.error("Error loading profile data:", error);
@@ -533,12 +1514,38 @@ export default function Profile() {
       if (type === "experiences")
         endpoint = `/api/profile/experiences/${item.id}`;
       else if (type === "educations")
-        endpoint = `/api/profile/education/${item.id}`;
+        endpoint = `/api/profile/educations/${item.id}`;
       else if (type === "skills") endpoint = `/api/profile/skills/${item.id}`;
       else if (type === "projects")
         endpoint = `/api/profile/projects/${item.id}`;
       else if (type === "publications")
         endpoint = `/api/profile/publications/${item.id}`;
+      else if (type === "awards") endpoint = `/api/profile/awards/${item.id}`;
+      else if (type === "certifications")
+        endpoint = `/api/profile/certifications/${item.id}`;
+      else if (type === "languages")
+        endpoint = `/api/profile/languages/${item.id}`;
+      else if (type === "volunteerExperiences")
+        endpoint = `/api/profile/volunteer-experiences/${item.id}`;
+      else if (type === "references")
+        endpoint = `/api/profile/references/${item.id}`;
+      else if (type === "hobbyInterests")
+        endpoint = `/api/profile/hobby-interests/${item.id}`;
+      else if (type === "professionalMemberships")
+        endpoint = `/api/profile/professional-memberships/${item.id}`;
+      else if (type === "patents") endpoint = `/api/profile/patents/${item.id}`;
+      else if (type === "courseTrainings")
+        endpoint = `/api/profile/course-trainings/${item.id}`;
+      else if (type === "socialMediaLinks")
+        endpoint = `/api/profile/social-media-links/${item.id}`;
+      else if (type === "keyAchievements")
+        endpoint = `/api/profile/key-achievements/${item.id}`;
+      else if (type === "conferences")
+        endpoint = `/api/profile/conferences/${item.id}`;
+      else if (type === "speakingEngagements")
+        endpoint = `/api/profile/speaking-engagements/${item.id}`;
+      else if (type === "licenses")
+        endpoint = `/api/profile/licenses/${item.id}`;
 
       if (endpoint) {
         const response = await fetch(endpoint, {
@@ -577,7 +1584,26 @@ export default function Profile() {
       if (existingItem && existingItem.id) {
         if (type === "experiences") endpoint += `/${existingItem.id}`;
         else if (type === "educations") endpoint += `/${existingItem.id}`;
-        // For skills, projects, publications, we might need different handling
+        else if (type === "skills") endpoint += `/${existingItem.id}`;
+        else if (type === "projects") endpoint += `/${existingItem.id}`;
+        else if (type === "publications") endpoint += `/${existingItem.id}`;
+        else if (type === "awards") endpoint += `/${existingItem.id}`;
+        else if (type === "certifications") endpoint += `/${existingItem.id}`;
+        else if (type === "languages") endpoint += `/${existingItem.id}`;
+        else if (type === "volunteerExperiences")
+          endpoint += `/${existingItem.id}`;
+        else if (type === "references") endpoint += `/${existingItem.id}`;
+        else if (type === "hobbyInterests") endpoint += `/${existingItem.id}`;
+        else if (type === "professionalMemberships")
+          endpoint += `/${existingItem.id}`;
+        else if (type === "patents") endpoint += `/${existingItem.id}`;
+        else if (type === "courseTrainings") endpoint += `/${existingItem.id}`;
+        else if (type === "socialMediaLinks") endpoint += `/${existingItem.id}`;
+        else if (type === "keyAchievements") endpoint += `/${existingItem.id}`;
+        else if (type === "conferences") endpoint += `/${existingItem.id}`;
+        else if (type === "speakingEngagements")
+          endpoint += `/${existingItem.id}`;
+        else if (type === "licenses") endpoint += `/${existingItem.id}`;
       }
 
       const response = await fetch(endpoint, {
@@ -601,6 +1627,20 @@ export default function Profile() {
               result.skill ||
               result.project ||
               result.publication ||
+              result.award ||
+              result.certification ||
+              result.language ||
+              result.volunteer_experience ||
+              result.reference ||
+              result.hobby_interest ||
+              result.professional_membership ||
+              result.patent ||
+              result.course_training ||
+              result.social_media_link ||
+              result.key_achievement ||
+              result.conference ||
+              result.speaking_engagement ||
+              result.license ||
               result;
           } else {
             // Add new
@@ -611,6 +1651,20 @@ export default function Profile() {
                 result.skill ||
                 result.project ||
                 result.publication ||
+                result.award ||
+                result.certification ||
+                result.language ||
+                result.volunteer_experience ||
+                result.reference ||
+                result.hobby_interest ||
+                result.professional_membership ||
+                result.patent ||
+                result.course_training ||
+                result.social_media_link ||
+                result.key_achievement ||
+                result.conference ||
+                result.speaking_engagement ||
+                result.license ||
                 result,
             ];
           }
@@ -666,7 +1720,11 @@ export default function Profile() {
         sidebarItems={sidebarItems}
       >
         <div className="flex justify-center items-center py-12">
-          <div className="text-gray-500">Loading profile...</div>
+          <div className="animate-pulse">
+            <div className="text-gray-500 mb-4">Loading profile...</div>
+            <div className="w-64 h-4 bg-gray-200 rounded mb-2"></div>
+            <div className="w-48 h-4 bg-gray-200 rounded"></div>
+          </div>
         </div>
       </DashboardLayout>
     );
@@ -680,13 +1738,26 @@ export default function Profile() {
       {/* Error Message */}
       {error && (
         <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
-          {error}
-          <button
-            onClick={() => setError(null)}
-            className="float-right text-red-700 hover:text-red-900"
-          >
-            ×
-          </button>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <FiX className="mr-2" size={20} />
+              <span>{error}</span>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => window.location.reload()}
+                className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
+              >
+                Retry
+              </button>
+              <button
+                onClick={() => setError(null)}
+                className="text-red-700 hover:text-red-900"
+              >
+                ×
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -743,11 +1814,11 @@ export default function Profile() {
               <FiPlus size={16} />
             </button>
           </div>
-          {profileData.experiences.length === 0 ? (
+          {(profileData.experiences || []).length === 0 ? (
             <p className="text-gray-500 text-sm">No experience added yet</p>
           ) : (
             <div className="space-y-3">
-              {profileData.experiences.map((exp, index) => (
+              {(profileData.experiences || []).map((exp, index) => (
                 <div
                   key={exp.id || index}
                   className="border-l-2 border-blue-200 pl-3"
@@ -793,11 +1864,11 @@ export default function Profile() {
               <FiPlus size={16} />
             </button>
           </div>
-          {profileData.educations.length === 0 ? (
+          {(profileData.educations || []).length === 0 ? (
             <p className="text-gray-500 text-sm">No education added yet</p>
           ) : (
             <div className="space-y-3">
-              {profileData.educations.map((edu, index) => (
+              {(profileData.educations || []).map((edu, index) => (
                 <div
                   key={edu.id || index}
                   className="border-l-2 border-green-200 pl-3"
@@ -845,11 +1916,11 @@ export default function Profile() {
               <FiPlus size={16} />
             </button>
           </div>
-          {profileData.skills.length === 0 ? (
+          {(profileData.skills || []).length === 0 ? (
             <p className="text-gray-500 text-sm">No skills added yet</p>
           ) : (
             <div className="flex flex-wrap gap-2">
-              {profileData.skills.map((skill, index) => (
+              {(profileData.skills || []).map((skill, index) => (
                 <span
                   key={skill.id || index}
                   className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800"
@@ -881,11 +1952,11 @@ export default function Profile() {
               <FiPlus size={16} />
             </button>
           </div>
-          {profileData.projects.length === 0 ? (
+          {(profileData.projects || []).length === 0 ? (
             <p className="text-gray-500 text-sm">No projects added yet</p>
           ) : (
             <div className="space-y-3">
-              {profileData.projects.map((project, index) => (
+              {(profileData.projects || []).map((project, index) => (
                 <div key={project.id || index} className="border rounded p-3">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -931,11 +2002,11 @@ export default function Profile() {
               <FiPlus size={16} />
             </button>
           </div>
-          {profileData.publications.length === 0 ? (
+          {(profileData.publications || []).length === 0 ? (
             <p className="text-gray-500 text-sm">No publications added yet</p>
           ) : (
             <div className="space-y-3">
-              {profileData.publications.map((pub, index) => (
+              {(profileData.publications || []).map((pub, index) => (
                 <div key={pub.id || index} className="border rounded p-3">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -953,6 +2024,809 @@ export default function Profile() {
                       </button>
                       <button
                         onClick={() => removeItem("publications", index)}
+                        className="text-red-400 hover:text-red-600"
+                      >
+                        <FiTrash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+
+        {/* Awards Section */}
+        <Card>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-gray-800 flex items-center">
+              <FiAward className="mr-2" />
+              Awards
+            </h3>
+            <button
+              onClick={() => addItem("awards")}
+              className="text-blue-600 hover:text-blue-700"
+            >
+              <FiPlus size={16} />
+            </button>
+          </div>
+          {(profileData.awards || []).length === 0 ? (
+            <p className="text-gray-500 text-sm">No awards added yet</p>
+          ) : (
+            <div className="space-y-3">
+              {(profileData.awards || []).map((award, index) => (
+                <div key={award.id || index} className="border rounded p-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h4 className="font-medium text-gray-900">
+                        {award.title}
+                      </h4>
+                      <p className="text-sm text-gray-600">{award.issuer}</p>
+                      {award.date && (
+                        <p className="text-xs text-gray-500">
+                          {formatDate(award.date)}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => editItem("awards", award, index)}
+                        className="text-gray-400 hover:text-gray-600"
+                      >
+                        <FiEdit2 size={14} />
+                      </button>
+                      <button
+                        onClick={() => removeItem("awards", index)}
+                        className="text-red-400 hover:text-red-600"
+                      >
+                        <FiTrash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+
+        {/* Certifications Section */}
+        <Card>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-gray-800 flex items-center">
+              <FiCheck className="mr-2" />
+              Certifications
+            </h3>
+            <button
+              onClick={() => addItem("certifications")}
+              className="text-blue-600 hover:text-blue-700"
+            >
+              <FiPlus size={16} />
+            </button>
+          </div>
+          {(profileData.certifications || []).length === 0 ? (
+            <p className="text-gray-500 text-sm">No certifications added yet</p>
+          ) : (
+            <div className="space-y-3">
+              {(profileData.certifications || []).map((cert, index) => (
+                <div key={cert.id || index} className="border rounded p-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h4 className="font-medium text-gray-900">{cert.name}</h4>
+                      <p className="text-sm text-gray-600">{cert.issuer}</p>
+                      {cert.date_obtained && (
+                        <p className="text-xs text-gray-500">
+                          Obtained: {formatDate(cert.date_obtained)}
+                          {cert.expiry_date &&
+                            ` - Expires: ${formatDate(cert.expiry_date)}`}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => editItem("certifications", cert, index)}
+                        className="text-gray-400 hover:text-gray-600"
+                      >
+                        <FiEdit2 size={14} />
+                      </button>
+                      <button
+                        onClick={() => removeItem("certifications", index)}
+                        className="text-red-400 hover:text-red-600"
+                      >
+                        <FiTrash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+
+        {/* Languages Section */}
+        <Card>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-gray-800 flex items-center">
+              <FiCode className="mr-2" />
+              Languages
+            </h3>
+            <button
+              onClick={() => addItem("languages")}
+              className="text-blue-600 hover:text-blue-700"
+            >
+              <FiPlus size={16} />
+            </button>
+          </div>
+          {(profileData.languages || []).length === 0 ? (
+            <p className="text-gray-500 text-sm">No languages added yet</p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {(profileData.languages || []).map((lang, index) => (
+                <span
+                  key={lang.id || index}
+                  className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-green-100 text-green-800"
+                >
+                  {lang.name} - {lang.proficiency_level}
+                  <button
+                    onClick={() => removeItem("languages", index)}
+                    className="ml-2 text-green-600 hover:text-green-800"
+                  >
+                    <FiX size={12} />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+        </Card>
+
+        {/* Volunteer Experience Section */}
+        <Card>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-gray-800 flex items-center">
+              <FiUsers className="mr-2" />
+              Volunteer Experience
+            </h3>
+            <button
+              onClick={() => addItem("volunteerExperiences")}
+              className="text-blue-600 hover:text-blue-700"
+            >
+              <FiPlus size={16} />
+            </button>
+          </div>
+          {(profileData.volunteerExperiences || []).length === 0 ? (
+            <p className="text-gray-500 text-sm">
+              No volunteer experience added yet
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {(profileData.volunteerExperiences || []).map((vol, index) => (
+                <div
+                  key={vol.id || index}
+                  className="border-l-2 border-purple-200 pl-3"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h4 className="font-medium text-gray-900">{vol.title}</h4>
+                      <p className="text-sm text-gray-600">
+                        {vol.organization}
+                      </p>
+                      <p className="text-xs text-gray-500">{vol.location}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() =>
+                          editItem("volunteerExperiences", vol, index)
+                        }
+                        className="text-gray-400 hover:text-gray-600"
+                      >
+                        <FiEdit2 size={14} />
+                      </button>
+                      <button
+                        onClick={() =>
+                          removeItem("volunteerExperiences", index)
+                        }
+                        className="text-red-400 hover:text-red-600"
+                      >
+                        <FiTrash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+
+        {/* References Section */}
+        <Card>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-gray-800 flex items-center">
+              <FiUsers className="mr-2" />
+              References
+            </h3>
+            <button
+              onClick={() => addItem("references")}
+              className="text-blue-600 hover:text-blue-700"
+            >
+              <FiPlus size={16} />
+            </button>
+          </div>
+          {(profileData.references || []).length === 0 ? (
+            <p className="text-gray-500 text-sm">No references added yet</p>
+          ) : (
+            <div className="space-y-3">
+              {(profileData.references || []).map((ref, index) => (
+                <div key={ref.id || index} className="border rounded p-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h4 className="font-medium text-gray-900">{ref.name}</h4>
+                      <p className="text-sm text-gray-600">
+                        {ref.title} at {ref.company}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {ref.relationship}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => editItem("references", ref, index)}
+                        className="text-gray-400 hover:text-gray-600"
+                      >
+                        <FiEdit2 size={14} />
+                      </button>
+                      <button
+                        onClick={() => removeItem("references", index)}
+                        className="text-red-400 hover:text-red-600"
+                      >
+                        <FiTrash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+
+        {/* Hobby Interests Section */}
+        <Card>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-gray-800 flex items-center">
+              <FiCode className="mr-2" />
+              Hobby Interests
+            </h3>
+            <button
+              onClick={() => addItem("hobbyInterests")}
+              className="text-blue-600 hover:text-blue-700"
+            >
+              <FiPlus size={16} />
+            </button>
+          </div>
+          {(profileData.hobbyInterests || []).length === 0 ? (
+            <p className="text-gray-500 text-sm">
+              No hobby interests added yet
+            </p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {(profileData.hobbyInterests || []).map((hobby, index) => (
+                <span
+                  key={hobby.id || index}
+                  className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-pink-100 text-pink-800"
+                >
+                  {hobby.name}
+                  <button
+                    onClick={() => removeItem("hobbyInterests", index)}
+                    className="ml-2 text-pink-600 hover:text-pink-800"
+                  >
+                    <FiX size={12} />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+        </Card>
+
+        {/* Professional Memberships Section */}
+        <Card>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-gray-800 flex items-center">
+              <FiBriefcase className="mr-2" />
+              Professional Memberships
+            </h3>
+            <button
+              onClick={() => addItem("professionalMemberships")}
+              className="text-blue-600 hover:text-blue-700"
+            >
+              <FiPlus size={16} />
+            </button>
+          </div>
+          {(profileData.professionalMemberships || []).length === 0 ? (
+            <p className="text-gray-500 text-sm">
+              No professional memberships added yet
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {(profileData.professionalMemberships || []).map(
+                (membership, index) => (
+                  <div
+                    key={membership.id || index}
+                    className="border rounded p-3"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h4 className="font-medium text-gray-900">
+                          {membership.organization}
+                        </h4>
+                        {membership.membership_id && (
+                          <p className="text-sm text-gray-600">
+                            ID: {membership.membership_id}
+                          </p>
+                        )}
+                        {(membership.start_date || membership.end_date) && (
+                          <p className="text-xs text-gray-500">
+                            {membership.start_date &&
+                              `From: ${formatDate(membership.start_date)}`}
+                            {membership.end_date &&
+                              ` - To: ${formatDate(membership.end_date)}`}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() =>
+                            editItem(
+                              "professionalMemberships",
+                              membership,
+                              index
+                            )
+                          }
+                          className="text-gray-400 hover:text-gray-600"
+                        >
+                          <FiEdit2 size={14} />
+                        </button>
+                        <button
+                          onClick={() =>
+                            removeItem("professionalMemberships", index)
+                          }
+                          className="text-red-400 hover:text-red-600"
+                        >
+                          <FiTrash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )
+              )}
+            </div>
+          )}
+        </Card>
+
+        {/* Patents Section */}
+        <Card>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-gray-800 flex items-center">
+              <FiFileText className="mr-2" />
+              Patents
+            </h3>
+            <button
+              onClick={() => addItem("patents")}
+              className="text-blue-600 hover:text-blue-700"
+            >
+              <FiPlus size={16} />
+            </button>
+          </div>
+          {(profileData.patents || []).length === 0 ? (
+            <p className="text-gray-500 text-sm">No patents added yet</p>
+          ) : (
+            <div className="space-y-3">
+              {(profileData.patents || []).map((patent, index) => (
+                <div key={patent.id || index} className="border rounded p-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h4 className="font-medium text-gray-900">
+                        {patent.title}
+                      </h4>
+                      {patent.patent_number && (
+                        <p className="text-sm text-gray-600">
+                          Patent #: {patent.patent_number}
+                        </p>
+                      )}
+                      {(patent.filing_date || patent.grant_date) && (
+                        <p className="text-xs text-gray-500">
+                          {patent.filing_date &&
+                            `Filed: ${formatDate(patent.filing_date)}`}
+                          {patent.grant_date &&
+                            ` - Granted: ${formatDate(patent.grant_date)}`}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => editItem("patents", patent, index)}
+                        className="text-gray-400 hover:text-gray-600"
+                      >
+                        <FiEdit2 size={14} />
+                      </button>
+                      <button
+                        onClick={() => removeItem("patents", index)}
+                        className="text-red-400 hover:text-red-600"
+                      >
+                        <FiTrash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+
+        {/* Course Trainings Section */}
+        <Card>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-gray-800 flex items-center">
+              <FiBook className="mr-2" />
+              Course Trainings
+            </h3>
+            <button
+              onClick={() => addItem("courseTrainings")}
+              className="text-blue-600 hover:text-blue-700"
+            >
+              <FiPlus size={16} />
+            </button>
+          </div>
+          {(profileData.courseTrainings || []).length === 0 ? (
+            <p className="text-gray-500 text-sm">
+              No course trainings added yet
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {(profileData.courseTrainings || []).map((course, index) => (
+                <div key={course.id || index} className="border rounded p-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h4 className="font-medium text-gray-900">
+                        {course.name}
+                      </h4>
+                      {course.provider && (
+                        <p className="text-sm text-gray-600">
+                          {course.provider}
+                        </p>
+                      )}
+                      {course.completion_date && (
+                        <p className="text-xs text-gray-500">
+                          Completed:{" "}
+                          {formatDate(course.completion_date, "full")}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() =>
+                          editItem("courseTrainings", course, index)
+                        }
+                        className="text-gray-400 hover:text-gray-600"
+                      >
+                        <FiEdit2 size={14} />
+                      </button>
+                      <button
+                        onClick={() => removeItem("courseTrainings", index)}
+                        className="text-red-400 hover:text-red-600"
+                      >
+                        <FiTrash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+
+        {/* Social Media Links Section */}
+        <Card>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-gray-800 flex items-center">
+              <FiCode className="mr-2" />
+              Social Media Links
+            </h3>
+            <button
+              onClick={() => addItem("socialMediaLinks")}
+              className="text-blue-600 hover:text-blue-700"
+            >
+              <FiPlus size={16} />
+            </button>
+          </div>
+          {(profileData.socialMediaLinks || []).length === 0 ? (
+            <p className="text-gray-500 text-sm">
+              No social media links added yet
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {(profileData.socialMediaLinks || []).map((link, index) => (
+                <div key={link.id || index} className="border rounded p-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h4 className="font-medium text-gray-900">
+                        {link.platform}
+                      </h4>
+                      <a
+                        href={link.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-blue-600 hover:text-blue-700"
+                      >
+                        {link.url}
+                      </a>
+                      {link.username && (
+                        <p className="text-xs text-gray-500">
+                          @{link.username}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() =>
+                          editItem("socialMediaLinks", link, index)
+                        }
+                        className="text-gray-400 hover:text-gray-600"
+                      >
+                        <FiEdit2 size={14} />
+                      </button>
+                      <button
+                        onClick={() => removeItem("socialMediaLinks", index)}
+                        className="text-red-400 hover:text-red-600"
+                      >
+                        <FiTrash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+
+        {/* Key Achievements Section */}
+        <Card>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-gray-800 flex items-center">
+              <FiAward className="mr-2" />
+              Key Achievements
+            </h3>
+            <button
+              onClick={() => addItem("keyAchievements")}
+              className="text-blue-600 hover:text-blue-700"
+            >
+              <FiPlus size={16} />
+            </button>
+          </div>
+          {(profileData.keyAchievements || []).length === 0 ? (
+            <p className="text-gray-500 text-sm">
+              No key achievements added yet
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {(profileData.keyAchievements || []).map((achievement, index) => (
+                <div
+                  key={achievement.id || index}
+                  className="border rounded p-3"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h4 className="font-medium text-gray-900">
+                        {achievement.title}
+                      </h4>
+                      <p className="text-sm text-gray-600">
+                        {achievement.category}
+                      </p>
+                      {achievement.date && (
+                        <p className="text-xs text-gray-500">
+                          {formatDate(achievement.date)}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() =>
+                          editItem("keyAchievements", achievement, index)
+                        }
+                        className="text-gray-400 hover:text-gray-600"
+                      >
+                        <FiEdit2 size={14} />
+                      </button>
+                      <button
+                        onClick={() => removeItem("keyAchievements", index)}
+                        className="text-red-400 hover:text-red-600"
+                      >
+                        <FiTrash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+
+        {/* Conferences Section */}
+        <Card>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-gray-800 flex items-center">
+              <FiUsers className="mr-2" />
+              Conferences
+            </h3>
+            <button
+              onClick={() => addItem("conferences")}
+              className="text-blue-600 hover:text-blue-700"
+            >
+              <FiPlus size={16} />
+            </button>
+          </div>
+          {(profileData.conferences || []).length === 0 ? (
+            <p className="text-gray-500 text-sm">No conferences added yet</p>
+          ) : (
+            <div className="space-y-3">
+              {(profileData.conferences || []).map((conference, index) => (
+                <div
+                  key={conference.id || index}
+                  className="border rounded p-3"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h4 className="font-medium text-gray-900">
+                        {conference.name}
+                      </h4>
+                      <p className="text-sm text-gray-600">
+                        Role: {conference.role}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {conference.location} -{" "}
+                        {conference.date && formatDate(conference.date)}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() =>
+                          editItem("conferences", conference, index)
+                        }
+                        className="text-gray-400 hover:text-gray-600"
+                      >
+                        <FiEdit2 size={14} />
+                      </button>
+                      <button
+                        onClick={() => removeItem("conferences", index)}
+                        className="text-red-400 hover:text-red-600"
+                      >
+                        <FiTrash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+
+        {/* Speaking Engagements Section */}
+        <Card>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-gray-800 flex items-center">
+              <FiBriefcase className="mr-2" />
+              Speaking Engagements
+            </h3>
+            <button
+              onClick={() => addItem("speakingEngagements")}
+              className="text-blue-600 hover:text-blue-700"
+            >
+              <FiPlus size={16} />
+            </button>
+          </div>
+          {(profileData.speakingEngagements || []).length === 0 ? (
+            <p className="text-gray-500 text-sm">
+              No speaking engagements added yet
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {(profileData.speakingEngagements || []).map(
+                (engagement, index) => (
+                  <div
+                    key={engagement.id || index}
+                    className="border rounded p-3"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h4 className="font-medium text-gray-900">
+                          {engagement.title}
+                        </h4>
+                        <p className="text-sm text-gray-600">
+                          {engagement.event_name} ({engagement.event_type})
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {engagement.location} -{" "}
+                          {engagement.date &&
+                            formatDate(engagement.date, "full")}
+                          {engagement.audience_size &&
+                            ` - Audience: ${engagement.audience_size}`}
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() =>
+                            editItem("speakingEngagements", engagement, index)
+                          }
+                          className="text-gray-400 hover:text-gray-600"
+                        >
+                          <FiEdit2 size={14} />
+                        </button>
+                        <button
+                          onClick={() =>
+                            removeItem("speakingEngagements", index)
+                          }
+                          className="text-red-400 hover:text-red-600"
+                        >
+                          <FiTrash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )
+              )}
+            </div>
+          )}
+        </Card>
+
+        {/* Licenses Section */}
+        <Card>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-gray-800 flex items-center">
+              <FiCheck className="mr-2" />
+              Licenses
+            </h3>
+            <button
+              onClick={() => addItem("licenses")}
+              className="text-blue-600 hover:text-blue-700"
+            >
+              <FiPlus size={16} />
+            </button>
+          </div>
+          {(profileData.licenses || []).length === 0 ? (
+            <p className="text-gray-500 text-sm">No licenses added yet</p>
+          ) : (
+            <div className="space-y-3">
+              {(profileData.licenses || []).map((license, index) => (
+                <div key={license.id || index} className="border rounded p-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h4 className="font-medium text-gray-900">
+                        {license.name}
+                      </h4>
+                      <p className="text-sm text-gray-600">
+                        {license.issuing_authority}
+                      </p>
+                      {license.license_number && (
+                        <p className="text-xs text-gray-500">
+                          License #: {license.license_number}
+                        </p>
+                      )}
+                      {(license.issue_date || license.expiry_date) && (
+                        <p className="text-xs text-gray-500">
+                          {license.issue_date &&
+                            `Issued: ${formatDate(license.issue_date)}`}
+                          {license.expiry_date &&
+                            ` - Expires: ${formatDate(license.expiry_date)}`}
+                          {license.is_active && " (Active)"}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => editItem("licenses", license, index)}
+                        className="text-gray-400 hover:text-gray-600"
+                      >
+                        <FiEdit2 size={14} />
+                      </button>
+                      <button
+                        onClick={() => removeItem("licenses", index)}
                         className="text-red-400 hover:text-red-600"
                       >
                         <FiTrash2 size={14} />
@@ -1026,7 +2900,12 @@ export default function Profile() {
         isOpen={!!showDeleteConfirm}
         onClose={() => setShowDeleteConfirm(null)}
       >
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Delete Item</h2>
+        <h2
+          className="text-xl font-bold text-gray-900 mb-4"
+          id="delete-modal-title"
+        >
+          Delete Item
+        </h2>
         <p className="text-gray-600 mb-6">
           Are you sure you want to delete this item? This action cannot be
           undone.

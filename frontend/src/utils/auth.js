@@ -105,6 +105,11 @@ export function getSidebarItems(role, plan) {
         { name: "Team Members", link: "/organization/team", icon: FiUsers },
         { name: "Job Posts", link: "/organization/jobs", icon: FiFileText },
         { name: "Candidates", link: "/organization/candidates", icon: FiUser },
+        {
+          name: "Interviews",
+          link: "/organization/interviews",
+          icon: FiCalendar,
+        },
         { name: "Pipeline", link: "/organization/pipeline", icon: FiBarChart2 },
         { name: "Settings", link: "/settings", icon: FiSettings },
       ];
@@ -114,6 +119,11 @@ export function getSidebarItems(role, plan) {
         { name: "Team Members", link: "/organization/team", icon: FiUsers },
         { name: "Job Posts", link: "/organization/jobs", icon: FiFileText },
         { name: "Candidates", link: "/organization/candidates", icon: FiUser },
+        {
+          name: "Interviews",
+          link: "/organization/interviews",
+          icon: FiCalendar,
+        },
         { name: "Pipeline", link: "/organization/pipeline", icon: FiBarChart2 },
         {
           name: "Analytics",

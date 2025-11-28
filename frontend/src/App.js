@@ -14,6 +14,7 @@ import { ToastProvider } from "./components/ui/ToastContext";
 import RecruAILanding from "./pages/RecruAILanding";
 import Register from "./pages/Register";
 import SignIn from "./pages/SignIn";
+import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
 // Dashboard Pages
 import DashboardSwitcher from "./pages/DashboardSwitcher";
@@ -26,6 +27,16 @@ import Analytics from "./pages/individual/Analytics";
 import ResumeBuilder from "./pages/individual/ResumeBuilder";
 import JobAlerts from "./pages/individual/JobAlerts";
 import CareerCoaching from "./pages/individual/CareerCoaching";
+// Organization Pages
+import TeamMembers from "./pages/organization/TeamMembers";
+import JobPosts from "./pages/organization/JobPosts";
+import Candidates from "./pages/organization/Candidates";
+import InterviewManagement from "./pages/organization/InterviewManagement";
+import Pipeline from "./pages/organization/Pipeline";
+import OrganizationAnalytics from "./pages/organization/OrganizationAnalytics";
+import Reports from "./pages/organization/Reports";
+import Integrations from "./pages/organization/Integrations";
+import Insights from "./pages/organization/Insights";
 
 import { verifyTokenWithServer } from "./utils/auth";
 
@@ -147,6 +158,78 @@ function App() {
             }
           />
           <Route
+            path="/organization/interviews"
+            element={
+              <ProtectedRoute>
+                <InterviewManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/organization/team"
+            element={
+              <ProtectedRoute>
+                <TeamMembers />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/organization/jobs"
+            element={
+              <ProtectedRoute>
+                <JobPosts />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/organization/candidates"
+            element={
+              <ProtectedRoute>
+                <Candidates />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/organization/pipeline"
+            element={
+              <ProtectedRoute>
+                <Pipeline />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/organization/analytics"
+            element={
+              <ProtectedRoute>
+                <OrganizationAnalytics />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/organization/reports"
+            element={
+              <ProtectedRoute>
+                <Reports />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/organization/integrations"
+            element={
+              <ProtectedRoute>
+                <Integrations />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/organization/insights"
+            element={
+              <ProtectedRoute>
+                <Insights />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/settings"
             element={
               <ProtectedRoute>
@@ -154,6 +237,8 @@ function App() {
               </ProtectedRoute>
             }
           />
+          {/* 404 Route - must be last */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </ToastProvider>
     </Router>
