@@ -4,14 +4,7 @@ import DashboardLayout from "../../components/layout/DashboardLayout";
 import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
 import Card from "../../components/ui/Card";
 import { getSidebarItems } from "../../utils/auth";
-import {
-  FiPlus,
-  FiUser,
-  FiUsers,
-  FiSearch,
-  FiUserPlus,
-  FiEye,
-} from "react-icons/fi";
+import { FiUser, FiUsers, FiSearch, FiEye } from "react-icons/fi";
 
 export default function HirePeople() {
   const navigate = useNavigate();
@@ -26,31 +19,6 @@ export default function HirePeople() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [organizationId, setOrganizationId] = useState(null);
-
-  // Get organization ID
-  useEffect(() => {
-    const getOrgId = async () => {
-      try {
-        const res = await fetch("/api/auth/me", { credentials: "include" });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.user && data.user.organization_id) {
-            setOrganizationId(data.user.organization_id);
-          } else {
-            setError("Unable to determine organization");
-          }
-        } else {
-          setError("Failed to authenticate");
-        }
-      } catch (err) {
-        console.error("Error getting user info:", err);
-        setError("Network error");
-      }
-    };
-
-    getOrgId();
-  }, []);
 
   // Load all users for hiring
   const loadUsers = async () => {

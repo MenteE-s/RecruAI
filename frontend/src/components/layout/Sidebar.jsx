@@ -1,11 +1,18 @@
 // src/components/layout/Sidebar.jsx
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { FiMenu } from "react-icons/fi";
 
 export default function Sidebar({ open, toggleSidebar, items = [] }) {
+  const location = useLocation();
+
   // Separate settings from other items if it exists
   const topItems = items.filter((i) => i.name !== "Settings");
   const settingsItem = items.find((i) => i.name === "Settings");
+
+  // Helper function to check if link is active
+  const isActive = (link) => {
+    return location.pathname === link;
+  };
 
   return (
     <>
@@ -37,7 +44,11 @@ export default function Sidebar({ open, toggleSidebar, items = [] }) {
               <li key={item.name}>
                 <Link
                   to={item.link}
-                  className="flex items-center space-x-3 px-4 py-3 text-secondary-700 hover:bg-primary-50 hover:text-primary-700 rounded-lg transition"
+                  className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition ${
+                    isActive(item.link)
+                      ? "bg-primary-100 text-primary-700 border-r-2 border-primary-500"
+                      : "text-secondary-700 hover:bg-primary-50 hover:text-primary-700"
+                  }`}
                 >
                   <item.icon className="h-5 w-5" />
                   <span>{item.name}</span>
@@ -52,7 +63,11 @@ export default function Sidebar({ open, toggleSidebar, items = [] }) {
           <div className="p-4 border-t border-secondary-200 mt-auto">
             <Link
               to={settingsItem.link}
-              className="flex items-center space-x-3 px-4 py-3 text-secondary-700 hover:bg-primary-50 hover:text-primary-700 rounded-lg transition"
+              className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition ${
+                isActive(settingsItem.link)
+                  ? "bg-primary-100 text-primary-700 border-r-2 border-primary-500"
+                  : "text-secondary-700 hover:bg-primary-50 hover:text-primary-700"
+              }`}
             >
               <settingsItem.icon className="h-5 w-5" />
               <span>{settingsItem.name}</span>
