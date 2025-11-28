@@ -70,6 +70,14 @@ class Organization(db.Model):
 
     def to_dict(self):
         import json
+        social_links = []
+        if self.social_media_links:
+            try:
+                social_links = json.loads(self.social_media_links)
+                if not isinstance(social_links, list):
+                    social_links = []
+            except (json.JSONDecodeError, TypeError):
+                social_links = []
         return {
             "id": self.id,
             "name": self.name,
@@ -82,7 +90,7 @@ class Organization(db.Model):
             "industry": self.industry,
             "mission": self.mission,
             "vision": self.vision,
-            "social_media_links": json.loads(self.social_media_links) if self.social_media_links else [],
+            "social_media_links": social_links,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
 
@@ -112,7 +120,11 @@ class TeamMember(db.Model):
             "join_date": self.join_date.isoformat() if self.join_date else None,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "organization": self.organization.name if self.organization else None,
-            "user": self.user.name if self.user else None,
+            "user": {
+                "id": self.user.id if self.user else None,
+                "name": self.user.name if self.user else None,
+                "email": self.user.email if self.user else None,
+            } if self.user else None,
         }
     
     

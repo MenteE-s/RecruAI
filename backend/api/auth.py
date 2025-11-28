@@ -9,7 +9,7 @@ from flask_jwt_extended import (
 
 from . import api_bp
 from ..extensions import db
-from ..models import User, Organization
+from ..models import User, Organization, TeamMember
 
 
 @api_bp.route("/auth/register", methods=["POST"])
@@ -43,6 +43,18 @@ def register():
         user.organization = org
 
     db.session.add(user)
+    # flush so user.id is available for team member creation
+    db.session.flush()
+
+    # if this is an organization signup, add the user as an Admin team member
+    if role == "organization":
+        team_member = TeamMember(
+            organization_id=org.id,
+            user_id=user.id,
+            role="Admin"
+        )
+        db.session.add(team_member)
+
     db.session.commit()
 
     # generate an access token on successful registration so frontend can auto-login

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
 import Card from "../../components/ui/Card";
@@ -9,9 +10,7 @@ import {
   FiTrash2,
   FiUser,
   FiUsers,
-  FiMail,
-  FiShield,
-  FiCalendar,
+  FiEye,
 } from "react-icons/fi";
 
 // Modal Component
@@ -48,6 +47,7 @@ const formatDate = (dateString) => {
 };
 
 export default function TeamMembers() {
+  const navigate = useNavigate();
   const role =
     typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
   const plan =
@@ -233,6 +233,10 @@ export default function TeamMembers() {
     setShowDeleteConfirm(true);
   };
 
+  const openProfileModal = (member) => {
+    navigate(`/organization/user/${member.user_id}`);
+  };
+
   if (loading && !organizationId) {
     return (
       <DashboardLayout
@@ -367,14 +371,23 @@ export default function TeamMembers() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex gap-2">
                         <button
+                          onClick={() => openProfileModal(member)}
+                          className="text-blue-600 hover:text-blue-900"
+                          title="View Profile"
+                        >
+                          <FiEye size={16} />
+                        </button>
+                        <button
                           onClick={() => openEditModal(member)}
                           className="text-indigo-600 hover:text-indigo-900"
+                          title="Edit Member"
                         >
                           <FiEdit2 size={16} />
                         </button>
                         <button
                           onClick={() => openDeleteConfirm(member)}
                           className="text-red-600 hover:text-red-900"
+                          title="Remove Member"
                         >
                           <FiTrash2 size={16} />
                         </button>

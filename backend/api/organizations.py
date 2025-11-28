@@ -1,8 +1,12 @@
 from flask import request, jsonify
+from datetime import datetime
 
 from . import api_bp
 from ..extensions import db
-from ..models import Organization, Post, TeamMember
+from ..models import (
+    Organization, Post, TeamMember, User, Experience, Education, Skill,
+    Project, Certification, Language
+)
 import json
 
 
@@ -177,6 +181,14 @@ def remove_team_member(org_id, member_id):
     return jsonify({"message": "team member removed"}), 200
 
 
+@api_bp.route("/organizations/<int:org_id>/users", methods=["GET"])
+def list_organization_users(org_id):
+    """Get all users belonging to an organization"""
+    org = Organization.query.get_or_404(org_id)
+    users = User.query.filter_by(organization_id=org_id).all()
+    return jsonify([user.to_dict() for user in users]), 200
+
+
 @api_bp.route("/organizations/<int:org_id>/invite", methods=["POST"])
 def invite_team_member(org_id):
     org = Organization.query.get_or_404(org_id)
@@ -267,10 +279,16 @@ def seed_demo_data():
     # create tables if missing
     db.create_all()
 
-    # if any organizations already exist, return early
-    existing = Organization.query.first()
-    if existing:
-        return jsonify({"message": "Demo data already seeded"}), 200
+    # Clear existing demo data first
+    try:
+        TeamMember.query.delete()
+        Post.query.delete()
+        User.query.filter(User.role == "individual").delete()  # Only delete individual users, keep org users
+        Organization.query.delete()
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Failed to clear existing data: {str(e)}"}), 500
 
     demo_orgs = [
         {
@@ -312,6 +330,90 @@ def seed_demo_data():
         org = Organization(**info)
         db.session.add(org)
         db.session.flush()  # ensure id
+
+        # create users for this organization
+        for i in range(1, 6):  # 5 users per organization
+            user = User(
+                email=f"user{i}@{org.name.lower().replace(' ', '')}.com",
+                name=f"User {i} {org.name.split()[0]}",
+                role="individual",
+                plan="trial",
+                organization_id=org.id
+            )
+            user.set_password("password123")
+            db.session.add(user)
+            db.session.flush()  # Get user.id
+
+            # Create sample profile data for each user
+            # Experience
+            exp = Experience(
+                user_id=user.id,
+                title="Software Developer",
+                company=f"{org.name} Inc.",
+                location=org.location,
+                description=f"Developing software solutions at {org.name}",
+                start_date=datetime(2020, 1, 1),
+                current_job=True
+            )
+            db.session.add(exp)
+
+            # Education
+            edu = Education(
+                user_id=user.id,
+                degree="Bachelor of Science in Computer Science",
+                school="University of Technology",
+                field="Computer Science",
+                start_date=datetime(2016, 9, 1),
+                end_date=datetime(2020, 5, 1),
+                gpa="3.8"
+            )
+            db.session.add(edu)
+
+            # Skills
+            skills_data = [
+                ("Python", "advanced", 5),
+                ("JavaScript", "intermediate", 4),
+                ("React", "intermediate", 3),
+                ("SQL", "advanced", 4)
+            ]
+            for skill_name, level, years in skills_data:
+                skill = Skill(
+                    user_id=user.id,
+                    name=skill_name,
+                    level=level,
+                    years_experience=years
+                )
+                db.session.add(skill)
+
+            # Projects
+            project = Project(
+                user_id=user.id,
+                name=f"Project {i}",
+                description=f"A sample project developed at {org.name}",
+                technologies=json.dumps(["Python", "Django", "PostgreSQL"]),
+                github_url=f"https://github.com/{user.name.lower().replace(' ', '')}/project{i}",
+                start_date=datetime(2021, 6, 1),
+                end_date=datetime(2022, 3, 1)
+            )
+            db.session.add(project)
+
+            # Certifications
+            cert = Certification(
+                user_id=user.id,
+                name="AWS Certified Developer",
+                issuer="Amazon Web Services",
+                date_obtained=datetime(2021, 8, 15),
+                credential_id=f"AWS-CERT-{user.id}"
+            )
+            db.session.add(cert)
+
+            # Languages
+            lang = Language(
+                user_id=user.id,
+                name="English",
+                proficiency_level="native"
+            )
+            db.session.add(lang)
 
         # create three posts for each organization
         for i in range(1, 4):

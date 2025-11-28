@@ -103,6 +103,12 @@ export function getSidebarItems(role, plan) {
     if (plan === "trial") {
       return [
         { name: "Profile", link: "/organization/profile", icon: FiUser },
+        {
+          name: "Browse Organizations",
+          link: "/organization/browse",
+          icon: FiUser,
+        },
+        { name: "Hire People", link: "/organization/hire", icon: FiUsers },
         { name: "Team Members", link: "/organization/team", icon: FiUsers },
         { name: "Job Posts", link: "/organization/jobs", icon: FiFileText },
         { name: "Candidates", link: "/organization/candidates", icon: FiUser },
@@ -118,6 +124,12 @@ export function getSidebarItems(role, plan) {
       // pro
       return [
         { name: "Profile", link: "/organization/profile", icon: FiUser },
+        {
+          name: "Browse Organizations",
+          link: "/organization/browse",
+          icon: FiUser,
+        },
+        { name: "Hire People", link: "/organization/hire", icon: FiUsers },
         { name: "Team Members", link: "/organization/team", icon: FiUsers },
         { name: "Job Posts", link: "/organization/jobs", icon: FiFileText },
         { name: "Candidates", link: "/organization/candidates", icon: FiUser },

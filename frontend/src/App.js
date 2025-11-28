@@ -29,7 +29,10 @@ import JobAlerts from "./pages/individual/JobAlerts";
 import CareerCoaching from "./pages/individual/CareerCoaching";
 // Organization Pages
 import OrganizationProfile from "./pages/organization/Profile";
+import BrowseOrganizations from "./pages/organization/BrowseOrganizations";
+import HirePeople from "./pages/organization/HirePeople";
 import TeamMembers from "./pages/organization/TeamMembers";
+import UserProfile from "./pages/organization/UserProfile";
 import JobPosts from "./pages/organization/JobPosts";
 import Candidates from "./pages/organization/Candidates";
 import InterviewManagement from "./pages/organization/InterviewManagement";
@@ -175,10 +178,34 @@ function App() {
             }
           />
           <Route
+            path="/organization/browse"
+            element={
+              <ProtectedRoute>
+                <BrowseOrganizations />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/organization/hire"
+            element={
+              <ProtectedRoute>
+                <HirePeople />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/organization/team"
             element={
               <ProtectedRoute>
                 <TeamMembers />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/organization/user/:userId"
+            element={
+              <ProtectedRoute>
+                <UserProfile />
               </ProtectedRoute>
             }
           />

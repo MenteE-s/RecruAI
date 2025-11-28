@@ -506,7 +506,7 @@ export default function OrganizationProfile() {
               <FiEdit2 size={16} />
             </button>
           </div>
-          {profileData.social_media_links &&
+          {Array.isArray(profileData.social_media_links) &&
           profileData.social_media_links.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {profileData.social_media_links.map((link, index) => (
