@@ -1,9 +1,16 @@
+import React, { useState, useEffect } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
 import StatCard from "../../components/ui/StatCard";
 import Card from "../../components/ui/Card";
 import { getSidebarItems } from "../../utils/auth";
-import { FiUsers, FiBarChart2, FiBriefcase, FiStar } from "react-icons/fi";
+import {
+  FiUsers,
+  FiBarChart2,
+  FiBriefcase,
+  FiStar,
+  FiBell,
+} from "react-icons/fi";
 
 export default function OrganizationDashboard() {
   const role =
@@ -11,6 +18,32 @@ export default function OrganizationDashboard() {
   const plan =
     typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
   const sidebarItems = getSidebarItems(role, plan);
+
+  const [stats, setStats] = useState({
+    team_members: 0,
+    open_requisitions: 0,
+    pipeline: 0,
+    new_applications: 0,
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchDashboardStats();
+  }, []);
+
+  const fetchDashboardStats = async () => {
+    try {
+      const response = await fetch("/api/dashboard/stats");
+      if (response.ok) {
+        const data = await response.json();
+        setStats(data);
+      }
+    } catch (error) {
+      console.error("Error fetching dashboard stats:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <DashboardLayout
@@ -42,8 +75,16 @@ export default function OrganizationDashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <StatCard
+          title="New Applications"
+          value={loading ? "..." : stats.new_applications.toString()}
+          change={stats.new_applications > 0 ? "Review now" : "All caught up"}
+          icon={FiBell}
+          trend={stats.new_applications > 0 ? "up" : "neutral"}
+          variant="gradient"
+        />
+        <StatCard
           title="Team Members"
-          value="128"
+          value={loading ? "..." : stats.team_members.toString()}
           change="+8%"
           icon={FiUsers}
           trend="up"
@@ -51,7 +92,7 @@ export default function OrganizationDashboard() {
         />
         <StatCard
           title="Open Reqs"
-          value="14"
+          value={loading ? "..." : stats.open_requisitions.toString()}
           change="-2"
           icon={FiBriefcase}
           trend="down"
@@ -59,17 +100,9 @@ export default function OrganizationDashboard() {
         />
         <StatCard
           title="Pipeline"
-          value="342"
+          value={loading ? "..." : stats.pipeline.toString()}
           change="+12%"
           icon={FiBarChart2}
-          trend="up"
-          variant="gradient"
-        />
-        <StatCard
-          title="Premium Score"
-          value="92"
-          change="+1"
-          icon={FiStar}
           trend="up"
           variant="gradient"
         />

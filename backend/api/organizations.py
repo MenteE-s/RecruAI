@@ -5,7 +5,7 @@ from . import api_bp
 from ..extensions import db
 from ..models import (
     Organization, Post, TeamMember, User, Experience, Education, Skill,
-    Project, Certification, Language
+    Project, Certification, Language, Application, SavedJob
 )
 import json
 
@@ -245,8 +245,16 @@ def create_post():
     payload = request.get_json(silent=True) or {}
     org_id = payload.get("organization_id")
     title = payload.get("title")
+
     if not org_id or not title:
         return jsonify({"error": "organization_id and title required"}), 400
+
+    if len(title.strip()) < 3:
+        return jsonify({"error": "title must be at least 3 characters"}), 400
+
+    if payload.get("salary_min") and payload.get("salary_max"):
+        if payload["salary_min"] > payload["salary_max"]:
+            return jsonify({"error": "salary_min cannot be greater than salary_max"}), 400
 
     org = Organization.query.get(org_id)
     if not org:
@@ -258,16 +266,74 @@ def create_post():
         description=payload.get("description"),
         location=payload.get("location"),
         employment_type=payload.get("employment_type"),
+        category=payload.get("category"),
+        salary_min=payload.get("salary_min"),
+        salary_max=payload.get("salary_max"),
+        salary_currency=payload.get("salary_currency", "USD"),
+        requirements=json.dumps(payload.get("requirements", [])) if payload.get("requirements") else None,
+        application_deadline=payload.get("application_deadline"),
+        status=payload.get("status", "active"),
     )
     db.session.add(post)
     db.session.commit()
     return jsonify(post.to_dict()), 201
 
 
+@api_bp.route("/posts/<int:post_id>", methods=["PUT"])
+def update_post(post_id):
+    post = Post.query.get_or_404(post_id)
+
+    # TODO: Add authentication check - ensure user is part of the organization
+    # For now, allowing all updates
+
+    payload = request.get_json(silent=True) or {}
+
+    # Update fields
+    if "title" in payload:
+        post.title = payload["title"]
+    if "description" in payload:
+        post.description = payload["description"]
+    if "location" in payload:
+        post.location = payload["location"]
+    if "employment_type" in payload:
+        post.employment_type = payload["employment_type"]
+    if "category" in payload:
+        post.category = payload["category"]
+    if "salary_min" in payload:
+        post.salary_min = payload["salary_min"]
+    if "salary_max" in payload:
+        post.salary_max = payload["salary_max"]
+    if "salary_currency" in payload:
+        post.salary_currency = payload["salary_currency"]
+    if "requirements" in payload:
+        post.requirements = json.dumps(payload["requirements"]) if payload["requirements"] else None
+    if "application_deadline" in payload:
+        post.application_deadline = payload["application_deadline"]
+    if "status" in payload:
+        post.status = payload["status"]
+
+    db.session.commit()
+    return jsonify(post.to_dict()), 200
+
+
+@api_bp.route("/posts/<int:post_id>", methods=["DELETE"])
+def delete_post(post_id):
+    post = Post.query.get_or_404(post_id)
+    db.session.delete(post)
+    db.session.commit()
+    return jsonify({"message": "post deleted"}), 200
+
+
 @api_bp.route("/posts", methods=["GET"])
 def list_posts():
     posts = Post.query.order_by(Post.created_at.desc()).all()
     return jsonify([p.to_dict() for p in posts])
+
+
+@api_bp.route("/posts/<int:post_id>", methods=["GET"])
+def get_post(post_id):
+    post = Post.query.get_or_404(post_id)
+    return jsonify(post.to_dict())
 
 
 @api_bp.route("/seed-demo", methods=["POST", "GET"])
@@ -431,3 +497,164 @@ def seed_demo_data():
 
     db.session.commit()
     return jsonify({"message": "Demo data seeded", "organizations": created}), 201
+
+
+# Application endpoints
+@api_bp.route("/applications", methods=["GET"])
+def get_applications():
+    """Get applications for current user's organization posts"""
+    # TODO: Add JWT authentication to get current user
+    # For now, return all applications (will be filtered by organization later)
+    applications = Application.query.order_by(Application.applied_at.desc()).all()
+    return jsonify([app.to_dict() for app in applications]), 200
+
+
+@api_bp.route("/applications", methods=["POST"])
+def create_application():
+    payload = request.get_json(silent=True) or {}
+    user_id = payload.get("user_id")
+    post_id = payload.get("post_id")
+    if not user_id or not post_id:
+        return jsonify({"error": "user_id and post_id required"}), 400
+
+    # Check if user already applied
+    existing = Application.query.filter_by(user_id=user_id, post_id=post_id).first()
+    if existing:
+        return jsonify({"error": "already applied to this job"}), 400
+
+    application = Application(
+        user_id=user_id,
+        post_id=post_id,
+        cover_letter=payload.get("cover_letter"),
+        resume_url=payload.get("resume_url"),
+    )
+    db.session.add(application)
+    db.session.commit()
+    return jsonify(application.to_dict()), 201
+
+
+@api_bp.route("/applications/user/<int:user_id>", methods=["GET"])
+def list_user_applications(user_id):
+    applications = Application.query.filter_by(user_id=user_id).order_by(Application.applied_at.desc()).all()
+    return jsonify([app.to_dict() for app in applications]), 200
+
+
+@api_bp.route("/applications/post/<int:post_id>", methods=["GET"])
+def list_post_applications(post_id):
+    applications = Application.query.filter_by(post_id=post_id).order_by(Application.applied_at.desc()).all()
+    return jsonify([app.to_dict() for app in applications]), 200
+
+
+@api_bp.route("/applications/<int:app_id>", methods=["PUT"])
+def update_application_status(app_id):
+    application = Application.query.get_or_404(app_id)
+    payload = request.get_json(silent=True) or {}
+    if "status" in payload:
+        application.status = payload["status"]
+    db.session.commit()
+    return jsonify(application.to_dict()), 200
+
+
+# Saved jobs endpoints
+@api_bp.route("/saved-jobs", methods=["POST"])
+def save_job():
+    payload = request.get_json(silent=True) or {}
+    user_id = payload.get("user_id")
+    post_id = payload.get("post_id")
+    if not user_id or not post_id:
+        return jsonify({"error": "user_id and post_id required"}), 400
+
+    # Check if already saved
+    existing = SavedJob.query.filter_by(user_id=user_id, post_id=post_id).first()
+    if existing:
+        return jsonify({"error": "job already saved"}), 400
+
+    saved_job = SavedJob(user_id=user_id, post_id=post_id)
+    db.session.add(saved_job)
+    db.session.commit()
+    return jsonify(saved_job.to_dict()), 201
+
+
+@api_bp.route("/saved-jobs/<int:saved_id>", methods=["DELETE"])
+def unsave_job(saved_id):
+    saved_job = SavedJob.query.get_or_404(saved_id)
+    db.session.delete(saved_job)
+    db.session.commit()
+    return jsonify({"message": "job unsaved"}), 200
+
+
+@api_bp.route("/saved-jobs/user/<int:user_id>", methods=["GET"])
+def list_saved_jobs(user_id):
+    saved_jobs = SavedJob.query.filter_by(user_id=user_id).order_by(SavedJob.saved_at.desc()).all()
+    return jsonify([sj.to_dict() for sj in saved_jobs]), 200
+
+
+@api_bp.route("/saved-jobs/check", methods=["GET"])
+def check_saved():
+    user_id = request.args.get("user_id", type=int)
+    post_id = request.args.get("post_id", type=int)
+    if not user_id or not post_id:
+        return jsonify({"error": "user_id and post_id required"}), 400
+
+    saved = SavedJob.query.filter_by(user_id=user_id, post_id=post_id).first()
+    return jsonify({"saved": saved is not None, "saved_id": saved.id if saved else None}), 200
+
+
+# Dashboard statistics endpoints
+@api_bp.route("/dashboard/stats", methods=["GET"])
+def get_dashboard_stats():
+    """Get dashboard statistics for organizations"""
+    # TODO: Add organization filtering based on authenticated user
+    # For now, return global stats
+
+    # Team members count (across all organizations for demo)
+    team_members_count = TeamMember.query.count()
+
+    # Open requisitions (active posts)
+    open_reqs_count = Post.query.filter_by(status='active').count()
+
+    # Pipeline (total applications)
+    pipeline_count = Application.query.count()
+
+    # New applications (pending status)
+    new_applications_count = Application.query.filter_by(status='pending').count()
+
+    return jsonify({
+        "team_members": team_members_count,
+        "open_requisitions": open_reqs_count,
+        "pipeline": pipeline_count,
+        "new_applications": new_applications_count
+    }), 200
+
+
+@api_bp.route("/analytics/overview", methods=["GET"])
+def get_analytics_overview():
+    """Get analytics data for organization dashboard"""
+    # TODO: Filter by organization
+    total_posts = Post.query.count()
+    total_applications = Application.query.count()
+    total_interviews = Interview.query.count()
+    active_posts = Post.query.filter_by(status='active').count()
+
+    # Applications by status
+    applications_by_status = {}
+    for status in ['pending', 'reviewed', 'accepted', 'rejected']:
+        count = Application.query.filter_by(status=status).count()
+        applications_by_status[status] = count
+
+    # Posts by category
+    posts_by_category = {}
+    categories = db.session.query(Post.category).distinct().all()
+    for (category,) in categories:
+        if category:
+            count = Post.query.filter_by(category=category).count()
+            posts_by_category[category] = count
+
+    return jsonify({
+        "total_posts": total_posts,
+        "total_applications": total_applications,
+        "total_interviews": total_interviews,
+        "active_posts": active_posts,
+        "applications_by_status": applications_by_status,
+        "posts_by_category": posts_by_category
+    }), 200

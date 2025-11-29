@@ -23,10 +23,12 @@ import Profile from "./pages/individual/Profile";
 import UpcomingInterviews from "./pages/individual/UpcomingInterviews";
 import InterviewHistory from "./pages/individual/InterviewHistory";
 import SavedJobs from "./pages/individual/SavedJobs";
+import BrowseJobs from "./pages/individual/BrowseJobs";
 import Analytics from "./pages/individual/Analytics";
 import ResumeBuilder from "./pages/individual/ResumeBuilder";
 import JobAlerts from "./pages/individual/JobAlerts";
 import CareerCoaching from "./pages/individual/CareerCoaching";
+import JobDetails from "./pages/individual/JobDetails";
 // Organization Pages
 import OrganizationProfile from "./pages/organization/Profile";
 import BrowseOrganizations from "./pages/organization/BrowseOrganizations";
@@ -118,6 +120,22 @@ function App() {
             element={
               <ProtectedRoute>
                 <InterviewHistory />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/jobs"
+            element={
+              <ProtectedRoute>
+                <BrowseJobs />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/jobs/:id"
+            element={
+              <ProtectedRoute>
+                <JobDetails />
               </ProtectedRoute>
             }
           />

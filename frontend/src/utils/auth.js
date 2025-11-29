@@ -64,6 +64,7 @@ export function getSidebarItems(role, plan) {
     if (plan === "trial") {
       return [
         { name: "Profile", link: "/profile", icon: FiUser },
+        { name: "Jobs", link: "/jobs", icon: FiFileText },
         {
           name: "Upcoming Interviews",
           link: "/interviews/upcoming",
@@ -81,6 +82,7 @@ export function getSidebarItems(role, plan) {
       // pro
       return [
         { name: "Profile", link: "/profile", icon: FiUser },
+        { name: "Jobs", link: "/jobs", icon: FiFileText },
         {
           name: "Upcoming Interviews",
           link: "/interviews/upcoming",

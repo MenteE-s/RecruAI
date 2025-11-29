@@ -196,21 +196,102 @@ class Post(db.Model):
     title = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text, nullable=True)
     location = db.Column(db.String(255), nullable=True)
-    employment_type = db.Column(db.String(64), nullable=True)
+    employment_type = db.Column(db.String(64), nullable=True)  # Full-time, Part-time, Contract, etc.
+    category = db.Column(db.String(100), nullable=True)  # Software Engineering, Marketing, Sales, etc.
+    salary_min = db.Column(db.Integer, nullable=True)
+    salary_max = db.Column(db.Integer, nullable=True)
+    salary_currency = db.Column(db.String(10), default="USD")
+    requirements = db.Column(db.Text, nullable=True)  # JSON string of requirements
+    application_deadline = db.Column(db.Date, nullable=True)
+    status = db.Column(db.String(20), default="active")  # active, inactive, closed
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     organization = db.relationship("Organization", back_populates="posts")
 
     def to_dict(self):
+        import json
+        requirements_list = []
+        if self.requirements:
+            try:
+                requirements_list = json.loads(self.requirements)
+                if not isinstance(requirements_list, list):
+                    requirements_list = []
+            except (json.JSONDecodeError, TypeError):
+                requirements_list = []
         return {
             "id": self.id,
             "title": self.title,
             "description": self.description,
             "location": self.location,
             "employment_type": self.employment_type,
+            "category": self.category,
+            "salary_min": self.salary_min,
+            "salary_max": self.salary_max,
+            "salary_currency": self.salary_currency,
+            "requirements": requirements_list,
+            "application_deadline": self.application_deadline.isoformat() if self.application_deadline else None,
+            "status": self.status,
             "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
             "organization_id": self.organization_id,
             "organization": self.organization.name if self.organization else None,
+            "organization_details": self.organization.to_dict() if self.organization else None,
+        }
+
+
+class Application(db.Model):
+    __tablename__ = "applications"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    post_id = db.Column(db.Integer, db.ForeignKey("posts.id"), nullable=False)
+    cover_letter = db.Column(db.Text, nullable=True)
+    resume_url = db.Column(db.String(500), nullable=True)  # URL to uploaded resume
+    status = db.Column(db.String(20), default="pending")  # pending, reviewed, accepted, rejected
+    applied_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user = db.relationship("User", backref="applications")
+    post = db.relationship("Post", backref="applications")
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "post_id": self.post_id,
+            "cover_letter": self.cover_letter,
+            "resume_url": self.resume_url,
+            "status": self.status,
+            "applied_at": self.applied_at.isoformat() if self.applied_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "user": {
+                "id": self.user.id if self.user else None,
+                "name": self.user.name if self.user else None,
+                "email": self.user.email if self.user else None,
+            } if self.user else None,
+            "post": self.post.to_dict() if self.post else None,
+        }
+
+
+class SavedJob(db.Model):
+    __tablename__ = "saved_jobs"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    post_id = db.Column(db.Integer, db.ForeignKey("posts.id"), nullable=False)
+    saved_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship("User", backref="saved_jobs")
+    post = db.relationship("Post", backref="saved_by")
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "post_id": self.post_id,
+            "saved_at": self.saved_at.isoformat() if self.saved_at else None,
+            "post": self.post.to_dict() if self.post else None,
         }
 
 
