@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-from flask import Flask, jsonify
+from flask import Flask, jsonify, send_from_directory
 
 # support running as a module (recommended) and as a script
 try:
@@ -76,6 +76,11 @@ def create_app(config_object: object | None = None):
 
 	# register blueprints
 	app.register_blueprint(api_bp, url_prefix="/api")
+
+	# Serve uploaded files
+	@app.route('/uploads/<path:filename>')
+	def uploaded_file(filename):
+		return send_from_directory(os.path.join(here, 'uploads'), filename)
 
 	# Security: set safer cookie flags for session cookies. These defaults help
 	# prevent client-side script access to session cookies and allow enabling

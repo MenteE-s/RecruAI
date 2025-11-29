@@ -93,7 +93,8 @@ export default function AIAgents() {
   };
 
   const handleDelete = async (agentId) => {
-    if (!confirm("Are you sure you want to delete this AI agent?")) return;
+    if (!window.confirm("Are you sure you want to delete this AI agent?"))
+      return;
 
     try {
       const response = await fetch(`/api/ai-agents/${agentId}`, {

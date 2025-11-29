@@ -16,6 +16,8 @@ import {
   FiCheck,
   FiX as FiXIcon,
   FiTrash2,
+  FiCamera,
+  FiUser,
 } from "react-icons/fi";
 
 // Date formatting utility
@@ -1346,9 +1348,25 @@ export default function Profile() {
   const [saving, setSaving] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
+  const [userData, setUserData] = useState(null);
+  const [uploadingProfilePicture, setUploadingProfilePicture] = useState(false);
 
-  // Load profile data from backend
+  // Load user data and profile data from backend
   useEffect(() => {
+    const loadUserData = async () => {
+      try {
+        const response = await fetch("/api/auth/me", {
+          credentials: "include",
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setUserData(data.user);
+        }
+      } catch (error) {
+        console.error("Error loading user data:", error);
+      }
+    };
+
     const loadProfileData = async () => {
       try {
         // Load all profile data in parallel
@@ -1478,6 +1496,7 @@ export default function Profile() {
       }
     };
 
+    loadUserData();
     loadProfileData();
   }, []);
 
@@ -1713,6 +1732,55 @@ export default function Profile() {
     }
   };
 
+  const handleProfilePictureUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif"];
+    if (!allowedTypes.includes(file.type)) {
+      setError("Please select a valid image file (JPEG, PNG, or GIF)");
+      return;
+    }
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      setError("File size must be less than 5MB");
+      return;
+    }
+
+    setUploadingProfilePicture(true);
+    setError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("profile_picture", file);
+
+      const response = await fetch("/api/profile/upload-profile-picture", {
+        method: "POST",
+        credentials: "include",
+        body: formData,
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setUserData((prev) => ({
+          ...prev,
+          profile_picture: data.profile_picture,
+        }));
+        setError(null);
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        setError(errorData.error || "Failed to upload profile picture");
+      }
+    } catch (error) {
+      console.error("Error uploading profile picture:", error);
+      setError("Network error. Please try again.");
+    } finally {
+      setUploadingProfilePicture(false);
+    }
+  };
+
   if (loading) {
     return (
       <DashboardLayout
@@ -1765,13 +1833,49 @@ export default function Profile() {
       <div className="mb-6">
         <div className="rounded-2xl p-6 bg-gradient-to-br from-indigo-600/80 via-purple-600/60 to-cyan-500/60 text-white shadow-lg">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold font-display">
-                My Profile
-              </h1>
-              <p className="mt-1 text-white/90">
-                Build your professional profile
-              </p>
+            <div className="flex items-center space-x-4">
+              {/* Profile Picture */}
+              <div className="relative">
+                <div className="w-20 h-20 rounded-full bg-white/20 flex items-center justify-center overflow-hidden">
+                  {userData?.profile_picture ? (
+                    <img
+                      src={userData.profile_picture}
+                      alt="Profile"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <FiUser size={32} className="text-white/70" />
+                  )}
+                </div>
+                <label
+                  htmlFor="profile-picture-upload"
+                  className="absolute bottom-0 right-0 bg-white rounded-full p-1.5 cursor-pointer hover:bg-gray-50 transition-colors shadow-lg"
+                >
+                  <FiCamera size={14} className="text-gray-600" />
+                </label>
+                <input
+                  id="profile-picture-upload"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleProfilePictureUpload}
+                  className="hidden"
+                  disabled={uploadingProfilePicture}
+                />
+              </div>
+
+              <div>
+                <h1 className="text-2xl md:text-3xl font-bold font-display">
+                  My Profile
+                </h1>
+                <p className="mt-1 text-white/90">
+                  Build your professional profile
+                </p>
+                {uploadingProfilePicture && (
+                  <p className="mt-2 text-sm text-white/80">
+                    Uploading profile picture...
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         </div>

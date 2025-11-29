@@ -9,6 +9,9 @@ from ..models import (
     KeyAchievement, Conference, SpeakingEngagement, License, TeamMember
 )
 import json
+from datetime import datetime
+import os
+from werkzeug.utils import secure_filename
 
 @api_bp.route('/profile/sections', methods=['GET'])
 @jwt_required()
@@ -95,9 +98,24 @@ def create_experience():
     if not data or 'title' not in data or 'company' not in data:
         return jsonify({'error': 'Missing required fields'}), 400
 
-    # Handle empty date strings
-    start_date = data.get('start_date') if data.get('start_date') != '' else None
-    end_date = data.get('end_date') if data.get('end_date') != '' else None
+    # Handle empty date strings and convert to date objects
+    start_date_str = data.get('start_date')
+    end_date_str = data.get('end_date')
+
+    start_date = None
+    end_date = None
+
+    if start_date_str and start_date_str != '':
+        try:
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            return jsonify({'error': 'Invalid start_date format. Use YYYY-MM-DD'}), 400
+
+    if end_date_str and end_date_str != '':
+        try:
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            return jsonify({'error': 'Invalid end_date format. Use YYYY-MM-DD'}), 400
 
     experience = Experience(
         user_id=user_id,
@@ -628,6 +646,7 @@ def delete_language(lang_id):
 
 # Volunteer Experience endpoints
 @api_bp.route('/profile/volunteer-experiences', methods=['GET'])
+@api_bp.route('/profile/volunteerExperiences', methods=['GET'])  # Alias for camelCase
 @jwt_required()
 def get_volunteer_experiences():
     """Get all volunteer experiences for the current user"""
@@ -636,6 +655,7 @@ def get_volunteer_experiences():
     return jsonify({'volunteer_experiences': [ve.to_dict() for ve in volunteer_experiences]}), 200
 
 @api_bp.route('/profile/volunteer-experiences', methods=['POST'])
+@api_bp.route('/profile/volunteerExperiences', methods=['POST'])  # Alias for camelCase
 @jwt_required()
 def create_volunteer_experience():
     """Create a new volunteer experience"""
@@ -666,6 +686,7 @@ def create_volunteer_experience():
     return jsonify({'message': 'Volunteer experience created successfully', 'volunteer_experience': volunteer_experience.to_dict()}), 201
 
 @api_bp.route('/profile/volunteer-experiences/<int:ve_id>', methods=['PUT'])
+@api_bp.route('/profile/volunteerExperiences/<int:ve_id>', methods=['PUT'])  # Alias for camelCase
 @jwt_required()
 def update_volunteer_experience(ve_id):
     """Update a volunteer experience"""
@@ -684,6 +705,7 @@ def update_volunteer_experience(ve_id):
     return jsonify({'message': 'Volunteer experience updated successfully', 'volunteer_experience': volunteer_experience.to_dict()}), 200
 
 @api_bp.route('/profile/volunteer-experiences/<int:ve_id>', methods=['DELETE'])
+@api_bp.route('/profile/volunteerExperiences/<int:ve_id>', methods=['DELETE'])  # Alias for camelCase
 @jwt_required()
 def delete_volunteer_experience(ve_id):
     """Delete a volunteer experience"""
@@ -765,6 +787,7 @@ def delete_reference(ref_id):
 
 # Hobby Interests endpoints
 @api_bp.route('/profile/hobby-interests', methods=['GET'])
+@api_bp.route('/profile/hobbyInterests', methods=['GET'])  # Alias for camelCase
 @jwt_required()
 def get_hobby_interests():
     """Get all hobby interests for the current user"""
@@ -773,6 +796,7 @@ def get_hobby_interests():
     return jsonify({'hobby_interests': [hi.to_dict() for hi in hobby_interests]}), 200
 
 @api_bp.route('/profile/hobby-interests', methods=['POST'])
+@api_bp.route('/profile/hobbyInterests', methods=['POST'])  # Alias for camelCase
 @jwt_required()
 def create_hobby_interest():
     """Create a new hobby interest"""
@@ -794,6 +818,7 @@ def create_hobby_interest():
     return jsonify({'message': 'Hobby interest created successfully', 'hobby_interest': hobby_interest.to_dict()}), 201
 
 @api_bp.route('/profile/hobby-interests/<int:hi_id>', methods=['PUT'])
+@api_bp.route('/profile/hobbyInterests/<int:hi_id>', methods=['PUT'])  # Alias for camelCase
 @jwt_required()
 def update_hobby_interest(hi_id):
     """Update a hobby interest"""
@@ -812,6 +837,7 @@ def update_hobby_interest(hi_id):
     return jsonify({'message': 'Hobby interest updated successfully', 'hobby_interest': hobby_interest.to_dict()}), 200
 
 @api_bp.route('/profile/hobby-interests/<int:hi_id>', methods=['DELETE'])
+@api_bp.route('/profile/hobbyInterests/<int:hi_id>', methods=['DELETE'])  # Alias for camelCase
 @jwt_required()
 def delete_hobby_interest(hi_id):
     """Delete a hobby interest"""
@@ -827,6 +853,7 @@ def delete_hobby_interest(hi_id):
 
 # Professional Memberships endpoints
 @api_bp.route('/profile/professional-memberships', methods=['GET'])
+@api_bp.route('/profile/professionalMemberships', methods=['GET'])  # Alias for camelCase
 @jwt_required()
 def get_professional_memberships():
     """Get all professional memberships for the current user"""
@@ -835,6 +862,7 @@ def get_professional_memberships():
     return jsonify({'professional_memberships': [pm.to_dict() for pm in professional_memberships]}), 200
 
 @api_bp.route('/profile/professional-memberships', methods=['POST'])
+@api_bp.route('/profile/professionalMemberships', methods=['POST'])  # Alias for camelCase
 @jwt_required()
 def create_professional_membership():
     """Create a new professional membership"""
@@ -863,6 +891,7 @@ def create_professional_membership():
     return jsonify({'message': 'Professional membership created successfully', 'professional_membership': professional_membership.to_dict()}), 201
 
 @api_bp.route('/profile/professional-memberships/<int:pm_id>', methods=['PUT'])
+@api_bp.route('/profile/professionalMemberships/<int:pm_id>', methods=['PUT'])  # Alias for camelCase
 @jwt_required()
 def update_professional_membership(pm_id):
     """Update a professional membership"""
@@ -881,6 +910,7 @@ def update_professional_membership(pm_id):
     return jsonify({'message': 'Professional membership updated successfully', 'professional_membership': professional_membership.to_dict()}), 200
 
 @api_bp.route('/profile/professional-memberships/<int:pm_id>', methods=['DELETE'])
+@api_bp.route('/profile/professionalMemberships/<int:pm_id>', methods=['DELETE'])  # Alias for camelCase
 @jwt_required()
 def delete_professional_membership(pm_id):
     """Delete a professional membership"""
@@ -969,6 +999,7 @@ def delete_patent(patent_id):
 
 # Course Trainings endpoints
 @api_bp.route('/profile/course-trainings', methods=['GET'])
+@api_bp.route('/profile/courseTrainings', methods=['GET'])  # Alias for camelCase
 @jwt_required()
 def get_course_trainings():
     """Get all course trainings for the current user"""
@@ -977,6 +1008,7 @@ def get_course_trainings():
     return jsonify({'course_trainings': [ct.to_dict() for ct in course_trainings]}), 200
 
 @api_bp.route('/profile/course-trainings', methods=['POST'])
+@api_bp.route('/profile/courseTrainings', methods=['POST'])  # Alias for camelCase
 @jwt_required()
 def create_course_training():
     """Create a new course training"""
@@ -1004,6 +1036,7 @@ def create_course_training():
     return jsonify({'message': 'Course training created successfully', 'course_training': course_training.to_dict()}), 201
 
 @api_bp.route('/profile/course-trainings/<int:ct_id>', methods=['PUT'])
+@api_bp.route('/profile/courseTrainings/<int:ct_id>', methods=['PUT'])  # Alias for camelCase
 @jwt_required()
 def update_course_training(ct_id):
     """Update a course training"""
@@ -1022,6 +1055,7 @@ def update_course_training(ct_id):
     return jsonify({'message': 'Course training updated successfully', 'course_training': course_training.to_dict()}), 200
 
 @api_bp.route('/profile/course-trainings/<int:ct_id>', methods=['DELETE'])
+@api_bp.route('/profile/courseTrainings/<int:ct_id>', methods=['DELETE'])  # Alias for camelCase
 @jwt_required()
 def delete_course_training(ct_id):
     """Delete a course training"""
@@ -1037,6 +1071,7 @@ def delete_course_training(ct_id):
 
 # Social Media Links endpoints
 @api_bp.route('/profile/social-media-links', methods=['GET'])
+@api_bp.route('/profile/socialMediaLinks', methods=['GET'])  # Alias for camelCase
 @jwt_required()
 def get_social_media_links():
     """Get all social media links for the current user"""
@@ -1045,6 +1080,7 @@ def get_social_media_links():
     return jsonify({'social_media_links': [sml.to_dict() for sml in social_media_links]}), 200
 
 @api_bp.route('/profile/social-media-links', methods=['POST'])
+@api_bp.route('/profile/socialMediaLinks', methods=['POST'])  # Alias for camelCase
 @jwt_required()
 def create_social_media_link():
     """Create a new social media link"""
@@ -1067,6 +1103,7 @@ def create_social_media_link():
     return jsonify({'message': 'Social media link created successfully', 'social_media_link': social_media_link.to_dict()}), 201
 
 @api_bp.route('/profile/social-media-links/<int:sml_id>', methods=['PUT'])
+@api_bp.route('/profile/socialMediaLinks/<int:sml_id>', methods=['PUT'])  # Alias for camelCase
 @jwt_required()
 def update_social_media_link(sml_id):
     """Update a social media link"""
@@ -1085,6 +1122,7 @@ def update_social_media_link(sml_id):
     return jsonify({'message': 'Social media link updated successfully', 'social_media_link': social_media_link.to_dict()}), 200
 
 @api_bp.route('/profile/social-media-links/<int:sml_id>', methods=['DELETE'])
+@api_bp.route('/profile/socialMediaLinks/<int:sml_id>', methods=['DELETE'])  # Alias for camelCase
 @jwt_required()
 def delete_social_media_link(sml_id):
     """Delete a social media link"""
@@ -1456,3 +1494,53 @@ def get_user_profile(user_id):
     profile_data['team_member_info'] = target_team_member.to_dict() if target_team_member else None
 
     return jsonify(profile_data), 200
+
+# Profile Picture Upload endpoint
+@api_bp.route('/profile/upload-profile-picture', methods=['POST'])
+@jwt_required()
+def upload_profile_picture():
+    """Upload a profile picture for the current user"""
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    if 'profile_picture' not in request.files:
+        return jsonify({'error': 'No file provided'}), 400
+
+    file = request.files['profile_picture']
+
+    if file.filename == '':
+        return jsonify({'error': 'No file selected'}), 400
+
+    # Validate file type
+    allowed_extensions = {'png', 'jpg', 'jpeg', 'gif'}
+    if not file.filename.lower().split('.')[-1] in allowed_extensions:
+        return jsonify({'error': 'Invalid file type. Only PNG, JPG, JPEG, and GIF are allowed'}), 400
+
+    # Validate file size (max 5MB)
+    if len(file.read()) > 5 * 1024 * 1024:  # 5MB
+        return jsonify({'error': 'File too large. Maximum size is 5MB'}), 400
+
+    # Reset file pointer
+    file.seek(0)
+
+    # Secure filename and create unique filename
+    filename = secure_filename(file.filename)
+    extension = filename.rsplit('.', 1)[1].lower()
+    unique_filename = f"user_{user_id}_profile.{extension}"
+
+    # Save file
+    upload_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'uploads', 'profile_pictures', unique_filename)
+    file.save(upload_path)
+
+    # Update user profile picture path
+    profile_picture_url = f"/uploads/profile_pictures/{unique_filename}"
+    user.profile_picture = profile_picture_url
+    db.session.commit()
+
+    return jsonify({
+        'message': 'Profile picture uploaded successfully',
+        'profile_picture': profile_picture_url
+    }), 200

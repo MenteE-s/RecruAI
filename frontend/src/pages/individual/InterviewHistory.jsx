@@ -12,31 +12,49 @@ export default function InterviewHistory() {
   const sidebarItems = getSidebarItems(role, plan);
 
   const [interviews, setInterviews] = useState([]);
+  const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [activeTab, setActiveTab] = useState("history");
 
   useEffect(() => {
-    const fetchInterviewHistory = async () => {
+    const fetchData = async () => {
       try {
-        const response = await fetch("/api/interviews/history", {
+        // Fetch interview history
+        const historyResponse = await fetch("/api/interviews/history", {
           credentials: "include",
         });
 
-        if (response.ok) {
-          const data = await response.json();
-          setInterviews(data.interviews);
+        if (historyResponse.ok) {
+          const historyData = await historyResponse.json();
+          setInterviews(historyData.interviews);
         } else {
           setError("Failed to load interview history");
         }
+
+        // Fetch user analytics
+        const userId = 1; // TODO: Get from user context
+        const analyticsResponse = await fetch(
+          `/api/users/${userId}/analytics`,
+          {
+            credentials: "include",
+          }
+        );
+
+        if (analyticsResponse.ok) {
+          const analyticsData = await analyticsResponse.json();
+          setAnalytics(analyticsData);
+        }
+        // Don't set error for analytics if it fails, as history might still work
       } catch (error) {
-        console.error("Error fetching interview history:", error);
+        console.error("Error fetching data:", error);
         setError("Network error. Please try again.");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchInterviewHistory();
+    fetchData();
   }, []);
 
   const formatDateTime = (dateString) => {
@@ -144,95 +162,325 @@ export default function InterviewHistory() {
       )}
 
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Interview History</h1>
+        <h1 className="text-2xl font-bold text-gray-900">
+          Interview Performance
+        </h1>
         <p className="text-gray-600 mt-1">
-          Review your past interviews and feedback.
+          Review your interview history and performance analytics.
         </p>
       </div>
 
+      {/* Tab Navigation */}
+      <div className="mb-6">
+        <div className="border-b border-gray-200">
+          <nav className="-mb-px flex space-x-8">
+            <button
+              onClick={() => setActiveTab("history")}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === "history"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              Interview History
+            </button>
+            <button
+              onClick={() => setActiveTab("analytics")}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === "analytics"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              Performance Analytics
+            </button>
+          </nav>
+        </div>
+      </div>
+
       <div className="space-y-6">
-        {interviews.length === 0 ? (
-          <Card>
-            <div className="text-center py-8">
-              <div className="text-4xl mb-4">📋</div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                No interview history
-              </h3>
-              <p className="text-gray-600">
-                You haven't completed any interviews yet.
-              </p>
-            </div>
-          </Card>
-        ) : (
-          interviews.map((interview) => (
-            <Card key={interview.id}>
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center mb-2">
-                    <span className="text-2xl mr-3">
-                      {getInterviewTypeIcon(interview.interview_type)}
-                    </span>
-                    <div>
-                      <h3 className="font-semibold text-gray-800">
-                        {interview.title}
-                      </h3>
-                      <p className="text-sm text-gray-600">
-                        {interview.organization} •{" "}
-                        {formatDateTime(interview.scheduled_at)}
-                      </p>
-                      {interview.post_title && (
-                        <p className="text-xs text-blue-600 mt-1">
-                          Position: {interview.post_title}
+        {activeTab === "history" ? (
+          // Interview History Tab
+          interviews.length === 0 ? (
+            <Card>
+              <div className="text-center py-8">
+                <div className="text-4xl mb-4">📋</div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  No interview history
+                </h3>
+                <p className="text-gray-600">
+                  You haven't completed any interviews yet.
+                </p>
+              </div>
+            </Card>
+          ) : (
+            interviews.map((interview) => (
+              <Card key={interview.id}>
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center mb-2">
+                      <span className="text-2xl mr-3">
+                        {getInterviewTypeIcon(interview.interview_type)}
+                      </span>
+                      <div>
+                        <h3 className="font-semibold text-gray-800">
+                          {interview.title}
+                        </h3>
+                        <p className="text-sm text-gray-600">
+                          {interview.organization} •{" "}
+                          {formatDateTime(interview.scheduled_at)}
                         </p>
+                        {interview.post_title && (
+                          <p className="text-xs text-blue-600 mt-1">
+                            Position: {interview.post_title}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-4 mb-3">
+                      {getStatusBadge(interview.status, interview.rating)}
+                      {interview.rating && (
+                        <div className="flex items-center">
+                          <span className="text-sm text-gray-600 mr-1">
+                            Rating:
+                          </span>
+                          <div className="flex">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <span
+                                key={star}
+                                className={`text-sm ${
+                                  star <= interview.rating
+                                    ? "text-yellow-400"
+                                    : "text-gray-300"
+                                }`}
+                              >
+                                ★
+                              </span>
+                            ))}
+                          </div>
+                        </div>
                       )}
                     </div>
-                  </div>
 
-                  <div className="flex items-center space-x-4 mb-3">
-                    {getStatusBadge(interview.status, interview.rating)}
-                    {interview.rating && (
-                      <div className="flex items-center">
-                        <span className="text-sm text-gray-600 mr-1">
-                          Rating:
-                        </span>
-                        <div className="flex">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <span
-                              key={star}
-                              className={`text-sm ${
-                                star <= interview.rating
-                                  ? "text-yellow-400"
-                                  : "text-gray-300"
-                              }`}
-                            >
-                              ★
-                            </span>
-                          ))}
-                        </div>
+                    {interview.feedback && (
+                      <div className="bg-gray-50 p-3 rounded-lg">
+                        <h4 className="text-sm font-medium text-gray-900 mb-1">
+                          Interview Feedback
+                        </h4>
+                        <p className="text-sm text-gray-700">
+                          {interview.feedback}
+                        </p>
                       </div>
                     )}
                   </div>
 
-                  {interview.feedback && (
-                    <div className="bg-gray-50 p-3 rounded-lg">
-                      <h4 className="text-sm font-medium text-gray-900 mb-1">
-                        Interview Feedback
-                      </h4>
-                      <p className="text-sm text-gray-700">
-                        {interview.feedback}
-                      </p>
-                    </div>
-                  )}
+                  <div className="ml-4">
+                    <button className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50 text-sm">
+                      View Details
+                    </button>
+                  </div>
                 </div>
+              </Card>
+            ))
+          )
+        ) : // Performance Analytics Tab
+        !analytics || analytics.total_interviews === 0 ? (
+          <Card>
+            <div className="text-center py-8">
+              <div className="text-4xl mb-4">📊</div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                No Performance Data Available
+              </h3>
+              <p className="text-gray-600">
+                Complete some interviews to see your performance analytics here.
+              </p>
+            </div>
+          </Card>
+        ) : (
+          <div className="space-y-6">
+            {/* Key Metrics */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <Card>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-blue-600">
+                    {analytics.total_interviews}
+                  </div>
+                  <div className="text-sm text-gray-600">Total Interviews</div>
+                </div>
+              </Card>
 
-                <div className="ml-4">
-                  <button className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50 text-sm">
-                    View Details
-                  </button>
+              <Card>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-green-600">
+                    {analytics.average_scores?.overall?.toFixed(1) || "0.0"}
+                  </div>
+                  <div className="text-sm text-gray-600">Avg Overall Score</div>
                 </div>
+              </Card>
+
+              <Card>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-purple-600">
+                    {analytics.average_scores?.communication?.toFixed(1) ||
+                      "0.0"}
+                  </div>
+                  <div className="text-sm text-gray-600">Avg Communication</div>
+                </div>
+              </Card>
+
+              <Card>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-orange-600">
+                    {analytics.average_scores?.technical?.toFixed(1) || "0.0"}
+                  </div>
+                  <div className="text-sm text-gray-600">Avg Technical</div>
+                </div>
+              </Card>
+            </div>
+
+            {/* Score Breakdown */}
+            <Card>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                Your Average Scores by Category
+              </h3>
+              <div className="space-y-3">
+                {analytics.average_scores &&
+                  Object.entries(analytics.average_scores).map(
+                    ([category, score]) => (
+                      <div
+                        key={category}
+                        className="flex items-center justify-between"
+                      >
+                        <span className="text-sm font-medium text-gray-700 capitalize">
+                          {category.replace("_", " ")}
+                        </span>
+                        <div className="flex items-center space-x-2">
+                          <div className="w-24 bg-gray-200 rounded-full h-2">
+                            <div
+                              className="bg-blue-600 h-2 rounded-full"
+                              style={{ width: `${(score / 100) * 100}%` }}
+                            ></div>
+                          </div>
+                          <span className="text-sm font-semibold text-gray-900 w-8">
+                            {score.toFixed(1)}
+                          </span>
+                        </div>
+                      </div>
+                    )
+                  )}
               </div>
             </Card>
-          ))
+
+            {/* Strengths and Improvements */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  Your Key Strengths
+                </h3>
+                <div className="space-y-2">
+                  {analytics.strengths?.slice(0, 5).map((strength, index) => (
+                    <div key={index} className="flex items-center space-x-2">
+                      <span className="text-green-500">✓</span>
+                      <span className="text-sm text-gray-700">{strength}</span>
+                    </div>
+                  )) || (
+                    <p className="text-sm text-gray-500">
+                      No strength data available
+                    </p>
+                  )}
+                </div>
+              </Card>
+
+              <Card>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  Areas for Improvement
+                </h3>
+                <div className="space-y-2">
+                  {analytics.improvements
+                    ?.slice(0, 5)
+                    .map((improvement, index) => (
+                      <div key={index} className="flex items-center space-x-2">
+                        <span className="text-orange-500">⚠</span>
+                        <span className="text-sm text-gray-700">
+                          {improvement}
+                        </span>
+                      </div>
+                    )) || (
+                    <p className="text-sm text-gray-500">
+                      No improvement data available
+                    </p>
+                  )}
+                </div>
+              </Card>
+            </div>
+
+            {/* Performance Trend */}
+            {analytics.performance_trend &&
+              analytics.performance_trend.length > 0 && (
+                <Card>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    Performance Trend
+                  </h3>
+                  <div className="flex items-end space-x-4">
+                    {analytics.performance_trend.map((point, index) => (
+                      <div key={index} className="flex flex-col items-center">
+                        <div
+                          className="bg-blue-500 rounded-t w-8"
+                          style={{ height: `${(point.score / 100) * 120}px` }}
+                        ></div>
+                        <span className="text-xs text-gray-600 mt-2">
+                          {point.date}
+                        </span>
+                        <span className="text-xs font-semibold text-gray-900">
+                          {point.score}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              )}
+
+            {/* Recent Analyses */}
+            <Card>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                Detailed Interview Analyses
+              </h3>
+              <div className="space-y-4">
+                {analytics.analytics?.slice(0, 3).map((analysis) => (
+                  <div key={analysis.id} className="border rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-medium text-gray-900">
+                        Interview #{analysis.interview_id}
+                      </span>
+                      <span className="text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                        Score: {analysis.overall_score?.toFixed(1) || "N/A"}
+                      </span>
+                    </div>
+                    {analysis.ai_analysis_summary && (
+                      <p className="text-sm text-gray-600 mb-2">
+                        {analysis.ai_analysis_summary}
+                      </p>
+                    )}
+                    <div className="flex flex-wrap gap-1">
+                      {analysis.strengths?.slice(0, 3).map((strength, idx) => (
+                        <span
+                          key={idx}
+                          className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded"
+                        >
+                          {strength}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )) || (
+                  <p className="text-sm text-gray-500 text-center py-4">
+                    No detailed analyses available
+                  </p>
+                )}
+              </div>
+            </Card>
+          </div>
         )}
       </div>
     </DashboardLayout>

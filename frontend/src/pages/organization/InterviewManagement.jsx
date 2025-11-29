@@ -32,6 +32,7 @@ const ScheduleInterviewModal = ({ isOpen, onClose, onSave, saving }) => {
     scheduled_at: "",
     duration_minutes: 60,
     user_id: "",
+    organization_id: 1, // TODO: Get from user context
     post_id: "",
     interview_type: "video",
     location: "",
@@ -73,8 +74,11 @@ const ScheduleInterviewModal = ({ isOpen, onClose, onSave, saving }) => {
       scheduled_at: "",
       duration_minutes: 60,
       user_id: "",
+      organization_id: 1, // TODO: Get from user context
       post_id: "",
       interview_type: "text",
+      location: "",
+      meeting_link: "",
       interviewers: [],
     });
     onClose();
@@ -120,18 +124,22 @@ const ScheduleInterviewModal = ({ isOpen, onClose, onSave, saving }) => {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Candidate
+              Candidate ID
             </label>
             <input
-              type="text"
+              type="number"
               value={formData.user_id}
               onChange={(e) =>
                 setFormData({ ...formData, user_id: e.target.value })
               }
               className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
-              placeholder="Enter candidate ID or email"
+              placeholder="e.g., 2 (candidate's user ID)"
               required
             />
+            <p className="text-xs text-gray-500 mt-1">
+              Enter the candidate's user ID number (you can find this in the
+              Candidates section)
+            </p>
           </div>
 
           <div>
@@ -354,6 +362,99 @@ const MakeDecisionModal = ({ isOpen, onClose, onSave, saving, interview }) => {
           </button>
         </div>
       </form>
+    </Modal>
+  );
+};
+
+// Cancel Interview Confirmation Modal
+const CancelInterviewModal = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  saving,
+  interview,
+}) => {
+  const handleConfirm = () => {
+    onConfirm();
+  };
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose}>
+      <h2 className="text-xl font-bold text-gray-900 mb-4">Cancel Interview</h2>
+      <div className="mb-6">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <svg
+                className="h-5 w-5 text-red-400"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800">
+                Are you sure you want to cancel this interview?
+              </h3>
+              <div className="mt-2 text-sm text-red-700">
+                <p>
+                  This action cannot be undone. The candidate will be notified
+                  of the cancellation.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {interview && (
+          <div className="bg-gray-50 rounded-lg p-4">
+            <h4 className="font-medium text-gray-900 mb-2">
+              Interview Details:
+            </h4>
+            <div className="text-sm text-gray-600 space-y-1">
+              <p>
+                <strong>Title:</strong> {interview.title}
+              </p>
+              <p>
+                <strong>Scheduled:</strong>{" "}
+                {new Date(interview.scheduled_at).toLocaleString()}
+              </p>
+              <p>
+                <strong>Duration:</strong> {interview.duration_minutes} minutes
+              </p>
+              {interview.post_title && (
+                <p>
+                  <strong>Position:</strong> {interview.post_title}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="flex gap-3 justify-end">
+        <button
+          type="button"
+          onClick={onClose}
+          className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+          disabled={saving}
+        >
+          Keep Interview
+        </button>
+        <button
+          type="button"
+          onClick={handleConfirm}
+          disabled={saving}
+          className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {saving ? "Cancelling..." : "Yes, Cancel Interview"}
+        </button>
+      </div>
     </Modal>
   );
 };
@@ -655,6 +756,7 @@ export default function InterviewManagement() {
   const [showAssignAgentModal, setShowAssignAgentModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDecisionModal, setShowDecisionModal] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
   const [selectedInterview, setSelectedInterview] = useState(null);
   const [aiAgents, setAiAgents] = useState([]);
   const [saving, setSaving] = useState(false);
@@ -666,14 +768,19 @@ export default function InterviewManagement() {
 
   const fetchInterviews = async () => {
     try {
+      console.log("Fetching interviews...");
       const response = await fetch("/api/interviews", {
         credentials: "include",
       });
 
       if (response.ok) {
         const data = await response.json();
-        setInterviews(data.interviews);
+        console.log("Fetched interviews:", data.interviews);
+        // Ensure we create a new array reference to trigger re-render
+        setInterviews([...(data.interviews || [])]);
+        setError(null); // Clear any previous errors
       } else {
+        console.error("Failed to fetch interviews:", response.status);
         setError("Failed to load interviews");
       }
     } catch (error) {
@@ -789,29 +896,47 @@ export default function InterviewManagement() {
     }
   };
 
-  const handleCancelInterview = async (interviewId) => {
-    if (!confirm("Are you sure you want to cancel this interview?")) return;
+  const handleCancelInterview = async () => {
+    if (!selectedInterview) {
+      console.error("No interview selected for cancellation");
+      return;
+    }
 
+    console.log("Cancelling interview:", selectedInterview.id);
     setSaving(true);
     setError(null);
 
     try {
-      const response = await fetch(`/api/interviews/${interviewId}`, {
+      const response = await fetch(`/api/interviews/${selectedInterview.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({ status: "cancelled" }),
       });
 
+      console.log("Cancel response status:", response.status);
+
       if (response.ok) {
+        console.log("Interview cancelled successfully, refreshing list...");
+        // Successfully cancelled - refresh the list and close modal
         await fetchInterviews();
+        console.log("List refreshed, now closing modal...");
+        setShowCancelModal(false);
+        setSelectedInterview(null);
+        console.log("Modal closed and interview list refreshed");
+
+        // Force a re-render by updating a dummy state
+        setInterviews((prev) => [...prev]);
       } else {
         const errorData = await response.json().catch(() => ({}));
+        console.error("Cancel interview error:", errorData);
         setError(errorData.error || "Failed to cancel interview");
+        // Don't close modal on error so user can try again
       }
     } catch (error) {
       console.error("Error cancelling interview:", error);
       setError("Network error. Please try again.");
+      // Don't close modal on error so user can try again
     } finally {
       setSaving(false);
     }
@@ -929,6 +1054,9 @@ export default function InterviewManagement() {
   };
 
   const canJoinInterview = (interview) => {
+    // Cannot join if cancelled
+    if (interview.status === "cancelled") return false;
+
     const now = new Date();
     const scheduledTime = new Date(interview.scheduled_at);
     const timeDiff = scheduledTime - now;
@@ -939,6 +1067,8 @@ export default function InterviewManagement() {
   };
 
   const getJoinButtonText = (interview) => {
+    if (interview.status === "cancelled") return "Cancelled";
+
     const now = new Date();
     const scheduledTime = new Date(interview.scheduled_at);
     const timeDiff = scheduledTime - now;
@@ -1198,7 +1328,10 @@ export default function InterviewManagement() {
                     </button>
                   )}
                   <button
-                    onClick={() => handleCancelInterview(interview.id)}
+                    onClick={() => {
+                      setSelectedInterview(interview);
+                      setShowCancelModal(true);
+                    }}
                     className="px-3 py-1 border border-red-300 text-red-600 rounded hover:bg-red-50 text-sm"
                   >
                     Cancel
@@ -1250,6 +1383,18 @@ export default function InterviewManagement() {
           setSelectedInterview(null);
         }}
         onSave={handleMakeDecision}
+        saving={saving}
+        interview={selectedInterview}
+      />
+
+      {/* Cancel Interview Modal */}
+      <CancelInterviewModal
+        isOpen={showCancelModal}
+        onClose={() => {
+          setShowCancelModal(false);
+          setSelectedInterview(null);
+        }}
+        onConfirm={handleCancelInterview}
         saving={saving}
         interview={selectedInterview}
       />

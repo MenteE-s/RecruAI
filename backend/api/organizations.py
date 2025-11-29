@@ -5,7 +5,7 @@ from . import api_bp
 from ..extensions import db
 from ..models import (
     Organization, Post, TeamMember, User, Experience, Education, Skill,
-    Project, Certification, Language, Application, SavedJob, AIAgent
+    Project, Certification, Language, Application, SavedJob, AIAgent, Interview
 )
 import json
 

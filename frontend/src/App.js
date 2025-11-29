@@ -183,6 +183,22 @@ function App() {
             }
           />
           <Route
+            path="/analytics"
+            element={
+              <ProtectedRoute>
+                <Analytics />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/resume/builder"
+            element={
+              <ProtectedRoute>
+                <ResumeBuilder />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/interviews/:interviewId/analysis"
             element={
               <ProtectedRoute>
@@ -219,6 +235,38 @@ function App() {
             element={
               <ProtectedRoute>
                 <HirePeople />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/organization/pipeline"
+            element={
+              <ProtectedRoute>
+                <Pipeline />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/organization/reports"
+            element={
+              <ProtectedRoute>
+                <Reports />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/organization/integrations"
+            element={
+              <ProtectedRoute>
+                <Integrations />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/organization/insights"
+            element={
+              <ProtectedRoute>
+                <Insights />
               </ProtectedRoute>
             }
           />
