@@ -95,8 +95,14 @@ export default function InterviewHistory() {
 
   const getInterviewTypeIcon = (type) => {
     switch (type) {
+      case "text":
+        return "💬";
+      case "ai_video":
+        return "🤖";
+      case "human_video":
+        return "👥";
       case "video":
-        return "📹";
+        return "";
       case "phone":
         return "📞";
       case "in-person":

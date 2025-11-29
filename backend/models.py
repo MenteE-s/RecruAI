@@ -141,9 +141,11 @@ class Interview(db.Model):
     post_id = db.Column(db.Integer, db.ForeignKey("posts.id"), nullable=True)  # Associated job post
 
     # Interview details
-    interview_type = db.Column(db.String(50), default="video")  # 'phone', 'video', 'in-person'
+    interview_type = db.Column(db.String(50), default="text")  # 'text', 'ai_video', 'human_video'
     location = db.Column(db.String(255), nullable=True)  # Physical location or meeting link
-    meeting_link = db.Column(db.String(500), nullable=True)  # Zoom/Google Meet link
+    meeting_link = db.Column(db.String(500), nullable=True)  # Zoom/Google Meet link (for legacy support)
+    room_id = db.Column(db.String(100), nullable=True)  # Custom interview room ID
+    room_password = db.Column(db.String(50), nullable=True)  # Room access password
 
     # Status and feedback
     status = db.Column(db.String(50), default="scheduled")  # 'scheduled', 'completed', 'cancelled', 'no_show'
@@ -154,8 +156,8 @@ class Interview(db.Model):
     interviewers = db.Column(db.Text, nullable=True)
 
     # AI Interview Agent (optional - for AI-powered interviews)
-    ai_agent_id = db.Column(db.Integer, db.ForeignKey("ai_interview_agents.id"), nullable=True)
-    ai_agent = db.relationship("AIInterviewAgent", backref="interviews")
+    ai_agent_id = db.Column(db.Integer, db.ForeignKey("ai_agents.id"), nullable=True)
+    ai_agent = db.relationship("AIAgent", backref="interviews")
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -181,6 +183,8 @@ class Interview(db.Model):
             "interview_type": self.interview_type,
             "location": self.location,
             "meeting_link": self.meeting_link,
+            "room_id": self.room_id,
+            "room_password": self.room_password,
             "status": self.status,
             "feedback": self.feedback,
             "rating": self.rating,
@@ -854,6 +858,31 @@ class License(db.Model):
             "expiry_date": self.expiry_date.isoformat() if self.expiry_date else None,
             "is_active": self.is_active,
             "description": self.description,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+
+
+class AIAgent(db.Model):
+    __tablename__ = "ai_agents"
+
+    id = db.Column(db.Integer, primary_key=True)
+    organization_id = db.Column(db.Integer, db.ForeignKey("organizations.id"), nullable=False)
+    name = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    industry = db.Column(db.String(100), nullable=True)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    organization = db.relationship("Organization", backref="ai_interview_agents")
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "organization_id": self.organization_id,
+            "name": self.name,
+            "description": self.description,
+            "industry": self.industry,
+            "is_active": self.is_active,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
 

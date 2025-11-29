@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import IndividualNavbar from "../../components/layout/IndividualNavbar";
 import Card from "../../components/ui/Card";
 import { getSidebarItems } from "../../utils/auth";
 
 export default function UpcomingInterviews() {
+  const navigate = useNavigate();
   const role =
     typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
   const plan =
@@ -54,6 +56,12 @@ export default function UpcomingInterviews() {
 
   const getInterviewTypeIcon = (type) => {
     switch (type) {
+      case "text":
+        return "💬";
+      case "ai_video":
+        return "🤖";
+      case "human_video":
+        return "👥";
       case "video":
         return "📹";
       case "phone":
@@ -62,6 +70,72 @@ export default function UpcomingInterviews() {
         return "🏢";
       default:
         return "📅";
+    }
+  };
+
+  const getStatusBadge = (interview) => {
+    const now = new Date();
+    const scheduledTime = new Date(interview.scheduled_at);
+    const timeDiff = scheduledTime - now;
+    const minutesDiff = timeDiff / (1000 * 60);
+
+    if (interview.status === "completed") {
+      return (
+        <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+          Completed
+        </span>
+      );
+    } else if (interview.status === "cancelled") {
+      return (
+        <span className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">
+          Cancelled
+        </span>
+      );
+    } else if (minutesDiff < 0) {
+      return (
+        <span className="px-2 py-1 bg-orange-100 text-orange-800 text-xs rounded-full animate-pulse">
+          In Progress
+        </span>
+      );
+    } else if (minutesDiff <= 15) {
+      return (
+        <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full animate-pulse">
+          Starting Soon
+        </span>
+      );
+    } else {
+      return (
+        <span className="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full">
+          Scheduled
+        </span>
+      );
+    }
+  };
+
+  const canJoinInterview = (interview) => {
+    const now = new Date();
+    const scheduledTime = new Date(interview.scheduled_at);
+    const timeDiff = scheduledTime - now;
+    const minutesDiff = timeDiff / (1000 * 60);
+
+    // Can join 15 minutes before and during the interview
+    return minutesDiff <= 15 && minutesDiff >= -interview.duration_minutes;
+  };
+
+  const getJoinButtonText = (interview) => {
+    const now = new Date();
+    const scheduledTime = new Date(interview.scheduled_at);
+    const timeDiff = scheduledTime - now;
+    const minutesDiff = timeDiff / (1000 * 60);
+
+    if (minutesDiff > 15) {
+      return "Waiting Room";
+    } else if (minutesDiff > 0) {
+      return `Join in ${Math.ceil(minutesDiff)} min`;
+    } else if (minutesDiff >= -interview.duration_minutes) {
+      return "Join Now";
+    } else {
+      return "Interview Ended";
     }
   };
 
@@ -127,10 +201,13 @@ export default function UpcomingInterviews() {
                     <span className="text-2xl mr-3">
                       {getInterviewTypeIcon(interview.interview_type)}
                     </span>
-                    <div>
-                      <h3 className="font-semibold text-gray-800">
-                        {interview.title}
-                      </h3>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-semibold text-gray-800">
+                          {interview.title}
+                        </h3>
+                        {getStatusBadge(interview)}
+                      </div>
                       <p className="text-sm text-gray-600">
                         {interview.organization} •{" "}
                         {formatDateTime(interview.scheduled_at)}
@@ -166,15 +243,20 @@ export default function UpcomingInterviews() {
                 </div>
 
                 <div className="flex flex-col space-y-2 ml-4">
-                  {interview.meeting_link && (
-                    <a
-                      href={interview.meeting_link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-center text-sm"
+                  {canJoinInterview(interview) ? (
+                    <button
+                      onClick={() => navigate(`/interview/${interview.id}`)}
+                      className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm animate-pulse"
                     >
-                      Join Meeting
-                    </a>
+                      {getJoinButtonText(interview)}
+                    </button>
+                  ) : (
+                    <button
+                      disabled
+                      className="px-4 py-2 bg-gray-300 text-gray-500 rounded text-sm cursor-not-allowed"
+                    >
+                      {getJoinButtonText(interview)}
+                    </button>
                   )}
                   <button className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50 text-sm">
                     Prepare

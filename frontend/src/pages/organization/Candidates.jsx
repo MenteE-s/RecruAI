@@ -17,14 +17,14 @@ export default function Candidates() {
   const [loading, setLoading] = useState(true);
   const [selectedApplication, setSelectedApplication] = useState(null);
   const [showScheduleInterview, setShowScheduleInterview] = useState(false);
+  const [showCandidateProfile, setShowCandidateProfile] = useState(false);
+  const [candidateProfile, setCandidateProfile] = useState(null);
   const [interviewForm, setInterviewForm] = useState({
     title: "",
     description: "",
     scheduled_at: "",
     duration_minutes: 60,
-    interview_type: "video",
-    location: "",
-    meeting_link: "",
+    interview_type: "text",
     interviewers: "",
   });
 
@@ -77,6 +77,31 @@ export default function Candidates() {
     }
   };
 
+  const fetchCandidateProfile = async (userId) => {
+    try {
+      const response = await fetch(`/api/users/${userId}/full-profile`, {
+        credentials: "include",
+      });
+
+      if (response.ok) {
+        const profile = await response.json();
+        setCandidateProfile(profile);
+        setShowCandidateProfile(true);
+      } else {
+        showToast({
+          message: "Failed to load candidate profile",
+          type: "error",
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching candidate profile:", error);
+      showToast({
+        message: "Failed to load candidate profile",
+        type: "error",
+      });
+    }
+  };
+
   const scheduleInterview = async (e) => {
     e.preventDefault();
     try {
@@ -89,8 +114,6 @@ export default function Candidates() {
         organization_id: 1, // TODO: Get from context
         post_id: selectedApplication.post_id,
         interview_type: interviewForm.interview_type,
-        location: interviewForm.location,
-        meeting_link: interviewForm.meeting_link,
         interviewers: JSON.stringify(
           interviewForm.interviewers.split(",").map((i) => i.trim())
         ),
@@ -131,9 +154,7 @@ export default function Candidates() {
       description: "",
       scheduled_at: "",
       duration_minutes: 60,
-      interview_type: "video",
-      location: "",
-      meeting_link: "",
+      interview_type: "text",
       interviewers: "",
     });
   };
@@ -278,10 +299,10 @@ export default function Candidates() {
                   </button>
 
                   <button
-                    onClick={() => setSelectedApplication(application)}
+                    onClick={() => fetchCandidateProfile(application.user_id)}
                     className="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50 text-sm"
                   >
-                    View Details
+                    View Profile
                   </button>
                 </div>
               </div>
@@ -367,52 +388,11 @@ export default function Candidates() {
                   }
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
-                  <option value="video">Video Call</option>
-                  <option value="phone">Phone Call</option>
-                  <option value="in-person">In-Person</option>
+                  <option value="text">💬 Text Chat Interview</option>
+                  <option value="ai_video">🤖 AI Video Interview</option>
+                  <option value="human_video">👥 Human Video Interview</option>
                 </select>
               </div>
-
-              {(interviewForm.interview_type === "video" ||
-                interviewForm.interview_type === "phone") && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Meeting Link
-                  </label>
-                  <input
-                    type="url"
-                    value={interviewForm.meeting_link}
-                    onChange={(e) =>
-                      setInterviewForm((prev) => ({
-                        ...prev,
-                        meeting_link: e.target.value,
-                      }))
-                    }
-                    placeholder="https://zoom.us/..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-              )}
-
-              {interviewForm.interview_type === "in-person" && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Location
-                  </label>
-                  <input
-                    type="text"
-                    value={interviewForm.location}
-                    onChange={(e) =>
-                      setInterviewForm((prev) => ({
-                        ...prev,
-                        location: e.target.value,
-                      }))
-                    }
-                    placeholder="Office address"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-              )}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -451,6 +431,193 @@ export default function Candidates() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Candidate Profile Modal */}
+      {showCandidateProfile && candidateProfile && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-semibold text-gray-900">
+                Candidate Profile
+              </h3>
+              <button
+                onClick={() => {
+                  setShowCandidateProfile(false);
+                  setCandidateProfile(null);
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              {/* Basic Info */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="font-semibold text-gray-900 mb-2">
+                  Basic Information
+                </h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-600">Name</p>
+                    <p className="font-medium">
+                      {candidateProfile.name || "Not provided"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Email</p>
+                    <p className="font-medium">{candidateProfile.email}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Experience */}
+              {candidateProfile.experiences &&
+                candidateProfile.experiences.length > 0 && (
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <h4 className="font-semibold text-gray-900 mb-3">
+                      Experience
+                    </h4>
+                    <div className="space-y-3">
+                      {candidateProfile.experiences.map((exp, index) => (
+                        <div
+                          key={index}
+                          className="border-l-4 border-blue-500 pl-4"
+                        >
+                          <h5 className="font-medium text-gray-900">
+                            {exp.title}
+                          </h5>
+                          <p className="text-blue-600">{exp.company}</p>
+                          <p className="text-sm text-gray-600">
+                            {exp.location}
+                          </p>
+                          <p className="text-sm text-gray-700 mt-1">
+                            {exp.description}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+              {/* Education */}
+              {candidateProfile.educations &&
+                candidateProfile.educations.length > 0 && (
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <h4 className="font-semibold text-gray-900 mb-3">
+                      Education
+                    </h4>
+                    <div className="space-y-3">
+                      {candidateProfile.educations.map((edu, index) => (
+                        <div
+                          key={index}
+                          className="border-l-4 border-green-500 pl-4"
+                        >
+                          <h5 className="font-medium text-gray-900">
+                            {edu.degree}
+                          </h5>
+                          <p className="text-green-600">{edu.school}</p>
+                          <p className="text-sm text-gray-600">{edu.field}</p>
+                          {edu.gpa && (
+                            <p className="text-sm text-gray-600">
+                              GPA: {edu.gpa}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+              {/* Skills */}
+              {candidateProfile.skills &&
+                candidateProfile.skills.length > 0 && (
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <h4 className="font-semibold text-gray-900 mb-3">Skills</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {candidateProfile.skills.map((skill, index) => (
+                        <span
+                          key={index}
+                          className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full"
+                        >
+                          {skill.name} {skill.level && `(${skill.level})`}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+              {/* Projects */}
+              {candidateProfile.projects &&
+                candidateProfile.projects.length > 0 && (
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <h4 className="font-semibold text-gray-900 mb-3">
+                      Projects
+                    </h4>
+                    <div className="space-y-3">
+                      {candidateProfile.projects.map((project, index) => (
+                        <div
+                          key={index}
+                          className="border-l-4 border-purple-500 pl-4"
+                        >
+                          <h5 className="font-medium text-gray-900">
+                            {project.name}
+                          </h5>
+                          <p className="text-sm text-gray-700">
+                            {project.description}
+                          </p>
+                          {project.technologies && (
+                            <div className="flex flex-wrap gap-1 mt-2">
+                              {project.technologies.map((tech, techIndex) => (
+                                <span
+                                  key={techIndex}
+                                  className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded"
+                                >
+                                  {tech}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+              {/* Certifications */}
+              {candidateProfile.certifications &&
+                candidateProfile.certifications.length > 0 && (
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <h4 className="font-semibold text-gray-900 mb-3">
+                      Certifications
+                    </h4>
+                    <div className="space-y-2">
+                      {candidateProfile.certifications.map((cert, index) => (
+                        <div
+                          key={index}
+                          className="flex justify-between items-center"
+                        >
+                          <div>
+                            <p className="font-medium text-gray-900">
+                              {cert.name}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              {cert.issuer}
+                            </p>
+                          </div>
+                          <p className="text-sm text-gray-500">
+                            {cert.date_obtained &&
+                              new Date(cert.date_obtained).getFullYear()}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+            </div>
           </div>
         </div>
       )}

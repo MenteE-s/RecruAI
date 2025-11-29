@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
 import Card from "../../components/ui/Card";
@@ -73,9 +74,7 @@ const ScheduleInterviewModal = ({ isOpen, onClose, onSave, saving }) => {
       duration_minutes: 60,
       user_id: "",
       post_id: "",
-      interview_type: "video",
-      location: "",
-      meeting_link: "",
+      interview_type: "text",
       interviewers: [],
     });
     onClose();
@@ -166,9 +165,9 @@ const ScheduleInterviewModal = ({ isOpen, onClose, onSave, saving }) => {
               }
               className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
             >
-              <option value="video">Video Call</option>
-              <option value="phone">Phone Call</option>
-              <option value="in-person">In-Person</option>
+              <option value="text">💬 Text Chat Interview</option>
+              <option value="ai_video">🤖 AI Video Interview</option>
+              <option value="human_video">👥 Human Video Interview</option>
             </select>
           </div>
 
@@ -204,36 +203,6 @@ const ScheduleInterviewModal = ({ isOpen, onClose, onSave, saving }) => {
               }
               className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
               required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Location
-            </label>
-            <input
-              type="text"
-              value={formData.location}
-              onChange={(e) =>
-                setFormData({ ...formData, location: e.target.value })
-              }
-              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
-              placeholder="Office address or virtual location"
-            />
-          </div>
-
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Meeting Link
-            </label>
-            <input
-              type="url"
-              value={formData.meeting_link}
-              onChange={(e) =>
-                setFormData({ ...formData, meeting_link: e.target.value })
-              }
-              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
-              placeholder="Zoom, Google Meet, or other meeting link"
             />
           </div>
         </div>
@@ -354,7 +323,195 @@ const AssignAIAgentModal = ({ isOpen, onClose, onAssign, agents, saving }) => {
   );
 };
 
+// Edit Interview Modal
+const EditInterviewModal = ({ isOpen, onClose, onSave, saving, interview }) => {
+  const [formData, setFormData] = useState({
+    title: "",
+    description: "",
+    scheduled_at: "",
+    duration_minutes: 60,
+    interview_type: "text",
+    location: "",
+    meeting_link: "",
+  });
+
+  useEffect(() => {
+    if (interview && isOpen) {
+      setFormData({
+        title: interview.title || "",
+        description: interview.description || "",
+        scheduled_at: interview.scheduled_at
+          ? new Date(interview.scheduled_at).toISOString().slice(0, 16)
+          : "",
+        duration_minutes: interview.duration_minutes || 60,
+        interview_type: interview.interview_type || "text",
+        location: interview.location || "",
+        meeting_link: interview.meeting_link || "",
+      });
+    }
+  }, [interview, isOpen]);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSave(formData);
+  };
+
+  const handleClose = () => {
+    setFormData({
+      title: "",
+      description: "",
+      scheduled_at: "",
+      duration_minutes: 60,
+      interview_type: "text",
+      location: "",
+      meeting_link: "",
+    });
+    onClose();
+  };
+
+  return (
+    <Modal isOpen={isOpen} onClose={handleClose}>
+      <h2 className="text-xl font-bold text-gray-900 mb-4">Edit Interview</h2>
+      <form onSubmit={handleSubmit}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Interview Title
+            </label>
+            <input
+              type="text"
+              value={formData.title}
+              onChange={(e) =>
+                setFormData({ ...formData, title: e.target.value })
+              }
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              required
+            />
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Description
+            </label>
+            <textarea
+              value={formData.description}
+              onChange={(e) =>
+                setFormData({ ...formData, description: e.target.value })
+              }
+              className="w-full p-2 border rounded resize-none focus:ring-2 focus:ring-blue-500"
+              rows={3}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Interview Type
+            </label>
+            <select
+              value={formData.interview_type}
+              onChange={(e) =>
+                setFormData({ ...formData, interview_type: e.target.value })
+              }
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="text">💬 Text Chat Interview</option>
+              <option value="ai_video">🤖 AI Video Interview</option>
+              <option value="human_video">👥 Human Video Interview</option>
+              <option value="video">📹 Video Call Interview</option>
+              <option value="phone">📞 Phone Call Interview</option>
+              <option value="in-person">🏢 In-Person Interview</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Duration (minutes)
+            </label>
+            <input
+              type="number"
+              value={formData.duration_minutes}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  duration_minutes: parseInt(e.target.value),
+                })
+              }
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              min="15"
+              max="480"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Scheduled Date & Time
+            </label>
+            <input
+              type="datetime-local"
+              value={formData.scheduled_at}
+              onChange={(e) =>
+                setFormData({ ...formData, scheduled_at: e.target.value })
+              }
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Location
+            </label>
+            <input
+              type="text"
+              value={formData.location}
+              onChange={(e) =>
+                setFormData({ ...formData, location: e.target.value })
+              }
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              placeholder="Physical location or online platform"
+            />
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Meeting Link
+            </label>
+            <input
+              type="url"
+              value={formData.meeting_link}
+              onChange={(e) =>
+                setFormData({ ...formData, meeting_link: e.target.value })
+              }
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              placeholder="Zoom, Google Meet, or other meeting link"
+            />
+          </div>
+        </div>
+
+        <div className="flex gap-3 justify-end mt-6">
+          <button
+            type="button"
+            onClick={handleClose}
+            className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={saving}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {saving ? "Updating..." : "Update Interview"}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+};
+
 export default function InterviewManagement() {
+  const navigate = useNavigate();
   const role =
     typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
   const plan =
@@ -366,6 +523,7 @@ export default function InterviewManagement() {
   const [error, setError] = useState(null);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [showAssignAgentModal, setShowAssignAgentModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [selectedInterview, setSelectedInterview] = useState(null);
   const [aiAgents, setAiAgents] = useState([]);
   const [saving, setSaving] = useState(false);
@@ -470,6 +628,64 @@ export default function InterviewManagement() {
     }
   };
 
+  const handleEditInterview = async (formData) => {
+    if (!selectedInterview) return;
+
+    setSaving(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/interviews/${selectedInterview.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(formData),
+      });
+
+      if (response.ok) {
+        await fetchInterviews();
+        setShowEditModal(false);
+        setSelectedInterview(null);
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        setError(errorData.error || "Failed to update interview");
+      }
+    } catch (error) {
+      console.error("Error updating interview:", error);
+      setError("Network error. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCancelInterview = async (interviewId) => {
+    if (!confirm("Are you sure you want to cancel this interview?")) return;
+
+    setSaving(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/interviews/${interviewId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ status: "cancelled" }),
+      });
+
+      if (response.ok) {
+        await fetchInterviews();
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        setError(errorData.error || "Failed to cancel interview");
+      }
+    } catch (error) {
+      console.error("Error cancelling interview:", error);
+      setError("Network error. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const formatDateTime = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleString("en-US", {
@@ -481,43 +697,86 @@ export default function InterviewManagement() {
     });
   };
 
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case "scheduled":
-        return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-            Scheduled
-          </span>
-        );
-      case "completed":
-        return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-            Completed
-          </span>
-        );
-      case "cancelled":
-        return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-            Cancelled
-          </span>
-        );
-      case "no_show":
-        return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-            No Show
-          </span>
-        );
-      default:
-        return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-            {status}
-          </span>
-        );
+  const getStatusBadge = (interview) => {
+    const now = new Date();
+    const scheduledTime = new Date(interview.scheduled_at);
+    const timeDiff = scheduledTime - now;
+    const minutesDiff = timeDiff / (1000 * 60);
+
+    if (interview.status === "completed") {
+      return (
+        <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+          Completed
+        </span>
+      );
+    } else if (interview.status === "cancelled") {
+      return (
+        <span className="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full">
+          Cancelled
+        </span>
+      );
+    } else if (interview.status === "no_show") {
+      return (
+        <span className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">
+          No Show
+        </span>
+      );
+    } else if (minutesDiff < 0) {
+      return (
+        <span className="px-2 py-1 bg-orange-100 text-orange-800 text-xs rounded-full animate-pulse">
+          In Progress
+        </span>
+      );
+    } else if (minutesDiff <= 15) {
+      return (
+        <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full animate-pulse">
+          Starting Soon
+        </span>
+      );
+    } else {
+      return (
+        <span className="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full">
+          Scheduled
+        </span>
+      );
+    }
+  };
+
+  const canJoinInterview = (interview) => {
+    const now = new Date();
+    const scheduledTime = new Date(interview.scheduled_at);
+    const timeDiff = scheduledTime - now;
+    const minutesDiff = timeDiff / (1000 * 60);
+
+    // Can join 15 minutes before and during the interview
+    return minutesDiff <= 15 && minutesDiff >= -interview.duration_minutes;
+  };
+
+  const getJoinButtonText = (interview) => {
+    const now = new Date();
+    const scheduledTime = new Date(interview.scheduled_at);
+    const timeDiff = scheduledTime - now;
+    const minutesDiff = timeDiff / (1000 * 60);
+
+    if (minutesDiff > 15) {
+      return "Waiting Room";
+    } else if (minutesDiff > 0) {
+      return `Join in ${Math.ceil(minutesDiff)} min`;
+    } else if (minutesDiff >= -interview.duration_minutes) {
+      return "Join Now";
+    } else {
+      return "Interview Ended";
     }
   };
 
   const getInterviewTypeIcon = (type) => {
     switch (type) {
+      case "text":
+        return "💬";
+      case "ai_video":
+        return "🤖";
+      case "human_video":
+        return "👥";
       case "video":
         return "📹";
       case "phone":
@@ -624,8 +883,19 @@ export default function InterviewManagement() {
 
                   <div className="flex items-center space-x-4 mb-3">
                     {getStatusBadge(interview.status)}
-                    <span className="text-sm text-gray-600 capitalize">
-                      {interview.interview_type} Interview
+                    <span className="text-sm text-gray-600">
+                      {interview.interview_type === "text" &&
+                        "Text Chat Interview"}
+                      {interview.interview_type === "ai_video" &&
+                        "AI Video Interview"}
+                      {interview.interview_type === "human_video" &&
+                        "Human Video Interview"}
+                      {interview.interview_type === "video" &&
+                        "Video Call Interview"}
+                      {interview.interview_type === "phone" &&
+                        "Phone Call Interview"}
+                      {interview.interview_type === "in-person" &&
+                        "In-Person Interview"}
                     </span>
                     {interview.ai_agent && (
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
@@ -693,7 +963,28 @@ export default function InterviewManagement() {
                 </div>
 
                 <div className="flex flex-col space-y-2 ml-4">
-                  <button className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 text-sm">
+                  {canJoinInterview(interview) ? (
+                    <button
+                      onClick={() => navigate(`/interview/${interview.id}`)}
+                      className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm animate-pulse"
+                    >
+                      {getJoinButtonText(interview)}
+                    </button>
+                  ) : (
+                    <button
+                      disabled
+                      className="px-3 py-1 bg-gray-300 text-gray-500 rounded text-sm cursor-not-allowed"
+                    >
+                      {getJoinButtonText(interview)}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => {
+                      setSelectedInterview(interview);
+                      setShowEditModal(true);
+                    }}
+                    className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 text-sm"
+                  >
                     Edit
                   </button>
                   {!interview.ai_agent && (
@@ -707,7 +998,10 @@ export default function InterviewManagement() {
                       🤖 Assign AI
                     </button>
                   )}
-                  <button className="px-3 py-1 border border-red-300 text-red-600 rounded hover:bg-red-50 text-sm">
+                  <button
+                    onClick={() => handleCancelInterview(interview.id)}
+                    className="px-3 py-1 border border-red-300 text-red-600 rounded hover:bg-red-50 text-sm"
+                  >
                     Cancel
                   </button>
                 </div>
@@ -735,6 +1029,18 @@ export default function InterviewManagement() {
         onAssign={handleAssignAIAgent}
         agents={aiAgents}
         saving={saving}
+      />
+
+      {/* Edit Interview Modal */}
+      <EditInterviewModal
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false);
+          setSelectedInterview(null);
+        }}
+        onSave={handleEditInterview}
+        saving={saving}
+        interview={selectedInterview}
       />
     </DashboardLayout>
   );

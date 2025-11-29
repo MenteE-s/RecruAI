@@ -100,14 +100,33 @@ def create_interview():
         if field not in data:
             return jsonify({'error': f'Missing required field: {field}'}), 400
 
-    # Validate that the target user exists
-    target_user = User.query.get(data['user_id'])
+    # Validate that the target user exists - support both ID and email
+    user_input = data['user_id']
+    if '@' in str(user_input):  # It's an email
+        target_user = User.query.filter_by(email=user_input).first()
+    else:  # It's an ID
+        target_user = User.query.get(int(user_input))
+
     if not target_user:
         return jsonify({'error': 'Target user not found'}), 404
 
     # Validate scheduled_at is in the future
-    scheduled_at = datetime.fromisoformat(data['scheduled_at'].replace('Z', '+00:00'))
-    if scheduled_at <= datetime.utcnow():
+    # Handle datetime string from frontend (usually in ISO format)
+    datetime_str = data['scheduled_at']
+    if datetime_str.endswith('Z'):
+        datetime_str = datetime_str[:-1] + '+00:00'
+
+    try:
+        scheduled_at = datetime.fromisoformat(datetime_str)
+    except ValueError:
+        # Fallback for different formats
+        scheduled_at = datetime.strptime(datetime_str, '%Y-%m-%dT%H:%M')
+
+    # Ensure both datetimes are offset-naive for comparison
+    now = datetime.utcnow().replace(tzinfo=None)
+    scheduled_naive = scheduled_at.replace(tzinfo=None) if scheduled_at.tzinfo else scheduled_at
+
+    if scheduled_naive <= now:
         return jsonify({'error': 'Interview must be scheduled in the future'}), 400
 
     interview = Interview(
@@ -115,10 +134,10 @@ def create_interview():
         description=data.get('description'),
         scheduled_at=scheduled_at,
         duration_minutes=data.get('duration_minutes', 60),
-        user_id=data['user_id'],
+        user_id=target_user.id,
         organization_id=user.organization_id,
         post_id=data.get('post_id'),
-        interview_type=data.get('interview_type', 'video'),
+        interview_type=data.get('interview_type', 'text'),
         location=data.get('location'),
         meeting_link=data.get('meeting_link'),
         interviewers=json.dumps(data.get('interviewers', []))
@@ -243,5 +262,41 @@ def add_interview_feedback(interview_id):
 
     return jsonify({
         'message': 'Interview feedback added successfully',
+        'interview': interview.to_dict()
+    }), 200
+
+
+@api_bp.route('/interviews/<int:interview_id>/assign-agent', methods=['POST'])
+@jwt_required()
+def assign_ai_agent(interview_id):
+    """Assign an AI agent to an interview (organization users only)"""
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+
+    if not user or user.role != 'organization':
+        return jsonify({'error': 'Only organization users can assign AI agents'}), 403
+
+    interview = Interview.query.get(interview_id)
+    if not interview:
+        return jsonify({'error': 'Interview not found'}), 404
+
+    if interview.organization_id != user.organization_id:
+        return jsonify({'error': 'Access denied'}), 403
+
+    data = request.get_json()
+    agent_id = data.get('agent_id')
+
+    if not agent_id:
+        return jsonify({'error': 'agent_id is required'}), 400
+
+    # TODO: Validate that the agent exists and belongs to the organization
+    # For now, just set the ai_agent_id field
+    interview.ai_agent_id = agent_id
+    interview.updated_at = datetime.utcnow()
+
+    db.session.commit()
+
+    return jsonify({
+        'message': 'AI agent assigned successfully',
         'interview': interview.to_dict()
     }), 200

@@ -5,7 +5,7 @@ from . import api_bp
 from ..extensions import db
 from ..models import (
     Organization, Post, TeamMember, User, Experience, Education, Skill,
-    Project, Certification, Language, Application, SavedJob, AIInterviewAgent
+    Project, Certification, Language, Application, SavedJob, AIAgent
 )
 import json
 
@@ -605,7 +605,7 @@ def check_saved():
 def list_ai_agents(org_id):
     """Get all AI agents for an organization"""
     org = Organization.query.get_or_404(org_id)
-    agents = AIInterviewAgent.query.filter_by(organization_id=org_id).all()
+    agents = AIAgent.query.filter_by(organization_id=org_id).all()
     return jsonify([agent.to_dict() for agent in agents]), 200
 
 
@@ -636,13 +636,11 @@ Remember to:
 - Ask follow-up questions to dive deeper into their responses
 - Be fair, unbiased, and professional throughout the interview"""
 
-    agent = AIInterviewAgent(
+    agent = AIAgent(
         organization_id=org_id,
         name=name,
         industry=industry,
         description=payload.get("description"),
-        system_prompt=default_system_prompt,
-        custom_instructions=payload.get("custom_instructions"),
         is_active=payload.get("is_active", True),
     )
     db.session.add(agent)
@@ -653,14 +651,14 @@ Remember to:
 @api_bp.route("/ai-agents/<int:agent_id>", methods=["GET"])
 def get_ai_agent(agent_id):
     """Get a specific AI agent"""
-    agent = AIInterviewAgent.query.get_or_404(agent_id)
+    agent = AIAgent.query.get_or_404(agent_id)
     return jsonify(agent.to_dict()), 200
 
 
 @api_bp.route("/ai-agents/<int:agent_id>", methods=["PUT"])
 def update_ai_agent(agent_id):
     """Update an AI agent"""
-    agent = AIInterviewAgent.query.get_or_404(agent_id)
+    agent = AIAgent.query.get_or_404(agent_id)
     payload = request.get_json(silent=True) or {}
 
     if "name" in payload:
@@ -683,7 +681,7 @@ def update_ai_agent(agent_id):
 @api_bp.route("/ai-agents/<int:agent_id>", methods=["DELETE"])
 def delete_ai_agent(agent_id):
     """Delete an AI agent"""
-    agent = AIInterviewAgent.query.get_or_404(agent_id)
+    agent = AIAgent.query.get_or_404(agent_id)
     db.session.delete(agent)
     db.session.commit()
     return jsonify({"message": "AI agent deleted"}), 200
@@ -692,7 +690,7 @@ def delete_ai_agent(agent_id):
 @api_bp.route("/ai-agents/<int:agent_id>/test", methods=["POST"])
 def test_ai_agent(agent_id):
     """Test an AI agent with a sample conversation"""
-    agent = AIInterviewAgent.query.get_or_404(agent_id)
+    agent = AIAgent.query.get_or_404(agent_id)
     payload = request.get_json(silent=True) or {}
 
     test_message = payload.get("message", "Hello, I'm here for the interview.")
@@ -751,7 +749,7 @@ def start_ai_interview(interview_id):
     if not interview.ai_agent_id:
         return jsonify({"error": "This interview is not assigned to an AI agent"}), 400
 
-    agent = AIInterviewAgent.query.get(interview.ai_agent_id)
+    agent = AIAgent.query.get(interview.ai_agent_id)
     if not agent or not agent.is_active:
         return jsonify({"error": "AI agent not found or inactive"}), 400
 
@@ -787,7 +785,7 @@ def send_ai_message(interview_id):
     if not interview.ai_agent_id:
         return jsonify({"error": "This interview is not assigned to an AI agent"}), 400
 
-    agent = AIInterviewAgent.query.get(interview.ai_agent_id)
+    agent = AIAgent.query.get(interview.ai_agent_id)
     if not agent or not agent.is_active:
         return jsonify({"error": "AI agent not found or inactive"}), 400
 
@@ -873,7 +871,7 @@ def assign_ai_agent_to_interview(interview_id):
     if not agent_id:
         return jsonify({"error": "agent_id required"}), 400
 
-    agent = AIInterviewAgent.query.get(agent_id)
+    agent = AIAgent.query.get(agent_id)
     if not agent or not agent.is_active:
         return jsonify({"error": "AI agent not found or inactive"}), 400
 
