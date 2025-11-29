@@ -259,6 +259,101 @@ const ScheduleInterviewModal = ({ isOpen, onClose, onSave, saving }) => {
   );
 };
 
+// Assign AI Agent Modal
+const AssignAIAgentModal = ({ isOpen, onClose, onAssign, agents, saving }) => {
+  const [selectedAgentId, setSelectedAgentId] = useState("");
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (selectedAgentId) {
+      onAssign(selectedAgentId);
+    }
+  };
+
+  const handleClose = () => {
+    setSelectedAgentId("");
+    onClose();
+  };
+
+  return (
+    <Modal isOpen={isOpen} onClose={handleClose}>
+      <h2 className="text-xl font-bold text-gray-900 mb-4">
+        Assign AI Interview Agent
+      </h2>
+      <p className="text-gray-600 mb-4">
+        Select an AI agent to conduct this interview automatically.
+      </p>
+
+      <form onSubmit={handleSubmit}>
+        <div className="space-y-3">
+          {agents.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-gray-500 mb-4">No AI agents available.</p>
+              <p className="text-sm text-gray-400">
+                Create AI agents in the AI Agents section first.
+              </p>
+            </div>
+          ) : (
+            agents
+              .filter((agent) => agent.is_active)
+              .map((agent) => (
+                <label
+                  key={agent.id}
+                  className={`block p-4 border rounded-lg cursor-pointer hover:bg-gray-50 ${
+                    selectedAgentId === agent.id.toString()
+                      ? "border-purple-500 bg-purple-50"
+                      : "border-gray-200"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="aiAgent"
+                    value={agent.id}
+                    checked={selectedAgentId === agent.id.toString()}
+                    onChange={(e) => setSelectedAgentId(e.target.value)}
+                    className="mr-3"
+                  />
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-semibold text-gray-900">
+                        {agent.name}
+                      </h3>
+                      <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded-full">
+                        {agent.industry}
+                      </span>
+                    </div>
+                    {agent.description && (
+                      <p className="text-sm text-gray-600 mt-1">
+                        {agent.description}
+                      </p>
+                    )}
+                  </div>
+                </label>
+              ))
+          )}
+        </div>
+
+        <div className="flex gap-3 justify-end mt-6">
+          <button
+            type="button"
+            onClick={handleClose}
+            className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={saving || !selectedAgentId || agents.length === 0}
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {saving ? "Assigning..." : "Assign Agent"}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+};
+
 export default function InterviewManagement() {
   const role =
     typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
@@ -270,10 +365,14 @@ export default function InterviewManagement() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [showAssignAgentModal, setShowAssignAgentModal] = useState(false);
+  const [selectedInterview, setSelectedInterview] = useState(null);
+  const [aiAgents, setAiAgents] = useState([]);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetchInterviews();
+    fetchAIAgents();
   }, []);
 
   const fetchInterviews = async () => {
@@ -293,6 +392,20 @@ export default function InterviewManagement() {
       setError("Network error. Please try again.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchAIAgents = async () => {
+    try {
+      // TODO: Get organization ID from user context
+      const orgId = 1; // Placeholder
+      const response = await fetch(`/api/organizations/${orgId}/ai-agents`);
+      if (response.ok) {
+        const data = await response.json();
+        setAiAgents(data);
+      }
+    } catch (error) {
+      console.error("Error fetching AI agents:", error);
     }
   };
 
@@ -318,6 +431,39 @@ export default function InterviewManagement() {
       }
     } catch (error) {
       console.error("Error scheduling interview:", error);
+      setError("Network error. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleAssignAIAgent = async (agentId) => {
+    if (!selectedInterview) return;
+
+    setSaving(true);
+    setError(null);
+
+    try {
+      const response = await fetch(
+        `/api/interviews/${selectedInterview.id}/assign-agent`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ agent_id: agentId }),
+        }
+      );
+
+      if (response.ok) {
+        await fetchInterviews(); // Refresh interviews to show the assigned agent
+        setShowAssignAgentModal(false);
+        setSelectedInterview(null);
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        setError(errorData.error || "Failed to assign AI agent");
+      }
+    } catch (error) {
+      console.error("Error assigning AI agent:", error);
       setError("Network error. Please try again.");
     } finally {
       setSaving(false);
@@ -481,6 +627,11 @@ export default function InterviewManagement() {
                     <span className="text-sm text-gray-600 capitalize">
                       {interview.interview_type} Interview
                     </span>
+                    {interview.ai_agent && (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                        🤖 AI: {interview.ai_agent.name}
+                      </span>
+                    )}
                   </div>
 
                   {interview.description && (
@@ -545,6 +696,17 @@ export default function InterviewManagement() {
                   <button className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 text-sm">
                     Edit
                   </button>
+                  {!interview.ai_agent && (
+                    <button
+                      onClick={() => {
+                        setSelectedInterview(interview);
+                        setShowAssignAgentModal(true);
+                      }}
+                      className="px-3 py-1 border border-purple-300 text-purple-600 rounded hover:bg-purple-50 text-sm"
+                    >
+                      🤖 Assign AI
+                    </button>
+                  )}
                   <button className="px-3 py-1 border border-red-300 text-red-600 rounded hover:bg-red-50 text-sm">
                     Cancel
                   </button>
@@ -560,6 +722,18 @@ export default function InterviewManagement() {
         isOpen={showScheduleModal}
         onClose={() => setShowScheduleModal(false)}
         onSave={handleScheduleInterview}
+        saving={saving}
+      />
+
+      {/* Assign AI Agent Modal */}
+      <AssignAIAgentModal
+        isOpen={showAssignAgentModal}
+        onClose={() => {
+          setShowAssignAgentModal(false);
+          setSelectedInterview(null);
+        }}
+        onAssign={handleAssignAIAgent}
+        agents={aiAgents}
         saving={saving}
       />
     </DashboardLayout>

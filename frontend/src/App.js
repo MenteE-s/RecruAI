@@ -43,6 +43,7 @@ import OrganizationAnalytics from "./pages/organization/OrganizationAnalytics";
 import Reports from "./pages/organization/Reports";
 import Integrations from "./pages/organization/Integrations";
 import Insights from "./pages/organization/Insights";
+import AIAgents from "./pages/organization/AIAgents";
 
 import { verifyTokenWithServer } from "./utils/auth";
 
@@ -232,6 +233,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <JobPosts />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/organization/ai-agents"
+            element={
+              <ProtectedRoute>
+                <AIAgents />
               </ProtectedRoute>
             }
           />

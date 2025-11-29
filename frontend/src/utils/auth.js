@@ -113,6 +113,7 @@ export function getSidebarItems(role, plan) {
         { name: "Hire People", link: "/organization/hire", icon: FiUsers },
         { name: "Team Members", link: "/organization/team", icon: FiUsers },
         { name: "Job Posts", link: "/organization/jobs", icon: FiFileText },
+        { name: "AI Agents", link: "/organization/ai-agents", icon: FiUsers },
         { name: "Candidates", link: "/organization/candidates", icon: FiUser },
         {
           name: "Interviews",
@@ -134,6 +135,7 @@ export function getSidebarItems(role, plan) {
         { name: "Hire People", link: "/organization/hire", icon: FiUsers },
         { name: "Team Members", link: "/organization/team", icon: FiUsers },
         { name: "Job Posts", link: "/organization/jobs", icon: FiFileText },
+        { name: "AI Agents", link: "/organization/ai-agents", icon: FiUsers },
         { name: "Candidates", link: "/organization/candidates", icon: FiUser },
         {
           name: "Interviews",
