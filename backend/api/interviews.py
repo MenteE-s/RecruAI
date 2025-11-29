@@ -1,117 +1,36 @@
 from flask import request, jsonify
-from flask_jwt_extended import jwt_required, get_jwt_identity
 from . import api_bp
 from ..extensions import db
-from ..models import Interview, User, Organization
+from ..models import Interview, Message
 import json
 from datetime import datetime
 
 
 @api_bp.route('/interviews', methods=['GET'])
-@jwt_required()
 def get_interviews():
-    """Get interviews based on user role"""
-    user_id = get_jwt_identity()
-    user = User.query.get(user_id)
-
-    if not user:
-        return jsonify({'error': 'User not found'}), 404
-
-    if user.role == 'organization':
-        # Organization users see all interviews for their organization
-        interviews = Interview.query.filter_by(organization_id=user.organization_id).order_by(Interview.scheduled_at.desc()).all()
-    else:
-        # Individual users see their own interviews
-        interviews = Interview.query.filter_by(user_id=user_id).order_by(Interview.scheduled_at.desc()).all()
-
+    """Get all interviews"""
+    interviews = Interview.query.order_by(Interview.scheduled_at.desc()).all()
     return jsonify({'interviews': [interview.to_dict() for interview in interviews]}), 200
 
 
-@api_bp.route('/interviews/upcoming', methods=['GET'])
-@jwt_required()
-def get_upcoming_interviews():
-    """Get upcoming interviews for the current user"""
-    user_id = get_jwt_identity()
-    user = User.query.get(user_id)
-
-    if not user:
-        return jsonify({'error': 'User not found'}), 404
-
-    now = datetime.utcnow()
-
-    if user.role == 'organization':
-        # Organization users see upcoming interviews for their organization
-        interviews = Interview.query.filter(
-            Interview.organization_id == user.organization_id,
-            Interview.scheduled_at >= now,
-            Interview.status == 'scheduled'
-        ).order_by(Interview.scheduled_at.asc()).all()
-    else:
-        # Individual users see their upcoming interviews
-        interviews = Interview.query.filter(
-            Interview.user_id == user_id,
-            Interview.scheduled_at >= now,
-            Interview.status == 'scheduled'
-        ).order_by(Interview.scheduled_at.asc()).all()
-
-    return jsonify({'interviews': [interview.to_dict() for interview in interviews]}), 200
-
-
-@api_bp.route('/interviews/history', methods=['GET'])
-@jwt_required()
-def get_interview_history():
-    """Get completed/cancelled interviews for the current user"""
-    user_id = get_jwt_identity()
-    user = User.query.get(user_id)
-
-    if not user:
-        return jsonify({'error': 'User not found'}), 404
-
-    if user.role == 'organization':
-        # Organization users see interview history for their organization
-        interviews = Interview.query.filter(
-            Interview.organization_id == user.organization_id,
-            Interview.status.in_(['completed', 'cancelled', 'no_show'])
-        ).order_by(Interview.scheduled_at.desc()).all()
-    else:
-        # Individual users see their interview history
-        interviews = Interview.query.filter(
-            Interview.user_id == user_id,
-            Interview.status.in_(['completed', 'cancelled', 'no_show'])
-        ).order_by(Interview.scheduled_at.desc()).all()
-
-    return jsonify({'interviews': [interview.to_dict() for interview in interviews]}), 200
+@api_bp.route('/interviews/<int:interview_id>', methods=['GET'])
+def get_interview(interview_id):
+    """Get a specific interview"""
+    interview = Interview.query.get_or_404(interview_id)
+    return jsonify(interview.to_dict()), 200
 
 
 @api_bp.route('/interviews', methods=['POST'])
-@jwt_required()
 def create_interview():
-    """Create a new interview (organization users only)"""
-    user_id = get_jwt_identity()
-    user = User.query.get(user_id)
-
-    if not user or user.role != 'organization':
-        return jsonify({'error': 'Only organization users can schedule interviews'}), 403
-
+    """Create a new interview"""
     data = request.get_json()
 
-    required_fields = ['title', 'scheduled_at', 'user_id']
+    required_fields = ['title', 'scheduled_at', 'user_id', 'organization_id']
     for field in required_fields:
         if field not in data:
             return jsonify({'error': f'Missing required field: {field}'}), 400
 
-    # Validate that the target user exists - support both ID and email
-    user_input = data['user_id']
-    if '@' in str(user_input):  # It's an email
-        target_user = User.query.filter_by(email=user_input).first()
-    else:  # It's an ID
-        target_user = User.query.get(int(user_input))
-
-    if not target_user:
-        return jsonify({'error': 'Target user not found'}), 404
-
     # Validate scheduled_at is in the future
-    # Handle datetime string from frontend (usually in ISO format)
     datetime_str = data['scheduled_at']
     if datetime_str.endswith('Z'):
         datetime_str = datetime_str[:-1] + '+00:00'
@@ -119,10 +38,8 @@ def create_interview():
     try:
         scheduled_at = datetime.fromisoformat(datetime_str)
     except ValueError:
-        # Fallback for different formats
-        scheduled_at = datetime.strptime(datetime_str, '%Y-%m-%dT%H:%M')
+        return jsonify({'error': 'Invalid datetime format'}), 400
 
-    # Ensure both datetimes are offset-naive for comparison
     now = datetime.utcnow().replace(tzinfo=None)
     scheduled_naive = scheduled_at.replace(tzinfo=None) if scheduled_at.tzinfo else scheduled_at
 
@@ -134,8 +51,8 @@ def create_interview():
         description=data.get('description'),
         scheduled_at=scheduled_at,
         duration_minutes=data.get('duration_minutes', 60),
-        user_id=target_user.id,
-        organization_id=user.organization_id,
+        user_id=data['user_id'],
+        organization_id=data['organization_id'],
         post_id=data.get('post_id'),
         interview_type=data.get('interview_type', 'text'),
         location=data.get('location'),
@@ -153,37 +70,10 @@ def create_interview():
 
 
 @api_bp.route('/interviews/<int:interview_id>', methods=['PUT'])
-@jwt_required()
 def update_interview(interview_id):
     """Update an interview"""
-    user_id = get_jwt_identity()
-    user = User.query.get(user_id)
-
-    if not user:
-        return jsonify({'error': 'User not found'}), 404
-
-    interview = Interview.query.get(interview_id)
-    if not interview:
-        return jsonify({'error': 'Interview not found'}), 404
-
-    # Check permissions: organization users can update interviews from their org,
-    # individual users can only update their own interviews (limited fields)
-    if user.role == 'organization':
-        if interview.organization_id != user.organization_id:
-            return jsonify({'error': 'Access denied'}), 403
-    else:
-        if interview.user_id != user_id:
-            return jsonify({'error': 'Access denied'}), 403
-
+    interview = Interview.query.get_or_404(interview_id)
     data = request.get_json()
-
-    # Individual users can only update status (e.g., mark as no-show)
-    if user.role != 'organization':
-        allowed_fields = ['status']
-        data = {k: v for k, v in data.items() if k in allowed_fields}
-        # Only allow status change to 'no_show' for individuals
-        if data.get('status') not in ['no_show']:
-            return jsonify({'error': 'Individuals can only mark interviews as no-show'}), 403
 
     # Update allowed fields
     updatable_fields = [
@@ -212,91 +102,127 @@ def update_interview(interview_id):
 
 
 @api_bp.route('/interviews/<int:interview_id>', methods=['DELETE'])
-@jwt_required()
 def delete_interview(interview_id):
-    """Delete an interview (organization users only)"""
-    user_id = get_jwt_identity()
-    user = User.query.get(user_id)
-
-    if not user or user.role != 'organization':
-        return jsonify({'error': 'Only organization users can delete interviews'}), 403
-
-    interview = Interview.query.get(interview_id)
-    if not interview:
-        return jsonify({'error': 'Interview not found'}), 404
-
-    if interview.organization_id != user.organization_id:
-        return jsonify({'error': 'Access denied'}), 403
-
+    """Delete an interview"""
+    interview = Interview.query.get_or_404(interview_id)
     db.session.delete(interview)
     db.session.commit()
-
     return jsonify({'message': 'Interview deleted successfully'}), 200
 
 
-@api_bp.route('/interviews/<int:interview_id>/feedback', methods=['POST'])
-@jwt_required()
-def add_interview_feedback(interview_id):
-    """Add feedback to an interview (organization users only)"""
-    user_id = get_jwt_identity()
-    user = User.query.get(user_id)
+@api_bp.route('/interviews/upcoming', methods=['GET'])
+def get_upcoming_interviews():
+    """Get upcoming interviews"""
+    now = datetime.utcnow()
+    interviews = Interview.query.filter(
+        Interview.scheduled_at >= now,
+        Interview.status == 'scheduled'
+    ).order_by(Interview.scheduled_at.asc()).all()
+    return jsonify({'interviews': [interview.to_dict() for interview in interviews]}), 200
 
-    if not user or user.role != 'organization':
-        return jsonify({'error': 'Only organization users can add interview feedback'}), 403
 
-    interview = Interview.query.get(interview_id)
-    if not interview:
-        return jsonify({'error': 'Interview not found'}), 404
+@api_bp.route('/interviews/history', methods=['GET'])
+def get_interview_history():
+    """Get completed/cancelled interviews"""
+    interviews = Interview.query.filter(
+        Interview.status.in_(['completed', 'cancelled', 'no_show'])
+    ).order_by(Interview.scheduled_at.desc()).all()
+    return jsonify({'interviews': [interview.to_dict() for interview in interviews]}), 200
 
-    if interview.organization_id != user.organization_id:
-        return jsonify({'error': 'Access denied'}), 403
 
+# Message endpoints
+@api_bp.route('/interviews/<int:interview_id>/messages', methods=['GET'])
+def get_messages(interview_id):
+    """Get all messages for an interview"""
+    messages = Message.query.filter_by(interview_id=interview_id).order_by(Message.created_at.asc()).all()
+    return jsonify([message.to_dict() for message in messages]), 200
+
+
+@api_bp.route('/interviews/<int:interview_id>/messages', methods=['POST'])
+def send_message(interview_id):
+    """Send a message in an interview"""
     data = request.get_json()
 
-    interview.feedback = data.get('feedback')
-    interview.rating = data.get('rating')
-    interview.status = 'completed'
-    interview.updated_at = datetime.utcnow()
+    # user_id is optional for AI/system messages
+    if 'content' not in data:
+        return jsonify({'error': 'Missing required field: content'}), 400
 
+    message = Message(
+        interview_id=interview_id,
+        user_id=data.get('user_id') if 'user_id' in data else None,  # Explicitly allow null for AI messages
+        content=data['content'],
+        message_type=data.get('message_type', 'text')
+    )
+
+    db.session.add(message)
     db.session.commit()
 
+    return jsonify(message.to_dict()), 201
+
+
+@api_bp.route('/ai/chat', methods=['POST'])
+def ai_chat():
+    """Mock AI chat endpoint for interviews"""
+    data = request.get_json()
+
+    if not data or 'message' not in data:
+        return jsonify({'error': 'Message required'}), 400
+
+    message = data['message']
+
+    # Simple mock AI responses based on common interview questions
+    responses = {
+        'tell me about yourself': 'I\'d be happy to hear about your background. Can you tell me about your professional experience and what brings you to apply for this position?',
+        'why do you want this job': 'That\'s a great question. What specifically about this role interests you, and how do you see yourself contributing to our team?',
+        'what are your strengths': 'Everyone has different strengths. Can you share some of your key strengths and how they\'ve helped you in your career?',
+        'what are your weaknesses': 'We all have areas for growth. Can you tell me about a challenge you\'ve faced and how you worked to overcome it?',
+        'why did you leave your last job': 'Career changes are common. Can you share what led you to look for new opportunities?',
+        'where do you see yourself in 5 years': 'That\'s an interesting question. How do you envision your career progressing, and what are your professional goals?',
+        'why should we hire you': 'That\'s a key question. What makes you uniquely qualified for this position?',
+        'do you have any questions': 'Absolutely, I encourage questions! What would you like to know about the role, team, or company?',
+    }
+
+    # Default response
+    response_text = 'Thank you for your response. Can you elaborate on that or tell me more about your experience?'
+
+    # Check for keywords in the message
+    message_lower = message.lower()
+    for key, response in responses.items():
+        if key in message_lower:
+            response_text = response
+            break
+
+    # If it's a follow-up question, provide a more generic response
+    if '?' in message:
+        response_text = 'That\'s a thoughtful question. Can you share more about your thoughts on this topic?'
+
     return jsonify({
-        'message': 'Interview feedback added successfully',
-        'interview': interview.to_dict()
+        'response': response_text,
+        'agent_id': data.get('agent_id', 1)
     }), 200
 
 
-@api_bp.route('/interviews/<int:interview_id>/assign-agent', methods=['POST'])
-@jwt_required()
-def assign_ai_agent(interview_id):
-    """Assign an AI agent to an interview (organization users only)"""
-    user_id = get_jwt_identity()
-    user = User.query.get(user_id)
+@api_bp.route('/ai/user', methods=['GET'])
+def get_ai_user():
+    """Get or create AI system user for messages"""
+    from ..models import User
 
-    if not user or user.role != 'organization':
-        return jsonify({'error': 'Only organization users can assign AI agents'}), 403
-
-    interview = Interview.query.get(interview_id)
-    if not interview:
-        return jsonify({'error': 'Interview not found'}), 404
-
-    if interview.organization_id != user.organization_id:
-        return jsonify({'error': 'Access denied'}), 403
-
-    data = request.get_json()
-    agent_id = data.get('agent_id')
-
-    if not agent_id:
-        return jsonify({'error': 'agent_id is required'}), 400
-
-    # TODO: Validate that the agent exists and belongs to the organization
-    # For now, just set the ai_agent_id field
-    interview.ai_agent_id = agent_id
-    interview.updated_at = datetime.utcnow()
-
-    db.session.commit()
+    # Check if AI user exists
+    ai_user = User.query.filter_by(email='ai@recruai.com').first()
+    if not ai_user:
+        # Create AI user if it doesn't exist
+        ai_user = User(
+            email='ai@recruai.com',
+            name='AI Assistant',
+            role='system',
+            plan='pro'
+        )
+        ai_user.set_password('ai_password_not_used')  # Not used for login
+        db.session.add(ai_user)
+        db.session.commit()
 
     return jsonify({
-        'message': 'AI agent assigned successfully',
-        'interview': interview.to_dict()
+        'id': ai_user.id,
+        'name': ai_user.name,
+        'email': ai_user.email
     }), 200

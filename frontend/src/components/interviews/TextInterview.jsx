@@ -5,7 +5,9 @@ const TextInterview = ({
   interviewId,
   interviewData,
   isInterviewer = false,
+  interviewMode = "auto",
   onSendMessage,
+  onInterviewerResponse,
   messages = [],
   isLoading = false,
 }) => {
@@ -27,18 +29,17 @@ const TextInterview = ({
     const message = newMessage.trim();
     setNewMessage("");
 
-    // Add user message immediately
-    const userMessage = {
-      id: Date.now(),
-      content: message,
-      sender: isInterviewer ? "interviewer" : "candidate",
-      timestamp: new Date().toISOString(),
-      type: "text",
-    };
-
-    // Call parent handler
-    if (onSendMessage) {
-      await onSendMessage(message);
+    // Determine which handler to use based on user role and mode
+    if (isInterviewer && interviewMode === "manual") {
+      // Interviewer sending manual response
+      if (onInterviewerResponse) {
+        await onInterviewerResponse(message);
+      }
+    } else if (!isInterviewer) {
+      // Candidate sending message
+      if (onSendMessage) {
+        await onSendMessage(message);
+      }
     }
   };
 
@@ -162,20 +163,54 @@ const TextInterview = ({
 
       {/* Message Input */}
       <div className="bg-white border-t border-gray-200 p-4">
+        {isInterviewer && interviewMode === "manual" ? (
+          <div className="mb-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-gray-700">
+                Manual Response Mode
+              </span>
+              <span className="text-xs text-gray-500">
+                You control the conversation
+              </span>
+            </div>
+          </div>
+        ) : isInterviewer && interviewMode === "auto" ? (
+          <div className="mb-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-gray-700">
+                Auto Mode
+              </span>
+              <span className="text-xs text-gray-500">
+                AI handles responses automatically
+              </span>
+            </div>
+          </div>
+        ) : null}
+
         <div className="flex space-x-2">
           <textarea
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Type your message..."
+            placeholder={
+              isInterviewer && interviewMode === "manual"
+                ? "Type your response to the candidate..."
+                : isInterviewer && interviewMode === "auto"
+                ? "Input disabled - AI handles responses"
+                : "Type your message to the interviewer..."
+            }
             className="flex-1 resize-none border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             rows={1}
             style={{ minHeight: "40px", maxHeight: "120px" }}
-            disabled={isLoading}
+            disabled={isLoading || (isInterviewer && interviewMode === "auto")}
           />
           <button
             onClick={handleSendMessage}
-            disabled={!newMessage.trim() || isLoading}
+            disabled={
+              !newMessage.trim() ||
+              isLoading ||
+              (isInterviewer && interviewMode === "auto")
+            }
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
           >
             <svg

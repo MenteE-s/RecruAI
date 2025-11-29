@@ -10,6 +10,8 @@ const InterviewRoom = () => {
   const [error, setError] = useState(null);
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [interviewMode, setInterviewMode] = useState("auto"); // 'auto' or 'manual' - default to auto for AI responses
+  const [aiUserId, setAiUserId] = useState(null);
 
   // Get user role and determine if they're interviewer or candidate
   const userRole = localStorage.getItem("authRole");
@@ -19,8 +21,45 @@ const InterviewRoom = () => {
   useEffect(() => {
     if (interviewId) {
       fetchInterview();
+      fetchAiUser();
     }
   }, [interviewId]);
+
+  const fetchAiUser = async () => {
+    try {
+      const response = await fetch("/api/ai/user", {
+        credentials: "include",
+      });
+      if (response.ok) {
+        const aiUser = await response.json();
+        setAiUserId(aiUser.id);
+      }
+    } catch (error) {
+      console.error("Error fetching AI user:", error);
+    }
+  };
+
+  // Poll for new messages every 30 seconds when interview is active and window is visible
+  useEffect(() => {
+    let intervalId;
+
+    const pollMessages = () => {
+      // Only poll if document is visible (user hasn't switched tabs)
+      if (document.visibilityState === "visible") {
+        loadMessages();
+      }
+    };
+
+    if (interview && isInterviewReady()) {
+      intervalId = setInterval(pollMessages, 30000); // Poll every 30 seconds
+    }
+
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [interview, interviewId]);
 
   const fetchInterview = async () => {
     try {
@@ -57,62 +96,146 @@ const InterviewRoom = () => {
   };
 
   const loadMessages = async () => {
-    // TODO: Load messages from backend when we implement message storage
-    // For now, start with empty messages
-    setMessages([]);
+    try {
+      const response = await fetch(`/api/interviews/${interviewId}/messages`, {
+        credentials: "include",
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Transform backend messages to frontend format
+        const transformedMessages = data.map((msg) => ({
+          id: msg.id,
+          content: msg.content,
+          sender: msg.user?.name || "Unknown User",
+          timestamp: msg.created_at,
+          type: msg.message_type,
+          userId: msg.user_id,
+        }));
+        // Only update state if messages have actually changed
+        setMessages((prevMessages) => {
+          if (prevMessages.length !== transformedMessages.length) {
+            return transformedMessages;
+          }
+
+          // Check if any message has changed
+          const hasChanged = transformedMessages.some((newMsg, index) => {
+            const oldMsg = prevMessages[index];
+            return (
+              !oldMsg ||
+              oldMsg.id !== newMsg.id ||
+              oldMsg.content !== newMsg.content ||
+              oldMsg.sender !== newMsg.sender
+            );
+          });
+
+          return hasChanged ? transformedMessages : prevMessages;
+        });
+      }
+    } catch (error) {
+      console.error("Error loading messages:", error);
+    }
   };
 
   const handleSendMessage = async (message) => {
     setIsLoading(true);
 
-    // Add user message to chat
-    const userMessage = {
-      id: Date.now(),
-      content: message,
-      sender: isInterviewer ? "interviewer" : "candidate",
-      timestamp: new Date().toISOString(),
-      type: "text",
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
-
     try {
-      // If this is an AI interview, get AI response
-      if (interview?.ai_agent_id) {
-        const response = await fetch("/api/ai/chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({
-            interview_id: interviewId,
-            message: message,
-            agent_id: interview.ai_agent_id,
-          }),
-        });
+      // Save user message to database
+      const response = await fetch(`/api/interviews/${interviewId}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          user_id: userId,
+          content: message,
+          message_type: "text",
+        }),
+      });
 
-        if (response.ok) {
-          const data = await response.json();
-          const aiMessage = {
-            id: Date.now() + 1,
-            content: data.response,
-            sender: "ai",
-            timestamp: new Date().toISOString(),
-            type: "text",
-          };
-          setMessages((prev) => [...prev, aiMessage]);
+      if (response.ok) {
+        // Reload messages to get the updated list
+        await loadMessages();
+
+        // Handle response based on interview mode
+        if (interviewMode === "auto") {
+          // Auto mode: Get AI response automatically (works even without specific ai_agent_id)
+          const aiResponse = await fetch("/api/ai/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({
+              interview_id: interviewId,
+              message: message,
+              agent_id: interview?.ai_agent_id || 1, // Default to agent 1 if not specified
+            }),
+          });
+
+          if (aiResponse.ok) {
+            const aiData = await aiResponse.json();
+            // Save AI response to database
+            await fetch(`/api/interviews/${interviewId}/messages`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              credentials: "include",
+              body: JSON.stringify({
+                user_id: aiUserId,
+                content: aiData.response,
+                message_type: "ai_response",
+              }),
+            });
+            // Reload messages to include AI response
+            await loadMessages();
+          }
         }
+        // In manual mode, interviewer will respond manually
       } else {
-        // For human interviews, messages would be sent via WebSocket
-        // TODO: Implement WebSocket messaging
-        console.log("Human interview message:", message);
+        throw new Error("Failed to send message");
       }
     } catch (error) {
       console.error("Error sending message:", error);
-      // Add error message
+      // Add error message to local state (not saved to DB)
       const errorMessage = {
-        id: Date.now() + 2,
+        id: Date.now(),
         content:
           "Sorry, there was an error sending your message. Please try again.",
+        sender: "system",
+        timestamp: new Date().toISOString(),
+        type: "error",
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleInterviewerResponse = async (message) => {
+    setIsLoading(true);
+
+    try {
+      // Save interviewer response to database
+      const response = await fetch(`/api/interviews/${interviewId}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          user_id: userId, // Interviewer user ID
+          content: message,
+          message_type: "interviewer_response",
+        }),
+      });
+
+      if (response.ok) {
+        await loadMessages();
+      } else {
+        throw new Error("Failed to send response");
+      }
+    } catch (error) {
+      console.error("Error sending interviewer response:", error);
+      const errorMessage = {
+        id: Date.now(),
+        content:
+          "Sorry, there was an error sending your response. Please try again.",
         sender: "system",
         timestamp: new Date().toISOString(),
         type: "error",
@@ -223,14 +346,58 @@ const InterviewRoom = () => {
     switch (interview?.interview_type) {
       case "text":
         return (
-          <TextInterview
-            interviewId={interviewId}
-            interviewData={interview}
-            isInterviewer={isInterviewer}
-            onSendMessage={handleSendMessage}
-            messages={messages}
-            isLoading={isLoading}
-          />
+          <div className="min-h-screen bg-gray-100">
+            {/* Interviewer Mode Selection */}
+            {isInterviewer && (
+              <div className="bg-white border-b border-gray-200 px-4 py-3">
+                <div className="max-w-4xl mx-auto flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <span className="text-sm font-medium text-gray-700">
+                      Interview Mode:
+                    </span>
+                    <div className="flex rounded-md shadow-sm">
+                      <button
+                        onClick={() => setInterviewMode("auto")}
+                        className={`px-4 py-2 text-sm font-medium rounded-l-md border ${
+                          interviewMode === "auto"
+                            ? "bg-indigo-600 text-white border-indigo-600"
+                            : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                        }`}
+                      >
+                        🤖 Auto (AI)
+                      </button>
+                      <button
+                        onClick={() => setInterviewMode("manual")}
+                        className={`px-4 py-2 text-sm font-medium rounded-r-md border-t border-r border-b ${
+                          interviewMode === "manual"
+                            ? "bg-indigo-600 text-white border-indigo-600"
+                            : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                        }`}
+                      >
+                        ✍️ Manual
+                      </button>
+                    </div>
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    {interviewMode === "auto"
+                      ? "AI will respond automatically to candidate messages"
+                      : "You will manually respond to candidate messages"}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <TextInterview
+              interviewId={interviewId}
+              interviewData={interview}
+              isInterviewer={isInterviewer}
+              interviewMode={interviewMode}
+              onSendMessage={handleSendMessage}
+              onInterviewerResponse={handleInterviewerResponse}
+              messages={messages}
+              isLoading={isLoading}
+            />
+          </div>
         );
 
       case "ai_video":
