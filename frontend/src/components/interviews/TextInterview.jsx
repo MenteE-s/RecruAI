@@ -14,6 +14,8 @@ const TextInterview = ({
   const [newMessage, setNewMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(null);
+  const [isInterviewCompleted, setIsInterviewCompleted] = useState(false);
+  const [isCompleting, setIsCompleting] = useState(false);
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -43,13 +45,17 @@ const TextInterview = ({
         setTimeRemaining(`${minutes}:${seconds.toString().padStart(2, "0")}`);
       } else {
         setTimeRemaining("00:00");
+        // Interview time is up - mark as completed
+        if (!isInterviewCompleted) {
+          setIsInterviewCompleted(true);
+        }
       }
     };
 
     updateCountdown();
     const interval = setInterval(updateCountdown, 1000);
     return () => clearInterval(interval);
-  }, [interviewData]);
+  }, [interviewData, isInterviewCompleted]);
 
   const handleSendMessage = async () => {
     if (!newMessage.trim()) return;
@@ -78,12 +84,89 @@ const TextInterview = ({
     }
   };
 
+  const handleCompleteInterview = async () => {
+    setIsCompleting(true);
+    try {
+      const response = await fetch(`/api/interviews/${interviewId}/complete`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      });
+
+      if (response.ok) {
+        // Redirect to analysis page after completion
+        window.location.href = `/interviews/${interviewId}/analysis`;
+      } else {
+        throw new Error("Failed to complete interview");
+      }
+    } catch (error) {
+      console.error("Error completing interview:", error);
+      alert("Failed to complete interview. Please try again.");
+    } finally {
+      setIsCompleting(false);
+    }
+  };
+
   const formatTime = (timestamp) => {
     return new Date(timestamp).toLocaleTimeString([], {
       hour: "2-digit",
       minute: "2-digit",
     });
   };
+
+  // Show completion screen if interview is completed
+  if (isInterviewCompleted) {
+    return (
+      <div className="flex flex-col h-full max-h-screen">
+        {/* Interview Header */}
+        <div className="bg-white border-b border-gray-200 p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">
+                {interviewData?.title || "Text Interview"}
+              </h2>
+              <p className="text-sm text-gray-600">
+                {isInterviewer ? "Interviewer" : "Candidate"} • Interview
+                Completed
+              </p>
+            </div>
+            <div className="flex items-center space-x-1">
+              <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+              <span className="text-sm text-gray-600">Completed</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Completion Message */}
+        <div className="flex-1 flex items-center justify-center p-8">
+          <div className="text-center max-w-md">
+            <div className="text-6xl mb-6">🎉</div>
+            <h3 className="text-2xl font-bold text-gray-900 mb-4">
+              Interview Completed!
+            </h3>
+            <p className="text-gray-600 mb-8">
+              Thank you for participating in this interview. Your responses have
+              been recorded and will be reviewed.
+            </p>
+            <button
+              onClick={handleCompleteInterview}
+              disabled={isCompleting}
+              className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+            >
+              {isCompleting ? (
+                <div className="flex items-center space-x-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <span>Processing...</span>
+                </div>
+              ) : (
+                "Proceed to Dashboard"
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full max-h-screen">
@@ -288,14 +371,19 @@ const TextInterview = ({
             className="flex-1 resize-none border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             rows={1}
             style={{ minHeight: "40px", maxHeight: "120px" }}
-            disabled={isLoading || (isInterviewer && interviewMode === "auto")}
+            disabled={
+              isLoading ||
+              (isInterviewer && interviewMode === "auto") ||
+              isInterviewCompleted
+            }
           />
           <button
             onClick={handleSendMessage}
             disabled={
               !newMessage.trim() ||
               isLoading ||
-              (isInterviewer && interviewMode === "auto")
+              (isInterviewer && interviewMode === "auto") ||
+              isInterviewCompleted
             }
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
           >

@@ -138,6 +138,111 @@ def get_messages(interview_id):
     return jsonify([message.to_dict() for message in messages]), 200
 
 
+@api_bp.route('/interviews/<int:interview_id>/complete', methods=['POST'])
+def complete_interview(interview_id):
+    """Mark interview as completed"""
+    interview = Interview.query.get_or_404(interview_id)
+
+    # Update status to completed
+    interview.status = "completed"
+    # setattr(interview, 'completed_at', datetime.utcnow())
+    # setattr(interview, 'round_status', "completed")
+
+    db.session.commit()
+
+    return jsonify({
+        "message": "Interview completed successfully",
+        "interview": interview.to_dict()
+    }), 200
+
+
+@api_bp.route('/interviews/<int:interview_id>/decision', methods=['POST'])
+def update_interview_decision(interview_id):
+    """Update interview decision (pass, second round, third round, fail)"""
+    interview = Interview.query.get_or_404(interview_id)
+    payload = request.get_json(silent=True) or {}
+
+    decision = payload.get("decision")  # 'passed', 'failed', 'second_round', 'third_round'
+    feedback = payload.get("feedback", "")
+    rating = payload.get("rating")
+
+    if decision not in ['passed', 'failed', 'second_round', 'third_round']:
+        return jsonify({"error": "Invalid decision"}), 400
+
+    # For now, just update feedback and rating since new columns don't exist
+    interview.feedback = feedback
+    if rating:
+        interview.rating = rating
+
+    # Update status based on decision (simplified without new columns)
+    if decision == 'passed':
+        interview.status = 'completed'
+    elif decision == 'failed':
+        interview.status = 'completed'
+    elif decision in ['second_round', 'third_round']:
+        interview.status = 'scheduled'  # Schedule next round
+
+    db.session.commit()
+
+    return jsonify({
+        "message": "Interview decision updated successfully",
+        "interview": interview.to_dict()
+    }), 200
+
+
+@api_bp.route('/interviews/<int:interview_id>/analyze', methods=['POST'])
+def generate_interview_analysis(interview_id):
+    """Generate AI analysis for completed interview"""
+    interview = Interview.query.get_or_404(interview_id)
+
+    if interview.status != 'completed':
+        return jsonify({"error": "Interview must be completed before analysis"}), 400
+
+    # Get all messages for this interview
+    messages = Message.query.filter_by(interview_id=interview_id).order_by(Message.created_at).all()
+
+    # Prepare conversation for AI analysis
+    conversation = "\n".join([f"{msg.user.name if msg.user else 'Unknown'}: {msg.content}" for msg in messages])
+
+    # TODO: Call AI service for analysis
+    # For now, generate mock analysis
+    analysis = {
+        "overall_score": 85,
+        "communication_skills": 88,
+        "technical_knowledge": 82,
+        "problem_solving": 90,
+        "cultural_fit": 85,
+        "summary": "Strong candidate with excellent problem-solving skills and good communication. Shows solid technical foundation but could benefit from more experience in certain areas.",
+        "strengths": [
+            "Excellent problem-solving approach",
+            "Clear communication style",
+            "Good understanding of fundamentals",
+            "Enthusiastic and engaged"
+        ],
+        "improvements": [
+            "Could provide more detailed technical explanations",
+            "Consider exploring advanced topics",
+            "Work on time management during complex problems"
+        ],
+        "recommendation": "Recommend for second round" if interview.current_round == 1 else "Strong candidate for the role"
+    }
+
+    # For now, just return analysis without saving to database
+    # TODO: Save to database once columns are added
+    import json
+    # setattr(interview, 'analysis_data', json.dumps(analysis))
+    # setattr(interview, 'strengths', json.dumps(analysis["strengths"]))
+    # setattr(interview, 'improvements', json.dumps(analysis["improvements"]))
+
+    db.session.commit()
+
+    return jsonify({
+        "message": "Interview analysis generated successfully",
+        "analysis": analysis,
+        "interview": interview.to_dict()
+    }), 200
+
+
 @api_bp.route('/interviews/<int:interview_id>/messages', methods=['POST'])
 def send_message(interview_id):
     """Send a message in an interview"""

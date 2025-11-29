@@ -148,9 +148,21 @@ class Interview(db.Model):
     room_password = db.Column(db.String(50), nullable=True)  # Room access password
 
     # Status and feedback
-    status = db.Column(db.String(50), default="scheduled")  # 'scheduled', 'completed', 'cancelled', 'no_show'
+    status = db.Column(db.String(50), default="scheduled")  # 'scheduled', 'in_progress', 'completed', 'cancelled', 'no_show'
     feedback = db.Column(db.Text, nullable=True)  # Interview feedback/notes
     rating = db.Column(db.Integer, nullable=True)  # 1-5 rating
+
+    # Multi-round interview system - temporarily commented out for database compatibility
+    # current_round = db.Column(db.Integer, default=1)  # Current interview round (1, 2, 3)
+    # max_rounds = db.Column(db.Integer, default=3)  # Maximum rounds allowed
+    # round_status = db.Column(db.String(20), default="pending")  # 'pending', 'passed', 'failed', 'in_progress'
+    # final_decision = db.Column(db.String(20), nullable=True)  # 'passed', 'failed', 'second_round', 'third_round'
+    # completed_at = db.Column(db.DateTime, nullable=True)  # When interview was completed
+
+    # Analysis and results - temporarily commented out for database compatibility
+    # analysis_data = db.Column(db.Text, nullable=True)  # JSON string with AI analysis
+    # strengths = db.Column(db.Text, nullable=True)  # JSON array of strengths
+    # improvements = db.Column(db.Text, nullable=True)  # JSON array of areas for improvement
 
     # Interviewers (JSON array of user IDs or names)
     interviewers = db.Column(db.Text, nullable=True)
@@ -193,6 +205,15 @@ class Interview(db.Model):
             "ai_agent": self.ai_agent.to_dict() if self.ai_agent else None,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            # Multi-round fields temporarily disabled for database compatibility
+            "current_round": 1,
+            "max_rounds": 3,
+            "round_status": 'pending',
+            "final_decision": None,
+            "completed_at": None,
+            "analysis_data": None,
+            "strengths": [],
+            "improvements": [],
             "organization": self.organization.name if self.organization else None,
             "post_title": self.post.title if self.post else None,
         }
@@ -344,6 +365,7 @@ class ProfileSection(db.Model):
     order_index = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    completed_at = db.Column(db.DateTime, nullable=True)
 
     user = db.relationship("User", backref="profile_sections")
 
@@ -357,6 +379,7 @@ class ProfileSection(db.Model):
             "order_index": self.order_index,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
         }
 
 

@@ -228,6 +228,136 @@ const ScheduleInterviewModal = ({ isOpen, onClose, onSave, saving }) => {
   );
 };
 
+// Make Decision Modal
+const MakeDecisionModal = ({ isOpen, onClose, onSave, saving, interview }) => {
+  const [decision, setDecision] = useState("");
+  const [feedback, setFeedback] = useState("");
+  const [rating, setRating] = useState("");
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (decision) {
+      onSave(decision, feedback, rating);
+    }
+  };
+
+  const handleClose = () => {
+    setDecision("");
+    setFeedback("");
+    setRating("");
+    onClose();
+  };
+
+  const decisionOptions = [
+    { value: "passed", label: "✅ Pass - Hire the candidate", color: "green" },
+    {
+      value: "second_round",
+      label: "🔄 Second Round - Invite for another interview",
+      color: "blue",
+    },
+    {
+      value: "third_round",
+      label: "🎯 Third Round - Invite for final interview",
+      color: "purple",
+    },
+    { value: "failed", label: "❌ Reject - Do not proceed", color: "red" },
+  ];
+
+  return (
+    <Modal isOpen={isOpen} onClose={handleClose}>
+      <h2 className="text-xl font-bold text-gray-900 mb-4">
+        Make Interview Decision
+      </h2>
+      <p className="text-gray-600 mb-6">
+        Review the interview results and make your hiring decision for{" "}
+        <span className="font-semibold">{interview?.title}</span>
+      </p>
+
+      <form onSubmit={handleSubmit}>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-3">
+              Decision *
+            </label>
+            <div className="space-y-2">
+              {decisionOptions.map((option) => (
+                <label
+                  key={option.value}
+                  className={`block p-3 border rounded-lg cursor-pointer hover:bg-gray-50 ${
+                    decision === option.value
+                      ? `border-${option.color}-500 bg-${option.color}-50`
+                      : "border-gray-200"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="decision"
+                    value={option.value}
+                    checked={decision === option.value}
+                    onChange={(e) => setDecision(e.target.value)}
+                    className="mr-3"
+                  />
+                  <span className={`text-${option.color}-700 font-medium`}>
+                    {option.label}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Rating (1-5 stars)
+            </label>
+            <select
+              value={rating}
+              onChange={(e) => setRating(e.target.value)}
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Select rating (optional)</option>
+              <option value="5">⭐⭐⭐⭐⭐ Excellent</option>
+              <option value="4">⭐⭐⭐⭐ Very Good</option>
+              <option value="3">⭐⭐⭐ Good</option>
+              <option value="2">⭐⭐ Fair</option>
+              <option value="1">⭐ Poor</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Feedback & Notes
+            </label>
+            <textarea
+              value={feedback}
+              onChange={(e) => setFeedback(e.target.value)}
+              className="w-full p-2 border rounded resize-none focus:ring-2 focus:ring-blue-500"
+              rows={4}
+              placeholder="Provide feedback to the candidate and notes for your records..."
+            />
+          </div>
+        </div>
+
+        <div className="flex gap-3 justify-end mt-6">
+          <button
+            type="button"
+            onClick={handleClose}
+            className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={saving || !decision}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {saving ? "Saving Decision..." : "Save Decision"}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+};
+
 // Assign AI Agent Modal
 const AssignAIAgentModal = ({ isOpen, onClose, onAssign, agents, saving }) => {
   const [selectedAgentId, setSelectedAgentId] = useState("");
@@ -524,6 +654,7 @@ export default function InterviewManagement() {
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [showAssignAgentModal, setShowAssignAgentModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showDecisionModal, setShowDecisionModal] = useState(false);
   const [selectedInterview, setSelectedInterview] = useState(null);
   const [aiAgents, setAiAgents] = useState([]);
   const [saving, setSaving] = useState(false);
@@ -686,6 +817,43 @@ export default function InterviewManagement() {
     }
   };
 
+  const handleMakeDecision = async (decision, feedback = "", rating = null) => {
+    if (!selectedInterview) return;
+
+    setSaving(true);
+    setError(null);
+
+    try {
+      const response = await fetch(
+        `/api/interviews/${selectedInterview.id}/decision`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            decision,
+            feedback,
+            rating: rating ? parseInt(rating) : null,
+          }),
+        }
+      );
+
+      if (response.ok) {
+        await fetchInterviews();
+        setShowDecisionModal(false);
+        setSelectedInterview(null);
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        setError(errorData.error || "Failed to update decision");
+      }
+    } catch (error) {
+      console.error("Error updating decision:", error);
+      setError("Network error. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const formatDateTime = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleString("en-US", {
@@ -703,10 +871,28 @@ export default function InterviewManagement() {
     const timeDiff = scheduledTime - now;
     const minutesDiff = timeDiff / (1000 * 60);
 
+    // Show final decision if available
+    if (interview.final_decision) {
+      const decisionLabels = {
+        passed: { text: "✅ Passed", color: "green" },
+        failed: { text: "❌ Rejected", color: "red" },
+        second_round: { text: "🔄 Second Round", color: "blue" },
+        third_round: { text: "🎯 Third Round", color: "purple" },
+      };
+      const decision = decisionLabels[interview.final_decision];
+      return (
+        <span
+          className={`px-2 py-1 bg-${decision.color}-100 text-${decision.color}-800 text-xs rounded-full`}
+        >
+          {decision.text}
+        </span>
+      );
+    }
+
     if (interview.status === "completed") {
       return (
         <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
-          Completed
+          Completed - Pending Decision
         </span>
       );
     } else if (interview.status === "cancelled") {
@@ -978,6 +1164,19 @@ export default function InterviewManagement() {
                       {getJoinButtonText(interview)}
                     </button>
                   )}
+
+                  {interview.status === "completed" && (
+                    <button
+                      onClick={() => {
+                        setSelectedInterview(interview);
+                        setShowDecisionModal(true);
+                      }}
+                      className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
+                    >
+                      🎯 Make Decision
+                    </button>
+                  )}
+
                   <button
                     onClick={() => {
                       setSelectedInterview(interview);
@@ -1039,6 +1238,18 @@ export default function InterviewManagement() {
           setSelectedInterview(null);
         }}
         onSave={handleEditInterview}
+        saving={saving}
+        interview={selectedInterview}
+      />
+
+      {/* Make Decision Modal */}
+      <MakeDecisionModal
+        isOpen={showDecisionModal}
+        onClose={() => {
+          setShowDecisionModal(false);
+          setSelectedInterview(null);
+        }}
+        onSave={handleMakeDecision}
         saving={saving}
         interview={selectedInterview}
       />

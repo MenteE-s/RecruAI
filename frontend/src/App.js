@@ -38,6 +38,7 @@ import UserProfile from "./pages/organization/UserProfile";
 import JobPosts from "./pages/organization/JobPosts";
 import Candidates from "./pages/organization/Candidates";
 import InterviewManagement from "./pages/organization/InterviewManagement";
+import InterviewAnalysis from "./pages/InterviewAnalysis";
 import Pipeline from "./pages/organization/Pipeline";
 import OrganizationAnalytics from "./pages/organization/OrganizationAnalytics";
 import Reports from "./pages/organization/Reports";
@@ -178,6 +179,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <CareerCoaching />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/interviews/:interviewId/analysis"
+            element={
+              <ProtectedRoute>
+                <InterviewAnalysis />
               </ProtectedRoute>
             }
           />
