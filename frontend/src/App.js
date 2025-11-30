@@ -224,7 +224,7 @@ function App() {
             }
           />
           <Route
-            path="/interviews/:interviewId/analysis"
+            path="/interview/:interviewId/analysis"
             element={
               <ProtectedRoute>
                 <InterviewAnalysis />
@@ -388,6 +388,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <InterviewRoom />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/interviews/:interviewId/analysis"
+            element={
+              <ProtectedRoute>
+                <InterviewAnalysis />
               </ProtectedRoute>
             }
           />
