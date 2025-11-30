@@ -20,9 +20,12 @@ export default function UpcomingInterviews() {
   useEffect(() => {
     const fetchUpcomingInterviews = async () => {
       try {
-        const response = await fetch("/api/interviews/upcoming", {
-          credentials: "include",
-        });
+        const response = await fetch(
+          "http://localhost:5000/api/interviews/upcoming",
+          {
+            credentials: "include",
+          }
+        );
 
         if (response.ok) {
           const data = await response.json();

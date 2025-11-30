@@ -23,7 +23,9 @@ export default function SavedJobs() {
   const fetchSavedJobs = async () => {
     try {
       const userId = 1; // TODO: Get from user context
-      const response = await fetch(`/api/saved-jobs/user/${userId}`);
+      const response = await fetch(
+        `http://localhost:5000/api/saved-jobs/user/${userId}`
+      );
       if (response.ok) {
         const data = await response.json();
         setSavedJobs(data);
@@ -38,7 +40,9 @@ export default function SavedJobs() {
   const fetchAppliedJobs = async () => {
     try {
       const userId = 1; // TODO: Get from user context
-      const response = await fetch(`/api/applications/user/${userId}`);
+      const response = await fetch(
+        `http://localhost:5000/api/applications/user/${userId}`
+      );
       if (response.ok) {
         const data = await response.json();
         const appliedIds = new Set(data.map((app) => app.post_id));
@@ -51,10 +55,13 @@ export default function SavedJobs() {
 
   const handleUnsaveJob = async (savedId) => {
     try {
-      const response = await fetch(`/api/saved-jobs/${savedId}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
+      const response = await fetch(
+        `http://localhost:5000/api/saved-jobs/${savedId}`,
+        {
+          method: "DELETE",
+          credentials: "include",
+        }
+      );
 
       if (response.ok) {
         setSavedJobs((prev) => prev.filter((job) => job.id !== savedId));
@@ -67,7 +74,7 @@ export default function SavedJobs() {
   const handleApplyJob = async (postId) => {
     try {
       const userId = 1; // TODO: Get from user context
-      const response = await fetch("/api/applications", {
+      const response = await fetch("http://localhost:5000/api/applications", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

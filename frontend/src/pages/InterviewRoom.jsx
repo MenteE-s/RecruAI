@@ -16,7 +16,11 @@ const InterviewRoom = () => {
   // Get user role and determine if they're interviewer or candidate
   const userRole = localStorage.getItem("authRole");
   const userId = 1; // TODO: Get from auth context
-  const isInterviewer = userRole === "organization" || interview?.ai_agent_id;
+
+  // Determine if user is interviewer or candidate
+  // Organization users are interviewers, individual users are candidates
+  // If there's an AI agent, the AI is interviewer and human is candidate
+  const isInterviewer = userRole === "organization";
 
   useEffect(() => {
     if (interviewId) {
@@ -160,13 +164,17 @@ const InterviewRoom = () => {
         // Handle response based on interview mode
         if (interviewMode === "auto") {
           // Auto mode: Get AI response automatically (works even without specific ai_agent_id)
-          const aiResponse = await fetch("/api/ai/chat", {
+          const aiResponse = await fetch("http://localhost:5000/api/ai/chat", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             credentials: "include",
             body: JSON.stringify({
               interview_id: interviewId,
               message: message,
+              conversation_history: messages.map((msg) => ({
+                role: msg.userId === aiUserId ? "assistant" : "user",
+                content: msg.content,
+              })),
               agent_id: interview?.ai_agent_id || 1, // Default to agent 1 if not specified
             }),
           });

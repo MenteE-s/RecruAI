@@ -29,6 +29,8 @@ from .speaking_engagement import SpeakingEngagement
 from .license import License
 from .ai_agent import AIAgent
 from .ai_interview_agent import AIInterviewAgent
+from .conversation_memory import ConversationMemory
+from .system_issue import SystemIssue
 
 __all__ = [
     "User",
@@ -62,4 +64,6 @@ __all__ = [
     "License",
     "AIAgent",
     "AIInterviewAgent",
+    "SystemIssue",
+    "ConversationMemory",
 ]
