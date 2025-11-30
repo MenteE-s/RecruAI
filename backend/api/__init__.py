@@ -11,3 +11,4 @@ from . import auth  # noqa: E402, F401
 from . import users  # noqa: E402, F401
 from . import health  # noqa: E402, F401
 from . import system_issues  # noqa: E402, F401
+from . import rag  # noqa: E402, F401

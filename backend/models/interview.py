@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from backend.extensions import db
 
@@ -62,7 +62,10 @@ class Interview(db.Model):
             "id": self.id,
             "title": self.title,
             "description": self.description,
-            "scheduled_at": self.scheduled_at.isoformat() if self.scheduled_at else None,
+            # Use UTC-aware timestamp and ISO string to avoid local tz issues
+            "scheduled_at": int(self.scheduled_at.replace(tzinfo=timezone.utc).timestamp() * 1000) if self.scheduled_at else None,
+            # Provide ISO string in UTC (append 'Z') for timezone-aware clients
+            "scheduled_at_iso": (self.scheduled_at.replace(tzinfo=timezone.utc).isoformat().replace('+00:00', 'Z')) if self.scheduled_at else None,
             "duration_minutes": self.duration_minutes,
             "user_id": self.user_id,
             "organization_id": self.organization_id,
@@ -91,5 +94,6 @@ class Interview(db.Model):
             "improvements": [],
             "organization": self.organization.name if self.organization else None,
             "post_title": self.post.title if self.post else None,
-            "analysis": self.analysis.to_dict() if self.analysis else None,
+            # "analysis": self.analysis.to_dict() if self.analysis else None,  # Temporarily disabled
+            "analysis": None,
         }

@@ -228,7 +228,9 @@ export default function InterviewHistory() {
                         </h3>
                         <p className="text-sm text-gray-600">
                           {interview.organization} •{" "}
-                          {formatDateTime(interview.scheduled_at)}
+                          {formatDateTime(
+                            interview.scheduled_at_iso || interview.scheduled_at
+                          )}
                         </p>
                         {interview.post_title && (
                           <p className="text-xs text-blue-600 mt-1">

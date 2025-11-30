@@ -3,7 +3,7 @@ from .. import api_bp
 from ...extensions import db
 from ...models import Interview, Application
 import json
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
 def update_pipeline_stage_for_interview(interview):
     """Update pipeline stage based on interview status"""
@@ -55,19 +55,29 @@ def create_interview():
 
     # Validate scheduled_at is in the future
     datetime_str = data['scheduled_at']
-    if datetime_str.endswith('Z'):
-        datetime_str = datetime_str[:-1] + '+00:00'
 
+    # Handle datetime input (accepts ISO 8601 with timezone offset or 'Z')
     try:
+        if datetime_str.endswith('Z'):
+            # Replace trailing Z with +00:00 so fromisoformat can parse it
+            datetime_str = datetime_str[:-1] + '+00:00'
         scheduled_at = datetime.fromisoformat(datetime_str)
     except ValueError:
-        return jsonify({'error': 'Invalid datetime format'}), 400
+        return jsonify({'error': 'Invalid datetime format. Use ISO 8601 with timezone (e.g., 2024-01-15T14:30Z)'}), 400
 
-    now = datetime.utcnow().replace(tzinfo=None)
-    scheduled_naive = scheduled_at.replace(tzinfo=None) if scheduled_at.tzinfo else scheduled_at
+    # Ensure timezone-aware and normalize to UTC
+    if scheduled_at.tzinfo is None:
+        # Treat naive datetimes as UTC; otherwise prefer explicit timezone from client
+        scheduled_at = scheduled_at.replace(tzinfo=timezone.utc)
+    else:
+        scheduled_at = scheduled_at.astimezone(timezone.utc)
 
-    if scheduled_naive <= now:
-        return jsonify({'error': 'Interview must be scheduled in the future'}), 400
+    # Convert to naive UTC before storing (DB stores naive datetimes)
+    scheduled_at = scheduled_at.replace(tzinfo=None)
+
+    # Validate scheduled_at is in the future
+    if scheduled_at <= datetime.utcnow():
+        return jsonify({'error': 'scheduled_at must be in the future.'}), 400
 
     interview = Interview(
         title=data['title'],
@@ -114,7 +124,25 @@ def update_interview(interview_id):
     for field in updatable_fields:
         if field in data:
             if field == 'scheduled_at':
-                value = datetime.fromisoformat(data[field].replace('Z', '+00:00'))
+                try:
+                    value_str = data[field]
+                    if value_str.endswith('Z'):
+                        value_str = value_str[:-1] + '+00:00'
+                    value = datetime.fromisoformat(value_str)
+                except Exception:
+                    return jsonify({'error': 'Invalid datetime format for scheduled_at. Use ISO 8601 with timezone.'}), 400
+
+                if value.tzinfo is None:
+                    value = value.replace(tzinfo=timezone.utc)
+                else:
+                    value = value.astimezone(timezone.utc)
+
+                value = value.replace(tzinfo=None)
+
+                # Validate scheduled_at is in the future
+                if value <= datetime.utcnow():
+                    return jsonify({'error': 'scheduled_at must be in the future.'}), 400
+
                 setattr(interview, field, value)
             elif field == 'interviewers':
                 setattr(interview, field, json.dumps(data[field]) if data[field] else None)

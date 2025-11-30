@@ -14,6 +14,7 @@ export default function Candidates() {
   const { showToast } = useToast();
 
   const [applications, setApplications] = useState([]);
+  const [organizationId, setOrganizationId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedApplication, setSelectedApplication] = useState(null);
   const [showScheduleInterview, setShowScheduleInterview] = useState(false);
@@ -30,6 +31,21 @@ export default function Candidates() {
 
   useEffect(() => {
     fetchApplications();
+  }, []);
+
+  useEffect(() => {
+    const getOrgId = async () => {
+      try {
+        const res = await fetch("/api/auth/me", { credentials: "include" });
+        if (res.ok) {
+          const data = await res.json();
+          setOrganizationId(data.user?.organization_id || null);
+        }
+      } catch (err) {
+        console.error("Error fetching user:", err);
+      }
+    };
+    getOrgId();
   }, []);
 
   const fetchApplications = async () => {
@@ -111,7 +127,7 @@ export default function Candidates() {
         scheduled_at: new Date(interviewForm.scheduled_at).toISOString(),
         duration_minutes: interviewForm.duration_minutes,
         user_id: selectedApplication.user_id,
-        organization_id: 1, // TODO: Get from context
+        organization_id: organizationId || 1,
         post_id: selectedApplication.post_id,
         interview_type: interviewForm.interview_type,
         interviewers: JSON.stringify(

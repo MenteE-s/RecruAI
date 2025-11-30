@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
@@ -25,14 +25,20 @@ const Modal = ({ isOpen, onClose, children }) => {
 };
 
 // Schedule Interview Modal
-const ScheduleInterviewModal = ({ isOpen, onClose, onSave, saving }) => {
+const ScheduleInterviewModal = ({
+  isOpen,
+  onClose,
+  onSave,
+  saving,
+  organizationId,
+}) => {
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     scheduled_at: "",
     duration_minutes: 60,
     user_id: "",
-    organization_id: 1, // TODO: Get from user context
+    organization_id: organizationId || 1, // Use passed org id or default 1
     post_id: "",
     interview_type: "video",
     location: "",
@@ -42,17 +48,30 @@ const ScheduleInterviewModal = ({ isOpen, onClose, onSave, saving }) => {
 
   const [posts, setPosts] = useState([]);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (isOpen) {
       fetchPosts();
     }
-  }, [isOpen]);
+  }, [isOpen, organizationId]);
 
-  const fetchPosts = async () => {
+  useEffect(() => {
+    // Normalize formData when org changes
+    setFormData((prev) => ({ ...prev, organization_id: organizationId || 1 }));
+  }, [organizationId]);
+
+  const fetchPosts = useCallback(async () => {
+    if (!organizationId) {
+      setPosts([]);
+      return;
+    }
     try {
-      const response = await fetch("/api/organizations/posts", {
-        credentials: "include",
-      });
+      const response = await fetch(
+        `/api/organizations/${organizationId}/posts`,
+        {
+          credentials: "include",
+        }
+      );
       if (response.ok) {
         const data = await response.json();
         setPosts(data.posts || []);
@@ -60,11 +79,19 @@ const ScheduleInterviewModal = ({ isOpen, onClose, onSave, saving }) => {
     } catch (error) {
       console.error("Error fetching posts:", error);
     }
-  };
+  }, [organizationId]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSave(formData);
+
+    // Convert datetime-local to UTC before sending
+    let dataToSend = { ...formData };
+    if (formData.scheduled_at) {
+      // send a fully-qualified ISO string (UTC) so backend receives exact moment
+      dataToSend.scheduled_at = new Date(formData.scheduled_at).toISOString();
+    }
+
+    onSave(dataToSend);
   };
 
   const handleClose = () => {
@@ -155,7 +182,7 @@ const ScheduleInterviewModal = ({ isOpen, onClose, onSave, saving }) => {
             >
               <option value="">Select Job Post (Optional)</option>
               {posts.map((post) => (
-                <option key={post.id} value={post.id}>
+                <option key={post.id} value={post.title}>
                   {post.title}
                 </option>
               ))}
@@ -422,7 +449,9 @@ const CancelInterviewModal = ({
               </p>
               <p>
                 <strong>Scheduled:</strong>{" "}
-                {new Date(interview.scheduled_at).toLocaleString()}
+                {new Date(
+                  interview.scheduled_at_iso || interview.scheduled_at
+                ).toLocaleString()}
               </p>
               <p>
                 <strong>Duration:</strong> {interview.duration_minutes} minutes
@@ -571,9 +600,12 @@ const EditInterviewModal = ({ isOpen, onClose, onSave, saving, interview }) => {
       setFormData({
         title: interview.title || "",
         description: interview.description || "",
-        scheduled_at: interview.scheduled_at
-          ? new Date(interview.scheduled_at).toISOString().slice(0, 16)
-          : "",
+        scheduled_at:
+          interview.scheduled_at_iso || interview.scheduled_at
+            ? new Date(interview.scheduled_at_iso || interview.scheduled_at)
+                .toISOString()
+                .slice(0, 16)
+            : "",
         duration_minutes: interview.duration_minutes || 60,
         interview_type: interview.interview_type || "text",
         location: interview.location || "",
@@ -584,7 +616,20 @@ const EditInterviewModal = ({ isOpen, onClose, onSave, saving, interview }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSave(formData);
+
+    // Convert datetime-local to UTC before sending
+    const localDateTime = new Date(formData.scheduled_at);
+    const utcDateTime = new Date(
+      localDateTime.getTime() - localDateTime.getTimezoneOffset() * 60000
+    );
+    const utcISOString = utcDateTime.toISOString().slice(0, 16); // Remove seconds and timezone
+
+    const dataToSend = {
+      ...formData,
+      scheduled_at: utcISOString + "Z", // Add Z to indicate UTC
+    };
+
+    onSave(dataToSend);
   };
 
   const handleClose = () => {
@@ -750,6 +795,7 @@ export default function InterviewManagement() {
   const sidebarItems = getSidebarItems(role, plan);
 
   const [interviews, setInterviews] = useState([]);
+  const [organizationId, setOrganizationId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
@@ -760,13 +806,29 @@ export default function InterviewManagement() {
   const [selectedInterview, setSelectedInterview] = useState(null);
   const [aiAgents, setAiAgents] = useState([]);
   const [saving, setSaving] = useState(false);
+  const [filterText, setFilterText] = useState("");
 
   useEffect(() => {
-    fetchInterviews();
-    fetchAIAgents();
+    // Fetch current user context to get organization_id
+    const getCurrentUser = async () => {
+      try {
+        const res = await fetch("/api/auth/me", { credentials: "include" });
+        if (res.ok) {
+          const data = await res.json();
+          const orgId = data?.user?.organization_id || null;
+          setOrganizationId(orgId);
+        }
+      } catch (err) {
+        console.error("Error fetching current user", err);
+      }
+    };
+
+    getCurrentUser();
   }, []);
 
-  const fetchInterviews = async () => {
+  // When organizationId becomes available, fetch org-specific data
+
+  const fetchInterviews = useCallback(async () => {
     try {
       console.log("Fetching interviews...");
       const response = await fetch("/api/interviews", {
@@ -776,8 +838,13 @@ export default function InterviewManagement() {
       if (response.ok) {
         const data = await response.json();
         console.log("Fetched interviews:", data.interviews);
+        let items = data.interviews || [];
+        // If organizationId is known, filter by this org's interviews only
+        if (organizationId) {
+          items = items.filter((it) => it.organization_id === organizationId);
+        }
         // Ensure we create a new array reference to trigger re-render
-        setInterviews([...(data.interviews || [])]);
+        setInterviews([...items]);
         setError(null); // Clear any previous errors
       } else {
         console.error("Failed to fetch interviews:", response.status);
@@ -789,12 +856,14 @@ export default function InterviewManagement() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [organizationId]);
 
-  const fetchAIAgents = async () => {
+  // Once we have organizationId, load interviews and agents for the org
+
+  const fetchAIAgents = useCallback(async () => {
     try {
       // TODO: Get organization ID from user context
-      const orgId = 1; // Placeholder
+      const orgId = organizationId || 1; // Fallback to 1 if missing
       const response = await fetch(`/api/organizations/${orgId}/ai-agents`);
       if (response.ok) {
         const data = await response.json();
@@ -803,7 +872,15 @@ export default function InterviewManagement() {
     } catch (error) {
       console.error("Error fetching AI agents:", error);
     }
-  };
+  }, [organizationId]);
+
+  // Once we have organizationId, load interviews and agents for the org
+  useEffect(() => {
+    if (!organizationId) return;
+    // fetch both interviews and AI agents for this organization
+    fetchInterviews();
+    fetchAIAgents();
+  }, [organizationId, fetchInterviews, fetchAIAgents]);
 
   const handleScheduleInterview = async (interviewData) => {
     setSaving(true);
@@ -991,9 +1068,20 @@ export default function InterviewManagement() {
   };
 
   const getStatusBadge = (interview) => {
+    // Get current time in UTC for comparison with UTC scheduled times
     const now = new Date();
-    const scheduledTime = new Date(interview.scheduled_at);
-    const timeDiff = scheduledTime - now;
+    const nowUTC = new Date(now.getTime() + now.getTimezoneOffset() * 60000);
+
+    const scheduledAt = interview.scheduled_at_iso || interview.scheduled_at;
+    if (!scheduledAt)
+      return (
+        <span className="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full">
+          Unknown
+        </span>
+      );
+
+    const scheduledTime = new Date(scheduledAt);
+    const timeDiff = scheduledTime - nowUTC;
     const minutesDiff = timeDiff / (1000 * 60);
 
     // Show final decision if available
@@ -1057,9 +1145,17 @@ export default function InterviewManagement() {
     // Cannot join if cancelled
     if (interview.status === "cancelled") return false;
 
-    const now = new Date();
-    const scheduledTime = new Date(interview.scheduled_at);
-    const timeDiff = scheduledTime - now;
+    const scheduledAt = interview.scheduled_at_iso || interview.scheduled_at;
+    if (!scheduledAt) return false;
+
+    // Get current time in UTC
+    const nowUTC = new Date();
+
+    // Parse scheduled time as UTC (assume ISO string is UTC)
+    const scheduledTime = new Date(
+      scheduledAt + (scheduledAt.includes("Z") ? "" : "Z")
+    ); // Ensure UTC
+    const timeDiff = scheduledTime - nowUTC;
     const minutesDiff = timeDiff / (1000 * 60);
 
     // Can join 15 minutes before and during the interview
@@ -1069,13 +1165,21 @@ export default function InterviewManagement() {
   const getJoinButtonText = (interview) => {
     if (interview.status === "cancelled") return "Cancelled";
 
-    const now = new Date();
-    const scheduledTime = new Date(interview.scheduled_at);
-    const timeDiff = scheduledTime - now;
+    const scheduledAt = interview.scheduled_at_iso || interview.scheduled_at;
+    if (!scheduledAt) return "Unknown";
+
+    // Get current time in UTC
+    const nowUTC = new Date();
+
+    // Parse scheduled time as UTC
+    const scheduledTime = new Date(
+      scheduledAt + (scheduledAt.includes("Z") ? "" : "Z")
+    ); // Ensure UTC
+    const timeDiff = scheduledTime - nowUTC;
     const minutesDiff = timeDiff / (1000 * 60);
 
     if (minutesDiff > 15) {
-      return "Waiting Room";
+      return "Scheduled"; // More than 15 minutes away
     } else if (minutesDiff > 0) {
       return `Join in ${Math.ceil(minutesDiff)} min`;
     } else if (minutesDiff >= -interview.duration_minutes) {
@@ -1103,6 +1207,197 @@ export default function InterviewManagement() {
         return "📅";
     }
   };
+
+  // Filtering logic
+  const filteredInterviews = interviews.filter((interview) => {
+    if (!filterText) return true;
+    const text = filterText.toLowerCase();
+    return (
+      interview.id?.toString().includes(text) ||
+      interview.title?.toLowerCase().includes(text)
+    );
+  });
+
+  // Categorize interviews
+  const scheduled = filteredInterviews.filter((i) => i.status === "scheduled");
+  const inProgress = filteredInterviews.filter((i) => {
+    const scheduledAt = i.scheduled_at_iso || i.scheduled_at;
+    if (!scheduledAt) return false;
+    const now = new Date();
+    const nowUTC = new Date(now.getTime() + now.getTimezoneOffset() * 60000);
+    const scheduledTime = new Date(scheduledAt);
+    const timeDiff = scheduledTime - nowUTC;
+    const minutesDiff = timeDiff / (1000 * 60);
+    return (
+      minutesDiff < 0 &&
+      minutesDiff >= -i.duration_minutes &&
+      i.status === "scheduled"
+    );
+  });
+  const completed = filteredInterviews.filter((i) => i.status === "completed");
+  const cancelled = filteredInterviews.filter((i) => i.status === "cancelled");
+
+  // Helper to render interview card (reuse original card rendering logic)
+  function renderInterviewCard(interview) {
+    return (
+      <div className="flex items-start justify-between">
+        <div className="flex-1">
+          <div className="flex items-center mb-2">
+            <span className="text-2xl mr-3">
+              {getInterviewTypeIcon(interview.interview_type)}
+            </span>
+            <div>
+              <h3 className="font-semibold text-gray-800">{interview.title}</h3>
+              <p className="text-sm text-gray-600">
+                {formatDateTime(
+                  interview.scheduled_at_iso || interview.scheduled_at
+                )}{" "}
+                • {interview.duration_minutes} minutes
+              </p>
+              {interview.post_title && (
+                <p className="text-xs text-blue-600 mt-1">
+                  Position: {interview.post_title}
+                </p>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center space-x-4 mb-3">
+            {getStatusBadge(interview)}
+            <span className="text-sm text-gray-600">
+              {interview.interview_type === "text" && "Text Chat Interview"}
+              {interview.interview_type === "ai_video" && "AI Video Interview"}
+              {interview.interview_type === "human_video" &&
+                "Human Video Interview"}
+              {interview.interview_type === "video" && "Video Call Interview"}
+              {interview.interview_type === "phone" && "Phone Call Interview"}
+              {interview.interview_type === "in-person" &&
+                "In-Person Interview"}
+            </span>
+            {interview.ai_agent && (
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                🤖 AI: {interview.ai_agent.name}
+              </span>
+            )}
+          </div>
+          {interview.description && (
+            <p className="text-gray-700 text-sm mb-3">
+              {interview.description}
+            </p>
+          )}
+          {(interview.location || interview.meeting_link) && (
+            <div className="text-sm text-gray-600">
+              {interview.location && <p>📍 {interview.location}</p>}
+              {interview.meeting_link && (
+                <p>
+                  🔗{" "}
+                  <a
+                    href={interview.meeting_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:text-blue-700"
+                  >
+                    Meeting Link
+                  </a>
+                </p>
+              )}
+            </div>
+          )}
+          {interview.feedback && (
+            <div className="bg-gray-50 p-3 rounded-lg mt-3">
+              <h4 className="text-sm font-medium text-gray-900 mb-1">
+                Interview Feedback
+              </h4>
+              <p className="text-sm text-gray-700">{interview.feedback}</p>
+              {interview.rating && (
+                <div className="flex items-center mt-2">
+                  <span className="text-sm text-gray-600 mr-2">Rating:</span>
+                  <div className="flex">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <span
+                        key={star}
+                        className={`text-sm ${
+                          star <= interview.rating
+                            ? "text-yellow-400"
+                            : "text-gray-300"
+                        }`}
+                      >
+                        ★
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        <div className="flex flex-col space-y-2 ml-4">
+          {canJoinInterview(interview) ? (
+            <button
+              onClick={() => navigate(`/interview/${interview.id}`)}
+              className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm animate-pulse"
+            >
+              {getJoinButtonText(interview)}
+            </button>
+          ) : (
+            <button
+              disabled
+              className="px-3 py-1 bg-gray-300 text-gray-500 rounded text-sm cursor-not-allowed"
+            >
+              {getJoinButtonText(interview)}
+            </button>
+          )}
+          {interview.status === "completed" && (
+            <>
+              <button
+                onClick={() => {
+                  setSelectedInterview(interview);
+                  setShowDecisionModal(true);
+                }}
+                className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
+              >
+                🎯 Make Decision
+              </button>
+              <button
+                onClick={() => navigate(`/interview/${interview.id}/analysis`)}
+                className="px-3 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 text-sm"
+              >
+                📊 Analysis
+              </button>
+            </>
+          )}
+          <button
+            onClick={() => {
+              setSelectedInterview(interview);
+              setShowEditModal(true);
+            }}
+            className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 text-sm"
+          >
+            Edit
+          </button>
+          {!interview.ai_agent && (
+            <button
+              onClick={() => {
+                setSelectedInterview(interview);
+                setShowAssignAgentModal(true);
+              }}
+              className="px-3 py-1 border border-purple-300 text-purple-600 rounded hover:bg-purple-50 text-sm"
+            >
+              🤖 Assign AI
+            </button>
+          )}
+          <button
+            onClick={() => {
+              setSelectedInterview(interview);
+              setShowCancelModal(true);
+            }}
+            className="px-3 py-1 border border-red-300 text-red-600 rounded hover:bg-red-50 text-sm"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -1153,202 +1448,69 @@ export default function InterviewManagement() {
         </button>
       </div>
 
-      <div className="space-y-6">
-        {interviews.length === 0 ? (
-          <Card>
-            <div className="text-center py-12">
-              <div className="text-4xl mb-4">📅</div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                No interviews scheduled
-              </h3>
-              <p className="text-gray-600 mb-4">
-                Start by scheduling your first interview with a candidate.
-              </p>
-              <button
-                onClick={() => setShowScheduleModal(true)}
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              >
-                Schedule Interview
-              </button>
-            </div>
-          </Card>
+      {/* Filter/Search Bar */}
+      <div className="mb-4">
+        <input
+          type="text"
+          value={filterText}
+          onChange={(e) => setFilterText(e.target.value)}
+          className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+          placeholder="Filter by interview ID or title..."
+        />
+      </div>
+
+      {/* Section: In Progress Interviews */}
+      <h2 className="text-lg font-semibold text-orange-700 mb-2">
+        Current/In Progress Interviews
+      </h2>
+      <div className="space-y-4 mb-6">
+        {inProgress.length === 0 ? (
+          <div className="text-gray-500">No interviews in progress.</div>
         ) : (
-          interviews.map((interview) => (
-            <Card key={interview.id}>
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center mb-2">
-                    <span className="text-2xl mr-3">
-                      {getInterviewTypeIcon(interview.interview_type)}
-                    </span>
-                    <div>
-                      <h3 className="font-semibold text-gray-800">
-                        {interview.title}
-                      </h3>
-                      <p className="text-sm text-gray-600">
-                        {formatDateTime(interview.scheduled_at)} •{" "}
-                        {interview.duration_minutes} minutes
-                      </p>
-                      {interview.post_title && (
-                        <p className="text-xs text-blue-600 mt-1">
-                          Position: {interview.post_title}
-                        </p>
-                      )}
-                    </div>
-                  </div>
+          inProgress.map((interview) => (
+            <Card key={interview.id}>{renderInterviewCard(interview)}</Card>
+          ))
+        )}
+      </div>
 
-                  <div className="flex items-center space-x-4 mb-3">
-                    {getStatusBadge(interview.status)}
-                    <span className="text-sm text-gray-600">
-                      {interview.interview_type === "text" &&
-                        "Text Chat Interview"}
-                      {interview.interview_type === "ai_video" &&
-                        "AI Video Interview"}
-                      {interview.interview_type === "human_video" &&
-                        "Human Video Interview"}
-                      {interview.interview_type === "video" &&
-                        "Video Call Interview"}
-                      {interview.interview_type === "phone" &&
-                        "Phone Call Interview"}
-                      {interview.interview_type === "in-person" &&
-                        "In-Person Interview"}
-                    </span>
-                    {interview.ai_agent && (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                        🤖 AI: {interview.ai_agent.name}
-                      </span>
-                    )}
-                  </div>
+      {/* Section: Scheduled Interviews */}
+      <h2 className="text-lg font-semibold text-gray-700 mb-2">
+        Scheduled Interviews
+      </h2>
+      <div className="space-y-4 mb-6">
+        {scheduled.length === 0 ? (
+          <div className="text-gray-500">No scheduled interviews.</div>
+        ) : (
+          scheduled.map((interview) => (
+            <Card key={interview.id}>{renderInterviewCard(interview)}</Card>
+          ))
+        )}
+      </div>
 
-                  {interview.description && (
-                    <p className="text-gray-700 text-sm mb-3">
-                      {interview.description}
-                    </p>
-                  )}
+      {/* Section: Completed Interviews */}
+      <h2 className="text-lg font-semibold text-green-700 mb-2">
+        Completed Interviews
+      </h2>
+      <div className="space-y-4 mb-6">
+        {completed.length === 0 ? (
+          <div className="text-gray-500">No completed interviews.</div>
+        ) : (
+          completed.map((interview) => (
+            <Card key={interview.id}>{renderInterviewCard(interview)}</Card>
+          ))
+        )}
+      </div>
 
-                  {(interview.location || interview.meeting_link) && (
-                    <div className="text-sm text-gray-600">
-                      {interview.location && <p>📍 {interview.location}</p>}
-                      {interview.meeting_link && (
-                        <p>
-                          🔗{" "}
-                          <a
-                            href={interview.meeting_link}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:text-blue-700"
-                          >
-                            Meeting Link
-                          </a>
-                        </p>
-                      )}
-                    </div>
-                  )}
-
-                  {interview.feedback && (
-                    <div className="bg-gray-50 p-3 rounded-lg mt-3">
-                      <h4 className="text-sm font-medium text-gray-900 mb-1">
-                        Interview Feedback
-                      </h4>
-                      <p className="text-sm text-gray-700">
-                        {interview.feedback}
-                      </p>
-                      {interview.rating && (
-                        <div className="flex items-center mt-2">
-                          <span className="text-sm text-gray-600 mr-2">
-                            Rating:
-                          </span>
-                          <div className="flex">
-                            {[1, 2, 3, 4, 5].map((star) => (
-                              <span
-                                key={star}
-                                className={`text-sm ${
-                                  star <= interview.rating
-                                    ? "text-yellow-400"
-                                    : "text-gray-300"
-                                }`}
-                              >
-                                ★
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex flex-col space-y-2 ml-4">
-                  {canJoinInterview(interview) ? (
-                    <button
-                      onClick={() => navigate(`/interview/${interview.id}`)}
-                      className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm animate-pulse"
-                    >
-                      {getJoinButtonText(interview)}
-                    </button>
-                  ) : (
-                    <button
-                      disabled
-                      className="px-3 py-1 bg-gray-300 text-gray-500 rounded text-sm cursor-not-allowed"
-                    >
-                      {getJoinButtonText(interview)}
-                    </button>
-                  )}
-
-                  {interview.status === "completed" && (
-                    <>
-                      <button
-                        onClick={() => {
-                          setSelectedInterview(interview);
-                          setShowDecisionModal(true);
-                        }}
-                        className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
-                      >
-                        🎯 Make Decision
-                      </button>
-                      <button
-                        onClick={() =>
-                          navigate(`/interview/${interview.id}/analysis`)
-                        }
-                        className="px-3 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 text-sm"
-                      >
-                        📊 Analysis
-                      </button>
-                    </>
-                  )}
-
-                  <button
-                    onClick={() => {
-                      setSelectedInterview(interview);
-                      setShowEditModal(true);
-                    }}
-                    className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 text-sm"
-                  >
-                    Edit
-                  </button>
-                  {!interview.ai_agent && (
-                    <button
-                      onClick={() => {
-                        setSelectedInterview(interview);
-                        setShowAssignAgentModal(true);
-                      }}
-                      className="px-3 py-1 border border-purple-300 text-purple-600 rounded hover:bg-purple-50 text-sm"
-                    >
-                      🤖 Assign AI
-                    </button>
-                  )}
-                  <button
-                    onClick={() => {
-                      setSelectedInterview(interview);
-                      setShowCancelModal(true);
-                    }}
-                    className="px-3 py-1 border border-red-300 text-red-600 rounded hover:bg-red-50 text-sm"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            </Card>
+      {/* Section: Cancelled Interviews */}
+      <h2 className="text-lg font-semibold text-gray-500 mb-2">
+        Cancelled Interviews
+      </h2>
+      <div className="space-y-4 mb-6">
+        {cancelled.length === 0 ? (
+          <div className="text-gray-500">No cancelled interviews.</div>
+        ) : (
+          cancelled.map((interview) => (
+            <Card key={interview.id}>{renderInterviewCard(interview)}</Card>
           ))
         )}
       </div>
@@ -1359,6 +1521,7 @@ export default function InterviewManagement() {
         onClose={() => setShowScheduleModal(false)}
         onSave={handleScheduleInterview}
         saving={saving}
+        organizationId={organizationId}
       />
 
       {/* Assign AI Agent Modal */}
