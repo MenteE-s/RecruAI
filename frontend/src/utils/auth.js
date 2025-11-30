@@ -96,6 +96,7 @@ export function getSidebarItems(role, plan) {
           icon: FiClock,
         },
         { name: "Saved Jobs", link: "/jobs/saved", icon: FiBookmark },
+        { name: "Analytics", link: "/analytics", icon: FiBarChart2 },
         { name: "Settings", link: "/settings", icon: FiSettings },
       ];
     } else {
@@ -147,6 +148,11 @@ export function getSidebarItems(role, plan) {
           icon: FiCalendar,
         },
         { name: "Pipeline", link: "/organization/pipeline", icon: FiBarChart2 },
+        {
+          name: "Analytics",
+          link: "/organization/analytics",
+          icon: FiBarChart2,
+        },
         { name: "Settings", link: "/settings", icon: FiSettings },
       ];
     } else {

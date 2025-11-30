@@ -1,0 +1,15 @@
+version: "3.9"
+services:
+	db:
+		image: postgres:15
+		environment:
+			POSTGRES_USER: recruai
+			POSTGRES_PASSWORD: recruai_pass
+			POSTGRES_DB: recruai_dev
+		volumes:
+			- pgdata:/var/lib/postgresql/data
+		ports:
+			- "5432:5432"
+
+volumes:
+	pgdata:

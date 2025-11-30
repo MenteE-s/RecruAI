@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
 import Card from "../../components/ui/Card";
 import { getSidebarItems } from "../../utils/auth";
 
 export default function OrganizationAnalytics() {
+  const navigate = useNavigate();
   const role =
     typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
   const plan =
@@ -251,7 +253,10 @@ export default function OrganizationAnalytics() {
             {analytics.analytics.slice(0, 5).map((analysis, index) => (
               <div
                 key={analysis.id || index}
-                className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50"
+                className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 cursor-pointer"
+                onClick={() =>
+                  navigate(`/interviews/${analysis.interview_id}/analysis`)
+                }
               >
                 <div className="flex justify-between items-start mb-3">
                   <div>
@@ -301,6 +306,79 @@ export default function OrganizationAnalytics() {
           </div>
         </Card>
       )}
+
+      {/* Recent Interviews */}
+      {analytics?.recent_interviews &&
+        analytics.recent_interviews.length > 0 && (
+          <Card className="mt-8">
+            <h3 className="text-xl font-semibold mb-6">Recent Interviews</h3>
+            <div className="space-y-4">
+              {analytics.recent_interviews
+                .slice(0, 5)
+                .map((interview, index) => (
+                  <div
+                    key={interview.id || index}
+                    className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 cursor-pointer"
+                    onClick={() =>
+                      navigate(`/interviews/${interview.id}/analysis`)
+                    }
+                  >
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <h4 className="font-medium text-gray-900">
+                          {interview.title || `Interview #${interview.id}`}
+                        </h4>
+                        <p className="text-sm text-gray-600">
+                          {new Date(
+                            interview.scheduled_at
+                          ).toLocaleDateString()}{" "}
+                          at{" "}
+                          {new Date(
+                            interview.scheduled_at
+                          ).toLocaleTimeString()}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <span
+                          className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                            interview.status === "completed"
+                              ? "bg-green-100 text-green-800"
+                              : interview.status === "cancelled"
+                              ? "bg-red-100 text-red-800"
+                              : "bg-yellow-100 text-yellow-800"
+                          }`}
+                        >
+                          {interview.status}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="text-gray-600">Duration:</span>
+                        <span className="font-medium ml-1">
+                          {interview.duration_minutes} minutes
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Type:</span>
+                        <span className="font-medium ml-1 capitalize">
+                          {interview.interview_type}
+                        </span>
+                      </div>
+                    </div>
+                    {interview.post_title && (
+                      <div className="mt-2 text-sm">
+                        <span className="text-gray-600">Position:</span>
+                        <span className="font-medium ml-1">
+                          {interview.post_title}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                ))}
+            </div>
+          </Card>
+        )}
 
       {/* Empty State */}
       {(!analytics || analytics.total_interviews_analyzed === 0) && (
