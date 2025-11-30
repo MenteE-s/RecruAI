@@ -57,7 +57,7 @@ def upload_organization_profile_image(org_id):
     unique_filename = f"org_{org_id}_profile.{extension}"
 
     # Save file
-    upload_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'uploads', 'organization_images', 'profile_images', unique_filename)
+    upload_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'uploads', 'organization_images', 'profile_images', unique_filename)
     file.save(upload_path)
 
     # Update organization profile image path
@@ -121,7 +121,7 @@ def upload_organization_banner_image(org_id):
     unique_filename = f"org_{org_id}_banner.{extension}"
 
     # Save file
-    upload_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'uploads', 'organization_images', 'banner_images', unique_filename)
+    upload_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'uploads', 'organization_images', 'banner_images', unique_filename)
     file.save(upload_path)
 
     # Update organization banner image path

@@ -17,8 +17,8 @@ class Config:
 
     SQLALCHEMY_DATABASE_URI = os.getenv(
         "DATABASE_URL",
-        # Local dev default: prefer a Postgres instance (see backend/README.md)
-        "postgresql://recruai:recruai_pass@localhost:5432/recruai_dev",
+        # Local dev default: prefer Postgres at default creds per developer request.
+        "postgresql://postgres:mentee@localhost:5432/recruia",
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret")

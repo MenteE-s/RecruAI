@@ -12,7 +12,11 @@ from ...models import User
 
 @api_bp.route("/auth/login", methods=["POST"])
 def login():
-    data = request.get_json(silent=True) or {}
+    try:
+        data = request.get_json()
+    except Exception:
+        return jsonify({"error": "Invalid JSON in request body"}), 400
+
     email = data.get("email")
     password = data.get("password")
 
@@ -44,7 +48,11 @@ def logout():
 def me():
     # Return the server-verified user profile. Frontend should use this instead of trusting localStorage.
     uid = get_jwt_identity()
-    user = User.query.get(uid)
-    if not user:
-        return jsonify({"error": "user not found"}), 404
-    return jsonify({"user": user.to_dict()}), 200
+    try:
+        user_id = int(uid)
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({"error": "user not found"}), 404
+        return jsonify({"user": user.to_dict()}), 200
+    except (ValueError, TypeError):
+        return jsonify({"error": "invalid user identity"}), 400

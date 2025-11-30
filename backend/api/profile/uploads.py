@@ -14,12 +14,16 @@ def get_user_profile(user_id):
     current_user_id = get_jwt_identity()
 
     # Get current user
-    current_user = User.query.get(current_user_id)
+    try:
+        current_user_id_int = int(current_user_id)
+        current_user = User.query.get(current_user_id_int)
+    except (ValueError, TypeError):
+        return jsonify({"error": "invalid user identity"}), 400
     if not current_user:
         return jsonify({'error': 'Current user not found'}), 404
 
     # Allow users to access their own profile
-    if current_user_id == user_id:
+    if current_user_id_int == user_id:
         target_user = User.query.get(user_id)
         if not target_user:
             return jsonify({'error': 'User not found'}), 404
@@ -97,7 +101,11 @@ def get_user_profile(user_id):
 def upload_profile_picture():
     """Upload a profile picture for the current user"""
     user_id = get_jwt_identity()
-    user = User.query.get(user_id)
+    try:
+        user_id_int = int(user_id)
+        user = User.query.get(user_id_int)
+    except (ValueError, TypeError):
+        return jsonify({"error": "invalid user identity"}), 400
 
     if not user:
         return jsonify({'error': 'User not found'}), 404
@@ -125,18 +133,21 @@ def upload_profile_picture():
     # Secure filename and create unique filename
     filename = secure_filename(file.filename)
     extension = filename.rsplit('.', 1)[1].lower()
-    unique_filename = f"user_{user_id}_profile.{extension}"
+    unique_filename = f"user_{user_id_int}_profile.{extension}"
 
     # Save file
-    upload_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'uploads', 'profile_pictures', unique_filename)
+    upload_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'uploads', 'profile_pictures', unique_filename)
     file.save(upload_path)
 
     # Update user profile picture path
     profile_picture_url = f"/uploads/profile_pictures/{unique_filename}"
     user.profile_picture = profile_picture_url
-    db.session.commit()
-
-    return jsonify({
-        'message': 'Profile picture uploaded successfully',
-        'profile_picture': profile_picture_url
-    }), 200
+    try:
+        db.session.commit()
+        return jsonify({
+            'message': 'Profile picture uploaded successfully',
+            'profile_picture': profile_picture_url
+        }), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Failed to update profile picture: {str(e)}"}), 500

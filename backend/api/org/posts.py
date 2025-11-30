@@ -12,7 +12,11 @@ def list_posts_for_org(org_id):
 
 @api_bp.route("/posts", methods=["POST"])
 def create_post():
-    payload = request.get_json(silent=True) or {}
+    try:
+        payload = request.get_json()
+    except Exception:
+        return jsonify({"error": "Invalid JSON in request body"}), 400
+
     org_id = payload.get("organization_id")
     title = payload.get("title")
 
@@ -42,23 +46,37 @@ def create_post():
         except (ValueError, TypeError):
             return jsonify({"error": "Invalid application_deadline format"}), 400
 
-    post = Post(
-        organization_id=org_id,
-        title=title,
-        description=payload.get("description"),
-        location=payload.get("location"),
-        employment_type=payload.get("employment_type"),
-        category=payload.get("category"),
-        salary_min=payload.get("salary_min"),
-        salary_max=payload.get("salary_max"),
-        salary_currency=payload.get("salary_currency", "USD"),
-        requirements=json.dumps(payload.get("requirements", [])) if payload.get("requirements") else None,
-        application_deadline=application_deadline,
-        status=payload.get("status", "active"),
-    )
-    db.session.add(post)
-    db.session.commit()
-    return jsonify(post.to_dict()), 201
+    # Validate and serialize requirements
+    requirements = payload.get("requirements")
+    if requirements is not None:
+        try:
+            requirements_json = json.dumps(requirements)
+        except (TypeError, ValueError):
+            return jsonify({"error": "Invalid requirements format - must be JSON serializable"}), 400
+    else:
+        requirements_json = None
+
+    try:
+        post = Post(
+            organization_id=org_id,
+            title=title,
+            description=payload.get("description"),
+            location=payload.get("location"),
+            employment_type=payload.get("employment_type"),
+            category=payload.get("category"),
+            salary_min=payload.get("salary_min"),
+            salary_max=payload.get("salary_max"),
+            salary_currency=payload.get("salary_currency", "USD"),
+            requirements=requirements_json,
+            application_deadline=application_deadline,
+            status=payload.get("status", "active"),
+        )
+        db.session.add(post)
+        db.session.commit()
+        return jsonify(post.to_dict()), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Failed to save job: {str(e)}"}), 500
 
 @api_bp.route("/posts/<int:post_id>", methods=["PUT"])
 def update_post(post_id):
@@ -87,7 +105,13 @@ def update_post(post_id):
     if "salary_currency" in payload:
         post.salary_currency = payload["salary_currency"]
     if "requirements" in payload:
-        post.requirements = json.dumps(payload["requirements"]) if payload["requirements"] else None
+        if payload["requirements"] is not None:
+            try:
+                post.requirements = json.dumps(payload["requirements"])
+            except (TypeError, ValueError):
+                return jsonify({"error": "Invalid requirements format - must be JSON serializable"}), 400
+        else:
+            post.requirements = None
     if "application_deadline" in payload:
         if payload["application_deadline"]:
             try:
@@ -103,15 +127,23 @@ def update_post(post_id):
     if "status" in payload:
         post.status = payload["status"]
 
-    db.session.commit()
-    return jsonify(post.to_dict()), 200
+    try:
+        db.session.commit()
+        return jsonify(post.to_dict()), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Failed to update job: {str(e)}"}), 500
 
 @api_bp.route("/posts/<int:post_id>", methods=["DELETE"])
 def delete_post(post_id):
     post = Post.query.get_or_404(post_id)
-    db.session.delete(post)
-    db.session.commit()
-    return jsonify({"message": "post deleted"}), 200
+    try:
+        db.session.delete(post)
+        db.session.commit()
+        return jsonify({"message": "post deleted"}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Failed to delete job: {str(e)}"}), 500
 
 @api_bp.route("/posts", methods=["GET"])
 def list_posts():

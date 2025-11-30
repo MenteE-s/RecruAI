@@ -6,7 +6,11 @@ from ...models import User, Organization, TeamMember
 
 @api_bp.route("/auth/register", methods=["POST"])
 def register():
-    data = request.get_json(silent=True) or {}
+    try:
+        data = request.get_json()
+    except Exception:
+        return jsonify({"error": "Invalid JSON in request body"}), 400
+
     email = data.get("email")
     password = data.get("password")
     name = data.get("name")
@@ -34,20 +38,24 @@ def register():
             db.session.flush()
         user.organization = org
 
-    db.session.add(user)
-    # flush so user.id is available for team member creation
-    db.session.flush()
+    try:
+        db.session.add(user)
+        # flush so user.id is available for team member creation
+        db.session.flush()
 
-    # if this is an organization signup, add the user as an Admin team member
-    if role == "organization":
-        team_member = TeamMember(
-            organization_id=org.id,
-            user_id=user.id,
-            role="Admin"
-        )
-        db.session.add(team_member)
+        # if this is an organization signup, add the user as an Admin team member
+        if role == "organization":
+            team_member = TeamMember(
+                organization_id=org.id,
+                user_id=user.id,
+                role="Admin"
+            )
+            db.session.add(team_member)
 
-    db.session.commit()
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Failed to register user: {str(e)}"}), 500
 
     # generate an access token on successful registration so frontend can auto-login
     # include role and organization_id as additional claims so frontend and protected APIs
