@@ -348,6 +348,7 @@ class Application(db.Model):
     cover_letter = db.Column(db.Text, nullable=True)
     resume_url = db.Column(db.String(500), nullable=True)  # URL to uploaded resume
     status = db.Column(db.String(20), default="pending")  # pending, reviewed, accepted, rejected
+    pipeline_stage = db.Column(db.String(50), default="applied")  # applied, screening, interview_scheduled, interview_completed, offer_extended, offer_accepted, hired, rejected
     applied_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -362,6 +363,7 @@ class Application(db.Model):
             "cover_letter": self.cover_letter,
             "resume_url": self.resume_url,
             "status": self.status,
+            "pipeline_stage": self.pipeline_stage,
             "applied_at": self.applied_at.isoformat() if self.applied_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
             "user": {

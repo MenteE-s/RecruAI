@@ -96,13 +96,16 @@ def get_interview_analysis(interview_id):
 @api_bp.route('/organizations/<int:org_id>/analytics', methods=['GET'])
 def get_organization_analytics(org_id):
     """Get aggregated analytics for an organization"""
-    from sqlalchemy import func
+    from sqlalchemy import func, desc
 
     # Get all completed interviews with analysis for this organization
     analyses = db.session.query(InterviewAnalysis).join(Interview).filter(
         Interview.organization_id == org_id,
         Interview.status == 'completed'
     ).all()
+
+    # Get recent interviews (last 10, regardless of analysis status)
+    recent_interviews = Interview.query.filter_by(organization_id=org_id).order_by(desc(Interview.scheduled_at)).limit(10).all()
 
     if not analyses:
         return jsonify({
@@ -111,7 +114,8 @@ def get_organization_analytics(org_id):
             "top_strengths": [],
             "common_improvements": [],
             "pass_rate": 0,
-            "analytics": []
+            "analytics": [],
+            "recent_interviews": [interview.to_dict() for interview in recent_interviews]
         }), 200
 
     # Calculate averages
@@ -159,5 +163,6 @@ def get_organization_analytics(org_id):
         "top_strengths": [{"skill": k, "count": v} for k, v in top_strengths],
         "common_improvements": [{"area": k, "count": v} for k, v in common_improvements],
         "pass_rate": pass_rate,
-        "analytics": [analysis.to_dict() for analysis in analyses]
+        "analytics": [analysis.to_dict() for analysis in analyses],
+        "recent_interviews": [interview.to_dict() for interview in recent_interviews]
     }), 200

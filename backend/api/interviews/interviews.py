@@ -1,9 +1,35 @@
 from flask import request, jsonify
 from .. import api_bp
 from ...extensions import db
-from ...models import Interview
+from ...models import Interview, Application
 import json
 from datetime import datetime
+
+def update_pipeline_stage_for_interview(interview):
+    """Update pipeline stage based on interview status"""
+    if not interview.post_id:
+        return  # No associated job post
+
+    # Find the application for this user and post
+    application = Application.query.filter_by(
+        user_id=interview.user_id,
+        post_id=interview.post_id
+    ).first()
+
+    if not application:
+        return  # No application found
+
+    # Update pipeline stage based on interview status
+    if interview.status == 'scheduled':
+        application.pipeline_stage = 'interview_scheduled'
+    elif interview.status == 'completed':
+        application.pipeline_stage = 'interview_completed'
+    elif interview.status in ['cancelled', 'no_show']:
+        # Keep current stage or set to rejected if no interview completed
+        if application.pipeline_stage == 'interview_scheduled':
+            application.pipeline_stage = 'applied'  # Reset to applied if interview was cancelled
+
+    db.session.commit()
 
 @api_bp.route('/interviews', methods=['GET'])
 def get_interviews():
@@ -60,6 +86,9 @@ def create_interview():
     db.session.add(interview)
     db.session.commit()
 
+    # Update pipeline stage
+    update_pipeline_stage_for_interview(interview)
+
     return jsonify({
         'message': 'Interview scheduled successfully',
         'interview': interview.to_dict()
@@ -102,6 +131,9 @@ def update_interview(interview_id):
         print(f"Database commit failed: {e}")
         db.session.rollback()
         return jsonify({'error': 'Database error'}), 500
+
+    # Update pipeline stage based on new status
+    update_pipeline_stage_for_interview(interview)
 
     updated_interview = interview.to_dict()
     print(f"Interview updated successfully. New status: {updated_interview.get('status')}")

@@ -3,6 +3,7 @@ from .. import api_bp
 from ...extensions import db
 from ...models import InterviewAnalysis, Interview
 import json
+from sqlalchemy import desc
 
 @api_bp.route('/users/<int:user_id>/analytics', methods=['GET'])
 def get_user_analytics(user_id):
@@ -13,6 +14,9 @@ def get_user_analytics(user_id):
         Interview.status == 'completed'
     ).all()
 
+    # Get recent interviews (last 10, regardless of analysis status)
+    recent_interviews = Interview.query.filter_by(user_id=user_id).order_by(desc(Interview.scheduled_at)).limit(10).all()
+
     if not analyses:
         return jsonify({
             "total_interviews": 0,
@@ -20,7 +24,8 @@ def get_user_analytics(user_id):
             "strengths": [],
             "improvements": [],
             "performance_trend": [],
-            "analytics": []
+            "analytics": [],
+            "recent_interviews": [interview.to_dict() for interview in recent_interviews]
         }), 200
 
     # Calculate averages
@@ -71,5 +76,6 @@ def get_user_analytics(user_id):
         "strengths": unique_strengths,
         "improvements": unique_improvements,
         "performance_trend": performance_trend,
-        "analytics": [analysis.to_dict() for analysis in analyses]
+        "analytics": [analysis.to_dict() for analysis in analyses],
+        "recent_interviews": [interview.to_dict() for interview in recent_interviews]
     }), 200

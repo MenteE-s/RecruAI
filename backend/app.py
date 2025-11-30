@@ -77,6 +77,12 @@ def create_app(config_object: object | None = None):
 	# register blueprints
 	app.register_blueprint(api_bp, url_prefix="/api")
 
+	# Import CLI commands
+	try:
+		from .init_pipeline_stages import init_pipeline_stages_command  # noqa: F401
+	except ImportError:
+		pass
+
 	# Serve uploaded files
 	@app.route('/uploads/<path:filename>')
 	def uploaded_file(filename):

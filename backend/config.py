@@ -17,8 +17,8 @@ class Config:
 
     SQLALCHEMY_DATABASE_URI = os.getenv(
         "DATABASE_URL",
-        # sensible local default for dev so migrations can run without Postgres
-        "sqlite:///recruai_dev.db",
+        # Local dev default: prefer a Postgres instance (see backend/README.md)
+        "postgresql://recruai:recruai_pass@localhost:5432/recruai_dev",
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret")
