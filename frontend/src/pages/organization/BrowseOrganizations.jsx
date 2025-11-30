@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
 import Card from "../../components/ui/Card";
-import { getSidebarItems } from "../../utils/auth";
+import { getSidebarItems, getUploadUrl } from "../../utils/auth";
 import {
   FiSearch,
   FiBriefcase,
@@ -112,7 +112,7 @@ export default function BrowseOrganizations() {
       )}
 
       <div className="mb-6">
-        <div className="rounded-2xl p-6 bg-gradient-to-br from-blue-600/80 via-purple-600/60 to-indigo-500/60 text-white shadow-lg">
+        <div className="rounded-2xl p-6 bg-gradient-to-br from-yellow-600/90 via-amber-600/80 to-purple-700/70 text-white shadow-lg">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl md:text-3xl font-bold font-display">
@@ -161,9 +161,17 @@ export default function BrowseOrganizations() {
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center">
                     <div className="flex-shrink-0 h-12 w-12">
-                      <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                        <FiBriefcase size={20} className="text-white" />
-                      </div>
+                      {org.profile_image ? (
+                        <img
+                          src={getUploadUrl(org.profile_image)}
+                          alt={`${org.name} profile`}
+                          className="h-12 w-12 rounded-lg object-cover border-2 border-gray-200"
+                        />
+                      ) : (
+                        <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                          <FiBriefcase size={20} className="text-white" />
+                        </div>
+                      )}
                     </div>
                     <div className="ml-3">
                       <h3 className="text-lg font-semibold text-gray-900">

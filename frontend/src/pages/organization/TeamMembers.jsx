@@ -277,7 +277,7 @@ export default function TeamMembers() {
       )}
 
       <div className="mb-6">
-        <div className="rounded-2xl p-6 bg-gradient-to-br from-indigo-600/80 via-purple-600/60 to-cyan-500/60 text-white shadow-lg">
+        <div className="rounded-2xl p-6 bg-gradient-to-br from-yellow-600/90 via-amber-600/80 to-purple-700/70 text-white shadow-lg">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl md:text-3xl font-bold font-display">
@@ -298,108 +298,118 @@ export default function TeamMembers() {
         </div>
       </div>
 
-      <Card>
+      <div className="space-y-6">
         {loading ? (
           <div className="flex justify-center items-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
           </div>
         ) : teamMembers.length === 0 ? (
-          <div className="text-center py-12">
-            <FiUsers size={48} className="mx-auto text-gray-400 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              No Team Members Yet
-            </h3>
-            <p className="text-gray-500 mb-4">
-              Start by inviting your first team member.
-            </p>
-            <button
-              onClick={() => setShowInviteModal(true)}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-            >
-              Invite First Member
-            </button>
-          </div>
+          <Card>
+            <div className="text-center py-12">
+              <FiUsers size={48} className="mx-auto text-gray-400 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                No Team Members Yet
+              </h3>
+              <p className="text-gray-500 mb-4">
+                Start by inviting your first team member.
+              </p>
+              <button
+                onClick={() => setShowInviteModal(true)}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+              >
+                Invite First Member
+              </button>
+            </div>
+          </Card>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Member
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Role
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Join Date
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {teamMembers.map((member) => (
-                  <tr key={member.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 h-10 w-10">
-                          <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
-                            <FiUser size={16} className="text-gray-600" />
-                          </div>
-                        </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">
-                            {member.user?.name ||
-                              member.user?.email ||
-                              "Unknown"}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            {member.user?.email}
-                          </div>
-                        </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {teamMembers.map((member) => (
+              <Card
+                key={member.id}
+                className="hover:shadow-lg transition-shadow duration-200"
+              >
+                <div className="p-6">
+                  <div className="flex items-center space-x-4 mb-4">
+                    <div className="relative">
+                      <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-xl">
+                        {(member.user?.name || member.user?.email || "U")
+                          .charAt(0)
+                          .toUpperCase()}
                       </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
+                        <div className="w-2 h-2 bg-white rounded-full"></div>
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-lg font-semibold text-gray-900 truncate">
+                        {member.user?.name || "Unknown User"}
+                      </h3>
+                      <p className="text-sm text-gray-500 truncate">
+                        {member.user?.email}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 mb-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-700">
+                        Role
+                      </span>
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          member.role === "Admin"
+                            ? "bg-purple-100 text-purple-800"
+                            : member.role === "Manager"
+                            ? "bg-blue-100 text-blue-800"
+                            : member.role === "HR"
+                            ? "bg-green-100 text-green-800"
+                            : "bg-gray-100 text-gray-800"
+                        }`}
+                      >
                         {member.role}
                       </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {formatDate(member.join_date)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => openProfileModal(member)}
-                          className="text-blue-600 hover:text-blue-900"
-                          title="View Profile"
-                        >
-                          <FiEye size={16} />
-                        </button>
-                        <button
-                          onClick={() => openEditModal(member)}
-                          className="text-indigo-600 hover:text-indigo-900"
-                          title="Edit Member"
-                        >
-                          <FiEdit2 size={16} />
-                        </button>
-                        <button
-                          onClick={() => openDeleteConfirm(member)}
-                          className="text-red-600 hover:text-red-900"
-                          title="Remove Member"
-                        >
-                          <FiTrash2 size={16} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-700">
+                        Joined
+                      </span>
+                      <span className="text-sm text-gray-500">
+                        {formatDate(member.join_date)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => openProfileModal(member)}
+                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        title="View Profile"
+                      >
+                        <FiEye size={18} />
+                      </button>
+                      <button
+                        onClick={() => openEditModal(member)}
+                        className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                        title="Edit Member"
+                      >
+                        <FiEdit2 size={18} />
+                      </button>
+                    </div>
+                    <button
+                      onClick={() => openDeleteConfirm(member)}
+                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Remove Member"
+                    >
+                      <FiTrash2 size={18} />
+                    </button>
+                  </div>
+                </div>
+              </Card>
+            ))}
           </div>
         )}
-      </Card>
+      </div>
 
       {/* Invite Modal */}
       <Modal isOpen={showInviteModal} onClose={() => setShowInviteModal(false)}>

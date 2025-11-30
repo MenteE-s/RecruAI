@@ -231,6 +231,14 @@ function App() {
             }
           />
           <Route
+            path="/organization/profile/:orgId"
+            element={
+              <ProtectedRoute>
+                <OrganizationProfile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/organization/hire"
             element={
               <ProtectedRoute>

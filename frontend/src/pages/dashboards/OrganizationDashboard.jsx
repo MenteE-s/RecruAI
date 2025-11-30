@@ -10,7 +10,14 @@ import {
   FiBriefcase,
   FiStar,
   FiBell,
+  FiFileText,
+  FiMessageSquare,
+  FiTrendingUp,
 } from "react-icons/fi";
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
+import { Doughnut } from "react-chartjs-2";
+
+ChartJS.register(ArcElement, Tooltip, Legend);
 
 export default function OrganizationDashboard() {
   const role =
@@ -19,17 +26,41 @@ export default function OrganizationDashboard() {
     typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
   const sidebarItems = getSidebarItems(role, plan);
 
+  const [user, setUser] = useState(null);
   const [stats, setStats] = useState({
     team_members: 0,
     open_requisitions: 0,
     pipeline: 0,
     new_applications: 0,
   });
+  const [analytics, setAnalytics] = useState({
+    total_posts: 0,
+    total_interviews: 0,
+    active_posts: 0,
+    applications_by_status: {},
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    fetchUserData();
     fetchDashboardStats();
+    fetchAnalyticsOverview();
   }, []);
+
+  const fetchUserData = async () => {
+    try {
+      const response = await fetch("/api/auth/me", {
+        method: "GET",
+        credentials: "include",
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setUser(data.user);
+      }
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+    }
+  };
 
   const fetchDashboardStats = async () => {
     try {
@@ -40,6 +71,18 @@ export default function OrganizationDashboard() {
       }
     } catch (error) {
       console.error("Error fetching dashboard stats:", error);
+    }
+  };
+
+  const fetchAnalyticsOverview = async () => {
+    try {
+      const response = await fetch("/api/analytics/overview");
+      if (response.ok) {
+        const data = await response.json();
+        setAnalytics(data);
+      }
+    } catch (error) {
+      console.error("Error fetching analytics overview:", error);
     } finally {
       setLoading(false);
     }
@@ -55,10 +98,13 @@ export default function OrganizationDashboard() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl md:text-3xl font-bold font-display">
-                Organization Dashboard
+                Welcome back{user?.name ? `, ${user.name}` : ""}!
               </h1>
               <p className="mt-1 text-white/90">
-                Premium organization insights and team management.
+                {user?.organization
+                  ? `${user.organization} Dashboard`
+                  : "Organization Dashboard"}{" "}
+                - Manage your team and hiring pipeline.
               </p>
             </div>
             <div className="hidden md:flex items-center space-x-4">
@@ -108,24 +154,90 @@ export default function OrganizationDashboard() {
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card bgOpacity="95" shadow="lg">
-          <h3 className="font-semibold text-secondary-800 mb-4">
-            Hiring Funnel
-          </h3>
-          <div className="h-64 bg-secondary-50 rounded-lg flex items-center justify-center text-secondary-400">
-            Funnel chart placeholder
-          </div>
-        </Card>
-        <Card bgOpacity="95" shadow="lg">
-          <h3 className="font-semibold text-secondary-800 mb-4">
-            Top Candidates
-          </h3>
-          <div className="h-64 bg-secondary-50 rounded-lg flex items-center justify-center text-secondary-400">
-            Candidates placeholder
-          </div>
-        </Card>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <StatCard
+          title="Total Posts"
+          value={loading ? "..." : analytics.total_posts.toString()}
+          change="All time"
+          icon={FiFileText}
+          trend="neutral"
+          variant="gradient"
+        />
+        <StatCard
+          title="Total Interviews"
+          value={loading ? "..." : analytics.total_interviews.toString()}
+          change="All time"
+          icon={FiMessageSquare}
+          trend="neutral"
+          variant="gradient"
+        />
+        <StatCard
+          title="Active Posts"
+          value={loading ? "..." : analytics.active_posts.toString()}
+          change="Currently open"
+          icon={FiTrendingUp}
+          trend="neutral"
+          variant="gradient"
+        />
       </div>
+
+      <Card bgOpacity="95" shadow="lg" className="mb-8">
+        <h3 className="font-semibold text-secondary-800 mb-4">
+          Applications by Status
+        </h3>
+        <div className="h-64 flex items-center justify-center">
+          {loading ? (
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+          ) : (
+            <Doughnut
+              data={{
+                labels: Object.keys(analytics.applications_by_status),
+                datasets: [
+                  {
+                    data: Object.values(analytics.applications_by_status),
+                    backgroundColor: [
+                      "#10B981", // green for accepted
+                      "#F59E0B", // yellow for pending
+                      "#EF4444", // red for rejected
+                      "#6B7280", // gray for reviewed
+                    ],
+                    borderWidth: 2,
+                    borderColor: "#ffffff",
+                  },
+                ],
+              }}
+              options={{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: {
+                    position: "bottom",
+                    labels: {
+                      padding: 20,
+                      usePointStyle: true,
+                    },
+                  },
+                  tooltip: {
+                    callbacks: {
+                      label: function (context) {
+                        const label = context.label || "";
+                        const value = context.parsed || 0;
+                        const total = context.dataset.data.reduce(
+                          (a, b) => a + b,
+                          0
+                        );
+                        const percentage =
+                          total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                        return `${label}: ${value} (${percentage}%)`;
+                      },
+                    },
+                  },
+                },
+              }}
+            />
+          )}
+        </div>
+      </Card>
     </DashboardLayout>
   );
 }

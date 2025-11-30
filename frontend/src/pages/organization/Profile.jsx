@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
 import Card from "../../components/ui/Card";
-import { getSidebarItems } from "../../utils/auth";
+import { getSidebarItems, getUploadUrl } from "../../utils/auth";
 import {
   FiX,
   FiEdit2,
@@ -11,6 +12,10 @@ import {
   FiTarget,
   FiEye,
   FiLink,
+  FiCamera,
+  FiImage,
+  FiTrash2,
+  FiUpload,
 } from "react-icons/fi";
 
 // Modal Component
@@ -146,6 +151,7 @@ const SocialMediaModal = ({ isOpen, onClose, socialLinks, onSave, saving }) => {
 };
 
 export default function OrganizationProfile() {
+  const { orgId } = useParams();
   const role =
     typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
   const plan =
@@ -162,31 +168,43 @@ export default function OrganizationProfile() {
     mission: "",
     vision: "",
     social_media_links: [],
+    profile_image: "",
+    banner_image: "",
   });
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
   const [editingSection, setEditingSection] = useState(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [selectedImageType, setSelectedImageType] = useState(null); // 'profile' or 'banner'
+  const [canEdit, setCanEdit] = useState(false);
 
   // Load organization profile data
   useEffect(() => {
     const loadProfileData = async () => {
       try {
-        // First get user to find organization
+        // First get user to determine permissions
         const userRes = await fetch("/api/auth/me", { credentials: "include" });
         if (!userRes.ok) throw new Error("Failed to get user");
 
         const userData = await userRes.json();
-        const orgId = userData.user.organization_id;
+        const currentUserOrgId = userData.user.organization_id;
 
-        if (!orgId) {
+        // Determine which organization to load
+        const targetOrgId = orgId || currentUserOrgId;
+
+        if (!targetOrgId) {
           setError("No organization found for this user");
           return;
         }
 
+        // Check if user can edit this profile (only their own organization)
+        setCanEdit(!orgId || parseInt(orgId) === currentUserOrgId);
+
         // Get organization profile
-        const orgRes = await fetch(`/api/organizations/${orgId}`, {
+        const orgRes = await fetch(`/api/organizations/${targetOrgId}`, {
           credentials: "include",
         });
         if (!orgRes.ok) throw new Error("Failed to load organization profile");
@@ -201,6 +219,8 @@ export default function OrganizationProfile() {
           mission: orgData.mission || "",
           vision: orgData.vision || "",
           social_media_links: orgData.social_media_links || [],
+          profile_image: orgData.profile_image || "",
+          banner_image: orgData.banner_image || "",
         });
       } catch (error) {
         console.error("Error loading profile data:", error);
@@ -211,18 +231,21 @@ export default function OrganizationProfile() {
     };
 
     loadProfileData();
-  }, []);
+  }, [orgId]);
 
   const saveBasicInfo = async (data) => {
+    if (!canEdit) return;
+
     setSaving(true);
     setError(null);
 
     try {
       const userRes = await fetch("/api/auth/me", { credentials: "include" });
       const userData = await userRes.json();
-      const orgId = userData.user.organization_id;
+      const currentUserOrgId = userData.user.organization_id;
+      const targetOrgId = orgId || currentUserOrgId;
 
-      const response = await fetch(`/api/organizations/${orgId}`, {
+      const response = await fetch(`/api/organizations/${targetOrgId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -254,25 +277,31 @@ export default function OrganizationProfile() {
   };
 
   const saveExtendedProfile = async (data) => {
+    if (!canEdit) return;
+
     setSaving(true);
     setError(null);
 
     try {
       const userRes = await fetch("/api/auth/me", { credentials: "include" });
       const userData = await userRes.json();
-      const orgId = userData.user.organization_id;
+      const currentUserOrgId = userData.user.organization_id;
+      const targetOrgId = orgId || currentUserOrgId;
 
-      const response = await fetch(`/api/organizations/${orgId}/profile`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          company_size: data.company_size,
-          industry: data.industry,
-          mission: data.mission,
-          vision: data.vision,
-        }),
-      });
+      const response = await fetch(
+        `/api/organizations/${targetOrgId}/profile`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            company_size: data.company_size,
+            industry: data.industry,
+            mission: data.mission,
+            vision: data.vision,
+          }),
+        }
+      );
 
       if (response.ok) {
         const result = await response.json();
@@ -296,22 +325,28 @@ export default function OrganizationProfile() {
   };
 
   const saveSocialMedia = async (links) => {
+    if (!canEdit) return;
+
     setSaving(true);
     setError(null);
 
     try {
       const userRes = await fetch("/api/auth/me", { credentials: "include" });
       const userData = await userRes.json();
-      const orgId = userData.user.organization_id;
+      const currentUserOrgId = userData.user.organization_id;
+      const targetOrgId = orgId || currentUserOrgId;
 
-      const response = await fetch(`/api/organizations/${orgId}/profile`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          social_media_links: links,
-        }),
-      });
+      const response = await fetch(
+        `/api/organizations/${targetOrgId}/profile`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            social_media_links: links,
+          }),
+        }
+      );
 
       if (response.ok) {
         const result = await response.json();
@@ -328,6 +363,133 @@ export default function OrganizationProfile() {
       setError("Network error. Please try again.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const uploadImage = async (file, imageType) => {
+    if (!canEdit) return;
+
+    console.log(
+      `Starting upload for ${imageType} image:`,
+      file.name,
+      file.size
+    );
+    setUploadingImage(true);
+    setError(null);
+
+    try {
+      const userRes = await fetch("/api/auth/me", { credentials: "include" });
+      const userData = await userRes.json();
+      const currentUserOrgId = userData.user.organization_id;
+      const targetOrgId = orgId || currentUserOrgId;
+
+      const formData = new FormData();
+      formData.append(
+        imageType === "profile" ? "profile_image" : "banner_image",
+        file
+      );
+
+      const endpoint =
+        imageType === "profile"
+          ? `/api/organizations/${targetOrgId}/upload-profile-image`
+          : `/api/organizations/${targetOrgId}/upload-banner-image`;
+
+      console.log(`Uploading to endpoint: ${endpoint}`);
+      const response = await fetch(endpoint, {
+        method: "POST",
+        credentials: "include",
+        body: formData,
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log(`Upload successful for ${imageType}:`, result);
+        setProfileData((prev) => ({
+          ...prev,
+          [imageType === "profile" ? "profile_image" : "banner_image"]:
+            result[imageType === "profile" ? "profile_image" : "banner_image"],
+        }));
+        setImagePreview(null);
+        setSelectedImageType(null);
+      } else {
+        const errorData = await response.json();
+        console.error(`Upload failed for ${imageType}:`, errorData);
+        setError(errorData.error || `Failed to upload ${imageType} image`);
+      }
+    } catch (error) {
+      console.error(`Error uploading ${imageType} image:`, error);
+      setError("Network error. Please try again.");
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const removeImage = async (imageType) => {
+    if (!canEdit) return;
+
+    setSaving(true);
+    setError(null);
+
+    try {
+      const userRes = await fetch("/api/auth/me", { credentials: "include" });
+      const userData = await userRes.json();
+      const currentUserOrgId = userData.user.organization_id;
+      const targetOrgId = orgId || currentUserOrgId;
+
+      const response = await fetch(
+        `/api/organizations/${targetOrgId}/profile`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            [imageType === "profile" ? "profile_image" : "banner_image"]: null,
+          }),
+        }
+      );
+
+      if (response.ok) {
+        setProfileData((prev) => ({
+          ...prev,
+          [imageType === "profile" ? "profile_image" : "banner_image"]: "",
+        }));
+      } else {
+        setError(`Failed to remove ${imageType} image`);
+      }
+    } catch (error) {
+      console.error(`Error removing ${imageType} image:`, error);
+      setError("Network error. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleImageSelect = (event, imageType) => {
+    const file = event.target.files[0];
+    if (file) {
+      // Validate file type
+      const allowedTypes = [
+        "image/jpeg",
+        "image/jpg",
+        "image/png",
+        "image/gif",
+      ];
+      if (!allowedTypes.includes(file.type)) {
+        setError("Please select a valid image file (JPEG, PNG, or GIF)");
+        return;
+      }
+
+      // Validate file size (5MB max)
+      if (file.size > 5 * 1024 * 1024) {
+        setError("File size must be less than 5MB");
+        return;
+      }
+
+      setImagePreview(URL.createObjectURL(file));
+      setSelectedImageType(imageType);
+
+      // Auto-upload the image
+      uploadImage(file, imageType);
     }
   };
 
@@ -371,6 +533,119 @@ export default function OrganizationProfile() {
         </div>
       )}
 
+      {/* Profile Images Section */}
+      <div className="mb-6">
+        <div className="relative">
+          {/* Banner Image */}
+          <div className="relative h-48 md:h-64 bg-gradient-to-r from-blue-400 to-purple-500 rounded-2xl overflow-hidden shadow-lg">
+            {profileData.banner_image ? (
+              <img
+                src={getUploadUrl(profileData.banner_image)}
+                alt="Organization banner"
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-r from-blue-400 to-purple-500 flex items-center justify-center">
+                <div className="text-white text-center">
+                  <FiImage size={48} className="mx-auto mb-2 opacity-50" />
+                  <p className="text-sm opacity-75">No banner image</p>
+                </div>
+              </div>
+            )}
+
+            {/* Banner Upload/Edit Button */}
+            {canEdit && (
+              <div className="absolute top-4 right-4">
+                <label className="cursor-pointer">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleImageSelect(e, "banner")}
+                    className="hidden"
+                  />
+                  <div className="bg-white/90 hover:bg-white rounded-full p-2 shadow-md transition-colors">
+                    {profileData.banner_image ? (
+                      <FiEdit2 size={16} className="text-gray-700" />
+                    ) : (
+                      <FiUpload size={16} className="text-gray-700" />
+                    )}
+                  </div>
+                </label>
+                {profileData.banner_image && (
+                  <button
+                    onClick={() => removeImage("banner")}
+                    className="ml-2 bg-red-500/90 hover:bg-red-500 rounded-full p-2 shadow-md transition-colors"
+                    disabled={saving}
+                  >
+                    <FiTrash2 size={16} className="text-white" />
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Profile Image */}
+          <div className="absolute -bottom-8 left-6 md:left-8">
+            <div className="relative">
+              <div className="w-24 h-24 md:w-32 md:h-32 bg-white rounded-full border-4 border-white shadow-lg overflow-hidden">
+                {profileData.profile_image ? (
+                  <img
+                    src={getUploadUrl(profileData.profile_image)}
+                    alt="Organization profile"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                    <FiCamera size={32} className="text-gray-400" />
+                  </div>
+                )}
+              </div>
+
+              {/* Profile Image Upload/Edit Button */}
+              {canEdit && (
+                <>
+                  <label className="absolute bottom-0 right-0 cursor-pointer">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleImageSelect(e, "profile")}
+                      className="hidden"
+                    />
+                    <div className="bg-blue-600 hover:bg-blue-700 rounded-full p-2 shadow-md transition-colors">
+                      {profileData.profile_image ? (
+                        <FiEdit2 size={14} className="text-white" />
+                      ) : (
+                        <FiUpload size={14} className="text-white" />
+                      )}
+                    </div>
+                  </label>
+
+                  {profileData.profile_image && (
+                    <button
+                      onClick={() => removeImage("profile")}
+                      className="absolute bottom-0 right-10 bg-red-500 hover:bg-red-600 rounded-full p-2 shadow-md transition-colors"
+                      disabled={saving}
+                    >
+                      <FiTrash2 size={14} className="text-white" />
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Loading overlay for image uploads */}
+        {uploadingImage && (
+          <div className="absolute inset-0 bg-black bg-opacity-50 rounded-2xl flex items-center justify-center z-10">
+            <div className="bg-white rounded-lg p-4 flex items-center space-x-3">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+              <span className="text-gray-700">Uploading image...</span>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Profile Header */}
       <div className="mb-6">
         <div className="rounded-2xl p-6 bg-gradient-to-br from-blue-600/80 via-purple-600/60 to-cyan-500/60 text-white shadow-lg">
@@ -396,12 +671,14 @@ export default function OrganizationProfile() {
               <FiBriefcase className="mr-2" />
               Basic Company Information
             </h3>
-            <button
-              onClick={() => setEditingSection("basic")}
-              className="text-gray-400 hover:text-gray-600"
-            >
-              <FiEdit2 size={16} />
-            </button>
+            {canEdit && (
+              <button
+                onClick={() => setEditingSection("basic")}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <FiEdit2 size={16} />
+              </button>
+            )}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -447,12 +724,14 @@ export default function OrganizationProfile() {
               <FiUsers className="mr-2" />
               Extended Profile
             </h3>
-            <button
-              onClick={() => setEditingSection("extended")}
-              className="text-gray-400 hover:text-gray-600"
-            >
-              <FiEdit2 size={16} />
-            </button>
+            {canEdit && (
+              <button
+                onClick={() => setEditingSection("extended")}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <FiEdit2 size={16} />
+              </button>
+            )}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
@@ -499,12 +778,14 @@ export default function OrganizationProfile() {
               <FiLink className="mr-2" />
               Social Media Links
             </h3>
-            <button
-              onClick={() => setEditingSection("social")}
-              className="text-gray-400 hover:text-gray-600"
-            >
-              <FiEdit2 size={16} />
-            </button>
+            {canEdit && (
+              <button
+                onClick={() => setEditingSection("social")}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <FiEdit2 size={16} />
+              </button>
+            )}
           </div>
           {Array.isArray(profileData.social_media_links) &&
           profileData.social_media_links.length > 0 ? (

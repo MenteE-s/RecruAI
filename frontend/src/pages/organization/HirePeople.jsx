@@ -112,7 +112,7 @@ export default function HirePeople() {
       )}
 
       <div className="mb-8">
-        <div className="rounded-2xl p-8 bg-gradient-to-br from-green-600/80 via-blue-600/60 to-purple-500/60 text-white shadow-lg relative overflow-hidden">
+        <div className="rounded-2xl p-8 bg-gradient-to-br from-yellow-600/90 via-amber-600/80 to-purple-700/70 text-white shadow-lg relative overflow-hidden">
           <div className="absolute inset-0 bg-black/10"></div>
           <div className="relative">
             <div className="flex items-center justify-between">

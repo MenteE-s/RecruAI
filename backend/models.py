@@ -65,6 +65,9 @@ class Organization(db.Model):
     mission = db.Column(db.Text, nullable=True)
     vision = db.Column(db.Text, nullable=True)
     social_media_links = db.Column(db.Text, nullable=True)  # JSON string
+    # profile and banner images
+    profile_image = db.Column(db.String(500), nullable=True)
+    banner_image = db.Column(db.String(500), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     users = db.relationship("User", back_populates="organization")
@@ -94,6 +97,8 @@ class Organization(db.Model):
             "mission": self.mission,
             "vision": self.vision,
             "social_media_links": social_links,
+            "profile_image": self.profile_image,
+            "banner_image": self.banner_image,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
 

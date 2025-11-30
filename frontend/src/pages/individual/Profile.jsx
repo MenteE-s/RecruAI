@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import IndividualNavbar from "../../components/layout/IndividualNavbar";
 import Card from "../../components/ui/Card";
-import { getSidebarItems } from "../../utils/auth";
+import { getSidebarItems, getUploadUrl } from "../../utils/auth";
 import {
   FiPlus,
   FiX,
@@ -1839,7 +1839,7 @@ export default function Profile() {
                 <div className="w-20 h-20 rounded-full bg-white/20 flex items-center justify-center overflow-hidden">
                   {userData?.profile_picture ? (
                     <img
-                      src={userData.profile_picture}
+                      src={getUploadUrl(userData.profile_picture)}
                       alt="Profile"
                       className="w-full h-full object-cover"
                     />

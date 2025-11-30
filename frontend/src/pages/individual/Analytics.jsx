@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import IndividualNavbar from "../../components/layout/IndividualNavbar";
 import Card from "../../components/ui/Card";
@@ -10,65 +11,296 @@ export default function Analytics() {
     typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
   const sidebarItems = getSidebarItems(role, plan);
 
+  const [analytics, setAnalytics] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [userId, setUserId] = useState(1); // TODO: Get from auth context
+
+  useEffect(() => {
+    fetchInterviewAnalytics();
+  }, []);
+
+  const fetchInterviewAnalytics = async () => {
+    try {
+      const response = await fetch(`/api/users/${userId}/analytics`, {
+        credentials: "include",
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setAnalytics(data);
+      }
+    } catch (error) {
+      console.error("Error fetching interview analytics:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <DashboardLayout
+        NavbarComponent={IndividualNavbar}
+        sidebarItems={sidebarItems}
+      >
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout
       NavbarComponent={IndividualNavbar}
       sidebarItems={sidebarItems}
     >
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Analytics</h1>
-        <p className="text-gray-600 mt-2">
-          Track your interview performance and career progress.
-        </p>
+        <div className="rounded-2xl p-6 bg-gradient-to-br from-green-600/80 via-blue-600/60 to-purple-500/60 text-white shadow-lg">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold font-display">
+                Interview Performance
+              </h1>
+              <p className="mt-1 text-white/90">
+                Track your interview performance and identify areas for growth
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
 
+      {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <Card>
-          <h3 className="font-semibold text-gray-800 mb-2">Total Interviews</h3>
-          <p className="text-3xl font-bold text-blue-600">24</p>
-          <p className="text-sm text-gray-500">+12% from last month</p>
+          <div className="text-center">
+            <div className="text-3xl font-bold text-blue-600">
+              {analytics?.total_interviews || 0}
+            </div>
+            <div className="text-sm text-gray-600">Total Interviews</div>
+          </div>
         </Card>
-
         <Card>
-          <h3 className="font-semibold text-gray-800 mb-2">Success Rate</h3>
-          <p className="text-3xl font-bold text-green-600">75%</p>
-          <p className="text-sm text-gray-500">+5% from last month</p>
+          <div className="text-center">
+            <div className="text-3xl font-bold text-green-600">
+              {analytics?.average_scores?.overall
+                ? `${analytics.average_scores.overall}%`
+                : "--"}
+            </div>
+            <div className="text-sm text-gray-600">Avg Overall Score</div>
+          </div>
         </Card>
-
         <Card>
-          <h3 className="font-semibold text-gray-800 mb-2">
-            Applications Sent
-          </h3>
-          <p className="text-3xl font-bold text-purple-600">156</p>
-          <p className="text-sm text-gray-500">+8% from last month</p>
+          <div className="text-center">
+            <div className="text-3xl font-bold text-purple-600">
+              {analytics?.strengths?.length || 0}
+            </div>
+            <div className="text-sm text-gray-600">Key Strengths</div>
+          </div>
         </Card>
-
         <Card>
-          <h3 className="font-semibold text-gray-800 mb-2">Profile Views</h3>
-          <p className="text-3xl font-bold text-orange-600">1,204</p>
-          <p className="text-sm text-gray-500">+15% from last month</p>
+          <div className="text-center">
+            <div className="text-3xl font-bold text-orange-600">
+              {analytics?.improvements?.length || 0}
+            </div>
+            <div className="text-sm text-gray-600">Areas to Improve</div>
+          </div>
         </Card>
       </div>
+
+      {/* Performance Scores */}
+      {analytics?.average_scores && (
+        <Card className="mb-8">
+          <h3 className="text-xl font-semibold mb-6">
+            Your Performance Scores
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              {
+                label: "Communication",
+                score: analytics.average_scores.communication,
+                color: "blue",
+              },
+              {
+                label: "Technical Skills",
+                score: analytics.average_scores.technical,
+                color: "green",
+              },
+              {
+                label: "Problem Solving",
+                score: analytics.average_scores.problem_solving,
+                color: "purple",
+              },
+              {
+                label: "Cultural Fit",
+                score: analytics.average_scores.cultural_fit,
+                color: "orange",
+              },
+            ].map((item) => (
+              <div key={item.label} className="text-center">
+                <div
+                  className={`text-3xl font-bold text-${item.color}-600 mb-2`}
+                >
+                  {item.score ? `${item.score}%` : "--"}
+                </div>
+                <div className="text-sm text-gray-600 mb-3">{item.label}</div>
+                {item.score && (
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className={`bg-${item.color}-500 h-2 rounded-full transition-all duration-500`}
+                      style={{ width: `${item.score}%` }}
+                    ></div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Key Strengths */}
         <Card>
-          <h3 className="font-semibold text-gray-800 mb-4">
-            Interview Performance Trend
+          <h3 className="text-lg font-semibold mb-4 text-green-600">
+            💪 Your Key Strengths
           </h3>
-          <div className="h-64 bg-gray-50 rounded-lg flex items-center justify-center text-gray-400">
-            Chart placeholder - Interview success over time
+          <div className="space-y-3">
+            {analytics?.strengths && analytics.strengths.length > 0 ? (
+              analytics.strengths.map((strength, index) => (
+                <div key={index} className="flex items-start">
+                  <div className="text-green-500 mr-2 mt-1">✓</div>
+                  <span className="text-gray-700">{strength}</span>
+                </div>
+              ))
+            ) : (
+              <p className="text-gray-500 italic">
+                No strength data available yet
+              </p>
+            )}
           </div>
         </Card>
 
+        {/* Areas for Improvement */}
         <Card>
-          <h3 className="font-semibold text-gray-800 mb-4">
-            Skills Improvement
+          <h3 className="text-lg font-semibold mb-4 text-orange-600">
+            🎯 Areas for Improvement
           </h3>
-          <div className="h-64 bg-gray-50 rounded-lg flex items-center justify-center text-gray-400">
-            Chart placeholder - Skills growth tracking
+          <div className="space-y-3">
+            {analytics?.improvements && analytics.improvements.length > 0 ? (
+              analytics.improvements.map((improvement, index) => (
+                <div key={index} className="flex items-start">
+                  <div className="text-orange-500 mr-2 mt-1">→</div>
+                  <span className="text-gray-700">{improvement}</span>
+                </div>
+              ))
+            ) : (
+              <p className="text-gray-500 italic">
+                No improvement suggestions available yet
+              </p>
+            )}
           </div>
         </Card>
       </div>
+
+      {/* Performance Trend */}
+      {analytics?.performance_trend &&
+        analytics.performance_trend.length > 0 && (
+          <Card className="mt-8">
+            <h3 className="text-xl font-semibold mb-6">Performance Trend</h3>
+            <div className="h-64 bg-gray-50 rounded-lg flex items-center justify-center text-gray-400">
+              <div className="text-center">
+                <div className="text-4xl mb-2">📈</div>
+                <p>Performance trend visualization</p>
+                <p className="text-sm mt-2">
+                  Latest:{" "}
+                  {analytics.performance_trend[
+                    analytics.performance_trend.length - 1
+                  ]?.score || "--"}
+                  %
+                </p>
+              </div>
+            </div>
+          </Card>
+        )}
+
+      {/* Recent Interview Analyses */}
+      {analytics?.analytics && analytics.analytics.length > 0 && (
+        <Card className="mt-8">
+          <h3 className="text-xl font-semibold mb-6">
+            Recent Interview Feedback
+          </h3>
+          <div className="space-y-4">
+            {analytics.analytics.slice(0, 3).map((analysis, index) => (
+              <div
+                key={analysis.id || index}
+                className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50"
+              >
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <h4 className="font-medium text-gray-900">
+                      Interview Analysis
+                    </h4>
+                    <p className="text-sm text-gray-600">
+                      {new Date(analysis.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-lg font-bold text-blue-600">
+                      {analysis.overall_score}/100
+                    </div>
+                    <div className="text-xs text-gray-500">Overall Score</div>
+                  </div>
+                </div>
+                {analysis.ai_analysis_summary && (
+                  <p className="text-sm text-gray-700 mb-3">
+                    {analysis.ai_analysis_summary}
+                  </p>
+                )}
+                <div className="grid grid-cols-4 gap-4 text-sm">
+                  <div>
+                    <span className="text-gray-600">Communication:</span>
+                    <span className="font-medium ml-1">
+                      {analysis.communication_score || "--"}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Technical:</span>
+                    <span className="font-medium ml-1">
+                      {analysis.technical_score || "--"}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Problem Solving:</span>
+                    <span className="font-medium ml-1">
+                      {analysis.problem_solving_score || "--"}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Cultural Fit:</span>
+                    <span className="font-medium ml-1">
+                      {analysis.cultural_fit_score || "--"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {/* Empty State */}
+      {(!analytics || analytics.total_interviews === 0) && (
+        <Card className="mt-8">
+          <div className="text-center py-12">
+            <div className="text-4xl mb-4">📊</div>
+            <h3 className="text-lg font-semibold mb-2">
+              No Interview Data Yet
+            </h3>
+            <p className="text-gray-600 mb-4">
+              Complete some interviews to see your performance analytics and
+              feedback here.
+            </p>
+          </div>
+        </Card>
+      )}
     </DashboardLayout>
   );
 }

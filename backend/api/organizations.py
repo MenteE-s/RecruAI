@@ -1,4 +1,5 @@
 from flask import request, jsonify
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime
 
 from . import api_bp
@@ -8,6 +9,8 @@ from ..models import (
     Project, Certification, Language, Application, SavedJob, AIAgent, Interview
 )
 import json
+import os
+from werkzeug.utils import secure_filename
 
 
 @api_bp.route("/organizations", methods=["GET"])
@@ -21,6 +24,8 @@ def list_organizations():
         "contact_email": o.contact_email,
         "contact_name": o.contact_name,
         "location": o.location,
+        "profile_image": o.profile_image,
+        "banner_image": o.banner_image,
         "created_at": o.created_at.isoformat() if o.created_at else None,
     } for o in orgs]), 200
 
@@ -65,6 +70,8 @@ def get_organization(org_id):
         "mission": org.mission,
         "vision": org.vision,
         "social_media_links": org.social_media_links,
+        "profile_image": org.profile_image,
+        "banner_image": org.banner_image,
         "created_at": org.created_at.isoformat() if org.created_at else None,
         "posts": posts,
     })
@@ -260,6 +267,18 @@ def create_post():
     if not org:
         return jsonify({"error": "organization not found"}), 404
 
+    # Parse application deadline if provided
+    application_deadline = None
+    if payload.get("application_deadline"):
+        try:
+            # Handle ISO format strings from frontend
+            deadline_str = payload["application_deadline"]
+            if deadline_str.endswith('Z'):
+                deadline_str = deadline_str[:-1] + '+00:00'
+            application_deadline = datetime.fromisoformat(deadline_str).date()
+        except (ValueError, TypeError):
+            return jsonify({"error": "Invalid application_deadline format"}), 400
+
     post = Post(
         organization_id=org_id,
         title=title,
@@ -271,7 +290,7 @@ def create_post():
         salary_max=payload.get("salary_max"),
         salary_currency=payload.get("salary_currency", "USD"),
         requirements=json.dumps(payload.get("requirements", [])) if payload.get("requirements") else None,
-        application_deadline=payload.get("application_deadline"),
+        application_deadline=application_deadline,
         status=payload.get("status", "active"),
     )
     db.session.add(post)
@@ -308,7 +327,17 @@ def update_post(post_id):
     if "requirements" in payload:
         post.requirements = json.dumps(payload["requirements"]) if payload["requirements"] else None
     if "application_deadline" in payload:
-        post.application_deadline = payload["application_deadline"]
+        if payload["application_deadline"]:
+            try:
+                # Handle ISO format strings from frontend
+                deadline_str = payload["application_deadline"]
+                if deadline_str.endswith('Z'):
+                    deadline_str = deadline_str[:-1] + '+00:00'
+                post.application_deadline = datetime.fromisoformat(deadline_str).date()
+            except (ValueError, TypeError):
+                return jsonify({"error": "Invalid application_deadline format"}), 400
+        else:
+            post.application_deadline = None
     if "status" in payload:
         post.status = payload["status"]
 
@@ -954,4 +983,134 @@ def get_analytics_overview():
         "active_posts": active_posts,
         "applications_by_status": applications_by_status,
         "posts_by_category": posts_by_category
+    }), 200
+
+
+@api_bp.route("/organizations/<int:org_id>/upload-profile-image", methods=["POST"])
+@jwt_required()
+def upload_organization_profile_image(org_id):
+    """Upload a profile image for an organization"""
+    # Get current user
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    # Check if user belongs to the organization or is an organization user
+    if user.role == "organization" and user.organization_id == org_id:
+        # Organization user can upload for their own organization
+        pass
+    elif user.role == "individual":
+        # Check if user is a team member of the organization
+        team_member = TeamMember.query.filter_by(organization_id=org_id, user_id=user_id).first()
+        if not team_member:
+            return jsonify({"error": "Unauthorized - not a member of this organization"}), 403
+    else:
+        return jsonify({"error": "Unauthorized"}), 403
+
+    org = Organization.query.get_or_404(org_id)
+
+    if 'profile_image' not in request.files:
+        return jsonify({'error': 'No file provided'}), 400
+
+    file = request.files['profile_image']
+
+    if file.filename == '':
+        return jsonify({'error': 'No file selected'}), 400
+
+    # Validate file type
+    allowed_extensions = {'png', 'jpg', 'jpeg', 'gif'}
+    if not file.filename.lower().split('.')[-1] in allowed_extensions:
+        return jsonify({'error': 'Invalid file type. Only PNG, JPG, JPEG, and GIF are allowed'}), 400
+
+    # Validate file size (max 5MB)
+    file.seek(0, os.SEEK_END)
+    file_size = file.tell()
+    file.seek(0)
+    if file_size > 5 * 1024 * 1024:  # 5MB
+        return jsonify({'error': 'File too large. Maximum size is 5MB'}), 400
+
+    # Secure filename and create unique filename
+    filename = secure_filename(file.filename)
+    extension = filename.rsplit('.', 1)[1].lower()
+    unique_filename = f"org_{org_id}_profile.{extension}"
+
+    # Save file
+    upload_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'uploads', 'organization_images', 'profile_images', unique_filename)
+    file.save(upload_path)
+
+    # Update organization profile image path
+    profile_image_url = f"/uploads/organization_images/profile_images/{unique_filename}"
+    org.profile_image = profile_image_url
+    db.session.commit()
+
+    return jsonify({
+        'message': 'Profile image uploaded successfully',
+        'profile_image': profile_image_url
+    }), 200
+
+
+@api_bp.route("/organizations/<int:org_id>/upload-banner-image", methods=["POST"])
+@jwt_required()
+def upload_organization_banner_image(org_id):
+    """Upload a banner image for an organization"""
+    # Get current user
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    # Check if user belongs to the organization or is an organization user
+    if user.role == "organization" and user.organization_id == org_id:
+        # Organization user can upload for their own organization
+        pass
+    elif user.role == "individual":
+        # Check if user is a team member of the organization
+        team_member = TeamMember.query.filter_by(organization_id=org_id, user_id=user_id).first()
+        if not team_member:
+            return jsonify({"error": "Unauthorized - not a member of this organization"}), 403
+    else:
+        return jsonify({"error": "Unauthorized"}), 403
+
+    org = Organization.query.get_or_404(org_id)
+
+    if 'banner_image' not in request.files:
+        return jsonify({'error': 'No file provided'}), 400
+
+    file = request.files['banner_image']
+
+    if file.filename == '':
+        return jsonify({'error': 'No file selected'}), 400
+
+    # Validate file type
+    allowed_extensions = {'png', 'jpg', 'jpeg', 'gif'}
+    if not file.filename.lower().split('.')[-1] in allowed_extensions:
+        return jsonify({'error': 'Invalid file type. Only PNG, JPG, JPEG, and GIF are allowed'}), 400
+
+    # Validate file size (max 5MB)
+    file.seek(0, os.SEEK_END)
+    file_size = file.tell()
+    file.seek(0)
+    if file_size > 5 * 1024 * 1024:  # 5MB
+        return jsonify({'error': 'File too large. Maximum size is 5MB'}), 400
+
+    # Secure filename and create unique filename
+    filename = secure_filename(file.filename)
+    extension = filename.rsplit('.', 1)[1].lower()
+    unique_filename = f"org_{org_id}_banner.{extension}"
+
+    # Save file
+    upload_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'uploads', 'organization_images', 'banner_images', unique_filename)
+    file.save(upload_path)
+
+    # Update organization banner image path
+    banner_image_url = f"/uploads/organization_images/banner_images/{unique_filename}"
+    org.banner_image = banner_image_url
+    db.session.commit()
+
+    return jsonify({
+        'message': 'Banner image uploaded successfully',
+        'banner_image': banner_image_url
     }), 200

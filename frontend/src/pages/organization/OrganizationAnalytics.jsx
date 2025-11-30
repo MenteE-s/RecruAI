@@ -13,20 +13,23 @@ export default function OrganizationAnalytics() {
 
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [orgId, setOrgId] = useState(1); // TODO: Get from user context
 
   useEffect(() => {
-    fetchAnalytics();
+    fetchInterviewAnalytics();
   }, []);
 
-  const fetchAnalytics = async () => {
+  const fetchInterviewAnalytics = async () => {
     try {
-      const response = await fetch("/api/analytics/overview");
+      const response = await fetch(`/api/organizations/${orgId}/analytics`, {
+        credentials: "include",
+      });
       if (response.ok) {
         const data = await response.json();
         setAnalytics(data);
       }
     } catch (error) {
-      console.error("Error fetching analytics:", error);
+      console.error("Error fetching interview analytics:", error);
     } finally {
       setLoading(false);
     }
@@ -51,171 +54,269 @@ export default function OrganizationAnalytics() {
       sidebarItems={sidebarItems}
     >
       <div className="mb-6">
-        <div className="rounded-2xl p-6 bg-gradient-to-br from-indigo-600/80 via-purple-600/60 to-cyan-500/60 text-white shadow-lg">
+        <div className="rounded-2xl p-6 bg-gradient-to-br from-yellow-600/90 via-amber-600/80 to-purple-700/70 text-white shadow-lg">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl md:text-3xl font-bold font-display">
-                Organization Analytics
+                Interview Analytics
               </h1>
               <p className="mt-1 text-white/90">
-                Insights into your recruitment performance
+                Comprehensive insights into your interview performance and
+                candidate evaluations
               </p>
             </div>
           </div>
         </div>
       </div>
 
+      {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <Card>
           <div className="text-center">
-            <div className="text-3xl font-bold text-indigo-600">
-              {analytics?.total_posts || 0}
+            <div className="text-3xl font-bold text-blue-600">
+              {analytics?.total_interviews_analyzed || 0}
             </div>
-            <div className="text-sm text-gray-600">Total Job Posts</div>
+            <div className="text-sm text-gray-600">Interviews Analyzed</div>
           </div>
         </Card>
         <Card>
           <div className="text-center">
             <div className="text-3xl font-bold text-green-600">
-              {analytics?.total_applications || 0}
+              {analytics?.average_scores?.overall
+                ? `${analytics.average_scores.overall}%`
+                : "--"}
             </div>
-            <div className="text-sm text-gray-600">Total Applications</div>
-          </div>
-        </Card>
-        <Card>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-blue-600">
-              {analytics?.total_interviews || 0}
-            </div>
-            <div className="text-sm text-gray-600">Total Interviews</div>
+            <div className="text-sm text-gray-600">Avg Overall Score</div>
           </div>
         </Card>
         <Card>
           <div className="text-center">
             <div className="text-3xl font-bold text-purple-600">
-              {analytics?.active_posts || 0}
+              {analytics?.pass_rate ? `${analytics.pass_rate}%` : "--"}
             </div>
-            <div className="text-sm text-gray-600">Active Posts</div>
+            <div className="text-sm text-gray-600">Pass Rate</div>
+          </div>
+        </Card>
+        <Card>
+          <div className="text-center">
+            <div className="text-3xl font-bold text-orange-600">
+              {analytics?.top_strengths?.length || 0}
+            </div>
+            <div className="text-sm text-gray-600">Top Skills Identified</div>
           </div>
         </Card>
       </div>
+
+      {/* Performance Scores Overview */}
+      {analytics?.average_scores && (
+        <Card className="mb-8">
+          <h3 className="text-xl font-semibold mb-6">
+            Average Performance Scores
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              {
+                label: "Communication",
+                score: analytics.average_scores.communication,
+                color: "blue",
+              },
+              {
+                label: "Technical Skills",
+                score: analytics.average_scores.technical,
+                color: "green",
+              },
+              {
+                label: "Problem Solving",
+                score: analytics.average_scores.problem_solving,
+                color: "purple",
+              },
+              {
+                label: "Cultural Fit",
+                score: analytics.average_scores.cultural_fit,
+                color: "orange",
+              },
+            ].map((item) => (
+              <div key={item.label} className="text-center">
+                <div
+                  className={`text-3xl font-bold text-${item.color}-600 mb-2`}
+                >
+                  {item.score ? `${item.score}%` : "--"}
+                </div>
+                <div className="text-sm text-gray-600 mb-3">{item.label}</div>
+                {item.score && (
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className={`bg-${item.color}-500 h-2 rounded-full transition-all duration-500`}
+                      style={{ width: `${item.score}%` }}
+                    ></div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Top Strengths */}
         <Card>
-          <h3 className="text-lg font-semibold mb-4">Applications by Status</h3>
+          <h3 className="text-lg font-semibold mb-4 text-green-600">
+            💪 Most Common Strengths
+          </h3>
           <div className="space-y-3">
-            {analytics?.applications_by_status &&
-              Object.entries(analytics.applications_by_status).map(
-                ([status, count]) => (
+            {analytics?.top_strengths && analytics.top_strengths.length > 0 ? (
+              analytics.top_strengths.slice(0, 5).map((strength, index) => (
+                <div key={index} className="flex justify-between items-center">
+                  <span className="text-gray-700">{strength.skill}</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-16 bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-green-500 h-2 rounded-full"
+                        style={{
+                          width: `${
+                            analytics.total_interviews_analyzed > 0
+                              ? (strength.count /
+                                  analytics.total_interviews_analyzed) *
+                                100
+                              : 0
+                          }%`,
+                        }}
+                      ></div>
+                    </div>
+                    <span className="text-sm font-medium text-gray-600 w-6 text-right">
+                      {strength.count}
+                    </span>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-gray-500 italic">No strength data available</p>
+            )}
+          </div>
+        </Card>
+
+        {/* Common Improvements */}
+        <Card>
+          <h3 className="text-lg font-semibold mb-4 text-orange-600">
+            🎯 Common Areas for Improvement
+          </h3>
+          <div className="space-y-3">
+            {analytics?.common_improvements &&
+            analytics.common_improvements.length > 0 ? (
+              analytics.common_improvements
+                .slice(0, 5)
+                .map((improvement, index) => (
                   <div
-                    key={status}
+                    key={index}
                     className="flex justify-between items-center"
                   >
-                    <span className="capitalize text-gray-700">{status}</span>
+                    <span className="text-gray-700">{improvement.area}</span>
                     <div className="flex items-center gap-2">
-                      <div className="w-24 bg-gray-200 rounded-full h-2">
+                      <div className="w-16 bg-gray-200 rounded-full h-2">
                         <div
-                          className="bg-indigo-600 h-2 rounded-full"
+                          className="bg-orange-500 h-2 rounded-full"
                           style={{
                             width: `${
-                              analytics.total_applications > 0
-                                ? (count / analytics.total_applications) * 100
+                              analytics.total_interviews_analyzed > 0
+                                ? (improvement.count /
+                                    analytics.total_interviews_analyzed) *
+                                  100
                                 : 0
                             }%`,
                           }}
                         ></div>
                       </div>
-                      <span className="text-sm font-medium w-8 text-right">
-                        {count}
+                      <span className="text-sm font-medium text-gray-600 w-6 text-right">
+                        {improvement.count}
                       </span>
                     </div>
                   </div>
-                )
-              )}
-          </div>
-        </Card>
-
-        <Card>
-          <h3 className="text-lg font-semibold mb-4">Posts by Category</h3>
-          <div className="space-y-3">
-            {analytics?.posts_by_category &&
-              Object.entries(analytics.posts_by_category).map(
-                ([category, count]) => (
-                  <div
-                    key={category}
-                    className="flex justify-between items-center"
-                  >
-                    <span className="text-gray-700">{category}</span>
-                    <div className="flex items-center gap-2">
-                      <div className="w-24 bg-gray-200 rounded-full h-2">
-                        <div
-                          className="bg-green-600 h-2 rounded-full"
-                          style={{
-                            width: `${
-                              analytics.total_posts > 0
-                                ? (count / analytics.total_posts) * 100
-                                : 0
-                            }%`,
-                          }}
-                        ></div>
-                      </div>
-                      <span className="text-sm font-medium w-8 text-right">
-                        {count}
-                      </span>
-                    </div>
-                  </div>
-                )
-              )}
+                ))
+            ) : (
+              <p className="text-gray-500 italic">
+                No improvement data available
+              </p>
+            )}
           </div>
         </Card>
       </div>
 
-      <div className="mt-8">
-        <Card>
-          <h3 className="text-lg font-semibold mb-4">Recruitment Insights</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-indigo-600">
-                {analytics?.total_applications && analytics?.total_posts
-                  ? (
-                      analytics.total_applications / analytics.total_posts
-                    ).toFixed(1)
-                  : 0}
+      {/* Recent Interview Analyses */}
+      {analytics?.analytics && analytics.analytics.length > 0 && (
+        <Card className="mt-8">
+          <h3 className="text-xl font-semibold mb-6">
+            Recent Interview Analyses
+          </h3>
+          <div className="space-y-4">
+            {analytics.analytics.slice(0, 5).map((analysis, index) => (
+              <div
+                key={analysis.id || index}
+                className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50"
+              >
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <h4 className="font-medium text-gray-900">
+                      Interview #{analysis.interview_id}
+                    </h4>
+                    <p className="text-sm text-gray-600">
+                      Analyzed:{" "}
+                      {new Date(analysis.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-lg font-bold text-blue-600">
+                      {analysis.overall_score}/100
+                    </div>
+                    <div className="text-xs text-gray-500">Overall Score</div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-4 gap-4 text-sm">
+                  <div>
+                    <span className="text-gray-600">Communication:</span>
+                    <span className="font-medium ml-1">
+                      {analysis.communication_score || "--"}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Technical:</span>
+                    <span className="font-medium ml-1">
+                      {analysis.technical_score || "--"}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Problem Solving:</span>
+                    <span className="font-medium ml-1">
+                      {analysis.problem_solving_score || "--"}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Cultural Fit:</span>
+                    <span className="font-medium ml-1">
+                      {analysis.cultural_fit_score || "--"}
+                    </span>
+                  </div>
+                </div>
               </div>
-              <div className="text-sm text-gray-600">
-                Avg Applications per Post
-              </div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">
-                {analytics?.applications_by_status?.accepted &&
-                analytics?.total_applications
-                  ? (
-                      (analytics.applications_by_status.accepted /
-                        analytics.total_applications) *
-                      100
-                    ).toFixed(1)
-                  : 0}
-                %
-              </div>
-              <div className="text-sm text-gray-600">Acceptance Rate</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">
-                {analytics?.total_interviews && analytics?.total_applications
-                  ? (
-                      (analytics.total_interviews /
-                        analytics.total_applications) *
-                      100
-                    ).toFixed(1)
-                  : 0}
-                %
-              </div>
-              <div className="text-sm text-gray-600">Interview Rate</div>
-            </div>
+            ))}
           </div>
         </Card>
-      </div>
+      )}
+
+      {/* Empty State */}
+      {(!analytics || analytics.total_interviews_analyzed === 0) && (
+        <Card className="mt-8">
+          <div className="text-center py-12">
+            <div className="text-4xl mb-4">📊</div>
+            <h3 className="text-lg font-semibold mb-2">
+              No Interview Analytics Yet
+            </h3>
+            <p className="text-gray-600 mb-4">
+              Complete some interviews and generate analyses to see performance
+              insights here.
+            </p>
+          </div>
+        </Card>
+      )}
     </DashboardLayout>
   );
 }

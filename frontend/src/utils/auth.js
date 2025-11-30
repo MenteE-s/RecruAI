@@ -10,6 +10,25 @@ import {
   FiUsers,
   FiSettings,
 } from "react-icons/fi";
+
+// Get the backend URL for API calls and uploaded files
+export function getBackendUrl() {
+  // In development, use localhost:5000
+  // In production, this should be configurable via environment variable
+  const isDevelopment = process.env.NODE_ENV === "development";
+  return isDevelopment ? "http://localhost:5000" : "";
+}
+
+// Get full URL for uploaded files
+export function getUploadUrl(relativePath) {
+  if (!relativePath) return "";
+  const backendUrl = getBackendUrl();
+  // Remove leading slash if present
+  const cleanPath = relativePath.startsWith("/")
+    ? relativePath.substring(1)
+    : relativePath;
+  return `${backendUrl}/${cleanPath}`;
+}
 export async function verifyTokenWithServer() {
   try {
     if (typeof window === "undefined") return null;
@@ -63,6 +82,7 @@ export function getSidebarItems(role, plan) {
   if (role === "individual") {
     if (plan === "trial") {
       return [
+        { name: "Dashboard", link: "/dashboard", icon: FiBarChart2 },
         { name: "Profile", link: "/profile", icon: FiUser },
         { name: "Jobs", link: "/jobs", icon: FiFileText },
         {
@@ -81,6 +101,7 @@ export function getSidebarItems(role, plan) {
     } else {
       // pro
       return [
+        { name: "Dashboard", link: "/dashboard", icon: FiBarChart2 },
         { name: "Profile", link: "/profile", icon: FiUser },
         { name: "Jobs", link: "/jobs", icon: FiFileText },
         {
@@ -104,6 +125,11 @@ export function getSidebarItems(role, plan) {
   } else if (role === "organization") {
     if (plan === "trial") {
       return [
+        {
+          name: "Dashboard",
+          link: "/dashboard",
+          icon: FiBarChart2,
+        },
         { name: "Profile", link: "/organization/profile", icon: FiUser },
         {
           name: "Browse Organizations",
@@ -126,6 +152,7 @@ export function getSidebarItems(role, plan) {
     } else {
       // pro
       return [
+        { name: "Dashboard", link: "/dashboard", icon: FiBarChart2 },
         { name: "Profile", link: "/organization/profile", icon: FiUser },
         {
           name: "Browse Organizations",

@@ -1296,15 +1296,25 @@ export default function InterviewManagement() {
                   )}
 
                   {interview.status === "completed" && (
-                    <button
-                      onClick={() => {
-                        setSelectedInterview(interview);
-                        setShowDecisionModal(true);
-                      }}
-                      className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
-                    >
-                      🎯 Make Decision
-                    </button>
+                    <>
+                      <button
+                        onClick={() => {
+                          setSelectedInterview(interview);
+                          setShowDecisionModal(true);
+                        }}
+                        className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
+                      >
+                        🎯 Make Decision
+                      </button>
+                      <button
+                        onClick={() =>
+                          navigate(`/interview/${interview.id}/analysis`)
+                        }
+                        className="px-3 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 text-sm"
+                      >
+                        📊 Analysis
+                      </button>
+                    </>
                   )}
 
                   <button
