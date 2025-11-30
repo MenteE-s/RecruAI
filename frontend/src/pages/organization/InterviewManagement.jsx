@@ -807,6 +807,15 @@ export default function InterviewManagement() {
   const [aiAgents, setAiAgents] = useState([]);
   const [saving, setSaving] = useState(false);
   const [filterText, setFilterText] = useState("");
+  const [selectedInterviews, setSelectedInterviews] = useState([]);
+  const [showSections, setShowSections] = useState({
+    inProgress: true,
+    scheduled: true,
+    completed: true,
+    cancelled: true,
+  });
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [decisionFilter, setDecisionFilter] = useState("all");
 
   useEffect(() => {
     // Fetch current user context to get organization_id
@@ -1020,21 +1029,21 @@ export default function InterviewManagement() {
   };
 
   const handleMakeDecision = async (decision, feedback = "", rating = null) => {
-    if (!selectedInterview) return;
+    if (!selectedInterview || !organizationId) return;
 
     setSaving(true);
     setError(null);
 
     try {
       const response = await fetch(
-        `/api/interviews/${selectedInterview.id}/decision`,
+        `/api/organizations/${organizationId}/interviews/${selectedInterview.id}/decision`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
           body: JSON.stringify({
             decision,
-            feedback,
+            feedback: feedback || null,
             rating: rating ? parseInt(rating) : null,
           }),
         }
@@ -1210,13 +1219,106 @@ export default function InterviewManagement() {
 
   // Filtering logic
   const filteredInterviews = interviews.filter((interview) => {
-    if (!filterText) return true;
-    const text = filterText.toLowerCase();
-    return (
-      interview.id?.toString().includes(text) ||
-      interview.title?.toLowerCase().includes(text)
-    );
+    // Text filter
+    if (filterText) {
+      const text = filterText.toLowerCase();
+      const matchesText =
+        interview.id?.toString().includes(text) ||
+        interview.title?.toLowerCase().includes(text) ||
+        interview.user_name?.toLowerCase().includes(text) ||
+        interview.post_title?.toLowerCase().includes(text);
+      if (!matchesText) return false;
+    }
+
+    // Status filter
+    if (statusFilter !== "all" && interview.status !== statusFilter) {
+      return false;
+    }
+
+    // Decision filter
+    if (decisionFilter !== "all") {
+      if (decisionFilter === "pending" && interview.final_decision) {
+        return false;
+      }
+      if (
+        decisionFilter !== "pending" &&
+        interview.final_decision !== decisionFilter
+      ) {
+        return false;
+      }
+    }
+
+    return true;
   });
+
+  // Bulk operations
+  const handleSelectInterview = (interviewId, selected) => {
+    if (selected) {
+      setSelectedInterviews([...selectedInterviews, interviewId]);
+    } else {
+      setSelectedInterviews(
+        selectedInterviews.filter((id) => id !== interviewId)
+      );
+    }
+  };
+
+  const handleSelectAll = (interviews, selected) => {
+    if (selected) {
+      const allIds = interviews.map((i) => i.id);
+      setSelectedInterviews([...new Set([...selectedInterviews, ...allIds])]);
+    } else {
+      const interviewIds = interviews.map((i) => i.id);
+      setSelectedInterviews(
+        selectedInterviews.filter((id) => !interviewIds.includes(id))
+      );
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedInterviews.length === 0) return;
+
+    if (
+      !confirm(
+        `Are you sure you want to delete ${selectedInterviews.length} interview(s)? This action cannot be undone.`
+      )
+    ) {
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+
+    try {
+      const deletePromises = selectedInterviews.map((interviewId) =>
+        fetch(`/api/interviews/${interviewId}`, {
+          method: "DELETE",
+          credentials: "include",
+        })
+      );
+
+      const results = await Promise.all(deletePromises);
+      const failedDeletes = results.filter((r) => !r.ok);
+
+      if (failedDeletes.length > 0) {
+        setError(`Failed to delete ${failedDeletes.length} interview(s)`);
+      } else {
+        await fetchInterviews();
+        setSelectedInterviews([]);
+      }
+    } catch (error) {
+      console.error("Bulk delete error:", error);
+      setError("Network error during bulk delete");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const toggleSection = (section) => {
+    setShowSections({
+      ...showSections,
+      [section]: !showSections[section],
+    });
+  };
 
   // Categorize interviews
   const scheduled = filteredInterviews.filter((i) => i.status === "scheduled");
@@ -1235,12 +1337,28 @@ export default function InterviewManagement() {
     );
   });
   const completed = filteredInterviews.filter((i) => i.status === "completed");
-  const cancelled = filteredInterviews.filter((i) => i.status === "cancelled");
+  const cancelled = filteredInterviews.filter(
+    (i) => i.status === "cancelled" || i.status === "no_show"
+  );
 
   // Helper to render interview card (reuse original card rendering logic)
-  function renderInterviewCard(interview) {
+  function renderInterviewCard(interview, showCheckbox = false) {
+    const isSelected = selectedInterviews.includes(interview.id);
+
     return (
       <div className="flex items-start justify-between">
+        {showCheckbox && (
+          <div className="mr-3 mt-1">
+            <input
+              type="checkbox"
+              checked={isSelected}
+              onChange={(e) =>
+                handleSelectInterview(interview.id, e.target.checked)
+              }
+              className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+            />
+          </div>
+        )}
         <div className="flex-1">
           <div className="flex items-center mb-2">
             <span className="text-2xl mr-3">
@@ -1346,7 +1464,9 @@ export default function InterviewManagement() {
               {getJoinButtonText(interview)}
             </button>
           )}
-          {interview.status === "completed" && (
+          {["scheduled", "in_progress", "completed"].includes(
+            interview.status
+          ) && (
             <>
               <button
                 onClick={() => {
@@ -1448,58 +1568,290 @@ export default function InterviewManagement() {
         </button>
       </div>
 
-      {/* Filter/Search Bar */}
-      <div className="mb-4">
-        <input
-          type="text"
-          value={filterText}
-          onChange={(e) => setFilterText(e.target.value)}
-          className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
-          placeholder="Filter by interview ID or title..."
-        />
+      {/* Selected Interviews Summary */}
+      {selectedInterviews.length > 0 && (
+        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-blue-800">
+              {selectedInterviews.length} interview(s) selected
+            </span>
+            <div className="flex space-x-2">
+              <button
+                onClick={() => setSelectedInterviews([])}
+                className="px-3 py-1 text-sm text-blue-600 hover:text-blue-800"
+              >
+                Clear Selection
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Filter Controls */}
+      <div className="mb-6 bg-gray-50 p-4 rounded-lg">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+          {/* Search Filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Search
+            </label>
+            <input
+              type="text"
+              value={filterText}
+              onChange={(e) => setFilterText(e.target.value)}
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              placeholder="Search by ID, title, candidate name, or position..."
+            />
+          </div>
+
+          {/* Status Filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Status
+            </label>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">All Statuses</option>
+              <option value="scheduled">Scheduled</option>
+              <option value="in_progress">In Progress</option>
+              <option value="completed">Completed</option>
+              <option value="cancelled">Cancelled</option>
+              <option value="no_show">No Show</option>
+            </select>
+          </div>
+
+          {/* Decision Filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Decision
+            </label>
+            <select
+              value={decisionFilter}
+              onChange={(e) => setDecisionFilter(e.target.value)}
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">All Decisions</option>
+              <option value="pending">Pending Decision</option>
+              <option value="passed">Passed</option>
+              <option value="failed">Failed</option>
+              <option value="second_round">Second Round</option>
+              <option value="third_round">Third Round</option>
+            </select>
+          </div>
+
+          {/* Bulk Actions */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Actions
+            </label>
+            <div className="flex space-x-2">
+              <button
+                onClick={handleBulkDelete}
+                disabled={selectedInterviews.length === 0 || saving}
+                className={`px-2 py-2 rounded text-xs font-medium ${
+                  selectedInterviews.length > 0 && !saving
+                    ? "bg-red-600 text-white hover:bg-red-700"
+                    : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                }`}
+              >
+                Delete ({selectedInterviews.length})
+              </button>
+              <button
+                onClick={() => {
+                  setFilterText("");
+                  setStatusFilter("all");
+                  setDecisionFilter("all");
+                  setSelectedInterviews([]);
+                }}
+                className="px-2 py-2 bg-gray-600 text-white rounded text-xs font-medium hover:bg-gray-700"
+              >
+                Clear Filters
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Section Visibility Toggles */}
+        <div className="flex flex-wrap gap-4">
+          <label className="flex items-center">
+            <input
+              type="checkbox"
+              checked={showSections.inProgress}
+              onChange={() => toggleSection("inProgress")}
+              className="mr-2"
+            />
+            <span className="text-sm text-orange-700 font-medium">
+              In Progress
+            </span>
+          </label>
+          <label className="flex items-center">
+            <input
+              type="checkbox"
+              checked={showSections.scheduled}
+              onChange={() => toggleSection("scheduled")}
+              className="mr-2"
+            />
+            <span className="text-sm text-gray-700 font-medium">Scheduled</span>
+          </label>
+          <label className="flex items-center">
+            <input
+              type="checkbox"
+              checked={showSections.completed}
+              onChange={() => toggleSection("completed")}
+              className="mr-2"
+            />
+            <span className="text-sm text-green-700 font-medium">
+              Completed
+            </span>
+          </label>
+          <label className="flex items-center">
+            <input
+              type="checkbox"
+              checked={showSections.cancelled}
+              onChange={() => toggleSection("cancelled")}
+              className="mr-2"
+            />
+            <span className="text-sm text-red-700 font-medium">
+              Cancelled/No Show
+            </span>
+          </label>
+        </div>
       </div>
 
       {/* Section: In Progress Interviews */}
-      <h2 className="text-lg font-semibold text-orange-700 mb-2">
-        Current/In Progress Interviews
-      </h2>
-      <div className="space-y-4 mb-6">
-        {inProgress.length === 0 ? (
-          <div className="text-gray-500">No interviews in progress.</div>
-        ) : (
-          inProgress.map((interview) => (
-            <Card key={interview.id}>{renderInterviewCard(interview)}</Card>
-          ))
-        )}
-      </div>
+      {showSections.inProgress && (
+        <>
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-lg font-semibold text-orange-700">
+              Current/In Progress Interviews ({inProgress.length})
+            </h2>
+            {inProgress.length > 0 && (
+              <label className="flex items-center text-sm">
+                <input
+                  type="checkbox"
+                  onChange={(e) =>
+                    handleSelectAll(inProgress, e.target.checked)
+                  }
+                  className="mr-2"
+                />
+                Select All
+              </label>
+            )}
+          </div>
+          <div className="space-y-4 mb-6">
+            {inProgress.length === 0 ? (
+              <div className="text-gray-500">No interviews in progress.</div>
+            ) : (
+              inProgress.map((interview) => (
+                <Card key={interview.id}>
+                  {renderInterviewCard(interview, true)}
+                </Card>
+              ))
+            )}
+          </div>
+        </>
+      )}
 
       {/* Section: Scheduled Interviews */}
-      <h2 className="text-lg font-semibold text-gray-700 mb-2">
-        Scheduled Interviews
-      </h2>
-      <div className="space-y-4 mb-6">
-        {scheduled.length === 0 ? (
-          <div className="text-gray-500">No scheduled interviews.</div>
-        ) : (
-          scheduled.map((interview) => (
-            <Card key={interview.id}>{renderInterviewCard(interview)}</Card>
-          ))
-        )}
-      </div>
+      {showSections.scheduled && (
+        <>
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-lg font-semibold text-gray-700">
+              Scheduled Interviews ({scheduled.length})
+            </h2>
+            {scheduled.length > 0 && (
+              <label className="flex items-center text-sm">
+                <input
+                  type="checkbox"
+                  onChange={(e) => handleSelectAll(scheduled, e.target.checked)}
+                  className="mr-2"
+                />
+                Select All
+              </label>
+            )}
+          </div>
+          <div className="space-y-4 mb-6">
+            {scheduled.length === 0 ? (
+              <div className="text-gray-500">No scheduled interviews.</div>
+            ) : (
+              scheduled.map((interview) => (
+                <Card key={interview.id}>
+                  {renderInterviewCard(interview, true)}
+                </Card>
+              ))
+            )}
+          </div>
+        </>
+      )}
 
       {/* Section: Completed Interviews */}
-      <h2 className="text-lg font-semibold text-green-700 mb-2">
-        Completed Interviews
-      </h2>
-      <div className="space-y-4 mb-6">
-        {completed.length === 0 ? (
-          <div className="text-gray-500">No completed interviews.</div>
-        ) : (
-          completed.map((interview) => (
-            <Card key={interview.id}>{renderInterviewCard(interview)}</Card>
-          ))
-        )}
-      </div>
+      {showSections.completed && (
+        <>
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-lg font-semibold text-green-700">
+              Completed Interviews ({completed.length})
+            </h2>
+            {completed.length > 0 && (
+              <label className="flex items-center text-sm">
+                <input
+                  type="checkbox"
+                  onChange={(e) => handleSelectAll(completed, e.target.checked)}
+                  className="mr-2"
+                />
+                Select All
+              </label>
+            )}
+          </div>
+          <div className="space-y-4 mb-6">
+            {completed.length === 0 ? (
+              <div className="text-gray-500">No completed interviews.</div>
+            ) : (
+              completed.map((interview) => (
+                <Card key={interview.id}>
+                  {renderInterviewCard(interview, true)}
+                </Card>
+              ))
+            )}
+          </div>
+        </>
+      )}
+
+      {/* Section: Cancelled/No Show Interviews */}
+      {showSections.cancelled && (
+        <>
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-lg font-semibold text-red-700">
+              Cancelled/No Show Interviews ({cancelled.length})
+            </h2>
+            {cancelled.length > 0 && (
+              <label className="flex items-center text-sm">
+                <input
+                  type="checkbox"
+                  onChange={(e) => handleSelectAll(cancelled, e.target.checked)}
+                  className="mr-2"
+                />
+                Select All
+              </label>
+            )}
+          </div>
+          <div className="space-y-4 mb-6">
+            {cancelled.length === 0 ? (
+              <div className="text-gray-500">
+                No cancelled or no-show interviews.
+              </div>
+            ) : (
+              cancelled.map((interview) => (
+                <Card key={interview.id}>
+                  {renderInterviewCard(interview, true)}
+                </Card>
+              ))
+            )}
+          </div>
+        </>
+      )}
 
       {/* Section: Cancelled Interviews */}
       <h2 className="text-lg font-semibold text-gray-500 mb-2">

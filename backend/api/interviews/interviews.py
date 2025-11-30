@@ -1,7 +1,7 @@
 from flask import request, jsonify
 from .. import api_bp
 from ...extensions import db
-from ...models import Interview, Application
+from ...models import Interview, Application, ConversationMemory, Message, InterviewAnalysis
 import json
 from datetime import datetime, timezone, timedelta
 
@@ -175,6 +175,12 @@ def update_interview(interview_id):
 def delete_interview(interview_id):
     """Delete an interview"""
     interview = Interview.query.get_or_404(interview_id)
+
+    # Delete related records first to avoid cascade issues
+    ConversationMemory.query.filter_by(interview_id=interview_id).delete()
+    Message.query.filter_by(interview_id=interview_id).delete()
+    InterviewAnalysis.query.filter_by(interview_id=interview_id).delete()
+
     db.session.delete(interview)
     db.session.commit()
     return jsonify({'message': 'Interview deleted successfully'}), 200
@@ -217,6 +223,8 @@ def complete_interview(interview_id):
 @api_bp.route('/interviews/<int:interview_id>/decision', methods=['POST'])
 def update_interview_decision(interview_id):
     """Update interview decision (pass, second round, third round, fail)"""
+    from ...utils.interview_utils import update_interview_decision as update_decision_util
+
     interview = Interview.query.get_or_404(interview_id)
     payload = request.get_json(silent=True) or {}
 
@@ -227,22 +235,89 @@ def update_interview_decision(interview_id):
     if decision not in ['passed', 'failed', 'second_round', 'third_round']:
         return jsonify({"error": "Invalid decision"}), 400
 
-    # For now, just update feedback and rating since new columns don't exist
-    interview.feedback = feedback
-    if rating:
-        interview.rating = rating
+    # Use the utility function to update decision
+    success, message = update_decision_util(
+        interview_id=interview_id,
+        decision=decision,
+        feedback=feedback,
+        rating=rating
+    )
 
-    # Update status based on decision (simplified without new columns)
-    if decision == 'passed':
-        interview.status = 'completed'
-    elif decision == 'failed':
-        interview.status = 'completed'
-    elif decision in ['second_round', 'third_round']:
-        interview.status = 'scheduled'  # Schedule next round
+    if not success:
+        return jsonify({"error": message}), 400
 
-    db.session.commit()
+    # Refresh interview data
+    interview = Interview.query.get_or_404(interview_id)
 
     return jsonify({
-        "message": "Interview decision updated successfully",
+        "message": message,
         "interview": interview.to_dict()
     }), 200
+
+@api_bp.route('/organizations/<int:org_id>/interviews', methods=['GET'])
+def get_organization_interviews(org_id):
+    """Get all interviews for an organization"""
+    status_filter = request.args.get('status')
+    decision_filter = request.args.get('decision')
+
+    query = Interview.query.filter_by(organization_id=org_id)
+
+    if status_filter:
+        query = query.filter_by(status=status_filter)
+
+    if decision_filter:
+        query = query.filter_by(final_decision=decision_filter)
+
+    interviews = query.order_by(Interview.scheduled_at.desc()).all()
+    return jsonify({'interviews': [interview.to_dict() for interview in interviews]}), 200
+
+@api_bp.route('/organizations/<int:org_id>/interviews/<int:interview_id>/decision', methods=['POST'])
+def update_organization_interview_decision(org_id, interview_id):
+    """Organization endpoint to update interview decision"""
+    from ...utils.interview_utils import update_interview_decision as update_decision_util
+
+    interview = Interview.query.filter_by(id=interview_id, organization_id=org_id).first_or_404()
+    payload = request.get_json(silent=True)
+    if payload is None:
+        return jsonify({"error": "Invalid JSON payload"}), 400
+
+    decision = payload.get("decision")  # 'passed', 'failed', 'second_round', 'third_round'
+    feedback = payload.get("feedback")
+    rating = payload.get("rating")
+
+    if not decision:
+        return jsonify({"error": "Decision is required"}), 400
+
+    if decision not in ['passed', 'failed', 'second_round', 'third_round']:
+        return jsonify({"error": "Invalid decision"}), 400
+
+    # Use the utility function to update decision
+    success, message = update_decision_util(
+        interview_id=interview_id,
+        decision=decision,
+        feedback=feedback,
+        rating=rating
+    )
+
+    if not success:
+        return jsonify({"error": message}), 400
+
+    # Refresh interview data
+    interview = Interview.query.get_or_404(interview_id)
+
+    return jsonify({
+        "message": message,
+        "interview": interview.to_dict()
+    }), 200
+
+@api_bp.route('/organizations/<int:org_id>/interviews/status-summary', methods=['GET'])
+def get_organization_interview_status_summary(org_id):
+    """Get interview status summary for an organization"""
+    from ...utils.interview_utils import get_interview_status_summary
+
+    summary = get_interview_status_summary(organization_id=org_id)
+
+    if summary is None:
+        return jsonify({"error": "Failed to get status summary"}), 500
+
+    return jsonify(summary), 200

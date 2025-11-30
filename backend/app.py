@@ -61,6 +61,13 @@ def create_app(config_object: object | None = None):
 
 	jwt.init_app(app)
 
+	# Initialize background scheduler for interview status updates
+	try:
+		from .scheduler import init_scheduler
+		init_scheduler()
+	except Exception as e:
+		print(f"Warning: Could not initialize background scheduler: {e}")
+
 	# enable CORS for API routes so frontend dev server can call /api/*
 	try:
 		from flask_cors import CORS  # type: ignore
