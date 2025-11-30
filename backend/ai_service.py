@@ -64,7 +64,7 @@ class AIService:
 
         # Fallback to provider-specific defaults
         if self.provider == "groq":
-            return "groq/compound"  # or other Groq models
+            return "groq/compound"  # Popular Groq model
         elif self.provider == "openai":
             return "gpt-4"  # or gpt-3.5-turbo
         else:

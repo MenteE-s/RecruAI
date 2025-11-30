@@ -43,8 +43,8 @@ class Interview(db.Model):
     interviewers = db.Column(db.Text, nullable=True)
 
     # AI Interview Agent (optional - for AI-powered interviews)
-    ai_agent_id = db.Column(db.Integer, db.ForeignKey("ai_agents.id"), nullable=True)
-    ai_agent = db.relationship("AIAgent", backref="interviews")
+    ai_agent_id = db.Column(db.Integer, db.ForeignKey("ai_interview_agents.id"), nullable=True)
+    ai_agent = db.relationship("AIInterviewAgent", backref="interviews")
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

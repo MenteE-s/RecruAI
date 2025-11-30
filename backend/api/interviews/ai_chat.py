@@ -1,8 +1,8 @@
 from flask import request, jsonify
 from .. import api_bp
 from ...extensions import db
-from ...models import Interview, User, AIAgent, ConversationMemory
-from ...rag.tools.generator import GeneratorTool
+from ...models import Interview, User, AIInterviewAgent, ConversationMemory
+from ...ai_service import get_ai_service
 import json
 
 @api_bp.route('/ai/chat', methods=['POST'])
@@ -49,9 +49,19 @@ def ai_chat():
         except Exception as e:
             print(f"Error storing AI response: {e}")
 
+    # Get agent name for response
+    agent_name = 'AI Interview Assistant'
+    if interview_id:
+        try:
+            interview = Interview.query.get(interview_id)
+            if interview and interview.ai_agent:
+                agent_name = interview.ai_agent.name
+        except Exception as e:
+            print(f"Error getting agent name: {e}")
+
     return jsonify({
         'response': agent_response,
-        'agent_name': 'AI Interview Assistant',
+        'agent_name': agent_name,
         'interview_id': interview_id
     }), 200
 
@@ -84,23 +94,33 @@ def generate_contextual_response(message, interview_id, conversation_history):
                 print(f"Error getting interview context: {e}")
 
         # Analyze conversation flow and generate contextual response
-        response = generate_smart_response(message, conversation_history, interview_context)
+        response = generate_smart_response(message, conversation_history, interview_context, interview)
 
         return response
 
     except Exception as e:
         print(f"Error generating contextual response: {e}")
-        return 'Thank you for your response. Can you elaborate on that or tell me more about your experience?'
+        return 'I need you to be more specific. Give me concrete examples from your experience that demonstrate your capabilities for this role.'
 
 
 def build_interview_context(interview):
     """Build comprehensive context from interview data for RAG"""
+    from datetime import datetime
+
+    current_time = datetime.utcnow()
+    time_until_interview = interview.scheduled_at - current_time
+    minutes_remaining = int(time_until_interview.total_seconds() / 60)
+
     context = f"""
     Interview Context:
     - Position: {interview.title}
     - Description: {interview.description or 'Not specified'}
     - Organization: {interview.organization.name if interview.organization else 'Unknown'}
     - Interview Type: {interview.interview_type}
+    - Scheduled Time: {interview.scheduled_at.strftime('%Y-%m-%d %H:%M UTC')}
+    - Duration: {interview.duration_minutes} minutes
+    - Time Status: {'Interview in progress' if minutes_remaining < 0 else f'Starts in {abs(minutes_remaining)} minutes'}
+    - Current UTC Time: {current_time.strftime('%Y-%m-%d %H:%M UTC')}
     """
 
     if interview.post:
@@ -128,36 +148,41 @@ def build_interview_context(interview):
     return context
 
 
-def build_interview_system_prompt(interview_context):
+def build_interview_system_prompt(interview_context, interview=None):
     """Build a comprehensive system prompt for the AI interviewer"""
-    base_prompt = f"""You are an experienced, professional interviewer conducting a job interview. Your role is to:
-
-1. **Be Dominant**: You control the conversation flow and ask most of the questions
-2. **Ask Follow-up Questions**: Always probe deeper into the candidate's responses
-3. **Be Professional**: Maintain a professional, respectful tone
-4. **Be Thorough**: Cover all relevant aspects of the candidate's experience and fit
-5. **Guide the Conversation**: Direct the interview towards important topics
-6. **Show Interest**: Demonstrate genuine interest in the candidate's background
+    # If there's an AI agent assigned to this interview, use its system prompt
+    if interview and interview.ai_agent:
+        agent = interview.ai_agent
+        base_prompt = f"""{agent.system_prompt}
 
 {interview_context}
 
-**Interview Guidelines:**
-- Start with broad questions about background and experience
-- Ask specific examples and detailed explanations
-- Probe for problem-solving abilities and achievements
-- Inquire about motivation and career goals
-- Always ask follow-up questions to get deeper insights
-- Keep responses conversational but focused
-- End questions with appropriate follow-up prompts
+INSTRUCTIONS: {agent.custom_instructions or 'Be professional and thorough'}
 
-**Response Style:**
-- Be conversational and engaging
-- Show enthusiasm for the candidate's responses
-- Ask 1-2 focused follow-up questions per response
-- Keep responses concise but comprehensive
-- Maintain professional interview atmosphere
+STYLE: Keep responses under 100 words. Start conversationally, ask ONE focused question. Reference job requirements naturally. Be authoritative but approachable.
 
-Remember: You are the interviewer - ask questions, probe deeper, and guide the conversation."""
+You are {agent.name} from {agent.organization.name if agent.organization else 'Unknown'}."""
+        return base_prompt
+
+    # Fallback to generic prompt if no agent assigned
+    base_prompt = f"""You are a professional interviewer evaluating candidates for specific job positions.
+
+CORE PRINCIPLES:
+- Keep responses under 100 words
+- Start with brief greeting, ask ONE focused question
+- Reference job requirements naturally in questions
+- Demand specific examples with measurable outcomes
+- Be authoritative but conversational
+
+{interview_context}
+
+RULES:
+- No tables, lists, or detailed plans
+- One question per response
+- Build conversation naturally
+- Always reference the specific job position
+
+Remember: Evaluate for THIS SPECIFIC JOB using the provided context."""
 
     return base_prompt
 
@@ -175,11 +200,27 @@ def format_conversation_history(conversation_history):
 
 def generate_fallback_response(message, conversation_history, interview_context):
     """Generate a basic fallback response when AI generation fails"""
+    # Extract job details from context
+    job_title = "this position"
+    job_requirements = ""
+    company_name = "our organization"
+
+    if interview_context:
+        # Parse context for job details
+        context_lines = interview_context.split('\n')
+        for line in context_lines:
+            if 'Job Title:' in line:
+                job_title = line.split('Job Title:')[1].strip()
+            elif 'Requirements:' in line and 'Not specified' not in line:
+                job_requirements = line.split('Requirements:')[1].strip()
+            elif 'Organization:' in line:
+                company_name = line.split('Organization:')[1].strip()
+
     # Simple fallback logic
     if len(conversation_history) <= 1:
-        return "Hello! I'm excited to learn more about you. Could you tell me about your professional background and what interests you about this position?"
+        return f"Hello. I'm evaluating your fit for the {job_title} position at {company_name}. Tell me about your experience with {job_title} roles - what specific products or projects have you managed?"
 
-    # Check for common patterns and provide basic follow-ups
+    # Check for common patterns and provide dominant follow-ups
     last_user_msg = None
     for msg in reversed(conversation_history):
         if msg.get('role') == 'user':
@@ -188,68 +229,43 @@ def generate_fallback_response(message, conversation_history, interview_context)
 
     if last_user_msg:
         if any(word in last_user_msg for word in ['experience', 'work', 'job']):
-            return "That's interesting. Can you tell me more about your specific responsibilities in that role?"
+            return f"Tell me about a specific project where you demonstrated the skills needed for this {job_title} role. What were your key responsibilities and the outcome?"
         elif any(word in last_user_msg for word in ['skill', 'technology', 'tool']):
-            return "Great! Can you give me an example of how you've applied that skill in a real project?"
+            return f"Give me a concrete example of how you've applied this skill in a real project relevant to our {job_title} position."
         elif any(word in last_user_msg for word in ['challenge', 'problem', 'difficult']):
-            return "I understand. How did you approach solving that challenge?"
+            return f"Walk me through how you solved that challenge. What was the measurable impact?"
+        elif 'position' in last_user_msg or 'open' in last_user_msg:
+            return f"I'm here to evaluate your qualifications for the {job_title} position at {company_name}. Tell me about your relevant experience."
+        elif 'software' in last_user_msg or 'engineer' in last_user_msg:
+            return f"For this {job_title} role, tell me about a product you've managed that involved technical components. What was your approach?"
 
-    return "Thank you for sharing that. Can you elaborate a bit more on your experience in this area?"
+    return f"I need a specific example from your experience that shows your capabilities for this {job_title} role. What have you accomplished?"
 
 
-def generate_smart_response(message, conversation_history, interview_context):
+def generate_smart_response(message, conversation_history, interview_context, interview=None):
     """Generate intelligent response using AI based on conversation analysis and context"""
     try:
-        # Initialize the generator tool
-        generator = GeneratorTool()
+        # Get the AI service (uses Groq by default)
+        ai_service = get_ai_service()
 
         # Build comprehensive system prompt for interview AI
-        system_prompt = build_interview_system_prompt(interview_context)
+        system_prompt = build_interview_system_prompt(interview_context, interview)
 
-        # Format conversation history for context
-        context_text = ""
+        # Format conversation history for AI service
+        formatted_history = []
         if conversation_history:
             # Include recent conversation context
             recent_messages = conversation_history[-6:]  # Last 3 exchanges
-            context_parts = []
             for msg in recent_messages:
-                role = "Candidate" if msg.get('role') == 'user' else "Interviewer"
-                content = msg.get('content', '')[:200]  # Truncate long messages
-                context_parts.append(f"{role}: {content}")
-            context_text = "\n".join(context_parts)
+                formatted_history.append({
+                    "role": msg.get('role', 'user'),
+                    "content": msg.get('content', '')
+                })
 
-        # Create context chunks with conversation history and interview context
-        context_chunks = []
-        if context_text:
-            context_chunks.append({
-                'content': f"Recent Conversation:\n{context_text}",
-                'chunk_index': 0,
-                'word_count': len(context_text.split()),
-                'char_count': len(context_text),
-                'metadata': {'type': 'conversation_history'}
-            })
+        # Generate response using AI service (Groq)
+        response = ai_service.generate_response(system_prompt, message, formatted_history)
 
-        if interview_context:
-            context_chunks.append({
-                'content': f"Interview Context:\n{interview_context}",
-                'chunk_index': 1,
-                'word_count': len(interview_context.split()),
-                'char_count': len(interview_context),
-                'metadata': {'type': 'interview_context'}
-            })
-
-        # Generate response using AI with proper context
-        response = generator.generate_answer(
-            query=message,
-            context_chunks=context_chunks,
-            user_context={"role": "interviewer", "context": "job_interview"}
-        )
-
-        # If AI generation fails, fall back to basic response
-        if 'error' in response:
-            return generate_fallback_response(message, conversation_history, interview_context)
-
-        return response.get('answer', 'I apologize, but I encountered an issue generating a response. Could you please rephrase your answer?')
+        return response
 
     except Exception as e:
         print(f"Error in AI response generation: {e}")
