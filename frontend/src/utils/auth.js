@@ -9,6 +9,7 @@ import {
   FiBell,
   FiUsers,
   FiSettings,
+  FiCheckCircle,
 } from "react-icons/fi";
 
 // Get the backend URL for API calls and uploaded files
@@ -96,6 +97,7 @@ export function getSidebarItems(role, plan) {
           icon: FiClock,
         },
         { name: "Saved Jobs", link: "/jobs/saved", icon: FiBookmark },
+        { name: "Applied Jobs", link: "/jobs/applied", icon: FiCheckCircle },
         { name: "Analytics", link: "/analytics", icon: FiBarChart2 },
         { name: "Settings", link: "/settings", icon: FiSettings },
       ];
@@ -116,6 +118,7 @@ export function getSidebarItems(role, plan) {
           icon: FiClock,
         },
         { name: "Saved Jobs", link: "/jobs/saved", icon: FiBookmark },
+        { name: "Applied Jobs", link: "/jobs/applied", icon: FiCheckCircle },
         { name: "Analytics", link: "/analytics", icon: FiBarChart2 },
         { name: "Resume Builder", link: "/resume/builder", icon: FiFileText },
         { name: "Job Alerts", link: "/jobs/alerts", icon: FiBell },
