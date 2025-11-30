@@ -1,8 +1,8 @@
 from flask import request, jsonify
 
-from . import api_bp
-from ..extensions import db
-from ..models import (
+from .. import api_bp
+from ...extensions import db
+from ...models import (
     User, Experience, Education, Skill, Project, Certification,
     Award, Language, VolunteerExperience, Reference, HobbyInterest,
     ProfessionalMembership, Patent, CourseTraining, SocialMediaLink, KeyAchievement

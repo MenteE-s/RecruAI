@@ -1,4 +1,4 @@
-from . import api_bp
+from .. import api_bp
 
 
 @api_bp.route("/health", methods=["GET"])
