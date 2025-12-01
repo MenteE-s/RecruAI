@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useState, useEffect } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
 import Card from "../../components/ui/Card";
-import { getSidebarItems } from "../../utils/auth";
+import { getSidebarItems, verifyTokenWithServer } from "../../utils/auth";
 import { useToast } from "../../components/ui/ToastContext";
+import { formatDate } from "../../utils/timezone";
 
 export default function AIAgents() {
   const role =
@@ -24,22 +25,34 @@ export default function AIAgents() {
     name: "",
     industry: "",
     description: "",
+    system_prompt: "",
     custom_instructions: "",
     is_active: true,
   });
+  const [organizationId, setOrganizationId] = useState(null);
+  const [orgError, setOrgError] = useState("");
 
-  useEffect(() => {
-    fetchAgents();
-  }, []);
-
-  const fetchAgents = async () => {
+  const fetchAgents = useCallback(async () => {
+    if (!organizationId) {
+      return;
+    }
+    setLoading(true);
     try {
-      // TODO: Get organization ID from user context
-      const orgId = 1; // Placeholder
-      const response = await fetch(`/api/organizations/${orgId}/ai-agents`);
+      const response = await fetch(
+        `/api/organizations/${organizationId}/ai-agents`,
+        {
+          credentials: "include",
+        }
+      );
       if (response.ok) {
         const data = await response.json();
         setAgents(data);
+      } else {
+        const errorPayload = await response.json().catch(() => null);
+        showToast({
+          message: errorPayload?.error || "Failed to load AI agents",
+          type: "error",
+        });
       }
     } catch (error) {
       console.error("Error fetching agents:", error);
@@ -50,22 +63,82 @@ export default function AIAgents() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [organizationId, showToast]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadOrganization = async () => {
+      setLoading(true);
+      try {
+        const user = await verifyTokenWithServer();
+        if (!isMounted) {
+          return;
+        }
+        if (user?.organization_id) {
+          setOrganizationId(user.organization_id);
+          setOrgError("");
+        } else {
+          setOrgError(
+            "Unable to determine your organization. Please refresh or contact support."
+          );
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error("Error loading organization context:", error);
+        if (!isMounted) {
+          return;
+        }
+        setOrgError(
+          "Unable to load your organization context. Please try again later."
+        );
+        setLoading(false);
+      }
+    };
+
+    loadOrganization();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (organizationId) {
+      fetchAgents();
+    }
+  }, [organizationId, fetchAgents]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const targetOrgId = editingAgent
+      ? editingAgent.organization_id
+      : organizationId;
+    if (!targetOrgId) {
+      showToast({
+        message:
+          "Unable to determine your organization. Please refresh and try again.",
+        type: "error",
+      });
+      return;
+    }
     try {
-      const orgId = 1; // TODO: Get from user context
       const url = editingAgent
         ? `/api/ai-agents/${editingAgent.id}`
-        : `/api/organizations/${orgId}/ai-agents`;
+        : `/api/organizations/${targetOrgId}/ai-agents`;
       const method = editingAgent ? "PUT" : "POST";
+      const payload = {
+        ...formData,
+        system_prompt: formData.system_prompt?.trim(),
+      };
+      if (!payload.system_prompt) {
+        delete payload.system_prompt;
+      }
 
       const response = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
 
       if (response.ok) {
@@ -124,6 +197,7 @@ export default function AIAgents() {
       name: agent.name || "",
       industry: agent.industry || "",
       description: agent.description || "",
+      system_prompt: agent.system_prompt || "",
       custom_instructions: agent.custom_instructions || "",
       is_active: agent.is_active ?? true,
     });
@@ -163,6 +237,7 @@ export default function AIAgents() {
       name: "",
       industry: "",
       description: "",
+      system_prompt: "",
       custom_instructions: "",
       is_active: true,
     });
@@ -221,6 +296,12 @@ export default function AIAgents() {
           </div>
         </div>
       </div>
+
+      {orgError && (
+        <Card className="mb-6 border-l-4 border-red-400 bg-red-50 text-red-700">
+          <p>{orgError}</p>
+        </Card>
+      )}
 
       {showCreateForm && (
         <Card className="mb-6">
@@ -285,6 +366,28 @@ export default function AIAgents() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                 placeholder="Brief description of what this agent specializes in..."
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Base System Prompt
+              </label>
+              <textarea
+                rows={4}
+                value={formData.system_prompt}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    system_prompt: e.target.value,
+                  }))
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                placeholder="Optional instructions describing how this agent should behave (leave blank for a smart default prompt)."
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                Use this to customize the agent's tone, level of detail, or what
+                it should prioritize during interviews.
+              </p>
             </div>
 
             <div>
@@ -387,8 +490,7 @@ export default function AIAgents() {
                         🏭 {agent.industry}
                       </span>
                       <span className="flex items-center gap-1">
-                        📅 Created{" "}
-                        {new Date(agent.created_at).toLocaleDateString()}
+                        📅 Created {formatDate(agent.created_at)}
                       </span>
                     </div>
                     {agent.custom_instructions && (

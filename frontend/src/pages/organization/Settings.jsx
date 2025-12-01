@@ -3,6 +3,7 @@ import DashboardLayout from "../../components/layout/DashboardLayout";
 import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
 import Card from "../../components/ui/Card";
 import { getSidebarItems, verifyTokenWithServer } from "../../utils/auth";
+import TimezoneSelector from "../../components/ui/TimezoneSelector";
 
 export default function OrganizationSettings() {
   const role =
@@ -396,6 +397,21 @@ export default function OrganizationSettings() {
               <input type="checkbox" defaultChecked className="rounded" />
             </div>
           </div>
+        </Card>
+
+        {/* Timezone Settings */}
+        <Card>
+          <h3 className="font-semibold text-gray-800 mb-4">
+            Timezone Settings
+          </h3>
+          <p className="text-sm text-gray-600 mb-4">
+            Set your organization's timezone to ensure interview times are
+            displayed correctly for all team members.
+          </p>
+          <TimezoneSelector
+            organizationId={organization?.id}
+            showCurrentTime={true}
+          />
         </Card>
 
         {/* Danger Zone */}

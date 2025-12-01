@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
 import Card from "../../components/ui/Card";
-import { getSidebarItems } from "../../utils/auth";
+import { getSidebarItems, verifyTokenWithServer } from "../../utils/auth";
 import { useToast } from "../../components/ui/ToastContext";
 
 export default function JobPosts() {
@@ -32,9 +32,20 @@ export default function JobPosts() {
     application_deadline: "",
     status: "active",
   });
+  const [organizationId, setOrganizationId] = useState(null);
 
   useEffect(() => {
     fetchPosts();
+  }, []);
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      const user = await verifyTokenWithServer();
+      if (user?.organization_id) {
+        setOrganizationId(user.organization_id);
+      }
+    };
+    loadProfile();
   }, []);
 
   const fetchPosts = async () => {
@@ -57,9 +68,19 @@ export default function JobPosts() {
       const url = editingPost ? `/api/posts/${editingPost.id}` : "/api/posts";
       const method = editingPost ? "PUT" : "POST";
 
+      const orgId = editingPost?.organization_id ?? organizationId;
+      if (!orgId) {
+        showToast({
+          message:
+            "Unable to determine your organization. Please sign in again or contact support.",
+          type: "error",
+        });
+        return;
+      }
+
       const payload = {
         ...formData,
-        organization_id: 1, // TODO: Get from user context
+        organization_id: orgId,
         requirements: formData.requirements.filter((req) => req.trim()),
       };
 
@@ -80,8 +101,10 @@ export default function JobPosts() {
           type: "success",
         });
       } else {
+        const errorPayload = await response.json().catch(() => null);
+        const errorMessage = errorPayload?.error || "Failed to save job post";
         showToast({
-          message: "Failed to save job post",
+          message: errorMessage,
           type: "error",
         });
       }

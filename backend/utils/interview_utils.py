@@ -50,7 +50,13 @@ def update_expired_interviews():
 
 def update_interview_decision(interview_id, decision, feedback=None, rating=None):
     """
-    Update interview decision and related fields
+    Update interview decision and related fields.
+
+    Multi-round logic:
+    - 'passed': Candidate passed final round, hiring process complete
+    - 'failed': Candidate did not pass, process ends
+    - 'second_round': Candidate passed round 1, schedule round 2
+    - 'third_round': Candidate passed round 2, schedule round 3
 
     Args:
         interview_id: Interview ID
@@ -79,14 +85,29 @@ def update_interview_decision(interview_id, decision, feedback=None, rating=None
         if interview.completed_at is None:
             interview.completed_at = datetime.utcnow()
 
-        # Update round status based on decision
+        # Update round status and current_round based on decision
         if decision == 'passed':
+            # Final pass - candidate is hired
             interview.round_status = 'passed'
+            interview.status = 'completed'
         elif decision == 'failed':
+            # Candidate did not pass
             interview.round_status = 'failed'
-        elif decision in ['second_round', 'third_round']:
-            interview.round_status = 'passed'  # Passed current round, moving to next
-            interview.current_round += 1
+            interview.status = 'completed'
+        elif decision == 'second_round':
+            # Passed round 1, moving to round 2
+            interview.round_status = 'passed'
+            interview.current_round = 2
+            # Reset status to scheduled for the next round
+            interview.status = 'scheduled'
+            interview.completed_at = None  # Clear so it can be scheduled again
+        elif decision == 'third_round':
+            # Passed round 2, moving to round 3
+            interview.round_status = 'passed'
+            interview.current_round = 3
+            # Reset status to scheduled for the next round
+            interview.status = 'scheduled'
+            interview.completed_at = None  # Clear so it can be scheduled again
 
         # Update feedback and rating if provided
         if feedback is not None:
@@ -97,7 +118,14 @@ def update_interview_decision(interview_id, decision, feedback=None, rating=None
         interview.updated_at = datetime.utcnow()
         db.session.commit()
 
-        return True, f"Interview decision updated to {decision}"
+        # Build appropriate message
+        if decision in ['second_round', 'third_round']:
+            round_num = 2 if decision == 'second_round' else 3
+            return True, f"Candidate advanced to round {round_num}. Please schedule the next interview."
+        elif decision == 'passed':
+            return True, "Candidate has passed! Ready for offer."
+        else:
+            return True, "Interview decision recorded."
 
     except Exception as e:
         db.session.rollback()

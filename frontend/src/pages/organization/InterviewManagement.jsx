@@ -4,6 +4,7 @@ import DashboardLayout from "../../components/layout/DashboardLayout";
 import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
 import Card from "../../components/ui/Card";
 import { getSidebarItems } from "../../utils/auth";
+import { formatDateTime as formatDateTimeTz } from "../../utils/timezone";
 
 // Modal Component
 const Modal = ({ isOpen, onClose, children }) => {
@@ -449,9 +450,9 @@ const CancelInterviewModal = ({
               </p>
               <p>
                 <strong>Scheduled:</strong>{" "}
-                {new Date(
+                {formatDateTimeTz(
                   interview.scheduled_at_iso || interview.scheduled_at
-                ).toLocaleString()}
+                )}
               </p>
               <p>
                 <strong>Duration:</strong> {interview.duration_minutes} minutes
@@ -597,15 +598,25 @@ const EditInterviewModal = ({ isOpen, onClose, onSave, saving, interview }) => {
 
   useEffect(() => {
     if (interview && isOpen) {
+      // Convert UTC time from server to local time for the datetime-local input
+      let localDateTimeStr = "";
+      if (interview.scheduled_at_iso || interview.scheduled_at) {
+        const utcDate = new Date(
+          interview.scheduled_at_iso || interview.scheduled_at
+        );
+        // Format as local datetime for the input (YYYY-MM-DDTHH:MM)
+        const year = utcDate.getFullYear();
+        const month = String(utcDate.getMonth() + 1).padStart(2, "0");
+        const day = String(utcDate.getDate()).padStart(2, "0");
+        const hours = String(utcDate.getHours()).padStart(2, "0");
+        const minutes = String(utcDate.getMinutes()).padStart(2, "0");
+        localDateTimeStr = `${year}-${month}-${day}T${hours}:${minutes}`;
+      }
+
       setFormData({
         title: interview.title || "",
         description: interview.description || "",
-        scheduled_at:
-          interview.scheduled_at_iso || interview.scheduled_at
-            ? new Date(interview.scheduled_at_iso || interview.scheduled_at)
-                .toISOString()
-                .slice(0, 16)
-            : "",
+        scheduled_at: localDateTimeStr,
         duration_minutes: interview.duration_minutes || 60,
         interview_type: interview.interview_type || "text",
         location: interview.location || "",
@@ -617,16 +628,14 @@ const EditInterviewModal = ({ isOpen, onClose, onSave, saving, interview }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    // Convert datetime-local to UTC before sending
+    // The datetime-local input gives us local time
+    // Convert it to UTC ISO string for the backend
     const localDateTime = new Date(formData.scheduled_at);
-    const utcDateTime = new Date(
-      localDateTime.getTime() - localDateTime.getTimezoneOffset() * 60000
-    );
-    const utcISOString = utcDateTime.toISOString().slice(0, 16); // Remove seconds and timezone
+    const utcISOString = localDateTime.toISOString(); // This converts local to UTC automatically
 
     const dataToSend = {
       ...formData,
-      scheduled_at: utcISOString + "Z", // Add Z to indicate UTC
+      scheduled_at: utcISOString,
     };
 
     onSave(dataToSend);
@@ -1066,13 +1075,13 @@ export default function InterviewManagement() {
   };
 
   const formatDateTime = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleString("en-US", {
+    return formatDateTimeTz(dateString, {
       year: "numeric",
       month: "long",
       day: "numeric",
       hour: "numeric",
       minute: "2-digit",
+      timeZoneName: "short",
     });
   };
 

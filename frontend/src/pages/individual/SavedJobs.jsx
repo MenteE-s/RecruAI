@@ -3,6 +3,7 @@ import DashboardLayout from "../../components/layout/DashboardLayout";
 import IndividualNavbar from "../../components/layout/IndividualNavbar";
 import Card from "../../components/ui/Card";
 import { getSidebarItems } from "../../utils/auth";
+import { formatDate } from "../../utils/timezone";
 
 export default function SavedJobs() {
   const role =
@@ -160,7 +161,7 @@ export default function SavedJobs() {
                       {job.organization?.name} • {job.location}
                     </p>
                     <p className="text-gray-500 text-sm">
-                      Saved {new Date(savedJob.saved_at).toLocaleDateString()}
+                      Saved {formatDate(savedJob.saved_at)}
                     </p>
                     {job.salary_min && job.salary_max && (
                       <p className="text-gray-600 text-sm mt-1">

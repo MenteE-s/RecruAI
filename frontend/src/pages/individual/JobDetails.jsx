@@ -5,6 +5,7 @@ import IndividualNavbar from "../../components/layout/IndividualNavbar";
 import Card from "../../components/ui/Card";
 import { getSidebarItems } from "../../utils/auth";
 import { useToast } from "../../components/ui/ToastContext";
+import { formatDate } from "../../utils/timezone";
 
 export default function JobDetails() {
   const { id } = useParams();
@@ -289,8 +290,7 @@ export default function JobDetails() {
                   )}
                   {job.application_deadline && (
                     <span className="flex items-center gap-1">
-                      ⏰ Deadline:{" "}
-                      {new Date(job.application_deadline).toLocaleDateString()}
+                      ⏰ Deadline: {formatDate(job.application_deadline)}
                     </span>
                   )}
                 </div>
@@ -424,7 +424,7 @@ export default function JobDetails() {
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Posted:</span>
-                  <span>{new Date(job.created_at).toLocaleDateString()}</span>
+                  <span>{formatDate(job.created_at)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Status:</span>
@@ -443,9 +443,7 @@ export default function JobDetails() {
                 {job.application_deadline && (
                   <div className="flex justify-between">
                     <span className="text-gray-600">Deadline:</span>
-                    <span>
-                      {new Date(job.application_deadline).toLocaleDateString()}
-                    </span>
+                    <span>{formatDate(job.application_deadline)}</span>
                   </div>
                 )}
               </div>

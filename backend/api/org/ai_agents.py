@@ -1,21 +1,38 @@
+from datetime import datetime
+import json
+
 from flask import request, jsonify
+
 from .. import api_bp
 from ...extensions import db
-from ...models import AIAgent, Organization, Interview
-import json
-from datetime import datetime
+from ...models import AIInterviewAgent, Organization, Interview
+
+
+def _build_default_system_prompt(name: str, industry: str) -> str:
+    agent_name = name or "AI Interview Agent"
+    industry_label = industry or "your industry"
+    return (
+        f"You are {agent_name}, an expert interviewer for {industry_label} positions. "
+        "Conduct insightful, professional interviews that evaluate candidates' skills, experience, "
+        "and cultural fit while keeping a friendly yet focused tone."
+    )
 
 @api_bp.route("/organizations/<int:org_id>/ai-agents", methods=["GET"])
 def list_ai_agents(org_id):
-    """Get all AI agents for an organization"""
-    org = Organization.query.get_or_404(org_id)
-    agents = AIAgent.query.filter_by(organization_id=org_id).all()
+    """Get all AI interview agents for an organization."""
+    Organization.query.get_or_404(org_id)
+    agents = (
+        AIInterviewAgent.query
+        .filter_by(organization_id=org_id)
+        .order_by(AIInterviewAgent.created_at.desc())
+        .all()
+    )
     return jsonify([agent.to_dict() for agent in agents]), 200
 
 @api_bp.route("/organizations/<int:org_id>/ai-agents", methods=["POST"])
 def create_ai_agent(org_id):
-    """Create a new AI interview agent"""
-    org = Organization.query.get_or_404(org_id)
+    """Create a new AI interview agent."""
+    Organization.query.get_or_404(org_id)
     payload = request.get_json(silent=True) or {}
 
     name = payload.get("name")
@@ -23,27 +40,17 @@ def create_ai_agent(org_id):
     if not name or not industry:
         return jsonify({"error": "name and industry required"}), 400
 
-    # Create default system prompt based on industry
-    default_system_prompt = f"""You are an expert interviewer for {industry} positions. Your role is to conduct professional, insightful interviews that assess candidates' skills, experience, and fit for the role.
+    system_prompt = payload.get("system_prompt")
+    if not system_prompt:
+        system_prompt = _build_default_system_prompt(name, industry)
 
-Key responsibilities:
-1. Ask relevant, technical questions appropriate for the {industry} field
-2. Evaluate candidates based on their responses, experience, and problem-solving abilities
-3. Provide constructive feedback and maintain a professional tone
-4. Assess both technical skills and soft skills like communication and critical thinking
-5. Be encouraging while maintaining high standards
-
-Remember to:
-- Start with easier questions and progress to more challenging ones
-- Give candidates time to think and explain their answers
-- Ask follow-up questions to dive deeper into their responses
-- Be fair, unbiased, and professional throughout the interview"""
-
-    agent = AIAgent(
+    agent = AIInterviewAgent(
         organization_id=org_id,
         name=name,
         industry=industry,
         description=payload.get("description"),
+        system_prompt=system_prompt,
+        custom_instructions=payload.get("custom_instructions"),
         is_active=payload.get("is_active", True),
     )
     db.session.add(agent)
@@ -52,14 +59,14 @@ Remember to:
 
 @api_bp.route("/ai-agents/<int:agent_id>", methods=["GET"])
 def get_ai_agent(agent_id):
-    """Get a specific AI agent"""
-    agent = AIAgent.query.get_or_404(agent_id)
+    """Return a single AI interview agent."""
+    agent = AIInterviewAgent.query.get_or_404(agent_id)
     return jsonify(agent.to_dict()), 200
 
 @api_bp.route("/ai-agents/<int:agent_id>", methods=["PUT"])
 def update_ai_agent(agent_id):
-    """Update an AI agent"""
-    agent = AIAgent.query.get_or_404(agent_id)
+    """Update an AI interview agent."""
+    agent = AIInterviewAgent.query.get_or_404(agent_id)
     payload = request.get_json(silent=True) or {}
 
     if "name" in payload:
@@ -74,22 +81,23 @@ def update_ai_agent(agent_id):
         agent.custom_instructions = payload["custom_instructions"]
     if "is_active" in payload:
         agent.is_active = payload["is_active"]
+    agent.updated_at = datetime.utcnow()
 
     db.session.commit()
     return jsonify(agent.to_dict()), 200
 
 @api_bp.route("/ai-agents/<int:agent_id>", methods=["DELETE"])
 def delete_ai_agent(agent_id):
-    """Delete an AI agent"""
-    agent = AIAgent.query.get_or_404(agent_id)
+    """Delete an AI interview agent"""
+    agent = AIInterviewAgent.query.get_or_404(agent_id)
     db.session.delete(agent)
     db.session.commit()
     return jsonify({"message": "AI agent deleted"}), 200
 
 @api_bp.route("/ai-agents/<int:agent_id>/test", methods=["POST"])
 def test_ai_agent(agent_id):
-    """Test an AI agent with a sample conversation"""
-    agent = AIAgent.query.get_or_404(agent_id)
+    """Test an AI interview agent with a sample conversation"""
+    agent = AIInterviewAgent.query.get_or_404(agent_id)
     payload = request.get_json(silent=True) or {}
 
     test_message = payload.get("message", "Hello, I'm here for the interview.")
@@ -147,7 +155,7 @@ def start_ai_interview(interview_id):
     if not interview.ai_agent_id:
         return jsonify({"error": "This interview is not assigned to an AI agent"}), 400
 
-    agent = AIAgent.query.get(interview.ai_agent_id)
+    agent = AIInterviewAgent.query.get(interview.ai_agent_id)
     if not agent or not agent.is_active:
         return jsonify({"error": "AI agent not found or inactive"}), 400
 
@@ -182,7 +190,7 @@ def send_ai_message(interview_id):
     if not interview.ai_agent_id:
         return jsonify({"error": "This interview is not assigned to an AI agent"}), 400
 
-    agent = AIAgent.query.get(interview.ai_agent_id)
+    agent = AIInterviewAgent.query.get(interview.ai_agent_id)
     if not agent or not agent.is_active:
         return jsonify({"error": "AI agent not found or inactive"}), 400
 
@@ -266,7 +274,7 @@ def assign_ai_agent_to_interview(interview_id):
     if not agent_id:
         return jsonify({"error": "agent_id required"}), 400
 
-    agent = AIAgent.query.get(agent_id)
+    agent = AIInterviewAgent.query.get(agent_id)
     if not agent or not agent.is_active:
         return jsonify({"error": "AI agent not found or inactive"}), 400
 

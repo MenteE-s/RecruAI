@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import Card from "../ui/Card";
+import { formatTime as formatTimeTz } from "../../utils/timezone";
 
 const TextInterview = ({
   interviewId,
@@ -108,10 +109,7 @@ const TextInterview = ({
   };
 
   const formatTime = (timestamp) => {
-    return new Date(timestamp).toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    return formatTimeTz(timestamp);
   };
 
   // Show completion screen if interview is completed

@@ -3,6 +3,7 @@ import DashboardLayout from "../../components/layout/DashboardLayout";
 import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
 import Card from "../../components/ui/Card";
 import { getSidebarItems } from "../../utils/auth";
+import { formatDate } from "../../utils/timezone";
 
 export default function Pipeline() {
   const role =
@@ -109,12 +110,11 @@ export default function Pipeline() {
             </h4>
             <p className="text-sm text-gray-600">{user.email}</p>
             <p className="text-xs text-gray-500 mt-1">
-              Applied: {new Date(application.applied_at).toLocaleDateString()}
+              Applied: {formatDate(application.applied_at)}
             </p>
             {interview && (
               <p className="text-xs text-blue-600 mt-1">
-                Interview:{" "}
-                {new Date(interview.scheduled_at).toLocaleDateString()}
+                Interview: {formatDate(interview.scheduled_at)}
               </p>
             )}
           </div>

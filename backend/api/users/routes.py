@@ -7,6 +7,44 @@ from ...models import (
     Award, Language, VolunteerExperience, Reference, HobbyInterest,
     ProfessionalMembership, Patent, CourseTraining, SocialMediaLink, KeyAchievement
 )
+from ...utils.timezone_utils import get_timezone_list, is_valid_timezone, get_current_time_info
+
+
+@api_bp.route("/timezones", methods=["GET"])
+def list_timezones():
+    """Get list of available timezones for user selection."""
+    return jsonify(get_timezone_list()), 200
+
+
+@api_bp.route("/users/<int:user_id>/timezone", methods=["PUT"])
+def update_user_timezone(user_id):
+    """Update user's timezone preference."""
+    user = User.query.get_or_404(user_id)
+    payload = request.get_json(silent=True) or {}
+    
+    tz = payload.get("timezone")
+    if not tz:
+        return jsonify({"error": "timezone required"}), 400
+    
+    if not is_valid_timezone(tz):
+        return jsonify({"error": f"Invalid timezone: {tz}"}), 400
+    
+    user.timezone = tz
+    db.session.commit()
+    
+    return jsonify({
+        "message": "Timezone updated",
+        "user": user.to_dict(),
+        "current_time": get_current_time_info(tz),
+    }), 200
+
+
+@api_bp.route("/users/<int:user_id>/current-time", methods=["GET"])
+def get_user_current_time(user_id):
+    """Get current time information in user's timezone."""
+    user = User.query.get_or_404(user_id)
+    tz = user.timezone or "UTC"
+    return jsonify(get_current_time_info(tz)), 200
 
 
 @api_bp.route("/users", methods=["GET"])

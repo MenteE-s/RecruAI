@@ -21,6 +21,8 @@ class User(db.Model):
     organization = db.relationship("Organization", back_populates="users")
     # profile picture URL/path
     profile_picture = db.Column(db.String(500), nullable=True)
+    # user's preferred timezone (e.g., 'Asia/Karachi', 'America/New_York')
+    timezone = db.Column(db.String(50), nullable=True, default="UTC")
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     interviews = db.relationship("Interview", back_populates="user", cascade="all, delete-orphan")
@@ -46,5 +48,6 @@ class User(db.Model):
             "organization_id": self.organization_id,
             "organization": self.organization.name if self.organization else None,
             "profile_picture": self.profile_picture,
+            "timezone": self.timezone or "UTC",
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }

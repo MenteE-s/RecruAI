@@ -3,6 +3,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from .. import api_bp
 from ...extensions import db
 from ...models import Organization, TeamMember, User
+from ...utils.timezone_utils import is_valid_timezone, get_current_time_info
 
 @api_bp.route("/organizations", methods=["GET"])
 def list_organizations():
@@ -83,9 +84,46 @@ def update_organization(org_id):
         org.contact_name = payload["contact_name"]
     if "location" in payload:
         org.location = payload["location"]
+    if "timezone" in payload:
+        tz = payload["timezone"]
+        if tz and not is_valid_timezone(tz):
+            return jsonify({"error": f"Invalid timezone: {tz}"}), 400
+        org.timezone = tz
 
     db.session.commit()
     return jsonify(org.to_dict()), 200
+
+
+@api_bp.route("/organizations/<int:org_id>/timezone", methods=["PUT"])
+def update_organization_timezone(org_id):
+    """Update organization's timezone preference."""
+    org = Organization.query.get_or_404(org_id)
+    payload = request.get_json(silent=True) or {}
+    
+    tz = payload.get("timezone")
+    if not tz:
+        return jsonify({"error": "timezone required"}), 400
+    
+    if not is_valid_timezone(tz):
+        return jsonify({"error": f"Invalid timezone: {tz}"}), 400
+    
+    org.timezone = tz
+    db.session.commit()
+    
+    return jsonify({
+        "message": "Timezone updated",
+        "organization": org.to_dict(),
+        "current_time": get_current_time_info(tz),
+    }), 200
+
+
+@api_bp.route("/organizations/<int:org_id>/current-time", methods=["GET"])
+def get_organization_current_time(org_id):
+    """Get current time information in organization's timezone."""
+    org = Organization.query.get_or_404(org_id)
+    tz = org.timezone or "UTC"
+    return jsonify(get_current_time_info(tz)), 200
+
 
 @api_bp.route("/organizations/<int:org_id>/profile", methods=["PUT"])
 def update_organization_profile(org_id):

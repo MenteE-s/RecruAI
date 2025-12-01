@@ -4,6 +4,7 @@ import DashboardLayout from "../../components/layout/DashboardLayout";
 import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
 import Card from "../../components/ui/Card";
 import { getSidebarItems } from "../../utils/auth";
+import { formatDate } from "../../utils/timezone";
 
 export default function OrganizationAnalytics() {
   const navigate = useNavigate();
@@ -264,8 +265,7 @@ export default function OrganizationAnalytics() {
                       Interview #{analysis.interview_id}
                     </h4>
                     <p className="text-sm text-gray-600">
-                      Analyzed:{" "}
-                      {new Date(analysis.created_at).toLocaleDateString()}
+                      Analyzed: {formatDate(analysis.created_at)}
                     </p>
                   </div>
                   <div className="text-right">

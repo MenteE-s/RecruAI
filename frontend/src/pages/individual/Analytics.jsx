@@ -4,6 +4,7 @@ import DashboardLayout from "../../components/layout/DashboardLayout";
 import IndividualNavbar from "../../components/layout/IndividualNavbar";
 import Card from "../../components/ui/Card";
 import { getSidebarItems } from "../../utils/auth";
+import { formatDate } from "../../utils/timezone";
 
 export default function Analytics() {
   const navigate = useNavigate();
@@ -244,7 +245,7 @@ export default function Analytics() {
                       Interview Analysis
                     </h4>
                     <p className="text-sm text-gray-600">
-                      {new Date(analysis.created_at).toLocaleDateString()}
+                      {formatDate(analysis.created_at)}
                     </p>
                   </div>
                   <div className="text-right">

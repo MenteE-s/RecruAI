@@ -1,7 +1,9 @@
+import { useState, useEffect } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import IndividualNavbar from "../../components/layout/IndividualNavbar";
 import Card from "../../components/ui/Card";
 import { getSidebarItems } from "../../utils/auth";
+import TimezoneSelector from "../../components/ui/TimezoneSelector";
 
 export default function Settings() {
   const role =
@@ -9,6 +11,26 @@ export default function Settings() {
   const plan =
     typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
   const sidebarItems = getSidebarItems(role, plan);
+
+  const [userId, setUserId] = useState(null);
+
+  useEffect(() => {
+    // Fetch current user ID
+    const fetchUser = async () => {
+      try {
+        const response = await fetch("/api/auth/me", {
+          credentials: "include",
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setUserId(data.id);
+        }
+      } catch (error) {
+        console.error("Error fetching user:", error);
+      }
+    };
+    fetchUser();
+  }, []);
 
   return (
     <DashboardLayout
@@ -197,6 +219,17 @@ export default function Settings() {
               <input type="checkbox" defaultChecked className="rounded" />
             </div>
           </div>
+        </Card>
+
+        {/* Timezone Settings */}
+        <Card>
+          <h3 className="font-semibold text-gray-800 mb-4">
+            Timezone Settings
+          </h3>
+          <p className="text-sm text-gray-600 mb-4">
+            Set your timezone to ensure interview times are displayed correctly.
+          </p>
+          <TimezoneSelector userId={userId} showCurrentTime={true} />
         </Card>
 
         {/* Danger Zone */}

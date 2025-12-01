@@ -21,6 +21,8 @@ class Organization(db.Model):
     # profile and banner images
     profile_image = db.Column(db.String(500), nullable=True)
     banner_image = db.Column(db.String(500), nullable=True)
+    # organization's preferred timezone (e.g., 'Asia/Karachi', 'America/New_York')
+    timezone = db.Column(db.String(50), nullable=True, default="UTC")
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     users = db.relationship("User", back_populates="organization")
@@ -52,5 +54,6 @@ class Organization(db.Model):
             "social_media_links": social_links,
             "profile_image": self.profile_image,
             "banner_image": self.banner_image,
+            "timezone": self.timezone or "UTC",
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }

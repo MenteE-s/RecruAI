@@ -4,6 +4,7 @@ import DashboardLayout from "../../components/layout/DashboardLayout";
 import IndividualNavbar from "../../components/layout/IndividualNavbar";
 import Card from "../../components/ui/Card";
 import { getSidebarItems } from "../../utils/auth";
+import { formatDate } from "../../utils/timezone";
 
 export default function AppliedJobs() {
   const role =
@@ -140,8 +141,7 @@ export default function AppliedJobs() {
                       {job.organization?.name} • {job.location}
                     </p>
                     <p className="text-gray-500 text-sm">
-                      Applied{" "}
-                      {new Date(application.applied_at).toLocaleDateString()}
+                      Applied {formatDate(application.applied_at)}
                     </p>
                     {application.pipeline_stage && (
                       <p className="text-gray-600 text-sm mt-1">

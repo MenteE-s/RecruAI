@@ -5,6 +5,7 @@ import IndividualNavbar from "../components/layout/IndividualNavbar";
 import OrganizationNavbar from "../components/layout/OrganizationNavbar";
 import Card from "../components/ui/Card";
 import { getSidebarItems } from "../utils/auth";
+import { formatDateTime } from "../utils/timezone";
 
 const InterviewAnalysis = () => {
   const { interviewId } = useParams();
@@ -207,8 +208,7 @@ const InterviewAnalysis = () => {
             <div>
               <div className="text-sm text-gray-600">Date & Time</div>
               <div className="font-medium">
-                {new Date(interview.scheduled_at).toLocaleDateString()} at{" "}
-                {new Date(interview.scheduled_at).toLocaleTimeString()}
+                {formatDateTime(interview.scheduled_at)}
               </div>
             </div>
             <div>

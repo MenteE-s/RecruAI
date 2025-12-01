@@ -36,3 +36,7 @@ class Config:
     # client simple; enable in production by setting JWT_COOKIE_CSRF_PROTECT=1
     # and handling the CSRF token on the client side.
     JWT_COOKIE_CSRF_PROTECT = os.getenv("JWT_COOKIE_CSRF_PROTECT", "0") == "1"
+
+    # JWT token expiration: 24 hours by default
+    from datetime import timedelta
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES_HOURS", "24")))

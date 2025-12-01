@@ -5,6 +5,15 @@ from ...models import Post, Organization
 import json
 from datetime import datetime
 
+
+def _parse_salary(value):
+    if value is None or value == "":
+        return None
+    try:
+        return float(value)
+    except (ValueError, TypeError):
+        raise ValueError("Invalid salary value")
+
 @api_bp.route("/organizations/<int:org_id>/posts", methods=["GET"])
 def list_posts_for_org(org_id):
     org = Organization.query.get_or_404(org_id)
@@ -26,9 +35,18 @@ def create_post():
     if len(title.strip()) < 3:
         return jsonify({"error": "title must be at least 3 characters"}), 400
 
-    if payload.get("salary_min") and payload.get("salary_max"):
-        if payload["salary_min"] > payload["salary_max"]:
-            return jsonify({"error": "salary_min cannot be greater than salary_max"}), 400
+    try:
+        salary_min_value = _parse_salary(payload.get("salary_min"))
+        salary_max_value = _parse_salary(payload.get("salary_max"))
+    except ValueError as err:
+        return jsonify({"error": str(err)}), 400
+
+    if (
+        salary_min_value is not None
+        and salary_max_value is not None
+        and salary_min_value > salary_max_value
+    ):
+        return jsonify({"error": "salary_min cannot be greater than salary_max"}), 400
 
     org = Organization.query.get(org_id)
     if not org:
@@ -64,8 +82,8 @@ def create_post():
             location=payload.get("location"),
             employment_type=payload.get("employment_type"),
             category=payload.get("category"),
-            salary_min=payload.get("salary_min"),
-            salary_max=payload.get("salary_max"),
+            salary_min=salary_min_value,
+            salary_max=salary_max_value,
             salary_currency=payload.get("salary_currency", "USD"),
             requirements=requirements_json,
             application_deadline=application_deadline,
@@ -99,9 +117,22 @@ def update_post(post_id):
     if "category" in payload:
         post.category = payload["category"]
     if "salary_min" in payload:
-        post.salary_min = payload["salary_min"]
+        try:
+            post.salary_min = _parse_salary(payload["salary_min"])
+        except ValueError as err:
+            return jsonify({"error": str(err)}), 400
     if "salary_max" in payload:
-        post.salary_max = payload["salary_max"]
+        try:
+            post.salary_max = _parse_salary(payload["salary_max"])
+        except ValueError as err:
+            return jsonify({"error": str(err)}), 400
+
+    if (
+        post.salary_min is not None
+        and post.salary_max is not None
+        and post.salary_min > post.salary_max
+    ):
+        return jsonify({"error": "salary_min cannot be greater than salary_max"}), 400
     if "salary_currency" in payload:
         post.salary_currency = payload["salary_currency"]
     if "requirements" in payload:

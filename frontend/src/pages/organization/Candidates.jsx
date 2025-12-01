@@ -4,6 +4,7 @@ import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
 import Card from "../../components/ui/Card";
 import { getSidebarItems } from "../../utils/auth";
 import { useToast } from "../../components/ui/ToastContext";
+import { formatDate } from "../../utils/timezone";
 
 export default function Candidates() {
   const role =
@@ -257,8 +258,7 @@ export default function Candidates() {
                   </p>
 
                   <p className="text-gray-600 text-sm mb-2">
-                    Applied{" "}
-                    {new Date(application.applied_at).toLocaleDateString()}
+                    Applied {formatDate(application.applied_at)}
                   </p>
 
                   {application.cover_letter && (

@@ -3,6 +3,7 @@ import DashboardLayout from "../../components/layout/DashboardLayout";
 import IndividualNavbar from "../../components/layout/IndividualNavbar";
 import Card from "../../components/ui/Card";
 import { getSidebarItems } from "../../utils/auth";
+import { formatDateTime as formatDateTimeTz } from "../../utils/timezone";
 
 export default function InterviewHistory() {
   const role =
@@ -58,13 +59,13 @@ export default function InterviewHistory() {
   }, []);
 
   const formatDateTime = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleString("en-US", {
+    return formatDateTimeTz(dateString, {
       year: "numeric",
       month: "long",
       day: "numeric",
       hour: "numeric",
       minute: "2-digit",
+      timeZoneName: undefined,
     });
   };
 

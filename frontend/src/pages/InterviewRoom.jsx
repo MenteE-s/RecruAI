@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import TextInterview from "../components/interviews/TextInterview";
+import { formatDateTime } from "../utils/timezone";
 
 const InterviewRoom = () => {
   const { interviewId } = useParams();
@@ -319,7 +320,7 @@ const InterviewRoom = () => {
               : "Your interview is about to start!"}
           </p>
           <div className="space-y-2 text-sm text-gray-500">
-            <p>📅 {new Date(interview.scheduled_at).toLocaleString()}</p>
+            <p>📅 {formatDateTime(interview.scheduled_at)}</p>
             <p>⏱️ Duration: {interview.duration_minutes} minutes</p>
             <p>
               💬 Interview Type:{" "}

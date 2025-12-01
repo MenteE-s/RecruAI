@@ -4,7 +4,8 @@ import DashboardLayout from "../../components/layout/DashboardLayout";
 import IndividualNavbar from "../../components/layout/IndividualNavbar";
 import StatCard from "../../components/ui/StatCard";
 import Card from "../../components/ui/Card";
-import { getSidebarItems } from "../../utils/auth";
+import { getSidebarItems, verifyTokenWithServer } from "../../utils/auth";
+import { formatDate } from "../../utils/timezone";
 import {
   FiUsers,
   FiActivity,
@@ -30,6 +31,8 @@ export default function IndividualDashboard() {
     completedInterviews: 0,
     passedInterviews: 0,
     upcomingInterviews: 0,
+    appliedJobs: 0,
+    savedJobs: 0,
   });
   const [loading, setLoading] = useState(true);
 
@@ -39,30 +42,73 @@ export default function IndividualDashboard() {
 
   const fetchInterviews = async () => {
     try {
-      const userId = 1; // TODO: Get from auth context
-      const response = await fetch(`/api/interviews?user_id=${userId}`, {
+      const user = await verifyTokenWithServer();
+      const userId = user && user.id ? user.id : 1; // Default to 1 if not authenticated
+
+      // Fetch interviews
+      const interviewsResponse = await fetch(
+        `/api/interviews?user_id=${userId}`,
+        {
+          credentials: "include",
+        }
+      );
+
+      // Fetch applied jobs
+      const appliedResponse = await fetch(`/api/applied-jobs/user/${userId}`, {
         credentials: "include",
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        setInterviews(data.slice(0, 5)); // Show only recent 5
+      // Fetch saved jobs
+      const savedResponse = await fetch(`/api/saved-jobs/user/${userId}`, {
+        credentials: "include",
+      });
 
-        // Calculate stats
-        const total = data.length;
-        const completed = data.filter((i) => i.status === "completed").length;
-        const passed = data.filter((i) => i.final_decision === "passed").length;
-        const upcoming = data.filter((i) => i.status === "scheduled").length;
+      let interviewsData = [];
+      let appliedData = [];
+      let savedData = [];
 
-        setStats({
-          totalInterviews: total,
-          completedInterviews: completed,
-          passedInterviews: passed,
-          upcomingInterviews: upcoming,
-        });
+      if (interviewsResponse.ok) {
+        const data = await interviewsResponse.json();
+        interviewsData = data.interviews;
+        setInterviews(interviewsData.slice(0, 5)); // Show only recent 5
       }
+
+      if (appliedResponse.ok) {
+        appliedData = await appliedResponse.json();
+      }
+
+      if (savedResponse.ok) {
+        savedData = await savedResponse.json();
+      }
+
+      // Calculate stats from real data
+      const realTotal = interviewsData.length;
+      const realCompleted = interviewsData.filter(
+        (i) => i.status === "completed" || i.status === "cancelled"
+      ).length;
+      const realPassed = interviewsData.filter(
+        (i) =>
+          i.final_decision === "passed" ||
+          i.final_decision === "second_round" ||
+          i.final_decision === "third_round"
+      ).length;
+      const realUpcoming = interviewsData.filter(
+        (i) => i.status === "scheduled" || i.status === "in_progress"
+      ).length;
+      const realApplied = appliedData.length;
+      const realSaved = savedData.length;
+
+      // Use real data if available, otherwise show realistic sample data
+      setStats({
+        totalInterviews: realTotal,
+        completedInterviews: realCompleted,
+        passedInterviews: realPassed,
+        upcomingInterviews: realUpcoming,
+        appliedJobs: realApplied,
+        savedJobs: realSaved,
+      });
     } catch (error) {
-      console.error("Error fetching interviews:", error);
+      console.error("Error fetching data:", error);
     } finally {
       setLoading(false);
     }
@@ -110,7 +156,7 @@ export default function IndividualDashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         <StatCard
           title="Total Interviews"
           value={stats.totalInterviews}
@@ -137,6 +183,20 @@ export default function IndividualDashboard() {
           value={stats.upcomingInterviews}
           change=""
           icon={FiCalendar}
+          trend="neutral"
+        />
+        <StatCard
+          title="Applied Jobs"
+          value={stats.appliedJobs}
+          change=""
+          icon={FiUsers}
+          trend="neutral"
+        />
+        <StatCard
+          title="Saved Jobs"
+          value={stats.savedJobs}
+          change=""
+          icon={FiDollarSign}
           trend="neutral"
         />
       </div>
@@ -181,7 +241,7 @@ export default function IndividualDashboard() {
                       {getStatusText(interview)}
                     </p>
                     <p className="text-xs text-gray-500">
-                      {new Date(interview.scheduled_at).toLocaleDateString()}
+                      {formatDate(interview.scheduled_at)}
                     </p>
                   </div>
                 </div>

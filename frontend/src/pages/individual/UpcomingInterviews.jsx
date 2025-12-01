@@ -4,6 +4,7 @@ import DashboardLayout from "../../components/layout/DashboardLayout";
 import IndividualNavbar from "../../components/layout/IndividualNavbar";
 import Card from "../../components/ui/Card";
 import { getSidebarItems } from "../../utils/auth";
+import { formatDateTime, getRelativeTime } from "../../utils/timezone";
 
 export default function UpcomingInterviews() {
   const navigate = useNavigate();
@@ -44,19 +45,6 @@ export default function UpcomingInterviews() {
 
     fetchUpcomingInterviews();
   }, []);
-
-  const formatDateTime = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleString("en-US", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-      timeZoneName: "short",
-    });
-  };
 
   const getInterviewTypeIcon = (type) => {
     switch (type) {

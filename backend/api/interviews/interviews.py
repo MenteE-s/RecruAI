@@ -33,8 +33,12 @@ def update_pipeline_stage_for_interview(interview):
 
 @api_bp.route('/interviews', methods=['GET'])
 def get_interviews():
-    """Get all interviews"""
-    interviews = Interview.query.order_by(Interview.scheduled_at.desc()).all()
+    """Get all interviews, optionally filtered by user_id"""
+    user_id = request.args.get('user_id', type=int)
+    query = Interview.query
+    if user_id:
+        query = query.filter_by(user_id=user_id)
+    interviews = query.order_by(Interview.scheduled_at.desc()).all()
     return jsonify({'interviews': [interview.to_dict() for interview in interviews]}), 200
 
 @api_bp.route('/interviews/<int:interview_id>', methods=['GET'])
@@ -187,11 +191,19 @@ def delete_interview(interview_id):
 
 @api_bp.route('/interviews/upcoming', methods=['GET'])
 def get_upcoming_interviews():
-    """Get upcoming interviews"""
+    """Get upcoming and currently-active interviews.
+
+    Includes interviews that:
+    - Are scheduled for the future, OR
+    - Started within the last 2 hours (to account for ongoing interviews)
+    AND have status 'scheduled' or 'in_progress'.
+    """
     now = datetime.utcnow()
+    # Include interviews that started up to 2 hours ago (ongoing buffer)
+    buffer_start = now - timedelta(hours=2)
     interviews = Interview.query.filter(
-        Interview.scheduled_at >= now,
-        Interview.status == 'scheduled'
+        Interview.scheduled_at >= buffer_start,
+        Interview.status.in_(['scheduled', 'in_progress'])
     ).order_by(Interview.scheduled_at.asc()).all()
     return jsonify({'interviews': [interview.to_dict() for interview in interviews]}), 200
 
