@@ -239,6 +239,11 @@ export default function UpcomingInterviews() {
                             <h3 className="font-semibold text-gray-800">
                               {interview.title}
                             </h3>
+                            {interview.current_round && (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                Round {interview.current_round}
+                              </span>
+                            )}
                             {getStatusBadge(interview)}
                           </div>
                           <p className="text-sm text-gray-600">
