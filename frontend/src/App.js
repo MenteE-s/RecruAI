@@ -38,6 +38,9 @@ import ResumeBuilder from "./pages/individual/ResumeBuilder";
 import JobAlerts from "./pages/individual/JobAlerts";
 import CareerCoaching from "./pages/individual/CareerCoaching";
 import JobDetails from "./pages/individual/JobDetails";
+import PracticeDashboard from "./pages/individual/PracticeDashboard";
+import PracticeRoom from "./pages/individual/PracticeRoom";
+import IndividualAIAgents from "./pages/individual/AIAgents";
 // Organization Pages
 import OrganizationProfile from "./pages/organization/Profile";
 import BrowseOrganizations from "./pages/organization/BrowseOrganizations";
@@ -396,6 +399,30 @@ function App() {
             element={
               <ProtectedRoute>
                 <InterviewAnalysis />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/practice"
+            element={
+              <ProtectedRoute>
+                <PracticeDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/practice/:sessionId"
+            element={
+              <ProtectedRoute>
+                <PracticeRoom />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/ai-agents"
+            element={
+              <ProtectedRoute>
+                <IndividualAIAgents />
               </ProtectedRoute>
             }
           />

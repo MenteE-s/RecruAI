@@ -99,6 +99,8 @@ export function getSidebarItems(role, plan) {
         { name: "Saved Jobs", link: "/jobs/saved", icon: FiBookmark },
         { name: "Applied Jobs", link: "/jobs/applied", icon: FiCheckCircle },
         { name: "Analytics", link: "/analytics", icon: FiBarChart2 },
+        { name: "Practice", link: "/practice", icon: FiClock },
+        { name: "My AI Agents", link: "/ai-agents", icon: FiUsers },
         { name: "Settings", link: "/settings", icon: FiSettings },
       ];
     } else {
@@ -123,6 +125,8 @@ export function getSidebarItems(role, plan) {
         { name: "Resume Builder", link: "/resume/builder", icon: FiFileText },
         { name: "Job Alerts", link: "/jobs/alerts", icon: FiBell },
         { name: "Career Coaching", link: "/coaching", icon: FiUsers },
+        { name: "Practice", link: "/practice", icon: FiClock },
+        { name: "My AI Agents", link: "/ai-agents", icon: FiUsers },
         { name: "Settings", link: "/settings", icon: FiSettings },
       ];
     }
