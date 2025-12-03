@@ -54,7 +54,9 @@ export default function JobPosts() {
 
   const fetchPosts = async () => {
     try {
-      const response = await fetch(`${getBackendUrl()}/api/posts`);
+      const response = await fetch(`${getBackendUrl()}/api/posts`, {
+        credentials: "include",
+      });
       if (response.ok) {
         const data = await response.json();
         setPosts(data);

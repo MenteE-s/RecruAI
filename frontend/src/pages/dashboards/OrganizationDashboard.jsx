@@ -78,9 +78,12 @@ export default function OrganizationDashboard() {
 
   const fetchAnalyticsOverview = async () => {
     try {
-      const response = await fetch(`${getBackendUrl()}/api/analytics/overview`, {
-        credentials: "include",
-      });
+      const response = await fetch(
+        `${getBackendUrl()}/api/analytics/overview`,
+        {
+          credentials: "include",
+        }
+      );
       if (response.ok) {
         const data = await response.json();
         setAnalytics(data);

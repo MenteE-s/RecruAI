@@ -28,33 +28,39 @@ export default function IndividualAIAgents() {
   });
 
   useEffect(() => {
-    (async () => {
-      const me = await verifyTokenWithServer();
-      setUser(me);
-      if (me?.organization_id) {
-        // User belongs to an organization, fetch organization AI agents
-        const res = await fetch(
-          `${getBackendUrl()}/api/organizations/${
-            me.organization_id
-          }/ai-agents`,
-          {
-            credentials: "include",
+    const loadData = async () => {
+      try {
+        const me = await verifyTokenWithServer();
+        setUser(me);
+        if (me?.organization_id) {
+          // User belongs to an organization, fetch organization AI agents
+          const res = await fetch(
+            `${getBackendUrl()}/api/organizations/${
+              me.organization_id
+            }/ai-agents`,
+            {
+              credentials: "include",
+            }
+          );
+          if (res.ok) {
+            const data = await res.json();
+            setAgents(data.aiAgents || []);
+          } else {
+            setError("Failed to load AI agents");
           }
-        );
-        if (res.ok) {
-          const data = await res.json();
-          setAgents(data.aiAgents || []);
         } else {
-          setError("Failed to load AI agents");
+          // Individual user without organization
+          setError(
+            "AI agents are only available for organization members. Please join or create an organization to access AI agents."
+          );
         }
-      } else {
-        // Individual user without organization
-        setError(
-          "AI agents are only available for organization members. Please join or create an organization to access AI agents."
-        );
+      } catch (error) {
+        setError("Failed to load data");
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
-    })();
+    };
+    loadData();
   }, []);
 
   const createAgent = async (e) => {
