@@ -79,9 +79,6 @@ def create_app(config_object: object | None = None):
 		frontend_origin = os.getenv("FRONTEND_ORIGIN", "http://localhost:3000")
 		jwt_samesite = os.getenv("JWT_COOKIE_SAMESITE", "Lax")
 		jwt_secure = os.getenv("JWT_COOKIE_SECURE", "0")
-		print(f"FRONTEND_ORIGIN: {frontend_origin}", flush=True)
-		print(f"JWT_COOKIE_SAMESITE: {jwt_samesite}", flush=True)
-		print(f"JWT_COOKIE_SECURE: {jwt_secure}", flush=True)
 		# Support comma-separated list of origins
 		origins_list = [o.strip().rstrip("/") for o in frontend_origin.split(",")]
 		print(f"Setting CORS origins to: {origins_list}", flush=True)
@@ -93,12 +90,6 @@ def create_app(config_object: object | None = None):
 
 	# register blueprints
 	app.register_blueprint(api_bp, url_prefix="/api")
-
-	# Debug logging for requests
-	@app.before_request
-	def log_request_info():
-		from flask import request
-		print(f"REQUEST: {request.method} {request.url} - Origin: {request.headers.get('Origin')} - Cookies: {bool(request.cookies)}", flush=True)
 
 	# Error handlers for API routes - return JSON instead of HTML
 	@app.errorhandler(400)
