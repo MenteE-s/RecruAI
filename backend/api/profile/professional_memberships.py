@@ -11,8 +11,8 @@ from datetime import datetime
 def get_professional_memberships():
     """Get all professional memberships for the current user"""
     user_id = int(get_jwt_identity())
-    professional_memberships = ProfessionalMembership.query.filter_by(user_id=user_id).order_by(ProfessionalMembership.start_date.desc()).all()
-    return jsonify({'professionalMemberships': [pm.to_dict() for pm in professional_memberships]}), 200
+    professional_memberships = ProfessionalMembership.query.filter_by(user_id=user_id).order_by(desc(ProfessionalMembership.end_date).nulls_last()).all()
+    return jsonify({'professional_memberships': [pm.to_dict() for pm in professional_memberships]}), 200
 
 @api_bp.route('/profile/professional-memberships', methods=['POST'])
 @jwt_required()
@@ -52,7 +52,7 @@ def create_professional_membership():
     db.session.add(professional_membership)
     db.session.commit()
 
-    return jsonify({'message': 'Professional membership created successfully', 'professionalMembership': professional_membership.to_dict()}), 201
+    return jsonify({'message': 'Professional membership created successfully', 'professional_membership': professional_membership.to_dict()}), 2010
 
 @api_bp.route('/profile/professional-memberships/<int:pm_id>', methods=['PUT'])
 @jwt_required()

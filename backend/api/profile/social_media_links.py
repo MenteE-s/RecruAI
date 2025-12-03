@@ -12,7 +12,7 @@ def get_social_media_links():
     """Get all social media links for the current user"""
     user_id = int(get_jwt_identity())
     social_media_links = SocialMediaLink.query.filter_by(user_id=user_id).all()
-    return jsonify({'socialMediaLinks': [sml.to_dict() for sml in social_media_links]}), 200
+    return jsonify({'social_media_links': [sml.to_dict() for sml in social_media_links]}), 200
 
 @api_bp.route('/profile/social-media-links', methods=['POST'])
 @jwt_required()
@@ -34,7 +34,7 @@ def create_social_media_link():
     db.session.add(social_media_link)
     db.session.commit()
 
-    return jsonify({'message': 'Social media link created successfully', 'socialMediaLink': social_media_link.to_dict()}), 201
+    return jsonify({'message': 'Social media link created successfully', 'social_media_link': social_media_link.to_dict()}), 20100
 
 @api_bp.route('/profile/social-media-links/<int:sml_id>', methods=['PUT'])
 @jwt_required()

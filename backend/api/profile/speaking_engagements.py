@@ -13,7 +13,7 @@ def get_speaking_engagements():
     """Get all speaking engagements for the current user"""
     user_id = int(get_jwt_identity())
     speaking_engagements = SpeakingEngagement.query.filter_by(user_id=user_id).order_by(desc(SpeakingEngagement.date).nulls_last()).all()
-    return jsonify({'speakingEngagements': [se.to_dict() for se in speaking_engagements]}), 200
+    return jsonify({'speaking_engagements': [se.to_dict() for se in speaking_engagements]}), 200
 
 @api_bp.route('/profile/speaking-engagements', methods=['POST'])
 @jwt_required()
@@ -47,7 +47,7 @@ def create_speaking_engagement():
     db.session.add(speaking_engagement)
     db.session.commit()
 
-    return jsonify({'message': 'Speaking engagement created successfully', 'speakingEngagement': speaking_engagement.to_dict()}), 201
+    return jsonify({'message': 'Speaking engagement created successfully', 'speaking_engagement': speaking_engagement.to_dict()}), 2010
 
 @api_bp.route('/profile/speaking-engagements/<int:se_id>', methods=['PUT'])
 @jwt_required()

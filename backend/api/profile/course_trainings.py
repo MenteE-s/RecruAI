@@ -13,7 +13,7 @@ def get_course_trainings():
     """Get all course trainings for the current user"""
     user_id = int(get_jwt_identity())
     course_trainings = CourseTraining.query.filter_by(user_id=user_id).order_by(desc(CourseTraining.completion_date).nulls_last()).all()
-    return jsonify({'courseTrainings': [ct.to_dict() for ct in course_trainings]}), 200
+    return jsonify({'course_trainings': [ct.to_dict() for ct in course_trainings]}), 200
 
 @api_bp.route('/profile/course-trainings', methods=['POST'])
 @jwt_required()
@@ -45,7 +45,7 @@ def create_course_training():
     db.session.add(course_training)
     db.session.commit()
 
-    return jsonify({'message': 'Course training created successfully', 'courseTraining': course_training.to_dict()}), 201
+    return jsonify({'message': 'Course training created successfully', 'course_training': course_training.to_dict()}), 2010
 
 @api_bp.route('/profile/course-trainings/<int:ct_id>', methods=['PUT'])
 @jwt_required()

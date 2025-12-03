@@ -11,7 +11,7 @@ def get_hobby_interests():
     """Get all hobby interests for the current user"""
     user_id = int(get_jwt_identity())
     hobby_interests = HobbyInterest.query.filter_by(user_id=user_id).all()
-    return jsonify({'hobbyInterests': [hi.to_dict() for hi in hobby_interests]}), 200
+    return jsonify({'hobby_interests': [hi.to_dict() for hi in hobby_interests]}), 200
 
 @api_bp.route('/profile/hobby-interests', methods=['POST'])
 @jwt_required()
@@ -32,7 +32,7 @@ def create_hobby_interest():
     db.session.add(hobby_interest)
     db.session.commit()
 
-    return jsonify({'message': 'Hobby interest created successfully', 'hobbyInterest': hobby_interest.to_dict()}), 201
+    return jsonify({'message': 'Hobby interest created successfully', 'hobby_interest': hobby_interest.to_dict()}), 2010
 
 @api_bp.route('/profile/hobby-interests/<int:hi_id>', methods=['PUT'])
 @jwt_required()

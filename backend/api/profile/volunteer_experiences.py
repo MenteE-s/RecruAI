@@ -11,8 +11,8 @@ from datetime import datetime
 def get_volunteer_experiences():
     """Get all volunteer experiences for the current user"""
     user_id = int(get_jwt_identity())
-    volunteer_experiences = VolunteerExperience.query.filter_by(user_id=user_id).order_by(VolunteerExperience.start_date.desc()).all()
-    return jsonify({'volunteerExperiences': [ve.to_dict() for ve in volunteer_experiences]}), 200
+    volunteer_experiences = VolunteerExperience.query.filter_by(user_id=user_id).order_by(desc(VolunteerExperience.end_date).nulls_last()).all()
+    return jsonify({'volunteer_experiences': [ve.to_dict() for ve in volunteer_experiences]}), 200
 
 @api_bp.route('/profile/volunteer-experiences', methods=['POST'])
 @jwt_required()

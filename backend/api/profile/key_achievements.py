@@ -13,7 +13,7 @@ def get_key_achievements():
     """Get all key achievements for the current user"""
     user_id = int(get_jwt_identity())
     key_achievements = KeyAchievement.query.filter_by(user_id=user_id).order_by(desc(KeyAchievement.date).nulls_last()).all()
-    return jsonify({'keyAchievements': [ka.to_dict() for ka in key_achievements]}), 200
+    return jsonify({'key_achievements': [ka.to_dict() for ka in key_achievements]}), 200
 
 @api_bp.route('/profile/key-achievements', methods=['POST'])
 @jwt_required()
@@ -44,7 +44,7 @@ def create_key_achievement():
     db.session.add(key_achievement)
     db.session.commit()
 
-    return jsonify({'message': 'Key achievement created successfully', 'keyAchievement': key_achievement.to_dict()}), 201
+    return jsonify({'message': 'Key achievement created successfully', 'key_achievement': key_achievement.to_dict()}), 2010
 
 @api_bp.route('/profile/key-achievements/<int:ka_id>', methods=['PUT'])
 @jwt_required()
