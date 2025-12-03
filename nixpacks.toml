@@ -2,13 +2,13 @@
 # This tells Nixpacks how to build the Python backend from the backend/ subdirectory
 
 [phases.setup]
-nixPkgs = ["python311", "postgresql"]
+nixPkgs = ["python311", "python311Packages.pip", "postgresql"]
 
 [phases.install]
-cmds = ["cd backend && pip install -r requirements.txt"]
+cmds = ["cd backend && python3 -m pip install -r requirements.txt"]
 
 [phases.build]
-cmds = ["cd backend && python -m flask db upgrade || true"]
+cmds = ["cd backend && python3 -m flask db upgrade || true"]
 
 [start]
-cmd = "cd backend && gunicorn --bind 0.0.0.0:$PORT 'app:create_app()'"
+cmd = "cd backend && python3 -m gunicorn --bind 0.0.0.0:$PORT 'app:create_app()'"
