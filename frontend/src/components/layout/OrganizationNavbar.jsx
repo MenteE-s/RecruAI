@@ -33,6 +33,7 @@ export default function OrganizationNavbar({ isAuthenticated }) {
             </Link>
             {/* Keep top navbar minimal; organization navigation is in the sidebar */}
           </div>
+          {/* asdassdsa */}
 
           <div className="flex items-center gap-3">
             {!signedIn ? (
