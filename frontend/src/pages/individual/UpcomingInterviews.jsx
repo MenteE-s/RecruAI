@@ -6,6 +6,8 @@ import Card from "../../components/ui/Card";
 import { getSidebarItems } from "../../utils/auth";
 import { formatDateTime, getRelativeTime } from "../../utils/timezone";
 
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "";
+
 export default function UpcomingInterviews() {
   const navigate = useNavigate();
   const role =
@@ -23,7 +25,7 @@ export default function UpcomingInterviews() {
     const fetchUpcomingInterviews = async () => {
       try {
         const response = await fetch(
-          "http://localhost:5000/api/interviews/upcoming",
+          `${API_BASE_URL}/api/interviews/upcoming`,
           {
             credentials: "include",
           }

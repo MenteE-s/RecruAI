@@ -2,9 +2,7 @@
 import { Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 
-const API_BASE_URL =
-  process.env.REACT_APP_API_BASE_URL ||
-  "https://recruai-production.up.railway.app";
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "";
 
 // ProtectedRoute now performs a lightweight token validation with the backend
 // If a token exists we call /api/auth/me to verify it and refresh the stored role.

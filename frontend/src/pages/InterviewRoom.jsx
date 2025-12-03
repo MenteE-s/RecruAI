@@ -3,6 +3,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import TextInterview from "../components/interviews/TextInterview";
 import { formatDateTime } from "../utils/timezone";
 
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "";
+
 const InterviewRoom = () => {
   const { interviewId } = useParams();
   const navigate = useNavigate();
@@ -165,7 +167,7 @@ const InterviewRoom = () => {
         // Handle response based on interview mode
         if (interviewMode === "auto") {
           // Auto mode: Get AI response automatically (works even without specific ai_agent_id)
-          const aiResponse = await fetch("http://localhost:5000/api/ai/chat", {
+          const aiResponse = await fetch(`${API_BASE_URL}/api/ai/chat`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             credentials: "include",

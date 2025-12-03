@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import RecruAINavbar from "../components/product/RecruAINavbar";
 import Footer from "../components/Footer";
 
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "";
+
 const SystemStatus = () => {
   const [lastUpdated, setLastUpdated] = useState(new Date());
   const [showReportForm, setShowReportForm] = useState(false);
@@ -33,7 +35,7 @@ const SystemStatus = () => {
       });
 
       const response = await fetch(
-        `http://localhost:5000/api/system-issues?${params}`
+        `${API_BASE_URL}/api/system-issues?${params}`
       );
       if (!response.ok) {
         throw new Error("Failed to fetch system issues");
@@ -53,7 +55,7 @@ const SystemStatus = () => {
 
   const submitIssue = async (issueData) => {
     try {
-      const response = await fetch("http://localhost:5000/api/system-issues", {
+      const response = await fetch(`${API_BASE_URL}/api/system-issues`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -1,8 +1,35 @@
 // helper utilities for token verification and auth state
-const API_BASE_URL =
-  process.env.REACT_APP_API_BASE_URL ||
-  "https://recruai-production.up.railway.app";
-console.log("Auth API_BASE_URL:", API_BASE_URL);
+
+import {
+  FiUser,
+  FiCalendar,
+  FiClock,
+  FiBookmark,
+  FiBarChart2,
+  FiFileText,
+  FiBell,
+  FiUsers,
+  FiSettings,
+  FiCheckCircle,
+} from "react-icons/fi";
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "";
+
+// Get the backend URL for API calls and uploaded files
+export function getBackendUrl() {
+  // Use environment variable for API base URL
+  return process.env.REACT_APP_API_BASE_URL || "";
+}
+
+// Get full URL for uploaded files
+export function getUploadUrl(relativePath) {
+  if (!relativePath) return "";
+  const backendUrl = getBackendUrl();
+  // Remove leading slash if present
+  const cleanPath = relativePath.startsWith("/")
+    ? relativePath.substring(1)
+    : relativePath;
+  return `${backendUrl}/${cleanPath}`;
+}
 
 export async function verifyTokenWithServer() {
   try {

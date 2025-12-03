@@ -5,6 +5,8 @@ import Card from "../../components/ui/Card";
 import { getSidebarItems } from "../../utils/auth";
 import { formatDate } from "../../utils/timezone";
 
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "";
+
 export default function SavedJobs() {
   const role =
     typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
@@ -25,7 +27,7 @@ export default function SavedJobs() {
     try {
       const userId = 1; // TODO: Get from user context
       const response = await fetch(
-        `http://localhost:5000/api/saved-jobs/user/${userId}`
+        `${API_BASE_URL}/api/saved-jobs/user/${userId}`
       );
       if (response.ok) {
         const data = await response.json();
@@ -42,7 +44,7 @@ export default function SavedJobs() {
     try {
       const userId = 1; // TODO: Get from user context
       const response = await fetch(
-        `http://localhost:5000/api/applications/user/${userId}`
+        `${API_BASE_URL}/api/applications/user/${userId}`
       );
       if (response.ok) {
         const data = await response.json();
@@ -57,7 +59,7 @@ export default function SavedJobs() {
   const handleUnsaveJob = async (savedId) => {
     try {
       const response = await fetch(
-        `http://localhost:5000/api/saved-jobs/${savedId}`,
+        `${API_BASE_URL}/api/saved-jobs/${savedId}`,
         {
           method: "DELETE",
           credentials: "include",
@@ -75,7 +77,7 @@ export default function SavedJobs() {
   const handleApplyJob = async (postId) => {
     try {
       const userId = 1; // TODO: Get from user context
-      const response = await fetch("http://localhost:5000/api/applications", {
+      const response = await fetch(`${API_BASE_URL}/api/applications`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
