@@ -94,6 +94,12 @@ def create_app(config_object: object | None = None):
 	# register blueprints
 	app.register_blueprint(api_bp, url_prefix="/api")
 
+	# Debug logging for requests
+	@app.before_request
+	def log_request_info():
+		from flask import request
+		print(f"REQUEST: {request.method} {request.url} - Origin: {request.headers.get('Origin')} - Cookies: {bool(request.cookies)}", flush=True)
+
 	# Error handlers for API routes - return JSON instead of HTML
 	@app.errorhandler(400)
 	def bad_request(error):
