@@ -1565,41 +1565,51 @@ export default function Profile() {
     try {
       let endpoint = "";
       if (type === "experiences")
-        endpoint = `/api/profile/experiences/${item.id}`;
+        endpoint = `${getBackendUrl()}/api/profile/experiences/${item.id}`;
       else if (type === "educations")
-        endpoint = `/api/profile/educations/${item.id}`;
-      else if (type === "skills") endpoint = `/api/profile/skills/${item.id}`;
+        endpoint = `${getBackendUrl()}/api/profile/educations/${item.id}`;
+      else if (type === "skills")
+        endpoint = `${getBackendUrl()}/api/profile/skills/${item.id}`;
       else if (type === "projects")
-        endpoint = `/api/profile/projects/${item.id}`;
+        endpoint = `${getBackendUrl()}/api/profile/projects/${item.id}`;
       else if (type === "publications")
-        endpoint = `/api/profile/publications/${item.id}`;
-      else if (type === "awards") endpoint = `/api/profile/awards/${item.id}`;
+        endpoint = `${getBackendUrl()}/api/profile/publications/${item.id}`;
+      else if (type === "awards")
+        endpoint = `${getBackendUrl()}/api/profile/awards/${item.id}`;
       else if (type === "certifications")
-        endpoint = `/api/profile/certifications/${item.id}`;
+        endpoint = `${getBackendUrl()}/api/profile/certifications/${item.id}`;
       else if (type === "languages")
-        endpoint = `/api/profile/languages/${item.id}`;
+        endpoint = `${getBackendUrl()}/api/profile/languages/${item.id}`;
       else if (type === "volunteerExperiences")
-        endpoint = `/api/profile/volunteer-experiences/${item.id}`;
+        endpoint = `${getBackendUrl()}/api/profile/volunteer-experiences/${
+          item.id
+        }`;
       else if (type === "references")
-        endpoint = `/api/profile/references/${item.id}`;
+        endpoint = `${getBackendUrl()}/api/profile/references/${item.id}`;
       else if (type === "hobbyInterests")
-        endpoint = `/api/profile/hobby-interests/${item.id}`;
+        endpoint = `${getBackendUrl()}/api/profile/hobby-interests/${item.id}`;
       else if (type === "professionalMemberships")
-        endpoint = `/api/profile/professional-memberships/${item.id}`;
-      else if (type === "patents") endpoint = `/api/profile/patents/${item.id}`;
+        endpoint = `${getBackendUrl()}/api/profile/professional-memberships/${
+          item.id
+        }`;
+      else if (type === "patents")
+        endpoint = `${getBackendUrl()}/api/profile/patents/${item.id}`;
       else if (type === "courseTrainings")
-        endpoint = `/api/profile/course-trainings/${item.id}`;
+        endpoint = `${getBackendUrl()}/api/profile/course-trainings/${item.id}`;
       else if (type === "socialMediaLinks")
-        endpoint = `/api/profile/social-media-links/${item.id}`;
+        endpoint = `${getBackendUrl()}/api/profile/social-media-links/${
+          item.id
+        }`;
       else if (type === "keyAchievements")
-        endpoint = `/api/profile/key-achievements/${item.id}`;
+        endpoint = `${getBackendUrl()}/api/profile/key-achievements/${item.id}`;
       else if (type === "conferences")
-        endpoint = `/api/profile/conferences/${item.id}`;
+        endpoint = `${getBackendUrl()}/api/profile/conferences/${item.id}`;
       else if (type === "speakingEngagements")
-        endpoint = `/api/profile/speaking-engagements/${item.id}`;
+        endpoint = `${getBackendUrl()}/api/profile/speaking-engagements/${
+          item.id
+        }`;
       else if (type === "licenses")
-        endpoint = `/api/profile/licenses/${item.id}`;
-
+        endpoint = `${getBackendUrl()}/api/profile/licenses/${item.id}`;
       if (endpoint) {
         const response = await fetch(endpoint, {
           method: "DELETE",
@@ -1630,7 +1640,7 @@ export default function Profile() {
 
     try {
       const { type, data: existingItem } = editingItem;
-      let endpoint = `/api/profile/${type}`;
+      let endpoint = `${getBackendUrl()}/api/profile/${type}`;
       let method = existingItem ? "PUT" : "POST";
       let body = itemData;
 
@@ -1790,11 +1800,14 @@ export default function Profile() {
       const formData = new FormData();
       formData.append("profile_picture", file);
 
-      const response = await fetch("/api/profile/upload-profile-picture", {
-        method: "POST",
-        credentials: "include",
-        body: formData,
-      });
+      const response = await fetch(
+        `${getBackendUrl()}/api/profile/upload-profile-picture`,
+        {
+          method: "POST",
+          credentials: "include",
+          body: formData,
+        }
+      );
 
       if (response.ok) {
         const data = await response.json();

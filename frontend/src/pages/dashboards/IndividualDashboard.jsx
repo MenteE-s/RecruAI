@@ -51,7 +51,7 @@ export default function IndividualDashboard() {
 
       // Fetch interviews
       const interviewsResponse = await fetch(
-        `/api/interviews?user_id=${userId}`,
+        `${getBackendUrl()}/api/interviews?user_id=${userId}`,
         {
           credentials: "include",
         }

@@ -830,7 +830,9 @@ export default function InterviewManagement() {
     // Fetch current user context to get organization_id
     const getCurrentUser = async () => {
       try {
-        const res = await fetch(`${getBackendUrl()}/api/auth/me`, { credentials: "include" });
+        const res = await fetch(`${getBackendUrl()}/api/auth/me`, {
+          credentials: "include",
+        });
         if (res.ok) {
           const data = await res.json();
           const orgId = data?.user?.organization_id || null;
@@ -938,7 +940,9 @@ export default function InterviewManagement() {
 
     try {
       const response = await fetch(
-        `${getBackendUrl()}/api/interviews/${selectedInterview.id}/assign-agent`,
+        `${getBackendUrl()}/api/interviews/${
+          selectedInterview.id
+        }/assign-agent`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -1053,7 +1057,9 @@ export default function InterviewManagement() {
 
     try {
       const response = await fetch(
-        `${getBackendUrl()}/api/organizations/${organizationId}/interviews/${selectedInterview.id}/decision`,
+        `${getBackendUrl()}/api/organizations/${organizationId}/interviews/${
+          selectedInterview.id
+        }/decision`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
