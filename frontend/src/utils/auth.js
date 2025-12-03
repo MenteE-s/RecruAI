@@ -14,8 +14,11 @@ import {
 
 // Get the backend URL for API calls and uploaded files
 export function getBackendUrl() {
-  // In development, use localhost:5000
-  // In production, this should be configurable via environment variable
+  // Use REACT_APP_API_URL environment variable if set (for production)
+  // Otherwise, fall back to localhost:5000 in development
+  if (process.env.REACT_APP_API_URL) {
+    return process.env.REACT_APP_API_URL;
+  }
   const isDevelopment = process.env.NODE_ENV === "development";
   return isDevelopment ? "http://localhost:5000" : "";
 }

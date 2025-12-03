@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import IndividualNavbar from "../../components/layout/IndividualNavbar";
 import Card from "../../components/ui/Card";
-import { getSidebarItems } from "../../utils/auth";
+import { getSidebarItems, getBackendUrl } from "../../utils/auth";
 import { formatDate } from "../../utils/timezone";
 
 export default function SavedJobs() {
@@ -25,7 +25,7 @@ export default function SavedJobs() {
     try {
       const userId = 1; // TODO: Get from user context
       const response = await fetch(
-        `http://localhost:5000/api/saved-jobs/user/${userId}`
+        `${getBackendUrl()}/api/saved-jobs/user/${userId}`
       );
       if (response.ok) {
         const data = await response.json();
@@ -42,7 +42,7 @@ export default function SavedJobs() {
     try {
       const userId = 1; // TODO: Get from user context
       const response = await fetch(
-        `http://localhost:5000/api/applications/user/${userId}`
+        `${getBackendUrl()}/api/applications/user/${userId}`
       );
       if (response.ok) {
         const data = await response.json();
@@ -57,7 +57,7 @@ export default function SavedJobs() {
   const handleUnsaveJob = async (savedId) => {
     try {
       const response = await fetch(
-        `http://localhost:5000/api/saved-jobs/${savedId}`,
+        `${getBackendUrl()}/api/saved-jobs/${savedId}`,
         {
           method: "DELETE",
           credentials: "include",
@@ -75,7 +75,7 @@ export default function SavedJobs() {
   const handleApplyJob = async (postId) => {
     try {
       const userId = 1; // TODO: Get from user context
-      const response = await fetch("http://localhost:5000/api/applications", {
+      const response = await fetch(`${getBackendUrl()}/api/applications`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

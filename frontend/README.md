@@ -2,6 +2,16 @@
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
+## Environment Variables
+
+For production deployment, set the following environment variable:
+
+| Variable | Description |
+|----------|-------------|
+| `REACT_APP_API_URL` | Backend API URL (e.g., `https://your-backend.railway.app`) |
+
+Copy `.env.example` to `.env` and set the values for your environment.
+
 ## Available Scripts
 
 In the project directory, you can run:
