@@ -10,4 +10,4 @@ APScheduler>=3.10
 pytz
 openai
 groq
-requests
+gunicorn>=21.0
