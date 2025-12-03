@@ -69,9 +69,11 @@ def create_app(config_object: object | None = None):
 		# explicit origin over a wildcard to reduce CSRF risk for APIs.
 		frontend_origin = os.getenv("FRONTEND_ORIGIN", "http://localhost:3000")
 		# Support comma-separated list of origins
-		origins_list = [o.strip() for o in frontend_origin.split(",")]
+		origins_list = [o.strip().rstrip("/") for o in frontend_origin.split(",")]
+		print(f"Setting CORS origins to: {origins_list}", flush=True)
 		CORS(app, resources={r"/api/*": {"origins": origins_list}}, supports_credentials=True)
-	except Exception:
+	except Exception as e:
+		print(f"Failed to configure CORS: {e}", flush=True)
 		# flask-cors not installed or not needed in production
 		pass
 
