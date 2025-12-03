@@ -11,7 +11,7 @@ import json
 @jwt_required()
 def get_patents():
     """Get all patents for the current user"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     patents = Patent.query.filter_by(user_id=user_id).order_by(Patent.filing_date.desc()).all()
     return jsonify({'patents': [patent.to_dict() for patent in patents]}), 200
 
@@ -19,7 +19,7 @@ def get_patents():
 @jwt_required()
 def create_patent():
     """Create a new patent"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     data = request.get_json()
 
     if not data or 'title' not in data:
@@ -60,7 +60,7 @@ def create_patent():
 @jwt_required()
 def update_patent(patent_id):
     """Update a patent"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     patent = Patent.query.filter_by(id=patent_id, user_id=user_id).first()
 
     if not patent:
@@ -103,7 +103,7 @@ def update_patent(patent_id):
 @jwt_required()
 def delete_patent(patent_id):
     """Delete a patent"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     patent = Patent.query.filter_by(id=patent_id, user_id=user_id).first()
 
     if not patent:

@@ -10,7 +10,7 @@ from datetime import datetime
 @jwt_required()
 def get_key_achievements():
     """Get all key achievements for the current user"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     key_achievements = KeyAchievement.query.filter_by(user_id=user_id).order_by(KeyAchievement.date.desc()).all()
     return jsonify({'keyAchievements': [ka.to_dict() for ka in key_achievements]}), 200
 
@@ -18,7 +18,7 @@ def get_key_achievements():
 @jwt_required()
 def create_key_achievement():
     """Create a new key achievement"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     data = request.get_json()
 
     if not data or 'title' not in data:
@@ -49,7 +49,7 @@ def create_key_achievement():
 @jwt_required()
 def update_key_achievement(ka_id):
     """Update a key achievement"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     key_achievement = KeyAchievement.query.filter_by(id=ka_id, user_id=user_id).first()
 
     if not key_achievement:
@@ -79,7 +79,7 @@ def update_key_achievement(ka_id):
 @jwt_required()
 def delete_key_achievement(ka_id):
     """Delete a key achievement"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     key_achievement = KeyAchievement.query.filter_by(id=ka_id, user_id=user_id).first()
 
     if not key_achievement:

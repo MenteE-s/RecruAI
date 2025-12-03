@@ -10,7 +10,7 @@ import json
 @jwt_required()
 def get_publications():
     """Get all publications for the current user"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     publications = Publication.query.filter_by(user_id=user_id).order_by(Publication.year.desc()).all()
     return jsonify({'publications': [pub.to_dict() for pub in publications]}), 200
 
@@ -18,7 +18,7 @@ def get_publications():
 @jwt_required()
 def create_publication():
     """Create a new publication"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     data = request.get_json()
 
     if not data or 'title' not in data:
@@ -44,7 +44,7 @@ def create_publication():
 @jwt_required()
 def update_publication(pub_id):
     """Update a publication"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     publication = Publication.query.filter_by(id=pub_id, user_id=user_id).first()
 
     if not publication:
@@ -68,7 +68,7 @@ def update_publication(pub_id):
 @jwt_required()
 def delete_publication(pub_id):
     """Delete a publication"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     publication = Publication.query.filter_by(id=pub_id, user_id=user_id).first()
 
     if not publication:

@@ -10,7 +10,7 @@ from datetime import datetime
 @jwt_required()
 def get_professional_memberships():
     """Get all professional memberships for the current user"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     professional_memberships = ProfessionalMembership.query.filter_by(user_id=user_id).order_by(ProfessionalMembership.start_date.desc()).all()
     return jsonify({'professionalMemberships': [pm.to_dict() for pm in professional_memberships]}), 200
 
@@ -18,7 +18,7 @@ def get_professional_memberships():
 @jwt_required()
 def create_professional_membership():
     """Create a new professional membership"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     data = request.get_json()
 
     if not data or 'organization' not in data:
@@ -58,7 +58,7 @@ def create_professional_membership():
 @jwt_required()
 def update_professional_membership(pm_id):
     """Update a professional membership"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     professional_membership = ProfessionalMembership.query.filter_by(id=pm_id, user_id=user_id).first()
 
     if not professional_membership:
@@ -97,7 +97,7 @@ def update_professional_membership(pm_id):
 @jwt_required()
 def delete_professional_membership(pm_id):
     """Delete a professional membership"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     professional_membership = ProfessionalMembership.query.filter_by(id=pm_id, user_id=user_id).first()
 
     if not professional_membership:

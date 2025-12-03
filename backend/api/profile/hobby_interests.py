@@ -9,7 +9,7 @@ from ...models import HobbyInterest
 @jwt_required()
 def get_hobby_interests():
     """Get all hobby interests for the current user"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     hobby_interests = HobbyInterest.query.filter_by(user_id=user_id).all()
     return jsonify({'hobbyInterests': [hi.to_dict() for hi in hobby_interests]}), 200
 
@@ -17,7 +17,7 @@ def get_hobby_interests():
 @jwt_required()
 def create_hobby_interest():
     """Create a new hobby interest"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     data = request.get_json()
 
     if not data or 'name' not in data:
@@ -38,7 +38,7 @@ def create_hobby_interest():
 @jwt_required()
 def update_hobby_interest(hi_id):
     """Update a hobby interest"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     hobby_interest = HobbyInterest.query.filter_by(id=hi_id, user_id=user_id).first()
 
     if not hobby_interest:
@@ -56,7 +56,7 @@ def update_hobby_interest(hi_id):
 @jwt_required()
 def delete_hobby_interest(hi_id):
     """Delete a hobby interest"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     hobby_interest = HobbyInterest.query.filter_by(id=hi_id, user_id=user_id).first()
 
     if not hobby_interest:

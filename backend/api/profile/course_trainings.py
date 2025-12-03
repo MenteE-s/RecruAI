@@ -10,7 +10,7 @@ from datetime import datetime
 @jwt_required()
 def get_course_trainings():
     """Get all course trainings for the current user"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     course_trainings = CourseTraining.query.filter_by(user_id=user_id).order_by(CourseTraining.completion_date.desc()).all()
     return jsonify({'courseTrainings': [ct.to_dict() for ct in course_trainings]}), 200
 
@@ -18,7 +18,7 @@ def get_course_trainings():
 @jwt_required()
 def create_course_training():
     """Create a new course training"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     data = request.get_json()
 
     if not data or 'name' not in data:
@@ -51,7 +51,7 @@ def create_course_training():
 @jwt_required()
 def update_course_training(ct_id):
     """Update a course training"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     course_training = CourseTraining.query.filter_by(id=ct_id, user_id=user_id).first()
 
     if not course_training:
@@ -81,7 +81,7 @@ def update_course_training(ct_id):
 @jwt_required()
 def delete_course_training(ct_id):
     """Delete a course training"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     course_training = CourseTraining.query.filter_by(id=ct_id, user_id=user_id).first()
 
     if not course_training:

@@ -10,7 +10,7 @@ from datetime import datetime
 @jwt_required()
 def get_certifications():
     """Get all certifications for the current user"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     certifications = Certification.query.filter_by(user_id=user_id).order_by(Certification.date_obtained.desc()).all()
     return jsonify({'certifications': [cert.to_dict() for cert in certifications]}), 200
 
@@ -18,7 +18,7 @@ def get_certifications():
 @jwt_required()
 def create_certification():
     """Create a new certification"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     data = request.get_json()
 
     if not data or 'name' not in data or 'issuer' not in data:
@@ -58,7 +58,7 @@ def create_certification():
 @jwt_required()
 def update_certification(cert_id):
     """Update a certification"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     certification = Certification.query.filter_by(id=cert_id, user_id=user_id).first()
 
     if not certification:
@@ -97,7 +97,7 @@ def update_certification(cert_id):
 @jwt_required()
 def delete_certification(cert_id):
     """Delete a certification"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     certification = Certification.query.filter_by(id=cert_id, user_id=user_id).first()
 
     if not certification:

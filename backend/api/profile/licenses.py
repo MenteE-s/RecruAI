@@ -10,7 +10,7 @@ from datetime import datetime
 @jwt_required()
 def get_licenses():
     """Get all licenses for the current user"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     licenses = License.query.filter_by(user_id=user_id).order_by(License.issue_date.desc()).all()
     return jsonify({'licenses': [license.to_dict() for license in licenses]}), 200
 
@@ -18,7 +18,7 @@ def get_licenses():
 @jwt_required()
 def create_license():
     """Create a new license"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     data = request.get_json()
 
     if not data or 'name' not in data:
@@ -60,7 +60,7 @@ def create_license():
 @jwt_required()
 def update_license(license_id):
     """Update a license"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     license = License.query.filter_by(id=license_id, user_id=user_id).first()
 
     if not license:
@@ -99,7 +99,7 @@ def update_license(license_id):
 @jwt_required()
 def delete_license(license_id):
     """Delete a license"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     license = License.query.filter_by(id=license_id, user_id=user_id).first()
 
     if not license:

@@ -11,7 +11,7 @@ from datetime import datetime
 @jwt_required()
 def get_experiences():
     """Get all experiences for the current user"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     experiences = Experience.query.filter_by(user_id=user_id).order_by(Experience.start_date.desc()).all()
     return jsonify({'experiences': [exp.to_dict() for exp in experiences]}), 200
 
@@ -19,7 +19,7 @@ def get_experiences():
 @jwt_required()
 def create_experience():
     """Create a new experience"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     data = request.get_json()
 
     if not data or 'title' not in data or 'company' not in data:
@@ -65,7 +65,7 @@ def create_experience():
 @jwt_required()
 def update_experience(exp_id):
     """Update an experience"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     experience = Experience.query.filter_by(id=exp_id, user_id=user_id).first()
 
     if not experience:
@@ -83,7 +83,7 @@ def update_experience(exp_id):
 @jwt_required()
 def delete_experience(exp_id):
     """Delete an experience"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     experience = Experience.query.filter_by(id=exp_id, user_id=user_id).first()
 
     if not experience:
@@ -98,7 +98,7 @@ def delete_experience(exp_id):
 @jwt_required()
 def get_projects():
     """Get all projects for the current user"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     projects = Project.query.filter_by(user_id=user_id).order_by(Project.start_date.desc()).all()
     return jsonify({'projects': [project.to_dict() for project in projects]}), 200
 
@@ -106,7 +106,7 @@ def get_projects():
 @jwt_required()
 def create_project():
     """Create a new project"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     data = request.get_json()
 
     if not data or 'name' not in data:
@@ -137,7 +137,7 @@ def create_project():
 @jwt_required()
 def update_project(project_id):
     """Update a project"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     project = Project.query.filter_by(id=project_id, user_id=user_id).first()
 
     if not project:
@@ -158,7 +158,7 @@ def update_project(project_id):
 @jwt_required()
 def delete_project(project_id):
     """Delete a project"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     project = Project.query.filter_by(id=project_id, user_id=user_id).first()
 
     if not project:

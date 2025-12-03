@@ -9,7 +9,7 @@ from ...models import SocialMediaLink
 @jwt_required()
 def get_social_media_links():
     """Get all social media links for the current user"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     social_media_links = SocialMediaLink.query.filter_by(user_id=user_id).all()
     return jsonify({'socialMediaLinks': [sml.to_dict() for sml in social_media_links]}), 200
 
@@ -17,7 +17,7 @@ def get_social_media_links():
 @jwt_required()
 def create_social_media_link():
     """Create a new social media link"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     data = request.get_json()
 
     if not data or 'platform' not in data or 'url' not in data:
@@ -39,7 +39,7 @@ def create_social_media_link():
 @jwt_required()
 def update_social_media_link(sml_id):
     """Update a social media link"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     social_media_link = SocialMediaLink.query.filter_by(id=sml_id, user_id=user_id).first()
 
     if not social_media_link:
@@ -57,7 +57,7 @@ def update_social_media_link(sml_id):
 @jwt_required()
 def delete_social_media_link(sml_id):
     """Delete a social media link"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     social_media_link = SocialMediaLink.query.filter_by(id=sml_id, user_id=user_id).first()
 
     if not social_media_link:

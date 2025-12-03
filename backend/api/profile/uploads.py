@@ -3,6 +3,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from .. import api_bp
 from ...extensions import db
 from ...models import User, Experience, Education, Skill, Project, Publication, ProfileSection, Award, Certification, Language, VolunteerExperience, Reference, HobbyInterest, ProfessionalMembership, Patent, CourseTraining, SocialMediaLink, KeyAchievement, Conference, SpeakingEngagement, License, TeamMember
+from sqlalchemy.orm import joinedload
 import os
 from werkzeug.utils import secure_filename
 
@@ -11,12 +12,12 @@ from werkzeug.utils import secure_filename
 @jwt_required()
 def get_user_profile(user_id):
     """Get full profile data for a specific user (self-access or organization admin access)"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
 
     # Get current user
     try:
         current_user_id_int = int(current_user_id)
-        current_user = User.query.get(current_user_id_int)
+        current_user = User.query.options(joinedload(User.organization)).get(current_user_id_int)
     except (ValueError, TypeError):
         return jsonify({"error": "invalid user identity"}), 400
     if not current_user:
@@ -24,7 +25,7 @@ def get_user_profile(user_id):
 
     # Allow users to access their own profile
     if current_user_id_int == user_id:
-        target_user = User.query.get(user_id)
+        target_user = User.query.options(joinedload(User.organization)).get(user_id)
         if not target_user:
             return jsonify({'error': 'User not found'}), 404
         is_team_member = True  # User viewing their own profile
@@ -32,12 +33,12 @@ def get_user_profile(user_id):
         # For organization users accessing other users' profiles (for hiring purposes)
         if current_user.organization_id and current_user.role == 'organization':
             # Organization users can view any individual user's profile for hiring
-            target_user = User.query.filter_by(id=user_id, role='individual').first()
+            target_user = User.query.options(joinedload(User.organization)).filter_by(id=user_id, role='individual').first()
             if not target_user:
                 return jsonify({'error': 'User not found'}), 404
 
             # Check if target user is a formal team member in the organization
-            target_team_member = TeamMember.query.filter_by(
+            target_team_member = TeamMember.query.options(joinedload(TeamMember.organization), joinedload(TeamMember.user)).filter_by(
                 organization_id=current_user.organization_id,
                 user_id=user_id
             ).first()
@@ -49,7 +50,7 @@ def get_user_profile(user_id):
                 return jsonify({'error': 'Unauthorized - Organization membership required'}), 403
 
             # Check if target user belongs to the same organization
-            target_user = User.query.filter_by(
+            target_user = User.query.options(joinedload(User.organization)).filter_by(
                 id=user_id,
                 organization_id=current_user.organization_id
             ).first()
@@ -58,7 +59,7 @@ def get_user_profile(user_id):
                 return jsonify({'error': 'User not found in your organization'}), 404
 
             # Check if target user is a formal team member
-            target_team_member = TeamMember.query.filter_by(
+            target_team_member = TeamMember.query.options(joinedload(TeamMember.organization), joinedload(TeamMember.user)).filter_by(
                 organization_id=current_user.organization_id,
                 user_id=user_id
             ).first()
@@ -100,7 +101,7 @@ def get_user_profile(user_id):
 @jwt_required()
 def upload_profile_picture():
     """Upload a profile picture for the current user"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     try:
         user_id_int = int(user_id)
         user = User.query.get(user_id_int)

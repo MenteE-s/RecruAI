@@ -54,7 +54,9 @@ export default function Candidates() {
   const fetchApplications = async () => {
     try {
       // For now, fetch all applications - in production, filter by organization's posts
-      const response = await fetch(`${getBackendUrl()}/api/applications`);
+      const response = await fetch(`${getBackendUrl()}/api/applications`, {
+        credentials: "include",
+      });
       if (response.ok) {
         const data = await response.json();
         setApplications(data);

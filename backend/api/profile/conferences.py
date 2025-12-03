@@ -10,7 +10,7 @@ from datetime import datetime
 @jwt_required()
 def get_conferences():
     """Get all conferences for the current user"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     conferences = Conference.query.filter_by(user_id=user_id).order_by(Conference.date.desc()).all()
     return jsonify({'conferences': [conf.to_dict() for conf in conferences]}), 200
 
@@ -18,7 +18,7 @@ def get_conferences():
 @jwt_required()
 def create_conference():
     """Create a new conference"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     data = request.get_json()
 
     if not data or 'name' not in data:
@@ -50,7 +50,7 @@ def create_conference():
 @jwt_required()
 def update_conference(conf_id):
     """Update a conference"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     conference = Conference.query.filter_by(id=conf_id, user_id=user_id).first()
 
     if not conference:
@@ -80,7 +80,7 @@ def update_conference(conf_id):
 @jwt_required()
 def delete_conference(conf_id):
     """Delete a conference"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     conference = Conference.query.filter_by(id=conf_id, user_id=user_id).first()
 
     if not conference:

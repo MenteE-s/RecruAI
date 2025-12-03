@@ -9,7 +9,7 @@ from ...models import Reference
 @jwt_required()
 def get_references():
     """Get all references for the current user"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     references = Reference.query.filter_by(user_id=user_id).all()
     return jsonify({'references': [ref.to_dict() for ref in references]}), 200
 
@@ -17,7 +17,7 @@ def get_references():
 @jwt_required()
 def create_reference():
     """Create a new reference"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     data = request.get_json()
 
     if not data or 'name' not in data:
@@ -42,7 +42,7 @@ def create_reference():
 @jwt_required()
 def update_reference(ref_id):
     """Update a reference"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     reference = Reference.query.filter_by(id=ref_id, user_id=user_id).first()
 
     if not reference:
@@ -60,7 +60,7 @@ def update_reference(ref_id):
 @jwt_required()
 def delete_reference(ref_id):
     """Delete a reference"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     reference = Reference.query.filter_by(id=ref_id, user_id=user_id).first()
 
     if not reference:

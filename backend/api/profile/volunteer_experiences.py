@@ -10,7 +10,7 @@ from datetime import datetime
 @jwt_required()
 def get_volunteer_experiences():
     """Get all volunteer experiences for the current user"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     volunteer_experiences = VolunteerExperience.query.filter_by(user_id=user_id).order_by(VolunteerExperience.start_date.desc()).all()
     return jsonify({'volunteerExperiences': [ve.to_dict() for ve in volunteer_experiences]}), 200
 
@@ -18,7 +18,7 @@ def get_volunteer_experiences():
 @jwt_required()
 def create_volunteer_experience():
     """Create a new volunteer experience"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     data = request.get_json()
 
     if not data or 'title' not in data or 'organization' not in data:
@@ -59,7 +59,7 @@ def create_volunteer_experience():
 @jwt_required()
 def update_volunteer_experience(ve_id):
     """Update a volunteer experience"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     volunteer_experience = VolunteerExperience.query.filter_by(id=ve_id, user_id=user_id).first()
 
     if not volunteer_experience:
@@ -98,7 +98,7 @@ def update_volunteer_experience(ve_id):
 @jwt_required()
 def delete_volunteer_experience(ve_id):
     """Delete a volunteer experience"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     volunteer_experience = VolunteerExperience.query.filter_by(id=ve_id, user_id=user_id).first()
 
     if not volunteer_experience:

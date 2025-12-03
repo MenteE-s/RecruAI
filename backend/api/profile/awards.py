@@ -10,7 +10,7 @@ from datetime import datetime
 @jwt_required()
 def get_awards():
     """Get all awards for the current user"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     awards = Award.query.filter_by(user_id=user_id).order_by(Award.date.desc()).all()
     return jsonify({'awards': [award.to_dict() for award in awards]}), 200
 
@@ -18,7 +18,7 @@ def get_awards():
 @jwt_required()
 def create_award():
     """Create a new award"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     data = request.get_json()
 
     if not data or 'title' not in data or 'issuer' not in data:
@@ -49,7 +49,7 @@ def create_award():
 @jwt_required()
 def update_award(award_id):
     """Update an award"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     award = Award.query.filter_by(id=award_id, user_id=user_id).first()
 
     if not award:
@@ -79,7 +79,7 @@ def update_award(award_id):
 @jwt_required()
 def delete_award(award_id):
     """Delete an award"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     award = Award.query.filter_by(id=award_id, user_id=user_id).first()
 
     if not award:
