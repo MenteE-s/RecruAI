@@ -74,7 +74,7 @@ export default function Pipeline() {
   const updatePipelineStage = async (applicationId, newStage) => {
     try {
       const response = await fetch(
-        `/api/pipeline/application/${applicationId}/stage`,
+        `${getBackendUrl()}/api/pipeline/application/${applicationId}/stage`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },

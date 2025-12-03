@@ -54,7 +54,7 @@ export default function JobPosts() {
 
   const fetchPosts = async () => {
     try {
-      const response = await fetch("/api/posts");
+      const response = await fetch(`${getBackendUrl()}/api/posts`);
       if (response.ok) {
         const data = await response.json();
         setPosts(data);
@@ -69,7 +69,9 @@ export default function JobPosts() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const url = editingPost ? `/api/posts/${editingPost.id}` : "/api/posts";
+      const url = editingPost
+        ? `${getBackendUrl()}/api/posts/${editingPost.id}`
+        : `${getBackendUrl()}/api/posts`;
       const method = editingPost ? "PUT" : "POST";
 
       const orgId = editingPost?.organization_id ?? organizationId;

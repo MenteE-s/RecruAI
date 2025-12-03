@@ -65,7 +65,7 @@ export default function JobDetails() {
     try {
       const userId = 1; // TODO: Get from user context
       const response = await fetch(
-        `/api/saved-jobs/check?user_id=${userId}&post_id=${id}`
+        `${getBackendUrl()}/api/saved-jobs/check?user_id=${userId}&post_id=${id}`
       );
       if (response.ok) {
         const data = await response.json();
@@ -96,7 +96,7 @@ export default function JobDetails() {
 
   const fetchRecommendedJobs = async () => {
     try {
-      const response = await fetch("/api/posts");
+      const response = await fetch(`${getBackendUrl()}/api/posts`);
       if (response.ok) {
         const allJobs = await response.json();
         // Filter jobs: same company or same category, exclude current job, limit to 3
@@ -118,7 +118,7 @@ export default function JobDetails() {
   const handleSaveJob = async () => {
     try {
       const userId = 1; // TODO: Get from user context
-      const response = await fetch("/api/saved-jobs", {
+      const response = await fetch(`${getBackendUrl()}/api/saved-jobs`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -150,7 +150,7 @@ export default function JobDetails() {
     try {
       const userId = 1; // TODO: Get from user context
       const response = await fetch(
-        `/api/saved-jobs/check?user_id=${userId}&post_id=${id}`
+        `${getBackendUrl()}/api/saved-jobs/check?user_id=${userId}&post_id=${id}`
       );
       if (response.ok) {
         const data = await response.json();
@@ -184,7 +184,7 @@ export default function JobDetails() {
   const handleApplyJob = async () => {
     try {
       const userId = 1; // TODO: Get from user context
-      const response = await fetch("/api/applications", {
+      const response = await fetch(`${getBackendUrl()}/api/applications`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

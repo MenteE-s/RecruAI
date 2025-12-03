@@ -51,7 +51,7 @@ const InterviewAnalysis = () => {
       if (interviewData.status === "completed") {
         try {
           const analysisResponse = await fetch(
-            `/api/interviews/${interviewId}/analysis`,
+            `${getBackendUrl()}/api/interviews/${interviewId}/analysis`,
             {
               credentials: "include",
             }
@@ -68,7 +68,7 @@ const InterviewAnalysis = () => {
 
       // Fetch messages
       const messagesResponse = await fetch(
-        `/api/interviews/${interviewId}/messages`,
+        `${getBackendUrl()}/api/interviews/${interviewId}/messages`,
         {
           credentials: "include",
         }

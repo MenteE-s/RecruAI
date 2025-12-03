@@ -28,7 +28,7 @@ export default function OrganizationSettings() {
         setUser(userData);
         if (userData && userData.organization_id) {
           const orgRes = await fetch(
-            `/api/organizations/${userData.organization_id}`
+            `${getBackendUrl()}/api/organizations/${userData.organization_id}`
           );
           if (orgRes.ok) {
             const orgData = await orgRes.json();

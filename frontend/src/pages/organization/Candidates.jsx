@@ -37,7 +37,7 @@ export default function Candidates() {
   useEffect(() => {
     const getOrgId = async () => {
       try {
-        const res = await fetch("/api/auth/me", { credentials: "include" });
+        const res = await fetch(`${getBackendUrl()}/api/auth/me`, { credentials: "include" });
         if (res.ok) {
           const data = await res.json();
           setOrganizationId(data.user?.organization_id || null);
@@ -52,7 +52,7 @@ export default function Candidates() {
   const fetchApplications = async () => {
     try {
       // For now, fetch all applications - in production, filter by organization's posts
-      const response = await fetch("/api/applications");
+      const response = await fetch(`${getBackendUrl()}/api/applications`);
       if (response.ok) {
         const data = await response.json();
         setApplications(data);
@@ -142,7 +142,7 @@ export default function Candidates() {
         ),
       };
 
-      const response = await fetch("/api/interviews", {
+      const response = await fetch(`${getBackendUrl()}/api/interviews`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

@@ -2,7 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import RecruAINavbar from "../components/product/RecruAINavbar";
 import Footer from "../components/Footer";
-
+import { getBackendUrl } from "../utils/auth";
 const Blog = () => {
   const blogPosts = [
     {
@@ -13,7 +13,7 @@ const Blog = () => {
       date: "November 25, 2025",
       readTime: "5 min read",
       category: "AI Trends",
-      image: "/api/placeholder/400/250",
+      image: `${getBackendUrl()}/api/placeholder/400/250`,
     },
     {
       id: 2,
@@ -23,7 +23,7 @@ const Blog = () => {
       date: "November 18, 2025",
       readTime: "4 min read",
       category: "Diversity & Inclusion",
-      image: "/api/placeholder/400/250",
+      image: `${getBackendUrl()}/api/placeholder/400/250`,
     },
     {
       id: 3,
@@ -33,7 +33,7 @@ const Blog = () => {
       date: "November 10, 2025",
       readTime: "6 min read",
       category: "Career Advice",
-      image: "/api/placeholder/400/250",
+      image: `${getBackendUrl()}/api/placeholder/400/250`,
     },
     {
       id: 4,
@@ -43,7 +43,7 @@ const Blog = () => {
       date: "November 3, 2025",
       readTime: "7 min read",
       category: "Business Strategy",
-      image: "/api/placeholder/400/250",
+      image: `${getBackendUrl()}/api/placeholder/400/250`,
     },
   ];
 

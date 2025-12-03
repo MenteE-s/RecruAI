@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { getBackendUrl } from "../../utils/auth";
 import {
   getUserTimezone,
   setUserTimezone,
@@ -27,7 +28,7 @@ export default function TimezoneSelector({
   useEffect(() => {
     const fetchTimezones = async () => {
       try {
-        const response = await fetch("/api/timezones", {
+        const response = await fetch(`${getBackendUrl()}/api/timezones`, {
           credentials: "include",
         });
         if (response.ok) {

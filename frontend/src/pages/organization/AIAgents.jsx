@@ -43,7 +43,7 @@ export default function AIAgents() {
     setLoading(true);
     try {
       const response = await fetch(
-        `/api/organizations/${organizationId}/ai-agents`,
+        `${getBackendUrl()}/api/organizations/${organizationId}/ai-agents`,
         {
           credentials: "include",
         }
@@ -127,8 +127,8 @@ export default function AIAgents() {
     }
     try {
       const url = editingAgent
-        ? `/api/ai-agents/${editingAgent.id}`
-        : `/api/organizations/${targetOrgId}/ai-agents`;
+        ? `${getBackendUrl()}/api/ai-agents/${editingAgent.id}`
+        : `${getBackendUrl()}/api/organizations/${targetOrgId}/ai-agents`;
       const method = editingAgent ? "PUT" : "POST";
       const payload = {
         ...formData,

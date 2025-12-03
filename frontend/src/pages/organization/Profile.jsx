@@ -186,7 +186,9 @@ export default function OrganizationProfile() {
     const loadProfileData = async () => {
       try {
         // First get user to determine permissions
-        const userRes = await fetch("/api/auth/me", { credentials: "include" });
+        const userRes = await fetch(`${getBackendUrl()}/api/auth/me`, {
+          credentials: "include",
+        });
         if (!userRes.ok) throw new Error("Failed to get user");
 
         const userData = await userRes.json();
@@ -243,7 +245,9 @@ export default function OrganizationProfile() {
     setError(null);
 
     try {
-      const userRes = await fetch("/api/auth/me", { credentials: "include" });
+      const userRes = await fetch(`${getBackendUrl()}/api/auth/me`, {
+        credentials: "include",
+      });
       const userData = await userRes.json();
       const currentUserOrgId = userData.user.organization_id;
       const targetOrgId = orgId || currentUserOrgId;
@@ -289,13 +293,15 @@ export default function OrganizationProfile() {
     setError(null);
 
     try {
-      const userRes = await fetch("/api/auth/me", { credentials: "include" });
+      const userRes = await fetch(`${getBackendUrl()}/api/auth/me`, {
+        credentials: "include",
+      });
       const userData = await userRes.json();
       const currentUserOrgId = userData.user.organization_id;
       const targetOrgId = orgId || currentUserOrgId;
 
       const response = await fetch(
-        `/api/organizations/${targetOrgId}/profile`,
+        `${getBackendUrl()}/api/organizations/${targetOrgId}/profile`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -337,13 +343,15 @@ export default function OrganizationProfile() {
     setError(null);
 
     try {
-      const userRes = await fetch("/api/auth/me", { credentials: "include" });
+      const userRes = await fetch(`${getBackendUrl()}/api/auth/me`, {
+        credentials: "include",
+      });
       const userData = await userRes.json();
       const currentUserOrgId = userData.user.organization_id;
       const targetOrgId = orgId || currentUserOrgId;
 
       const response = await fetch(
-        `/api/organizations/${targetOrgId}/profile`,
+        `${getBackendUrl()}/api/organizations/${targetOrgId}/profile`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -384,7 +392,9 @@ export default function OrganizationProfile() {
     setError(null);
 
     try {
-      const userRes = await fetch("/api/auth/me", { credentials: "include" });
+      const userRes = await fetch(`${getBackendUrl()}/api/auth/me`, {
+        credentials: "include",
+      });
       const userData = await userRes.json();
       const currentUserOrgId = userData.user.organization_id;
       const targetOrgId = orgId || currentUserOrgId;
@@ -397,8 +407,8 @@ export default function OrganizationProfile() {
 
       const endpoint =
         imageType === "profile"
-          ? `/api/organizations/${targetOrgId}/upload-profile-image`
-          : `/api/organizations/${targetOrgId}/upload-banner-image`;
+          ? `${getBackendUrl()}/api/organizations/${targetOrgId}/upload-profile-image`
+          : `${getBackendUrl()}/api/organizations/${targetOrgId}/upload-banner-image`;
 
       console.log(`Uploading to endpoint: ${endpoint}`);
       const response = await fetch(endpoint, {
@@ -437,13 +447,15 @@ export default function OrganizationProfile() {
     setError(null);
 
     try {
-      const userRes = await fetch("/api/auth/me", { credentials: "include" });
+      const userRes = await fetch(`${getBackendUrl()}/api/auth/me`, {
+        credentials: "include",
+      });
       const userData = await userRes.json();
       const currentUserOrgId = userData.user.organization_id;
       const targetOrgId = orgId || currentUserOrgId;
 
       const response = await fetch(
-        `/api/organizations/${targetOrgId}/profile`,
+        `${getBackendUrl()}/api/organizations/${targetOrgId}/profile`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },

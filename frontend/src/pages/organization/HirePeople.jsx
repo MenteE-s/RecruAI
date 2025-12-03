@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
 import Card from "../../components/ui/Card";
-import { getSidebarItems } from "../../utils/auth";
+import { getSidebarItems, getBackendUrl } from "../../utils/auth";
 import { FiUser, FiUsers, FiSearch, FiEye } from "react-icons/fi";
 
 export default function HirePeople() {
@@ -26,7 +26,7 @@ export default function HirePeople() {
     setError(null);
 
     try {
-      const response = await fetch("/api/users", {
+      const response = await fetch(`${getBackendUrl()}/api/users`, {
         credentials: "include",
       });
 
