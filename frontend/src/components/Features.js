@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from "react";
 
 const Features = () => {
   const [visibleFeatures, setVisibleFeatures] = useState([]);
   const featuresRef = useRef([]);
-
+  // asas
   const features = [
     {
       icon: (
@@ -12,9 +12,10 @@ const Features = () => {
         </svg>
       ),
       title: "Dual-Purpose Platform",
-      description: "Unique solution serving both job seekers and organizations - the only platform you need for complete interview success.",
+      description:
+        "Unique solution serving both job seekers and organizations - the only platform you need for complete interview success.",
       gradient: "from-primary-500 to-accent-500",
-      delay: "0s"
+      delay: "0s",
     },
     {
       icon: (
@@ -23,9 +24,10 @@ const Features = () => {
         </svg>
       ),
       title: "Realistic AI Simulations",
-      description: "Proprietary AI models trained on diverse datasets provide the most realistic interview experience available.",
+      description:
+        "Proprietary AI models trained on diverse datasets provide the most realistic interview experience available.",
       gradient: "from-accent-500 to-primary-500",
-      delay: "0.1s"
+      delay: "0.1s",
     },
     {
       icon: (
@@ -34,31 +36,42 @@ const Features = () => {
         </svg>
       ),
       title: "Affordable Pricing",
-      description: "Starting at just $30/month with referral rewards - more accessible than traditional coaching or recruitment services.",
+      description:
+        "Starting at just $30/month with referral rewards - more accessible than traditional coaching or recruitment services.",
       gradient: "from-primary-600 to-success-500",
-      delay: "0.2s"
+      delay: "0.2s",
     },
     {
       icon: (
         <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
-          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clipRule="evenodd" />
+          <path
+            fillRule="evenodd"
+            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z"
+            clipRule="evenodd"
+          />
         </svg>
       ),
       title: "Unbiased AI Screening",
-      description: "Eliminate hiring bias with AI-driven candidate assessment that focuses purely on skills and competency.",
+      description:
+        "Eliminate hiring bias with AI-driven candidate assessment that focuses purely on skills and competency.",
       gradient: "from-accent-600 to-primary-600",
-      delay: "0.3s"
+      delay: "0.3s",
     },
     {
       icon: (
         <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
-          <path fillRule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+          <path
+            fillRule="evenodd"
+            d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+            clipRule="evenodd"
+          />
         </svg>
       ),
       title: "Real-Time Analytics",
-      description: "Detailed performance tracking and instant feedback help users improve faster than traditional methods.",
+      description:
+        "Detailed performance tracking and instant feedback help users improve faster than traditional methods.",
       gradient: "from-success-500 to-accent-500",
-      delay: "0.4s"
+      delay: "0.4s",
     },
     {
       icon: (
@@ -67,10 +80,11 @@ const Features = () => {
         </svg>
       ),
       title: "Organization Integration",
-      description: "Seamlessly integrate with existing ATS systems and recruitment workflows for enterprise clients.",
+      description:
+        "Seamlessly integrate with existing ATS systems and recruitment workflows for enterprise clients.",
       gradient: "from-primary-500 to-success-600",
-      delay: "0.5s"
-    }
+      delay: "0.5s",
+    },
   ];
 
   useEffect(() => {
@@ -80,7 +94,7 @@ const Features = () => {
           if (entry.isIntersecting) {
             const index = parseInt(entry.target.dataset.index);
             setTimeout(() => {
-              setVisibleFeatures(prev => [...prev, index]);
+              setVisibleFeatures((prev) => [...prev, index]);
             }, index * 150);
           }
         });
@@ -96,7 +110,10 @@ const Features = () => {
   }, []);
 
   return (
-    <section id="features" className="py-20 bg-gradient-to-b from-white to-secondary-50 relative overflow-hidden">
+    <section
+      id="features"
+      className="py-20 bg-gradient-to-b from-white to-secondary-50 relative overflow-hidden"
+    >
       {/* Background Elements */}
       <div className="absolute inset-0">
         <div className="absolute top-20 left-10 w-32 h-32 bg-gradient-to-r from-primary-200 to-accent-200 rounded-full opacity-20 animate-float blur-xl"></div>
@@ -109,14 +126,18 @@ const Features = () => {
             ✨ Powerful Features
           </div>
           <h2 className="text-4xl md:text-5xl font-display font-bold text-secondary-900 mb-6 animate-fade-in-up">
-            Why Choose{' '}
+            Why Choose{" "}
             <span className="bg-gradient-to-r from-primary-600 to-accent-600 bg-clip-text text-transparent">
               RecruAI
             </span>
             ?
           </h2>
-          <p className="text-xl text-secondary-600 max-w-3xl mx-auto animate-fade-in-up" style={{animationDelay: '0.2s'}}>
-            The only platform that serves both job seekers and organizations with cutting-edge AI technology
+          <p
+            className="text-xl text-secondary-600 max-w-3xl mx-auto animate-fade-in-up"
+            style={{ animationDelay: "0.2s" }}
+          >
+            The only platform that serves both job seekers and organizations
+            with cutting-edge AI technology
           </p>
         </div>
 
@@ -124,20 +145,24 @@ const Features = () => {
           {features.map((feature, index) => (
             <div
               key={index}
-              ref={el => featuresRef.current[index] = el}
+              ref={(el) => (featuresRef.current[index] = el)}
               data-index={index}
               className={`group relative bg-white/70 backdrop-blur-sm border border-secondary-200 rounded-2xl p-8 transition-all duration-700 hover:border-primary-300 hover:shadow-2xl hover:shadow-primary-500/10 hover:-translate-y-2 ${
-                visibleFeatures.includes(index) 
-                  ? 'animate-fade-in-up opacity-100' 
-                  : 'opacity-0'
+                visibleFeatures.includes(index)
+                  ? "animate-fade-in-up opacity-100"
+                  : "opacity-0"
               }`}
-              style={{animationDelay: feature.delay}}
+              style={{ animationDelay: feature.delay }}
             >
               {/* Gradient Background on Hover */}
-              <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-5 rounded-2xl transition-opacity duration-500`}></div>
-              
+              <div
+                className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-5 rounded-2xl transition-opacity duration-500`}
+              ></div>
+
               {/* Icon */}
-              <div className={`relative flex items-center justify-center w-16 h-16 bg-gradient-to-r ${feature.gradient} rounded-xl mb-6 shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-500`}>
+              <div
+                className={`relative flex items-center justify-center w-16 h-16 bg-gradient-to-r ${feature.gradient} rounded-xl mb-6 shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-500`}
+              >
                 <div className="text-white group-hover:scale-110 transition-transform duration-300">
                   {feature.icon}
                 </div>
@@ -153,16 +178,33 @@ const Features = () => {
 
               {/* Hover Effect Arrow */}
               <div className="absolute bottom-6 right-6 w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transform translate-x-2 group-hover:translate-x-0 transition-all duration-300">
-                <svg className="w-4 h-4 text-primary-600" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                <svg
+                  className="w-4 h-4 text-primary-600"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z"
+                    clipRule="evenodd"
+                  />
                 </svg>
               </div>
 
               {/* Particle Effect on Hover */}
               <div className="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none">
-                <div className="absolute top-0 left-0 w-1 h-1 bg-primary-400 rounded-full opacity-0 group-hover:opacity-100 animate-ping group-hover:animate-bounce" style={{animationDelay: '0s'}}></div>
-                <div className="absolute top-4 right-8 w-1 h-1 bg-accent-400 rounded-full opacity-0 group-hover:opacity-100 animate-ping" style={{animationDelay: '0.2s'}}></div>
-                <div className="absolute bottom-6 left-12 w-1 h-1 bg-primary-500 rounded-full opacity-0 group-hover:opacity-100 animate-ping" style={{animationDelay: '0.4s'}}></div>
+                <div
+                  className="absolute top-0 left-0 w-1 h-1 bg-primary-400 rounded-full opacity-0 group-hover:opacity-100 animate-ping group-hover:animate-bounce"
+                  style={{ animationDelay: "0s" }}
+                ></div>
+                <div
+                  className="absolute top-4 right-8 w-1 h-1 bg-accent-400 rounded-full opacity-0 group-hover:opacity-100 animate-ping"
+                  style={{ animationDelay: "0.2s" }}
+                ></div>
+                <div
+                  className="absolute bottom-6 left-12 w-1 h-1 bg-primary-500 rounded-full opacity-0 group-hover:opacity-100 animate-ping"
+                  style={{ animationDelay: "0.4s" }}
+                ></div>
               </div>
             </div>
           ))}
