@@ -37,7 +37,9 @@ export default function Candidates() {
   useEffect(() => {
     const getOrgId = async () => {
       try {
-        const res = await fetch(`${getBackendUrl()}/api/auth/me`, { credentials: "include" });
+        const res = await fetch(`${getBackendUrl()}/api/auth/me`, {
+          credentials: "include",
+        });
         if (res.ok) {
           const data = await res.json();
           setOrganizationId(data.user?.organization_id || null);
