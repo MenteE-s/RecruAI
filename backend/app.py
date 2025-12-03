@@ -64,7 +64,7 @@ def create_app(config_object: object | None = None):
 	# Initialize background scheduler for interview status updates
 	try:
 		from .scheduler import init_scheduler
-		init_scheduler()
+		init_scheduler(app)
 	except Exception as e:
 		print(f"Warning: Could not initialize background scheduler: {e}")
 
