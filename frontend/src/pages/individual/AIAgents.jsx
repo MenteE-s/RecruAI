@@ -30,17 +30,23 @@ export default function IndividualAIAgents() {
     (async () => {
       const me = await verifyTokenWithServer();
       setUser(me);
-      if (me?.id) {
+      if (me?.organization_id) {
+        // User belongs to an organization, fetch organization AI agents
         const res = await fetch(
-          `${getBackendUrl()}/api/users/${me.id}/ai-agents`,
+          `${getBackendUrl()}/api/organizations/${me.organization_id}/ai-agents`,
           {
             credentials: "include",
           }
         );
         if (res.ok) {
           const data = await res.json();
-          setAgents(data.agents || []);
+          setAgents(data.aiAgents || []);
+        } else {
+          setError("Failed to load AI agents");
         }
+      } else {
+        // Individual user without organization
+        setError("AI agents are only available for organization members. Please join or create an organization to access AI agents.");
       }
       setLoading(false);
     })();

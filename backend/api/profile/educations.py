@@ -24,9 +24,24 @@ def create_education():
     if not data or 'degree' not in data or 'school' not in data:
         return jsonify({'error': 'Missing required fields'}), 400
 
-    # Handle empty date strings
-    start_date = data.get('start_date') if data.get('start_date') != '' else None
-    end_date = data.get('end_date') if data.get('end_date') != '' else None
+    # Handle empty date strings and convert to date objects
+    start_date_str = data.get('start_date')
+    end_date_str = data.get('end_date')
+
+    start_date = None
+    end_date = None
+
+    if start_date_str and start_date_str != '':
+        try:
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            return jsonify({'error': 'Invalid start_date format. Use YYYY-MM-DD'}), 400
+
+    if end_date_str and end_date_str != '':
+        try:
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            return jsonify({'error': 'Invalid end_date format. Use YYYY-MM-DD'}), 400
 
     education = Education(
         user_id=user_id,
@@ -56,9 +71,20 @@ def update_education(edu_id):
         return jsonify({'error': 'Education record not found'}), 404
 
     data = request.get_json()
+    
+    # Handle date fields specially
     for key, value in data.items():
         if hasattr(education, key):
-            setattr(education, key, value)
+            if key in ['start_date', 'end_date']:
+                if value and value != '':
+                    try:
+                        setattr(education, key, datetime.strptime(value, '%Y-%m-%d').date())
+                    except ValueError:
+                        return jsonify({'error': f'Invalid {key} format. Use YYYY-MM-DD'}), 400
+                else:
+                    setattr(education, key, None)
+            else:
+                setattr(education, key, value)
 
     db.session.commit()
     return jsonify({'message': 'Education record updated successfully', 'education': education.to_dict()}), 200
