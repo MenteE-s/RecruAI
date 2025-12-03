@@ -68,7 +68,9 @@ def create_app(config_object: object | None = None):
 		# development frontend commonly runs on http://localhost:3000; prefer an
 		# explicit origin over a wildcard to reduce CSRF risk for APIs.
 		frontend_origin = os.getenv("FRONTEND_ORIGIN", "http://localhost:3000")
-		CORS(app, resources={r"/api/*": {"origins": frontend_origin}}, supports_credentials=True)
+		# Support comma-separated list of origins
+		origins_list = [o.strip() for o in frontend_origin.split(",")]
+		CORS(app, resources={r"/api/*": {"origins": origins_list}}, supports_credentials=True)
 	except Exception:
 		# flask-cors not installed or not needed in production
 		pass
