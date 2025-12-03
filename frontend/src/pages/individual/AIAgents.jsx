@@ -19,6 +19,7 @@ export default function IndividualAIAgents() {
   const [user, setUser] = useState(null);
   const [agents, setAgents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [form, setForm] = useState({
     name: "",
     industry: "",
@@ -77,6 +78,12 @@ export default function IndividualAIAgents() {
           Create and manage personal practice interview agents.
         </p>
       </div>
+
+      {error && (
+        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+          {error}
+        </div>
+      )}
 
       <Card>
         <form
