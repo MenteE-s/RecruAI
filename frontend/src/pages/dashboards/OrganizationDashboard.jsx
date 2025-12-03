@@ -64,7 +64,10 @@ export default function OrganizationDashboard() {
 
   const fetchDashboardStats = async () => {
     try {
-      const response = await fetch(`${getBackendUrl()}/api/dashboard/stats`);
+      const url = `${getBackendUrl()}/api/dashboard/stats`;
+      console.log("OrganizationDashboard fetchDashboardStats URL:", url);
+      const response = await fetch(url);
+      console.log("OrganizationDashboard fetchDashboardStats response status:", response.status);
       if (response.ok) {
         const data = await response.json();
         setStats(data);
@@ -76,7 +79,10 @@ export default function OrganizationDashboard() {
 
   const fetchAnalyticsOverview = async () => {
     try {
-      const response = await fetch(`${getBackendUrl()}/api/analytics/overview`);
+      const url = `${getBackendUrl()}/api/analytics/overview`;
+      console.log("OrganizationDashboard fetchAnalyticsOverview URL:", url);
+      const response = await fetch(url);
+      console.log("OrganizationDashboard fetchAnalyticsOverview response status:", response.status);
       if (response.ok) {
         const data = await response.json();
         setAnalytics(data);
