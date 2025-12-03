@@ -1,6 +1,12 @@
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from .. import api_bp
+from ...extensions import db
+from ...models import User, Experience, Education, Skill, Project, Publication, ProfileSection, Award, Certification, Language, VolunteerExperience, Reference, HobbyInterest, ProfessionalMembership, Patent, CourseTraining, SocialMediaLink, KeyAchievement, Conference, SpeakingEngagement, License, TeamMember
+from sqlalchemy.orm import joinedload
 from sqlalchemy import desc
-
-# Get full profile for a specific user (for organization admins viewing team members)
+import os
+from werkzeug.utils import secure_filename
+from flask import jsonify
 @api_bp.route('/profile/user/<int:user_id>', methods=['GET'])
 @jwt_required()
 def get_user_profile(user_id):
