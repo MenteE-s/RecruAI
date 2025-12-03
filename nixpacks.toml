@@ -1,21 +1,14 @@
 # Nixpacks configuration for Railway deployment
 # This tells Nixpacks how to build the Python backend from the backend/ subdirectory
 
-# Use Python provider - this automatically sets up pip
-providers = ["python"]
-
-# Tell nixpacks where to find requirements.txt
-[variables]
-NIXPACKS_PYTHON_REQUIREMENTS = "backend/requirements.txt"
-
 [phases.setup]
-nixPkgs = ["python311", "python311Packages.pip", "postgresql"]
+nixPkgs = ["python311Full", "postgresql"]
 
 [phases.install]
-cmds = ["cd backend && python3 -m pip install -r requirements.txt"]
+cmds = ["cd backend && pip install -r requirements.txt"]
 
 [phases.build]
-cmds = ["cd backend && python3 -m flask db upgrade || true"]
+cmds = ["cd backend && flask db upgrade || true"]
 
 [start]
-cmd = "cd backend && python3 -m gunicorn --bind 0.0.0.0:$PORT 'app:create_app()'"
+cmd = "cd backend && gunicorn --bind 0.0.0.0:$PORT 'app:create_app()'"
