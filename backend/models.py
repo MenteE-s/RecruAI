@@ -14,6 +14,8 @@ class User(db.Model):
     password_hash = db.Column(db.Text, nullable=True)
     # user role: 'individual' or 'organization'
     role = db.Column(db.String(32), nullable=False, default="individual")
+    # user plan: 'free', 'premium', etc.
+    plan = db.Column(db.String(32), nullable=False, default="free")
     # optional organization FK
     organization_id = db.Column(db.Integer, db.ForeignKey("organizations.id"), nullable=True)
     organization = db.relationship("Organization", back_populates="users")
@@ -38,6 +40,7 @@ class User(db.Model):
             "email": self.email,
             "name": self.name,
             "role": self.role,
+            "plan": self.plan,
             "organization": self.organization.name if self.organization else None,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }

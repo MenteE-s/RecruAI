@@ -27,7 +27,7 @@ def register():
     if User.query.filter_by(email=email).first():
         return jsonify({"error": "email already registered"}), 400
 
-    user = User(email=email, name=name, role=role)
+    user = User(email=email, name=name, role=role, plan="free")
     user.set_password(password)
 
     # if this is an organization signup, create or reuse the Organization
