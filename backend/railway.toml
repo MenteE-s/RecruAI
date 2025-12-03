@@ -1,0 +1,14 @@
+# Railway deployment configuration for RecruAI backend
+# This file tells Railway how to build and run the backend service
+
+[build]
+builder = "nixpacks"
+
+[deploy]
+# Start command for the backend using gunicorn production server
+startCommand = "gunicorn --bind 0.0.0.0:$PORT backend.app:create_app()"
+# Health check endpoint
+healthcheckPath = "/"
+healthcheckTimeout = 300
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 10

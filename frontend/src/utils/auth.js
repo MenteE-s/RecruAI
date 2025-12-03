@@ -14,8 +14,13 @@ import {
 
 // Get the backend URL for API calls and uploaded files
 export function getBackendUrl() {
-  // In development, use localhost:5000
-  // In production, this should be configurable via environment variable
+  // Use REACT_APP_API_URL environment variable if set (required for production)
+  // In production, set this to your backend URL (e.g., https://your-backend.railway.app)
+  if (process.env.REACT_APP_API_URL) {
+    return process.env.REACT_APP_API_URL;
+  }
+  // In development, default to localhost:5000
+  // In production without REACT_APP_API_URL, use relative URLs (works with reverse proxy)
   const isDevelopment = process.env.NODE_ENV === "development";
   return isDevelopment ? "http://localhost:5000" : "";
 }
