@@ -1286,11 +1286,11 @@ export default function InterviewManagement() {
   const handleBulkDelete = async () => {
     if (selectedInterviews.length === 0) return;
 
-    if (
-      !confirm(
-        `Are you sure you want to delete ${selectedInterviews.length} interview(s)? This action cannot be undone.`
-      )
-    ) {
+    // Simple confirmation - replace with proper modal if needed
+    const confirmed = window.confirm(
+      `Are you sure you want to delete ${selectedInterviews.length} interview(s)? This action cannot be undone.`
+    );
+    if (!confirmed) {
       return;
     }
 
