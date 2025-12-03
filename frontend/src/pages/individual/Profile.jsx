@@ -1647,28 +1647,7 @@ export default function Profile() {
       let body = itemData;
 
       if (existingItem && existingItem.id) {
-        if (type === "experiences") endpoint += `/${existingItem.id}`;
-        else if (type === "educations") endpoint += `/${existingItem.id}`;
-        else if (type === "skills") endpoint += `/${existingItem.id}`;
-        else if (type === "projects") endpoint += `/${existingItem.id}`;
-        else if (type === "publications") endpoint += `/${existingItem.id}`;
-        else if (type === "awards") endpoint += `/${existingItem.id}`;
-        else if (type === "certifications") endpoint += `/${existingItem.id}`;
-        else if (type === "languages") endpoint += `/${existingItem.id}`;
-        else if (type === "volunteerExperiences")
-          endpoint += `/${existingItem.id}`;
-        else if (type === "references") endpoint += `/${existingItem.id}`;
-        else if (type === "hobbyInterests") endpoint += `/${existingItem.id}`;
-        else if (type === "professionalMemberships")
-          endpoint += `/${existingItem.id}`;
-        else if (type === "patents") endpoint += `/${existingItem.id}`;
-        else if (type === "courseTrainings") endpoint += `/${existingItem.id}`;
-        else if (type === "socialMediaLinks") endpoint += `/${existingItem.id}`;
-        else if (type === "keyAchievements") endpoint += `/${existingItem.id}`;
-        else if (type === "conferences") endpoint += `/${existingItem.id}`;
-        else if (type === "speakingEngagements")
-          endpoint += `/${existingItem.id}`;
-        else if (type === "licenses") endpoint += `/${existingItem.id}`;
+        endpoint += `/${existingItem.id}`;
       }
 
       const response = await fetch(endpoint, {

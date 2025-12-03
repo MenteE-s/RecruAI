@@ -21,12 +21,20 @@ class Publication(db.Model):
 
     def to_dict(self):
         import json
+        authors = []
+        if self.authors:
+            try:
+                authors = json.loads(self.authors)
+                if not isinstance(authors, list):
+                    authors = []
+            except (json.JSONDecodeError, TypeError):
+                authors = []
         return {
             "id": self.id,
             "user_id": self.user_id,
             "title": self.title,
             "journal": self.journal,
-            "authors": json.loads(self.authors) if self.authors else [],
+            "authors": authors,
             "abstract": self.abstract,
             "publication_url": self.publication_url,
             "year": self.year,

@@ -20,6 +20,14 @@ class Patent(db.Model):
 
     def to_dict(self):
         import json
+        inventors = []
+        if self.inventors:
+            try:
+                inventors = json.loads(self.inventors)
+                if not isinstance(inventors, list):
+                    inventors = []
+            except (json.JSONDecodeError, TypeError):
+                inventors = []
         return {
             "id": self.id,
             "user_id": self.user_id,
@@ -28,6 +36,6 @@ class Patent(db.Model):
             "filing_date": self.filing_date.isoformat() if self.filing_date else None,
             "grant_date": self.grant_date.isoformat() if self.grant_date else None,
             "description": self.description,
-            "inventors": json.loads(self.inventors) if self.inventors else [],
+            "inventors": inventors,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }

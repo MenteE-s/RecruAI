@@ -19,12 +19,20 @@ class TeamMember(db.Model):
 
     def to_dict(self):
         import json
+        permissions = []
+        if self.permissions:
+            try:
+                permissions = json.loads(self.permissions)
+                if not isinstance(permissions, list):
+                    permissions = []
+            except (json.JSONDecodeError, TypeError):
+                permissions = []
         return {
             "id": self.id,
             "organization_id": self.organization_id,
             "user_id": self.user_id,
             "role": self.role,
-            "permissions": json.loads(self.permissions) if self.permissions else [],
+            "permissions": permissions,
             "join_date": self.join_date.isoformat() if self.join_date else None,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "organization": self.organization.name if self.organization else None,

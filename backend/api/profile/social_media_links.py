@@ -3,6 +3,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from .. import api_bp
 from ...extensions import db
 from ...models import SocialMediaLink
+from sqlalchemy import desc
 
 # Social Media Link endpoints
 @api_bp.route('/profile/social-media-links', methods=['GET'])

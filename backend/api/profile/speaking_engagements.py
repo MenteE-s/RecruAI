@@ -4,6 +4,7 @@ from .. import api_bp
 from ...extensions import db
 from ...models import SpeakingEngagement
 from datetime import datetime
+from sqlalchemy import desc
 
 # Speaking Engagement endpoints
 @api_bp.route('/profile/speaking-engagements', methods=['GET'])
@@ -11,7 +12,7 @@ from datetime import datetime
 def get_speaking_engagements():
     """Get all speaking engagements for the current user"""
     user_id = int(get_jwt_identity())
-    speaking_engagements = SpeakingEngagement.query.filter_by(user_id=user_id).order_by(SpeakingEngagement.date.desc()).all()
+    speaking_engagements = SpeakingEngagement.query.filter_by(user_id=user_id).order_by(desc(SpeakingEngagement.date).nulls_last()).all()
     return jsonify({'speakingEngagements': [se.to_dict() for se in speaking_engagements]}), 200
 
 @api_bp.route('/profile/speaking-engagements', methods=['POST'])

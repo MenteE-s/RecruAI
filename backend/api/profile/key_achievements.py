@@ -4,6 +4,7 @@ from .. import api_bp
 from ...extensions import db
 from ...models import KeyAchievement
 from datetime import datetime
+from sqlalchemy import desc
 
 # Key Achievement endpoints
 @api_bp.route('/profile/key-achievements', methods=['GET'])
@@ -11,7 +12,7 @@ from datetime import datetime
 def get_key_achievements():
     """Get all key achievements for the current user"""
     user_id = int(get_jwt_identity())
-    key_achievements = KeyAchievement.query.filter_by(user_id=user_id).order_by(KeyAchievement.date.desc()).all()
+    key_achievements = KeyAchievement.query.filter_by(user_id=user_id).order_by(desc(KeyAchievement.date).nulls_last()).all()
     return jsonify({'keyAchievements': [ka.to_dict() for ka in key_achievements]}), 200
 
 @api_bp.route('/profile/key-achievements', methods=['POST'])

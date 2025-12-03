@@ -22,12 +22,20 @@ class Project(db.Model):
 
     def to_dict(self):
         import json
+        technologies = []
+        if self.technologies:
+            try:
+                technologies = json.loads(self.technologies)
+                if not isinstance(technologies, list):
+                    technologies = []
+            except (json.JSONDecodeError, TypeError):
+                technologies = []
         return {
             "id": self.id,
             "user_id": self.user_id,
             "name": self.name,
             "description": self.description,
-            "technologies": json.loads(self.technologies) if self.technologies else [],
+            "technologies": technologies,
             "github_url": self.github_url,
             "demo_url": self.demo_url,
             "start_date": self.start_date.isoformat() if self.start_date else None,

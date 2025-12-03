@@ -4,6 +4,7 @@ from .. import api_bp
 from ...extensions import db
 from ...models import CourseTraining
 from datetime import datetime
+from sqlalchemy import desc
 
 # Course Training endpoints
 @api_bp.route('/profile/course-trainings', methods=['GET'])
@@ -11,7 +12,7 @@ from datetime import datetime
 def get_course_trainings():
     """Get all course trainings for the current user"""
     user_id = int(get_jwt_identity())
-    course_trainings = CourseTraining.query.filter_by(user_id=user_id).order_by(CourseTraining.completion_date.desc()).all()
+    course_trainings = CourseTraining.query.filter_by(user_id=user_id).order_by(desc(CourseTraining.completion_date).nulls_last()).all()
     return jsonify({'courseTrainings': [ct.to_dict() for ct in course_trainings]}), 200
 
 @api_bp.route('/profile/course-trainings', methods=['POST'])
@@ -36,7 +37,6 @@ def create_course_training():
         user_id=user_id,
         name=data['name'],
         provider=data.get('provider'),
-        platform=data.get('platform'),
         completion_date=completion_date,
         credential_id=data.get('credential_id'),
         description=data.get('description')
