@@ -13,11 +13,14 @@ import {
   FiCheckCircle,
 } from "react-icons/fi";
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "";
+console.log("API_BASE_URL initialized to:", API_BASE_URL);
 
 // Get the backend URL for API calls and uploaded files
 export function getBackendUrl() {
   // Use environment variable for API base URL
-  return process.env.REACT_APP_API_BASE_URL || "";
+  const url = process.env.REACT_APP_API_BASE_URL || "";
+  console.log("getBackendUrl() returning:", url);
+  return url;
 }
 
 // Get full URL for uploaded files
