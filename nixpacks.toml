@@ -1,0 +1,14 @@
+# Nixpacks configuration for Railway deployment
+# This tells Nixpacks how to build the Python backend from the backend/ subdirectory
+
+[phases.setup]
+nixPkgs = ["python311", "postgresql"]
+
+[phases.install]
+cmds = ["cd backend && pip install -r requirements.txt"]
+
+[phases.build]
+cmds = ["cd backend && python -m flask db upgrade || true"]
+
+[start]
+cmd = "cd backend && gunicorn --bind 0.0.0.0:$PORT 'app:create_app()'"

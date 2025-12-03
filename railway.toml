@@ -1,0 +1,15 @@
+# Railway deployment configuration for RecruAI Backend
+# This file configures Railway to deploy the Flask backend from the backend/ subdirectory
+
+[build]
+builder = "nixpacks"
+buildCommand = "cd backend && pip install -r requirements.txt"
+watchPatterns = ["backend/**"]
+
+[deploy]
+startCommand = "cd backend && gunicorn --bind 0.0.0.0:$PORT 'app:create_app()'"
+healthcheckPath = "/"
+healthcheckTimeout = 300
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 10
+
