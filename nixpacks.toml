@@ -1,8 +1,11 @@
 # Nixpacks configuration for Railway deployment
 # This tells Nixpacks how to build the Python backend from the backend/ subdirectory
 
+# Use Python provider - this automatically sets up pip
+providers = ["python"]
+
 [phases.setup]
-nixPkgs = ["python311", "postgresql"]
+nixPkgs = ["postgresql"]
 
 [phases.install]
 cmds = ["cd backend && pip install -r requirements.txt"]
