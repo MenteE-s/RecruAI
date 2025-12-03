@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
+import { getBackendUrl } from '../../utils/auth';
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import IndividualNavbar from "../../components/layout/IndividualNavbar";
@@ -24,7 +25,7 @@ export default function AppliedJobs() {
   const fetchAppliedJobs = async () => {
     try {
       const userId = 1; // TODO: Get from user context
-      const response = await fetch(`/api/applied-jobs/user/${userId}`);
+      const response = await fetch(`${getBackendUrl()}/api/applied-jobs/user/${userId}`);
       if (response.ok) {
         const data = await response.json();
         setAppliedJobs(data);

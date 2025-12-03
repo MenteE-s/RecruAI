@@ -34,7 +34,7 @@ const InterviewRoom = () => {
 
   const fetchAiUser = async () => {
     try {
-      const response = await fetch("/api/ai/user", {
+      const response = await fetch(`${API_BASE_URL}/api/ai/user`, {
         credentials: "include",
       });
       if (response.ok) {
@@ -70,7 +70,7 @@ const InterviewRoom = () => {
 
   const fetchInterview = async () => {
     try {
-      const response = await fetch(`/api/interviews/${interviewId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/interviews/${interviewId}`, {
         credentials: "include",
       });
 
@@ -104,7 +104,7 @@ const InterviewRoom = () => {
 
   const loadMessages = async () => {
     try {
-      const response = await fetch(`/api/interviews/${interviewId}/messages`, {
+      const response = await fetch(`${API_BASE_URL}/api/interviews/${interviewId}/messages`, {
         credentials: "include",
       });
 
@@ -149,7 +149,7 @@ const InterviewRoom = () => {
 
     try {
       // Save user message to database
-      const response = await fetch(`/api/interviews/${interviewId}/messages`, {
+      const response = await fetch(`${API_BASE_URL}/api/interviews/${interviewId}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -185,7 +185,7 @@ const InterviewRoom = () => {
           if (aiResponse.ok) {
             const aiData = await aiResponse.json();
             // Save AI response to database
-            await fetch(`/api/interviews/${interviewId}/messages`, {
+            await fetch(`${API_BASE_URL}/api/interviews/${interviewId}/messages`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               credentials: "include",
@@ -225,7 +225,7 @@ const InterviewRoom = () => {
 
     try {
       // Save interviewer response to database
-      const response = await fetch(`/api/interviews/${interviewId}/messages`, {
+      const response = await fetch(`${API_BASE_URL}/api/interviews/${interviewId}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

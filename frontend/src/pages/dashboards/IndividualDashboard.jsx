@@ -4,7 +4,7 @@ import DashboardLayout from "../../components/layout/DashboardLayout";
 import IndividualNavbar from "../../components/layout/IndividualNavbar";
 import StatCard from "../../components/ui/StatCard";
 import Card from "../../components/ui/Card";
-import { getSidebarItems, verifyTokenWithServer } from "../../utils/auth";
+import { getSidebarItems, verifyTokenWithServer, getBackendUrl } from "../../utils/auth";
 import { formatDate } from "../../utils/timezone";
 import {
   FiUsers,
@@ -54,12 +54,12 @@ export default function IndividualDashboard() {
       );
 
       // Fetch applied jobs
-      const appliedResponse = await fetch(`/api/applied-jobs/user/${userId}`, {
+      const appliedResponse = await fetch(`${getBackendUrl()}/api/applied-jobs/user/${userId}`, {
         credentials: "include",
       });
 
       // Fetch saved jobs
-      const savedResponse = await fetch(`/api/saved-jobs/user/${userId}`, {
+      const savedResponse = await fetch(`${getBackendUrl()}/api/saved-jobs/user/${userId}`, {
         credentials: "include",
       });
 

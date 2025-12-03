@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import IndividualNavbar from "../../components/layout/IndividualNavbar";
 import Card from "../../components/ui/Card";
-import { getSidebarItems } from "../../utils/auth";
+import { getSidebarItems, getBackendUrl } from "../../utils/auth";
 import { formatDateTime as formatDateTimeTz } from "../../utils/timezone";
 
 export default function InterviewHistory() {
@@ -22,7 +22,7 @@ export default function InterviewHistory() {
     const fetchData = async () => {
       try {
         // Fetch interview history
-        const historyResponse = await fetch("/api/interviews/history", {
+        const historyResponse = await fetch(`${getBackendUrl()}/api/interviews/history`, {
           credentials: "include",
         });
 
@@ -36,7 +36,7 @@ export default function InterviewHistory() {
         // Fetch user analytics
         const userId = 1; // TODO: Get from user context
         const analyticsResponse = await fetch(
-          `/api/users/${userId}/analytics`,
+          `${getBackendUrl()}/api/users/${userId}/analytics`,
           {
             credentials: "include",
           }

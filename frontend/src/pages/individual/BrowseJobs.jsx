@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import IndividualNavbar from "../../components/layout/IndividualNavbar";
 import Card from "../../components/ui/Card";
-import { getSidebarItems } from "../../utils/auth";
+import { getSidebarItems, getBackendUrl } from "../../utils/auth";
 import { useToast } from "../../components/ui/ToastContext";
 
 export default function BrowseJobs() {
@@ -40,7 +40,7 @@ export default function BrowseJobs() {
 
   const fetchJobs = async () => {
     try {
-      const response = await fetch("/api/posts");
+      const response = await fetch(`${getBackendUrl()}/api/posts`);
       if (response.ok) {
         const data = await response.json();
         // Filter only active jobs
@@ -57,7 +57,7 @@ export default function BrowseJobs() {
   const fetchSavedJobs = async () => {
     try {
       const userId = 1; // TODO: Get from user context
-      const response = await fetch(`/api/saved-jobs/user/${userId}`);
+      const response = await fetch(`${getBackendUrl()}/api/saved-jobs/user/${userId}`);
       if (response.ok) {
         const data = await response.json();
         const savedIds = new Set(data.map((saved) => saved.post_id));
@@ -71,7 +71,7 @@ export default function BrowseJobs() {
   const fetchAppliedJobs = async () => {
     try {
       const userId = 1; // TODO: Get from user context
-      const response = await fetch(`/api/applications/user/${userId}`);
+      const response = await fetch(`${getBackendUrl()}/api/applications/user/${userId}`);
       if (response.ok) {
         const data = await response.json();
         const appliedIds = new Set(data.map((app) => app.post_id));
@@ -109,7 +109,7 @@ export default function BrowseJobs() {
   const handleSaveJob = async (postId) => {
     try {
       const userId = 1; // TODO: Get from user context
-      const response = await fetch("/api/saved-jobs", {
+      const response = await fetch(`${getBackendUrl()}/api/saved-jobs`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -139,14 +139,14 @@ export default function BrowseJobs() {
 
   const handleUnsaveJob = async (savedId) => {
     try {
-      const response = await fetch(`/api/saved-jobs/${savedId}`, {
+      const response = await fetch(`${getBackendUrl()}/api/saved-jobs/${savedId}`, {
         method: "DELETE",
         credentials: "include",
       });
 
       if (response.ok) {
         // Find the post_id for this saved job
-        const savedJob = await fetch(`/api/saved-jobs/user/1`)
+        const savedJob = await fetch(`${getBackendUrl()}/api/saved-jobs/user/1`)
           .then((r) => r.json())
           .then((data) => data.find((sj) => sj.id === savedId));
         if (savedJob) {
@@ -165,7 +165,7 @@ export default function BrowseJobs() {
   const handleApplyJob = async (postId) => {
     try {
       const userId = 1; // TODO: Get from user context
-      const response = await fetch("/api/applications", {
+      const response = await fetch(`${getBackendUrl()}/api/applications`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -416,7 +416,7 @@ export default function BrowseJobs() {
                       onClick={() => {
                         // Find saved job ID - this is simplified
                         fetch(
-                          `/api/saved-jobs/check?user_id=1&post_id=${job.id}`
+                          `${getBackendUrl()}/api/saved-jobs/check?user_id=1&post_id=${job.id}`
                         )
                           .then((r) => r.json())
                           .then((data) => {

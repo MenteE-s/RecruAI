@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import IndividualNavbar from "../../components/layout/IndividualNavbar";
 import Card from "../../components/ui/Card";
-import { getSidebarItems, getUploadUrl } from "../../utils/auth";
+import { getSidebarItems, getUploadUrl, getBackendUrl } from "../../utils/auth";
 import {
   FiPlus,
   FiX,
@@ -1355,7 +1355,7 @@ export default function Profile() {
   useEffect(() => {
     const loadUserData = async () => {
       try {
-        const response = await fetch("/api/auth/me", {
+        const response = await fetch(`${getBackendUrl()}/api/auth/me`, {
           credentials: "include",
         });
         if (response.ok) {
@@ -1392,32 +1392,32 @@ export default function Profile() {
           speakRes,
           licRes,
         ] = await Promise.all([
-          fetch("/api/profile/sections", { credentials: "include" }),
-          fetch("/api/profile/experiences", { credentials: "include" }),
-          fetch("/api/profile/educations", { credentials: "include" }),
-          fetch("/api/profile/skills", { credentials: "include" }),
-          fetch("/api/profile/projects", { credentials: "include" }),
-          fetch("/api/profile/publications", { credentials: "include" }),
-          fetch("/api/profile/awards", { credentials: "include" }),
-          fetch("/api/profile/certifications", { credentials: "include" }),
-          fetch("/api/profile/languages", { credentials: "include" }),
-          fetch("/api/profile/volunteer-experiences", {
+          fetch(`${getBackendUrl()}/api/profile/sections`, { credentials: "include" }),
+          fetch(`${getBackendUrl()}/api/profile/experiences`, { credentials: "include" }),
+          fetch(`${getBackendUrl()}/api/profile/educations`, { credentials: "include" }),
+          fetch(`${getBackendUrl()}/api/profile/skills`, { credentials: "include" }),
+          fetch(`${getBackendUrl()}/api/profile/projects`, { credentials: "include" }),
+          fetch(`${getBackendUrl()}/api/profile/publications`, { credentials: "include" }),
+          fetch(`${getBackendUrl()}/api/profile/awards`, { credentials: "include" }),
+          fetch(`${getBackendUrl()}/api/profile/certifications`, { credentials: "include" }),
+          fetch(`${getBackendUrl()}/api/profile/languages`, { credentials: "include" }),
+          fetch(`${getBackendUrl()}/api/profile/volunteer-experiences`, {
             credentials: "include",
           }),
-          fetch("/api/profile/references", { credentials: "include" }),
-          fetch("/api/profile/hobby-interests", { credentials: "include" }),
-          fetch("/api/profile/professional-memberships", {
+          fetch(`${getBackendUrl()}/api/profile/references`, { credentials: "include" }),
+          fetch(`${getBackendUrl()}/api/profile/hobby-interests`, { credentials: "include" }),
+          fetch(`${getBackendUrl()}/api/profile/professional-memberships`, {
             credentials: "include",
           }),
-          fetch("/api/profile/patents", { credentials: "include" }),
-          fetch("/api/profile/course-trainings", { credentials: "include" }),
-          fetch("/api/profile/social-media-links", { credentials: "include" }),
-          fetch("/api/profile/key-achievements", { credentials: "include" }),
-          fetch("/api/profile/conferences", { credentials: "include" }),
-          fetch("/api/profile/speaking-engagements", {
+          fetch(`${getBackendUrl()}/api/profile/patents`, { credentials: "include" }),
+          fetch(`${getBackendUrl()}/api/profile/course-trainings`, { credentials: "include" }),
+          fetch(`${getBackendUrl()}/api/profile/social-media-links`, { credentials: "include" }),
+          fetch(`${getBackendUrl()}/api/profile/key-achievements`, { credentials: "include" }),
+          fetch(`${getBackendUrl()}/api/profile/conferences`, { credentials: "include" }),
+          fetch(`${getBackendUrl()}/api/profile/speaking-engagements`, {
             credentials: "include",
           }),
-          fetch("/api/profile/licenses", { credentials: "include" }),
+          fetch(`${getBackendUrl()}/api/profile/licenses`, { credentials: "include" }),
         ]);
 
         const [
@@ -1707,7 +1707,7 @@ export default function Profile() {
     setError(null);
 
     try {
-      const response = await fetch("/api/profile/sections", {
+      const response = await fetch(`${getBackendUrl()}/api/profile/sections`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
