@@ -1641,7 +1641,7 @@ export default function Profile() {
     try {
       const { type, data: existingItem } = editingItem;
       // Convert camelCase to kebab-case for API endpoints
-      const apiType = type.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
+      const apiType = type.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase();
       let endpoint = `${getBackendUrl()}/api/profile/${apiType}`;
       let method = existingItem ? "PUT" : "POST";
       let body = itemData;
