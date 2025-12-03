@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useToast } from "../components/ui/ToastContext";
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "";
+console.log("SignIn API_BASE_URL:", API_BASE_URL);
 
 export default function SignIn() {
   const [email, setEmail] = useState("");
