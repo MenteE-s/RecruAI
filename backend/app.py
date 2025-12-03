@@ -64,7 +64,6 @@ def create_app(config_object: object | None = None):
 	# enable CORS for API routes so frontend dev server can call /api/*
 	try:
 		from flask_cors import CORS  # type: ignore
-
 		# Restrict CORS origins to the frontend origin when available. In local
 		# development frontend commonly runs on http://localhost:3000; prefer an
 		# explicit origin over a wildcard to reduce CSRF risk for APIs.
