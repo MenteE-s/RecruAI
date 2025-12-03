@@ -1,6 +1,8 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "";
+
 export default function IndividualNavbar({ isAuthenticated }) {
   const navigate = useNavigate();
   const signedIn =
@@ -9,7 +11,7 @@ export default function IndividualNavbar({ isAuthenticated }) {
   function signOut() {
     (async () => {
       try {
-        await fetch("/api/auth/logout", {
+        await fetch(`${API_BASE_URL}/api/auth/logout`, {
           method: "POST",
           credentials: "include",
         });

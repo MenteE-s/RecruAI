@@ -1,11 +1,13 @@
 // helper utilities for token verification and auth state
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "";
+
 export async function verifyTokenWithServer() {
   try {
     if (typeof window === "undefined") return null;
 
     // With cookie-based auth we don't need to send Authorization header.
     // Ensure cookies are sent by including credentials.
-    const res = await fetch("/api/auth/me", {
+    const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
       method: "GET",
       credentials: "include",
     });

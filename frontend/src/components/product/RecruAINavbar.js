@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "";
+
 const RecruAINavbar = () => {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -33,7 +35,7 @@ const RecruAINavbar = () => {
   function handleSignOut() {
     (async () => {
       try {
-        await fetch("/api/auth/logout", {
+        await fetch(`${API_BASE_URL}/api/auth/logout`, {
           method: "POST",
           credentials: "include",
         });

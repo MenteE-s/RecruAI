@@ -2,6 +2,8 @@
 import { Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "";
+
 // ProtectedRoute now performs a lightweight token validation with the backend
 // If a token exists we call /api/auth/me to verify it and refresh the stored role.
 export default function ProtectedRoute({ children }) {
@@ -14,7 +16,9 @@ export default function ProtectedRoute({ children }) {
     (async () => {
       try {
         // rely on HttpOnly cookies; include credentials so browser sends the cookie
-        const res = await fetch("/api/auth/me", { credentials: "include" });
+        const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
+          credentials: "include",
+        });
         // debug log
         // eslint-disable-next-line no-console
         console.log("/api/auth/me status:", res.status);

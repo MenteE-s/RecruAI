@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useToast } from "../components/ui/ToastContext";
 
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "";
+
 export default function Register() {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
@@ -47,7 +49,7 @@ export default function Register() {
     setError(null);
     setLoading(true);
     try {
-      const res = await fetch("/api/auth/register", {
+      const res = await fetch(`${API_BASE_URL}/api/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -180,7 +182,7 @@ export default function Register() {
 
           <div className="flex flex-col sm:flex-row gap-3 mb-4">
             <a
-              href="/api/auth/google"
+              href={`${API_BASE_URL}/api/auth/google`}
               className="flex items-center justify-center gap-2 flex-1 border rounded px-3 py-2 hover:bg-gray-50"
             >
               {/* Google Icon */}
@@ -210,7 +212,7 @@ export default function Register() {
             </a>
 
             <a
-              href="/api/auth/github"
+              href={`${API_BASE_URL}/api/auth/github`}
               className="flex items-center justify-center gap-2 flex-1 border rounded px-3 py-2 hover:bg-gray-50"
             >
               {/* GitHub Icon */}
