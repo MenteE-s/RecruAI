@@ -17,24 +17,39 @@ depends_on = None
 
 
 def upgrade():
-    # Check if column exists before adding it
+    # Use raw SQL to check and add column if it doesn't exist
+    # This is more robust for PostgreSQL
     conn = op.get_bind()
-    inspector = sa.inspect(conn)
-    columns = [col['name'] for col in inspector.get_columns('educations')]
     
-    if 'school' not in columns:
+    # Check if column exists using PostgreSQL information_schema
+    result = conn.execute(sa.text("""
+        SELECT column_name 
+        FROM information_schema.columns 
+        WHERE table_name='educations' AND column_name='school'
+    """))
+    
+    exists = result.fetchone() is not None
+    
+    if not exists:
+        # Add the column
         op.add_column('educations', sa.Column('school', sa.String(length=255), nullable=True))
         # Update existing records to have a default value
-        op.execute("UPDATE educations SET school = '' WHERE school IS NULL")
+        conn.execute(sa.text("UPDATE educations SET school = '' WHERE school IS NULL"))
         # Make it not nullable after setting defaults
         op.alter_column('educations', 'school', nullable=False)
 
 
 def downgrade():
-    # Only drop if it exists
+    # Check if column exists before dropping
     conn = op.get_bind()
-    inspector = sa.inspect(conn)
-    columns = [col['name'] for col in inspector.get_columns('educations')]
     
-    if 'school' in columns:
+    result = conn.execute(sa.text("""
+        SELECT column_name 
+        FROM information_schema.columns 
+        WHERE table_name='educations' AND column_name='school'
+    """))
+    
+    exists = result.fetchone() is not None
+    
+    if exists:
         op.drop_column('educations', 'school')
