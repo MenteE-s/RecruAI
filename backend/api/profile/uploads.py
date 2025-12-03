@@ -1,3 +1,4 @@
+from flask import request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from .. import api_bp
 from ...extensions import db
@@ -6,94 +7,100 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy import desc
 import os
 from werkzeug.utils import secure_filename
-from flask import jsonify
 @api_bp.route('/profile/user/<int:user_id>', methods=['GET'])
 @jwt_required()
 def get_user_profile(user_id):
     """Get full profile data for a specific user (self-access or organization admin access)"""
-    current_user_id = int(get_jwt_identity())
-
-    # Get current user
     try:
-        current_user_id_int = int(current_user_id)
-        current_user = User.query.options(joinedload(User.organization)).get(current_user_id_int)
-    except (ValueError, TypeError):
-        return jsonify({"error": "invalid user identity"}), 400
-    if not current_user:
-        return jsonify({'error': 'Current user not found'}), 404
+        current_user_id = int(get_jwt_identity())
 
-    # Allow users to access their own profile
-    if current_user_id_int == user_id:
-        target_user = User.query.options(joinedload(User.organization)).get(user_id)
-        if not target_user:
-            return jsonify({'error': 'User not found'}), 404
-        is_team_member = True  # User viewing their own profile
-    else:
-        # For organization users accessing other users' profiles (for hiring purposes)
-        if current_user.organization_id and current_user.role == 'organization':
-            # Organization users can view any individual user's profile for hiring
-            target_user = User.query.options(joinedload(User.organization)).filter_by(id=user_id, role='individual').first()
+        # Get current user
+        try:
+            current_user_id_int = int(current_user_id)
+            current_user = User.query.options(joinedload(User.organization)).get(current_user_id_int)
+        except (ValueError, TypeError):
+            return jsonify({"error": "invalid user identity"}), 400
+        if not current_user:
+            return jsonify({'error': 'Current user not found'}), 404
+
+        target_team_member = None
+        # Allow users to access their own profile
+        if current_user_id_int == user_id:
+            target_user = User.query.options(joinedload(User.organization)).get(user_id)
             if not target_user:
                 return jsonify({'error': 'User not found'}), 404
-
-            # Check if target user is a formal team member in the organization
-            target_team_member = TeamMember.query.options(joinedload(TeamMember.organization), joinedload(TeamMember.user)).filter_by(
-                organization_id=current_user.organization_id,
-                user_id=user_id
-            ).first()
-
-            is_team_member = target_team_member is not None
+            is_team_member = True  # User viewing their own profile
         else:
-            # Regular users can only view profiles within their organization
-            if not current_user.organization_id:
-                return jsonify({'error': 'Unauthorized - Organization membership required'}), 403
+            # For organization users accessing other users' profiles (for hiring purposes)
+            if current_user.organization_id and current_user.role == 'organization':
+                # Organization users can view any individual user's profile for hiring
+                target_user = User.query.options(joinedload(User.organization)).filter_by(id=user_id, role='individual').first()
+                if not target_user:
+                    return jsonify({'error': 'User not found'}), 404
 
-            # Check if target user belongs to the same organization
-            target_user = User.query.options(joinedload(User.organization)).filter_by(
-                id=user_id,
-                organization_id=current_user.organization_id
-            ).first()
+                # Check if target user is a formal team member in the organization
+                target_team_member = TeamMember.query.options(joinedload(TeamMember.organization), joinedload(TeamMember.user)).filter_by(
+                    organization_id=current_user.organization_id,
+                    user_id=user_id
+                ).first()
 
-            if not target_user:
-                return jsonify({'error': 'User not found in your organization'}), 404
+                is_team_member = target_team_member is not None
+            else:
+                # Regular users can only view profiles within their organization
+                if not current_user.organization_id:
+                    return jsonify({'error': 'Unauthorized - Organization membership required'}), 403
 
-            # Check if target user is a formal team member
-            target_team_member = TeamMember.query.options(joinedload(TeamMember.organization), joinedload(TeamMember.user)).filter_by(
-                organization_id=current_user.organization_id,
-                user_id=user_id
-            ).first()
+                # Check if target user belongs to the same organization
+                target_user = User.query.options(joinedload(User.organization)).filter_by(
+                    id=user_id,
+                    organization_id=current_user.organization_id
+                ).first()
 
-            is_team_member = target_team_member is not None
+                if not target_user:
+                    return jsonify({'error': 'User not found in your organization'}), 404
 
-    # Fetch all profile data for the target user
-    profile_data = {
-        'user': target_user.to_dict(),
-        'experiences': [exp.to_dict() for exp in Experience.query.filter_by(user_id=user_id).order_by(desc(Experience.start_date).nulls_last()).all()],
-        'educations': [edu.to_dict() for edu in Education.query.filter_by(user_id=user_id).order_by(desc(Education.start_date).nulls_last()).all()],
-        'skills': [skill.to_dict() for skill in Skill.query.filter_by(user_id=user_id).all()],
-        'projects': [project.to_dict() for project in Project.query.filter_by(user_id=user_id).order_by(desc(Project.start_date).nulls_last()).all()],
-        'publications': [pub.to_dict() for pub in Publication.query.filter_by(user_id=user_id).order_by(desc(Publication.year).nulls_last()).all()],
-        'awards': [award.to_dict() for award in Award.query.filter_by(user_id=user_id).order_by(desc(Award.date).nulls_last()).all()],
-        'certifications': [cert.to_dict() for cert in Certification.query.filter_by(user_id=user_id).order_by(desc(Certification.date_obtained).nulls_last()).all()],
-        'languages': [lang.to_dict() for lang in Language.query.filter_by(user_id=user_id).all()],
-        'volunteer_experiences': [ve.to_dict() for ve in VolunteerExperience.query.filter_by(user_id=user_id).order_by(desc(VolunteerExperience.start_date).nulls_last()).all()],
-        'references': [ref.to_dict() for ref in Reference.query.filter_by(user_id=user_id).all()],
-        'hobby_interests': [hi.to_dict() for hi in HobbyInterest.query.filter_by(user_id=user_id).all()],
-        'professional_memberships': [pm.to_dict() for pm in ProfessionalMembership.query.filter_by(user_id=user_id).order_by(desc(ProfessionalMembership.start_date).nulls_last()).all()],
-        'patents': [patent.to_dict() for patent in Patent.query.filter_by(user_id=user_id).order_by(desc(Patent.filing_date).nulls_last()).all()],
-        'course_trainings': [ct.to_dict() for ct in CourseTraining.query.filter_by(user_id=user_id).order_by(desc(CourseTraining.completion_date).nulls_last()).all()],
-        'social_media_links': [sml.to_dict() for sml in SocialMediaLink.query.filter_by(user_id=user_id).all()],
-        'key_achievements': [ka.to_dict() for ka in KeyAchievement.query.filter_by(user_id=user_id).order_by(desc(KeyAchievement.date).nulls_last()).all()],
-        'conferences': [conf.to_dict() for conf in Conference.query.filter_by(user_id=user_id).order_by(desc(Conference.date).nulls_last()).all()],
-        'speaking_engagements': [se.to_dict() for se in SpeakingEngagement.query.filter_by(user_id=user_id).order_by(desc(SpeakingEngagement.date).nulls_last()).all()],
-        'licenses': [lic.to_dict() for lic in License.query.filter_by(user_id=user_id).order_by(desc(License.issue_date).nulls_last()).all()],
-    }
+                # Check if target user is a formal team member
+                target_team_member = TeamMember.query.options(joinedload(TeamMember.organization), joinedload(TeamMember.user)).filter_by(
+                    organization_id=current_user.organization_id,
+                    user_id=user_id
+                ).first()
 
-    # Add team membership status
-    profile_data['is_team_member'] = is_team_member
-    profile_data['team_member_info'] = target_team_member.to_dict() if target_team_member else None
+                is_team_member = target_team_member is not None
 
-    return jsonify(profile_data), 200
+        # Fetch all profile data for the target user
+        profile_data = {
+            'user': target_user.to_dict(),
+            'experiences': [exp.to_dict() for exp in Experience.query.filter_by(user_id=user_id).order_by(desc(Experience.start_date).nulls_last()).all()],
+            'educations': [edu.to_dict() for edu in Education.query.filter_by(user_id=user_id).order_by(desc(Education.start_date).nulls_last()).all()],
+            'skills': [skill.to_dict() for skill in Skill.query.filter_by(user_id=user_id).all()],
+            'projects': [project.to_dict() for project in Project.query.filter_by(user_id=user_id).order_by(desc(Project.start_date).nulls_last()).all()],
+            'publications': [pub.to_dict() for pub in Publication.query.filter_by(user_id=user_id).order_by(desc(Publication.year).nulls_last()).all()],
+            'awards': [award.to_dict() for award in Award.query.filter_by(user_id=user_id).order_by(desc(Award.date).nulls_last()).all()],
+            'certifications': [cert.to_dict() for cert in Certification.query.filter_by(user_id=user_id).order_by(desc(Certification.date_obtained).nulls_last()).all()],
+            'languages': [lang.to_dict() for lang in Language.query.filter_by(user_id=user_id).all()],
+            'volunteer_experiences': [ve.to_dict() for ve in VolunteerExperience.query.filter_by(user_id=user_id).order_by(desc(VolunteerExperience.start_date).nulls_last()).all()],
+            'references': [ref.to_dict() for ref in Reference.query.filter_by(user_id=user_id).all()],
+            'hobby_interests': [hi.to_dict() for hi in HobbyInterest.query.filter_by(user_id=user_id).all()],
+            'professional_memberships': [pm.to_dict() for pm in ProfessionalMembership.query.filter_by(user_id=user_id).order_by(desc(ProfessionalMembership.start_date).nulls_last()).all()],
+            'patents': [patent.to_dict() for patent in Patent.query.filter_by(user_id=user_id).order_by(desc(Patent.filing_date).nulls_last()).all()],
+            'course_trainings': [ct.to_dict() for ct in CourseTraining.query.filter_by(user_id=user_id).order_by(desc(CourseTraining.completion_date).nulls_last()).all()],
+            'social_media_links': [sml.to_dict() for sml in SocialMediaLink.query.filter_by(user_id=user_id).all()],
+            'key_achievements': [ka.to_dict() for ka in KeyAchievement.query.filter_by(user_id=user_id).order_by(desc(KeyAchievement.date).nulls_last()).all()],
+            'conferences': [conf.to_dict() for conf in Conference.query.filter_by(user_id=user_id).order_by(desc(Conference.date).nulls_last()).all()],
+            'speaking_engagements': [se.to_dict() for se in SpeakingEngagement.query.filter_by(user_id=user_id).order_by(desc(SpeakingEngagement.date).nulls_last()).all()],
+            'licenses': [lic.to_dict() for lic in License.query.filter_by(user_id=user_id).order_by(desc(License.issue_date).nulls_last()).all()],
+        }
+
+        # Add team membership status
+        profile_data['is_team_member'] = is_team_member
+        profile_data['team_member_info'] = target_team_member.to_dict() if target_team_member else None
+
+        return jsonify(profile_data), 200
+    except Exception as e:
+        import traceback
+        print(f"Error in get_user_profile: {str(e)}")
+        print(traceback.format_exc())
+        return jsonify({'error': f'Internal server error: {str(e)}'}), 500
 
 # Profile Picture Upload endpoint
 @api_bp.route('/profile/upload-profile-picture', methods=['POST'])
