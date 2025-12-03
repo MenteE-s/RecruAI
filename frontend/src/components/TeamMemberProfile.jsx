@@ -15,6 +15,7 @@ import {
   FiMic,
   FiShield,
 } from "react-icons/fi";
+import { getBackendUrl } from "../utils/auth";
 
 const TeamMemberProfile = ({ member, onClose }) => {
   const [profileData, setProfileData] = useState(null);
@@ -28,7 +29,7 @@ const TeamMemberProfile = ({ member, onClose }) => {
   const fetchProfileData = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/profile/user/${member.user_id}`, {
+      const response = await fetch(`${getBackendUrl()}/api/profile/user/${member.user_id}`, {
         credentials: "include",
       });
 

@@ -4,7 +4,7 @@ import DashboardLayout from "../../components/layout/DashboardLayout";
 import IndividualNavbar from "../../components/layout/IndividualNavbar";
 import Card from "../../components/ui/Card";
 import TextInterview from "../../components/interviews/TextInterview";
-import { getSidebarItems } from "../../utils/auth";
+import { getSidebarItems, getBackendUrl } from "../../utils/auth";
 
 export default function PracticeRoom() {
   const { sessionId } = useParams();
@@ -17,7 +17,7 @@ export default function PracticeRoom() {
 
   useEffect(() => {
     (async () => {
-      const res = await fetch(`/api/interviews/${sessionId}`, {
+      const res = await fetch(`${getBackendUrl()}/api/interviews/${sessionId}`, {
         credentials: "include",
       });
       if (res.ok) {

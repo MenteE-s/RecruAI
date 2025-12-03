@@ -70,9 +70,12 @@ const InterviewRoom = () => {
 
   const fetchInterview = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/interviews/${interviewId}`, {
-        credentials: "include",
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/api/interviews/${interviewId}`,
+        {
+          credentials: "include",
+        }
+      );
 
       if (response.ok) {
         const data = await response.json();
@@ -104,9 +107,12 @@ const InterviewRoom = () => {
 
   const loadMessages = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/interviews/${interviewId}/messages`, {
-        credentials: "include",
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/api/interviews/${interviewId}/messages`,
+        {
+          credentials: "include",
+        }
+      );
 
       if (response.ok) {
         const data = await response.json();
@@ -149,16 +155,19 @@ const InterviewRoom = () => {
 
     try {
       // Save user message to database
-      const response = await fetch(`${API_BASE_URL}/api/interviews/${interviewId}/messages`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          user_id: userId,
-          content: message,
-          message_type: "text",
-        }),
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/api/interviews/${interviewId}/messages`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            user_id: userId,
+            content: message,
+            message_type: "text",
+          }),
+        }
+      );
 
       if (response.ok) {
         // Reload messages to get the updated list
@@ -185,16 +194,19 @@ const InterviewRoom = () => {
           if (aiResponse.ok) {
             const aiData = await aiResponse.json();
             // Save AI response to database
-            await fetch(`${API_BASE_URL}/api/interviews/${interviewId}/messages`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              credentials: "include",
-              body: JSON.stringify({
-                user_id: aiUserId,
-                content: aiData.response,
-                message_type: "ai_response",
-              }),
-            });
+            await fetch(
+              `${API_BASE_URL}/api/interviews/${interviewId}/messages`,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({
+                  user_id: aiUserId,
+                  content: aiData.response,
+                  message_type: "ai_response",
+                }),
+              }
+            );
             // Reload messages to include AI response
             await loadMessages();
           }
@@ -225,16 +237,19 @@ const InterviewRoom = () => {
 
     try {
       // Save interviewer response to database
-      const response = await fetch(`${API_BASE_URL}/api/interviews/${interviewId}/messages`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          user_id: userId, // Interviewer user ID
-          content: message,
-          message_type: "interviewer_response",
-        }),
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/api/interviews/${interviewId}/messages`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            user_id: userId, // Interviewer user ID
+            content: message,
+            message_type: "interviewer_response",
+          }),
+        }
+      );
 
       if (response.ok) {
         await loadMessages();

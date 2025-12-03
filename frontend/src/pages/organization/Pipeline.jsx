@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
 import Card from "../../components/ui/Card";
-import { getSidebarItems } from "../../utils/auth";
+import { getSidebarItems, getBackendUrl } from "../../utils/auth";
 import { formatDate } from "../../utils/timezone";
 
 export default function Pipeline() {
@@ -54,7 +54,7 @@ export default function Pipeline() {
 
   const fetchPipelineData = async () => {
     try {
-      const response = await fetch(`/api/pipeline/${orgId}`, {
+      const response = await fetch(`${getBackendUrl()}/api/pipeline/${orgId}`, {
         credentials: "include",
       });
       if (response.ok) {

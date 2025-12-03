@@ -4,7 +4,7 @@ import DashboardLayout from "../components/layout/DashboardLayout";
 import IndividualNavbar from "../components/layout/IndividualNavbar";
 import OrganizationNavbar from "../components/layout/OrganizationNavbar";
 import Card from "../components/ui/Card";
-import { getSidebarItems } from "../utils/auth";
+import { getSidebarItems, getBackendUrl } from "../utils/auth";
 import { formatDateTime } from "../utils/timezone";
 
 const InterviewAnalysis = () => {
@@ -33,7 +33,7 @@ const InterviewAnalysis = () => {
       setLoading(true);
 
       // Fetch interview details
-      const interviewResponse = await fetch(`/api/interviews/${interviewId}`, {
+      const interviewResponse = await fetch(`${getBackendUrl()}/api/interviews/${interviewId}`, {
         credentials: "include",
       });
 
@@ -88,7 +88,7 @@ const InterviewAnalysis = () => {
 
     setGeneratingAnalysis(true);
     try {
-      const response = await fetch(`/api/interviews/${interviewId}/analyze`, {
+      const response = await fetch(`${getBackendUrl()}/api/interviews/${interviewId}/analyze`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

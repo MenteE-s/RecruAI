@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
 import Card from "../../components/ui/Card";
-import { getSidebarItems } from "../../utils/auth";
+import { getSidebarItems, getBackendUrl } from "../../utils/auth";
 import { formatDateTime as formatDateTimeTz } from "../../utils/timezone";
 
 // Modal Component
@@ -882,7 +882,7 @@ export default function InterviewManagement() {
     try {
       // TODO: Get organization ID from user context
       const orgId = organizationId || 1; // Fallback to 1 if missing
-      const response = await fetch(`/api/organizations/${orgId}/ai-agents`);
+      const response = await fetch(`${getBackendUrl()}/api/organizations/${orgId}/ai-agents`);
       if (response.ok) {
         const data = await response.json();
         setAiAgents(data);
@@ -968,7 +968,7 @@ export default function InterviewManagement() {
     setError(null);
 
     try {
-      const response = await fetch(`/api/interviews/${selectedInterview.id}`, {
+      const response = await fetch(`${getBackendUrl()}/api/interviews/${selectedInterview.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -1002,7 +1002,7 @@ export default function InterviewManagement() {
     setError(null);
 
     try {
-      const response = await fetch(`/api/interviews/${selectedInterview.id}`, {
+      const response = await fetch(`${getBackendUrl()}/api/interviews/${selectedInterview.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -1299,7 +1299,7 @@ export default function InterviewManagement() {
 
     try {
       const deletePromises = selectedInterviews.map((interviewId) =>
-        fetch(`/api/interviews/${interviewId}`, {
+        fetch(`${getBackendUrl()}/api/interviews/${interviewId}`, {
           method: "DELETE",
           credentials: "include",
         })

@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import IndividualNavbar from "../../components/layout/IndividualNavbar";
 import Card from "../../components/ui/Card";
-import { getSidebarItems } from "../../utils/auth";
+import { getSidebarItems, getBackendUrl } from "../../utils/auth";
 import { useToast } from "../../components/ui/ToastContext";
 import { formatDate } from "../../utils/timezone";
 
@@ -39,7 +39,7 @@ export default function JobDetails() {
 
   const fetchJobDetails = async () => {
     try {
-      const response = await fetch(`/api/posts/${id}`);
+      const response = await fetch(`${getBackendUrl()}/api/posts/${id}`);
       if (response.ok) {
         const data = await response.json();
         setJob(data);
@@ -79,7 +79,7 @@ export default function JobDetails() {
   const checkAppliedStatus = async () => {
     try {
       const userId = 1; // TODO: Get from user context
-      const response = await fetch(`/api/applications/user/${userId}`);
+      const response = await fetch(`${getBackendUrl()}/api/applications/user/${userId}`);
       if (response.ok) {
         const applications = await response.json();
         const hasApplied = applications.some(

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
 import Card from "../../components/ui/Card";
-import { getSidebarItems } from "../../utils/auth";
+import { getSidebarItems, getBackendUrl } from "../../utils/auth";
 import { useToast } from "../../components/ui/ToastContext";
 import { formatDate } from "../../utils/timezone";
 
@@ -66,7 +66,7 @@ export default function Candidates() {
 
   const updateApplicationStatus = async (appId, status) => {
     try {
-      const response = await fetch(`/api/applications/${appId}`, {
+      const response = await fetch(`${getBackendUrl()}/api/applications/${appId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -96,7 +96,7 @@ export default function Candidates() {
 
   const fetchCandidateProfile = async (userId) => {
     try {
-      const response = await fetch(`/api/users/${userId}/full-profile`, {
+      const response = await fetch(`${getBackendUrl()}/api/users/${userId}/full-profile`, {
         credentials: "include",
       });
 

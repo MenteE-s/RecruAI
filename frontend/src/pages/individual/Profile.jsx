@@ -1392,32 +1392,66 @@ export default function Profile() {
           speakRes,
           licRes,
         ] = await Promise.all([
-          fetch(`${getBackendUrl()}/api/profile/sections`, { credentials: "include" }),
-          fetch(`${getBackendUrl()}/api/profile/experiences`, { credentials: "include" }),
-          fetch(`${getBackendUrl()}/api/profile/educations`, { credentials: "include" }),
-          fetch(`${getBackendUrl()}/api/profile/skills`, { credentials: "include" }),
-          fetch(`${getBackendUrl()}/api/profile/projects`, { credentials: "include" }),
-          fetch(`${getBackendUrl()}/api/profile/publications`, { credentials: "include" }),
-          fetch(`${getBackendUrl()}/api/profile/awards`, { credentials: "include" }),
-          fetch(`${getBackendUrl()}/api/profile/certifications`, { credentials: "include" }),
-          fetch(`${getBackendUrl()}/api/profile/languages`, { credentials: "include" }),
+          fetch(`${getBackendUrl()}/api/profile/sections`, {
+            credentials: "include",
+          }),
+          fetch(`${getBackendUrl()}/api/profile/experiences`, {
+            credentials: "include",
+          }),
+          fetch(`${getBackendUrl()}/api/profile/educations`, {
+            credentials: "include",
+          }),
+          fetch(`${getBackendUrl()}/api/profile/skills`, {
+            credentials: "include",
+          }),
+          fetch(`${getBackendUrl()}/api/profile/projects`, {
+            credentials: "include",
+          }),
+          fetch(`${getBackendUrl()}/api/profile/publications`, {
+            credentials: "include",
+          }),
+          fetch(`${getBackendUrl()}/api/profile/awards`, {
+            credentials: "include",
+          }),
+          fetch(`${getBackendUrl()}/api/profile/certifications`, {
+            credentials: "include",
+          }),
+          fetch(`${getBackendUrl()}/api/profile/languages`, {
+            credentials: "include",
+          }),
           fetch(`${getBackendUrl()}/api/profile/volunteer-experiences`, {
             credentials: "include",
           }),
-          fetch(`${getBackendUrl()}/api/profile/references`, { credentials: "include" }),
-          fetch(`${getBackendUrl()}/api/profile/hobby-interests`, { credentials: "include" }),
+          fetch(`${getBackendUrl()}/api/profile/references`, {
+            credentials: "include",
+          }),
+          fetch(`${getBackendUrl()}/api/profile/hobby-interests`, {
+            credentials: "include",
+          }),
           fetch(`${getBackendUrl()}/api/profile/professional-memberships`, {
             credentials: "include",
           }),
-          fetch(`${getBackendUrl()}/api/profile/patents`, { credentials: "include" }),
-          fetch(`${getBackendUrl()}/api/profile/course-trainings`, { credentials: "include" }),
-          fetch(`${getBackendUrl()}/api/profile/social-media-links`, { credentials: "include" }),
-          fetch(`${getBackendUrl()}/api/profile/key-achievements`, { credentials: "include" }),
-          fetch(`${getBackendUrl()}/api/profile/conferences`, { credentials: "include" }),
+          fetch(`${getBackendUrl()}/api/profile/patents`, {
+            credentials: "include",
+          }),
+          fetch(`${getBackendUrl()}/api/profile/course-trainings`, {
+            credentials: "include",
+          }),
+          fetch(`${getBackendUrl()}/api/profile/social-media-links`, {
+            credentials: "include",
+          }),
+          fetch(`${getBackendUrl()}/api/profile/key-achievements`, {
+            credentials: "include",
+          }),
+          fetch(`${getBackendUrl()}/api/profile/conferences`, {
+            credentials: "include",
+          }),
           fetch(`${getBackendUrl()}/api/profile/speaking-engagements`, {
             credentials: "include",
           }),
-          fetch(`${getBackendUrl()}/api/profile/licenses`, { credentials: "include" }),
+          fetch(`${getBackendUrl()}/api/profile/licenses`, {
+            credentials: "include",
+          }),
         ]);
 
         const [

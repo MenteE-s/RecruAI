@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Card from "../ui/Card";
 import { formatTime as formatTimeTz } from "../../utils/timezone";
+import { getBackendUrl } from "../../utils/auth";
 
 const TextInterview = ({
   interviewId,
@@ -88,7 +89,7 @@ const TextInterview = ({
   const handleCompleteInterview = async () => {
     setIsCompleting(true);
     try {
-      const response = await fetch(`/api/interviews/${interviewId}/complete`, {
+      const response = await fetch(`${getBackendUrl()}/api/interviews/${interviewId}/complete`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

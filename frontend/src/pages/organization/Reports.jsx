@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
 import Card from "../../components/ui/Card";
-import { getSidebarItems } from "../../utils/auth";
+import { getSidebarItems, getBackendUrl } from "../../utils/auth";
 
 export default function Reports() {
   const role =
@@ -23,7 +23,7 @@ export default function Reports() {
     try {
       // Get organization ID from user context (placeholder for now)
       const orgId = 1; // TODO: Get from user context
-      const response = await fetch(`/api/organizations/${orgId}/analytics`, {
+      const response = await fetch(`${getBackendUrl()}/api/organizations/${orgId}/analytics`, {
         credentials: "include",
       });
 

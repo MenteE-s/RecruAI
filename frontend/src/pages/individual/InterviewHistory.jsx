@@ -22,9 +22,12 @@ export default function InterviewHistory() {
     const fetchData = async () => {
       try {
         // Fetch interview history
-        const historyResponse = await fetch(`${getBackendUrl()}/api/interviews/history`, {
-          credentials: "include",
-        });
+        const historyResponse = await fetch(
+          `${getBackendUrl()}/api/interviews/history`,
+          {
+            credentials: "include",
+          }
+        );
 
         if (historyResponse.ok) {
           const historyData = await historyResponse.json();

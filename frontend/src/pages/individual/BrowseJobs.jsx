@@ -57,7 +57,9 @@ export default function BrowseJobs() {
   const fetchSavedJobs = async () => {
     try {
       const userId = 1; // TODO: Get from user context
-      const response = await fetch(`${getBackendUrl()}/api/saved-jobs/user/${userId}`);
+      const response = await fetch(
+        `${getBackendUrl()}/api/saved-jobs/user/${userId}`
+      );
       if (response.ok) {
         const data = await response.json();
         const savedIds = new Set(data.map((saved) => saved.post_id));
@@ -71,7 +73,9 @@ export default function BrowseJobs() {
   const fetchAppliedJobs = async () => {
     try {
       const userId = 1; // TODO: Get from user context
-      const response = await fetch(`${getBackendUrl()}/api/applications/user/${userId}`);
+      const response = await fetch(
+        `${getBackendUrl()}/api/applications/user/${userId}`
+      );
       if (response.ok) {
         const data = await response.json();
         const appliedIds = new Set(data.map((app) => app.post_id));
@@ -139,10 +143,13 @@ export default function BrowseJobs() {
 
   const handleUnsaveJob = async (savedId) => {
     try {
-      const response = await fetch(`${getBackendUrl()}/api/saved-jobs/${savedId}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
+      const response = await fetch(
+        `${getBackendUrl()}/api/saved-jobs/${savedId}`,
+        {
+          method: "DELETE",
+          credentials: "include",
+        }
+      );
 
       if (response.ok) {
         // Find the post_id for this saved job
@@ -416,7 +423,9 @@ export default function BrowseJobs() {
                       onClick={() => {
                         // Find saved job ID - this is simplified
                         fetch(
-                          `${getBackendUrl()}/api/saved-jobs/check?user_id=1&post_id=${job.id}`
+                          `${getBackendUrl()}/api/saved-jobs/check?user_id=1&post_id=${
+                            job.id
+                          }`
                         )
                           .then((r) => r.json())
                           .then((data) => {

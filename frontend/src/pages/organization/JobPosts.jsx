@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
 import Card from "../../components/ui/Card";
-import { getSidebarItems, verifyTokenWithServer } from "../../utils/auth";
+import { getSidebarItems, verifyTokenWithServer, getBackendUrl } from "../../utils/auth";
 import { useToast } from "../../components/ui/ToastContext";
 
 export default function JobPosts() {
@@ -126,7 +126,7 @@ export default function JobPosts() {
     if (!postToDelete) return;
 
     try {
-      const response = await fetch(`/api/posts/${postToDelete}`, {
+      const response = await fetch(`${getBackendUrl()}/api/posts/${postToDelete}`, {
         method: "DELETE",
         credentials: "include",
       });

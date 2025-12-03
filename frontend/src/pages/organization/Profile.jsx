@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
 import Card from "../../components/ui/Card";
-import { getSidebarItems, getUploadUrl } from "../../utils/auth";
+import { getSidebarItems, getUploadUrl, getBackendUrl } from "../../utils/auth";
 import {
   FiX,
   FiEdit2,
@@ -204,7 +204,7 @@ export default function OrganizationProfile() {
         setCanEdit(!orgId || parseInt(orgId) === currentUserOrgId);
 
         // Get organization profile
-        const orgRes = await fetch(`/api/organizations/${targetOrgId}`, {
+        const orgRes = await fetch(`${getBackendUrl()}/api/organizations/${targetOrgId}`, {
           credentials: "include",
         });
         if (!orgRes.ok) throw new Error("Failed to load organization profile");
@@ -245,7 +245,7 @@ export default function OrganizationProfile() {
       const currentUserOrgId = userData.user.organization_id;
       const targetOrgId = orgId || currentUserOrgId;
 
-      const response = await fetch(`/api/organizations/${targetOrgId}`, {
+      const response = await fetch(`${getBackendUrl()}/api/organizations/${targetOrgId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
