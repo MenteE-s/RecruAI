@@ -133,7 +133,10 @@ def create_app(config_object: object | None = None):
 	return app
 
 
+# Create the app instance for gunicorn
+app = create_app()
+
+
 if __name__ == "__main__":
 	# quick dev runner
-	app = create_app()
 	app.run(host="0.0.0.0", port=int(os.getenv("PORT", 5000)), debug=os.getenv("FLASK_DEBUG", "1") == "1")
