@@ -17,8 +17,8 @@ class Config:
 
     SQLALCHEMY_DATABASE_URI = os.getenv(
         "DATABASE_URL",
-        # sensible local default for dev so migrations can run without Postgres
-        "sqlite:///recruai_dev.db",
+        # Local dev default: prefer Postgres at default creds per developer request.
+        "postgresql://postgres:mentee@localhost:5432/recruia",
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret")
@@ -36,3 +36,7 @@ class Config:
     # client simple; enable in production by setting JWT_COOKIE_CSRF_PROTECT=1
     # and handling the CSRF token on the client side.
     JWT_COOKIE_CSRF_PROTECT = os.getenv("JWT_COOKIE_CSRF_PROTECT", "0") == "1"
+
+    # JWT token expiration: 24 hours by default
+    from datetime import timedelta
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES_HOURS", "24")))

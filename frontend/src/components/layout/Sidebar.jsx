@@ -1,24 +1,18 @@
 // src/components/layout/Sidebar.jsx
-import { useState } from "react";
-import { Link } from "react-router-dom";
-import {
-  FiHome,
-  FiBarChart2,
-  FiUsers,
-  FiSettings,
-  FiMenu,
-} from "react-icons/fi";
+import { Link, useLocation } from "react-router-dom";
+import { FiMenu } from "react-icons/fi";
 
-const navItems = [
-  { name: "Dashboard", icon: FiHome, href: "/dashboard" },
-  { name: "Analytics", icon: FiBarChart2, href: "/analytics" },
-  { name: "Users", icon: FiUsers, href: "/users" },
-  { name: "Settings", icon: FiSettings, href: "/settings" },
-];
+export default function Sidebar({ open, toggleSidebar, items = [] }) {
+  const location = useLocation();
 
-export default function Sidebar({ open, toggleSidebar }) {
-  const topItems = navItems.filter((i) => i.name !== "Settings");
-  const settingsItem = navItems.find((i) => i.name === "Settings");
+  // Separate settings from other items if it exists
+  const topItems = items.filter((i) => i.name !== "Settings");
+  const settingsItem = items.find((i) => i.name === "Settings");
+
+  // Helper function to check if link is active
+  const isActive = (link) => {
+    return location.pathname === link;
+  };
 
   return (
     <>
@@ -39,7 +33,7 @@ export default function Sidebar({ open, toggleSidebar }) {
       >
         <div className="p-6 border-b border-secondary-200">
           <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-br from-primary-600 to-accent-500 font-display">
-            MenteE Dashboard
+            RecruAI
           </h1>
         </div>
 
@@ -49,8 +43,12 @@ export default function Sidebar({ open, toggleSidebar }) {
             {topItems.map((item) => (
               <li key={item.name}>
                 <Link
-                  to={item.href}
-                  className="flex items-center space-x-3 px-4 py-3 text-secondary-700 hover:bg-primary-50 hover:text-primary-700 rounded-lg transition"
+                  to={item.link}
+                  className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition ${
+                    isActive(item.link)
+                      ? "bg-primary-100 text-primary-700 border-r-2 border-primary-500"
+                      : "text-secondary-700 hover:bg-primary-50 hover:text-primary-700"
+                  }`}
                 >
                   <item.icon className="h-5 w-5" />
                   <span>{item.name}</span>
@@ -64,8 +62,12 @@ export default function Sidebar({ open, toggleSidebar }) {
         {settingsItem && (
           <div className="p-4 border-t border-secondary-200 mt-auto">
             <Link
-              to={settingsItem.href}
-              className="flex items-center space-x-3 px-4 py-3 text-secondary-700 hover:bg-primary-50 hover:text-primary-700 rounded-lg transition"
+              to={settingsItem.link}
+              className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition ${
+                isActive(settingsItem.link)
+                  ? "bg-primary-100 text-primary-700 border-r-2 border-primary-500"
+                  : "text-secondary-700 hover:bg-primary-50 hover:text-primary-700"
+              }`}
             >
               <settingsItem.icon className="h-5 w-5" />
               <span>{settingsItem.name}</span>

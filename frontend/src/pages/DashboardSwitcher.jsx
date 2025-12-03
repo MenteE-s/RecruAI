@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import IndividualDashboard from "./dashboards/individual/Dashboard";
-import OrganizationDashboard from "./dashboards/organization/Dashboard";
+import IndividualDashboard from "./dashboards/IndividualDashboard";
+import OrganizationDashboard from "./dashboards/OrganizationDashboard";
 
 import { verifyTokenWithServer } from "../utils/auth";
 

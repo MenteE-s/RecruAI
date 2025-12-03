@@ -1,8 +1,15 @@
 // src/components/ui/Card.jsx
-export default function Card({ children, className = "" }) {
+export default function Card({
+  children,
+  className = "",
+  bgOpacity = "80",
+  shadow = "md",
+}) {
   return (
     <div
-      className={`bg-white/80 backdrop-blur-sm rounded-2xl shadow-md border border-secondary-200 p-6 ${className}`}
+      className={`bg-white/${bgOpacity} ${
+        bgOpacity === "80" ? "backdrop-blur-sm" : ""
+      } rounded-2xl shadow-${shadow} border border-secondary-200 p-6 ${className}`}
     >
       {children}
     </div>
