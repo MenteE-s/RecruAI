@@ -4,11 +4,15 @@
 # Use Python provider - this automatically sets up pip
 providers = ["python"]
 
+# Tell nixpacks where to find requirements.txt
+[variables]
+NIXPACKS_PYTHON_REQUIREMENTS = "backend/requirements.txt"
+
 [phases.setup]
 nixPkgs = ["postgresql"]
 
 [phases.install]
-cmds = ["cd backend && pip install -r requirements.txt"]
+cmds = ["pip install -r backend/requirements.txt"]
 
 [phases.build]
 cmds = ["cd backend && python -m flask db upgrade || true"]
