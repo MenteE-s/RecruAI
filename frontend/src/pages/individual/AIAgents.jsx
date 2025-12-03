@@ -33,7 +33,9 @@ export default function IndividualAIAgents() {
       if (me?.organization_id) {
         // User belongs to an organization, fetch organization AI agents
         const res = await fetch(
-          `${getBackendUrl()}/api/organizations/${me.organization_id}/ai-agents`,
+          `${getBackendUrl()}/api/organizations/${
+            me.organization_id
+          }/ai-agents`,
           {
             credentials: "include",
           }
@@ -46,7 +48,9 @@ export default function IndividualAIAgents() {
         }
       } else {
         // Individual user without organization
-        setError("AI agents are only available for organization members. Please join or create an organization to access AI agents.");
+        setError(
+          "AI agents are only available for organization members. Please join or create an organization to access AI agents."
+        );
       }
       setLoading(false);
     })();
