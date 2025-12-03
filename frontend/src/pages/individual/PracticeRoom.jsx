@@ -17,9 +17,12 @@ export default function PracticeRoom() {
 
   useEffect(() => {
     (async () => {
-      const res = await fetch(`${getBackendUrl()}/api/interviews/${sessionId}`, {
-        credentials: "include",
-      });
+      const res = await fetch(
+        `${getBackendUrl()}/api/interviews/${sessionId}`,
+        {
+          credentials: "include",
+        }
+      );
       if (res.ok) {
         const data = await res.json();
         setSession(data.interview || data);

@@ -23,9 +23,12 @@ export default function Reports() {
     try {
       // Get organization ID from user context (placeholder for now)
       const orgId = 1; // TODO: Get from user context
-      const response = await fetch(`${getBackendUrl()}/api/organizations/${orgId}/analytics`, {
-        credentials: "include",
-      });
+      const response = await fetch(
+        `${getBackendUrl()}/api/organizations/${orgId}/analytics`,
+        {
+          credentials: "include",
+        }
+      );
 
       if (response.ok) {
         const data = await response.json();

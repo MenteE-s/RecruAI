@@ -2,7 +2,11 @@ import React, { useState, useEffect } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import IndividualNavbar from "../../components/layout/IndividualNavbar";
 import Card from "../../components/ui/Card";
-import { getSidebarItems, verifyTokenWithServer, getBackendUrl } from "../../utils/auth";
+import {
+  getSidebarItems,
+  verifyTokenWithServer,
+  getBackendUrl,
+} from "../../utils/auth";
 import { formatDate } from "../../utils/timezone";
 
 export default function IndividualAIAgents() {
@@ -27,9 +31,12 @@ export default function IndividualAIAgents() {
       const me = await verifyTokenWithServer();
       setUser(me);
       if (me?.id) {
-        const res = await fetch(`${getBackendUrl()}/api/users/${me.id}/ai-agents`, {
-          credentials: "include",
-        });
+        const res = await fetch(
+          `${getBackendUrl()}/api/users/${me.id}/ai-agents`,
+          {
+            credentials: "include",
+          }
+        );
         if (res.ok) {
           const data = await res.json();
           setAgents(data.agents || []);

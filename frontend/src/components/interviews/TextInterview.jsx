@@ -89,11 +89,14 @@ const TextInterview = ({
   const handleCompleteInterview = async () => {
     setIsCompleting(true);
     try {
-      const response = await fetch(`${getBackendUrl()}/api/interviews/${interviewId}/complete`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-      });
+      const response = await fetch(
+        `${getBackendUrl()}/api/interviews/${interviewId}/complete`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+        }
+      );
 
       if (response.ok) {
         // Redirect to analysis page after completion

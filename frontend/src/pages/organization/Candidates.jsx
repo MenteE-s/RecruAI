@@ -66,12 +66,15 @@ export default function Candidates() {
 
   const updateApplicationStatus = async (appId, status) => {
     try {
-      const response = await fetch(`${getBackendUrl()}/api/applications/${appId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ status }),
-      });
+      const response = await fetch(
+        `${getBackendUrl()}/api/applications/${appId}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ status }),
+        }
+      );
 
       if (response.ok) {
         await fetchApplications();
@@ -96,9 +99,12 @@ export default function Candidates() {
 
   const fetchCandidateProfile = async (userId) => {
     try {
-      const response = await fetch(`${getBackendUrl()}/api/users/${userId}/full-profile`, {
-        credentials: "include",
-      });
+      const response = await fetch(
+        `${getBackendUrl()}/api/users/${userId}/full-profile`,
+        {
+          credentials: "include",
+        }
+      );
 
       if (response.ok) {
         const profile = await response.json();

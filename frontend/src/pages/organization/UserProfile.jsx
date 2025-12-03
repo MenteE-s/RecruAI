@@ -41,9 +41,12 @@ export default function UserProfile() {
   const fetchProfileData = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${getBackendUrl()}/api/profile/user/${userId}`, {
-        credentials: "include",
-      });
+      const response = await fetch(
+        `${getBackendUrl()}/api/profile/user/${userId}`,
+        {
+          credentials: "include",
+        }
+      );
 
       if (response.ok) {
         const data = await response.json();

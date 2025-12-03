@@ -204,9 +204,12 @@ export default function OrganizationProfile() {
         setCanEdit(!orgId || parseInt(orgId) === currentUserOrgId);
 
         // Get organization profile
-        const orgRes = await fetch(`${getBackendUrl()}/api/organizations/${targetOrgId}`, {
-          credentials: "include",
-        });
+        const orgRes = await fetch(
+          `${getBackendUrl()}/api/organizations/${targetOrgId}`,
+          {
+            credentials: "include",
+          }
+        );
         if (!orgRes.ok) throw new Error("Failed to load organization profile");
 
         const orgData = await orgRes.json();
@@ -245,16 +248,19 @@ export default function OrganizationProfile() {
       const currentUserOrgId = userData.user.organization_id;
       const targetOrgId = orgId || currentUserOrgId;
 
-      const response = await fetch(`${getBackendUrl()}/api/organizations/${targetOrgId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          name: data.name,
-          description: data.description,
-          website: data.website,
-        }),
-      });
+      const response = await fetch(
+        `${getBackendUrl()}/api/organizations/${targetOrgId}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            name: data.name,
+            description: data.description,
+            website: data.website,
+          }),
+        }
+      );
 
       if (response.ok) {
         const result = await response.json();

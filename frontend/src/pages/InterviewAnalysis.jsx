@@ -33,9 +33,12 @@ const InterviewAnalysis = () => {
       setLoading(true);
 
       // Fetch interview details
-      const interviewResponse = await fetch(`${getBackendUrl()}/api/interviews/${interviewId}`, {
-        credentials: "include",
-      });
+      const interviewResponse = await fetch(
+        `${getBackendUrl()}/api/interviews/${interviewId}`,
+        {
+          credentials: "include",
+        }
+      );
 
       if (!interviewResponse.ok) {
         throw new Error("Failed to fetch interview");
@@ -88,11 +91,14 @@ const InterviewAnalysis = () => {
 
     setGeneratingAnalysis(true);
     try {
-      const response = await fetch(`${getBackendUrl()}/api/interviews/${interviewId}/analyze`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-      });
+      const response = await fetch(
+        `${getBackendUrl()}/api/interviews/${interviewId}/analyze`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+        }
+      );
 
       if (response.ok) {
         const result = await response.json();

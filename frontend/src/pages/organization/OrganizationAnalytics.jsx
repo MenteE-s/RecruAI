@@ -24,9 +24,12 @@ export default function OrganizationAnalytics() {
 
   const fetchInterviewAnalytics = async () => {
     try {
-      const response = await fetch(`${getBackendUrl()}/api/organizations/${orgId}/analytics`, {
-        credentials: "include",
-      });
+      const response = await fetch(
+        `${getBackendUrl()}/api/organizations/${orgId}/analytics`,
+        {
+          credentials: "include",
+        }
+      );
       if (response.ok) {
         const data = await response.json();
         setAnalytics(data);

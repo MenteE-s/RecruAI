@@ -79,7 +79,9 @@ export default function JobDetails() {
   const checkAppliedStatus = async () => {
     try {
       const userId = 1; // TODO: Get from user context
-      const response = await fetch(`${getBackendUrl()}/api/applications/user/${userId}`);
+      const response = await fetch(
+        `${getBackendUrl()}/api/applications/user/${userId}`
+      );
       if (response.ok) {
         const applications = await response.json();
         const hasApplied = applications.some(

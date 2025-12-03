@@ -24,9 +24,12 @@ export default function Analytics() {
 
   const fetchInterviewAnalytics = async () => {
     try {
-      const response = await fetch(`${getBackendUrl()}/api/users/${userId}/analytics`, {
-        credentials: "include",
-      });
+      const response = await fetch(
+        `${getBackendUrl()}/api/users/${userId}/analytics`,
+        {
+          credentials: "include",
+        }
+      );
       if (response.ok) {
         const data = await response.json();
         setAnalytics(data);

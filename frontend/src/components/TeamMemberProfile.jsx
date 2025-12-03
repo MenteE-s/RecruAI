@@ -29,9 +29,12 @@ const TeamMemberProfile = ({ member, onClose }) => {
   const fetchProfileData = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${getBackendUrl()}/api/profile/user/${member.user_id}`, {
-        credentials: "include",
-      });
+      const response = await fetch(
+        `${getBackendUrl()}/api/profile/user/${member.user_id}`,
+        {
+          credentials: "include",
+        }
+      );
 
       if (response.ok) {
         const data = await response.json();
