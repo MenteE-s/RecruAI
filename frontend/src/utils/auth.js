@@ -1,5 +1,5 @@
 // helper utilities for token verification and auth state
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "";
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "https://recruai-production.up.railway.app";
 console.log("Auth API_BASE_URL:", API_BASE_URL);
 
 export async function verifyTokenWithServer() {
