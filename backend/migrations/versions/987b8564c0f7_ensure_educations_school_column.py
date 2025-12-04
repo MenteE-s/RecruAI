@@ -40,16 +40,16 @@ def upgrade():
 
 
 def downgrade():
-    # Check if column exists before dropping
+    # Drop the school column if it exists
     conn = op.get_bind()
-    
+
     result = conn.execute(sa.text("""
-        SELECT column_name 
-        FROM information_schema.columns 
+        SELECT column_name
+        FROM information_schema.columns
         WHERE table_name='educations' AND column_name='school'
     """))
-    
+
     exists = result.fetchone() is not None
-    
+
     if exists:
         op.drop_column('educations', 'school')
