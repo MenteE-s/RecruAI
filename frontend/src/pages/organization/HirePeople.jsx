@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
 import Card from "../../components/ui/Card";
-import { getSidebarItems, getBackendUrl } from "../../utils/auth";
+import { getSidebarItems, getBackendUrl, getUploadUrl } from "../../utils/auth";
 import { FiUser, FiUsers, FiSearch, FiEye } from "react-icons/fi";
 
 export default function HirePeople() {
@@ -224,7 +224,7 @@ export default function HirePeople() {
                     <div className="relative">
                       {user.profile_picture ? (
                         <img
-                          src={user.profile_picture}
+                          src={getUploadUrl(user.profile_picture)}
                           alt={user.name || "Profile"}
                           className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-md"
                         />
