@@ -57,11 +57,13 @@ export default function AppliedJobs() {
 
       if (response.ok) {
         // Update the application status to withdrawn instead of removing it
-        setAppliedJobs(appliedJobs.map(app =>
-          app.id === applicationId
-            ? { ...app, status: "withdrawn", pipeline_stage: "withdrawn" }
-            : app
-        ));
+        setAppliedJobs(
+          appliedJobs.map((app) =>
+            app.id === applicationId
+              ? { ...app, status: "withdrawn", pipeline_stage: "withdrawn" }
+              : app
+          )
+        );
         alert("Application cancelled successfully");
       } else {
         const error = await response.json();
@@ -205,15 +207,21 @@ export default function AppliedJobs() {
                     >
                       View Details
                     </button>
-                    {application.status !== 'accepted' && application.status !== 'rejected' && application.status !== 'withdrawn' && (
-                      <button
-                        onClick={() => handleCancelApplication(application.id)}
-                        disabled={cancelling === application.id}
-                        className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {cancelling === application.id ? "Cancelling..." : "Cancel Application"}
-                      </button>
-                    )}
+                    {application.status !== "accepted" &&
+                      application.status !== "rejected" &&
+                      application.status !== "withdrawn" && (
+                        <button
+                          onClick={() =>
+                            handleCancelApplication(application.id)
+                          }
+                          disabled={cancelling === application.id}
+                          className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {cancelling === application.id
+                            ? "Cancelling..."
+                            : "Cancel Application"}
+                        </button>
+                      )}
                   </div>
                 </div>
               </Card>

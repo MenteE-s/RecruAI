@@ -79,7 +79,7 @@ export default function IndividualDashboard() {
 
       if (interviewsResponse.ok) {
         const data = await interviewsResponse.json();
-        interviewsData = data.interviews;
+        interviewsData = data.data || [];
         setInterviews(interviewsData.slice(0, 5)); // Show only recent 5
       }
 

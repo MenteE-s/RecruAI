@@ -4,6 +4,7 @@ from ...extensions import db
 from ...models import Post, Organization
 import json
 from datetime import datetime
+from ...utils.pagination import Pagination, get_pagination_params, paginated_response, apply_filters_and_sorting, get_request_filters, get_sorting_params
 
 
 def _parse_salary(value):
@@ -178,8 +179,27 @@ def delete_post(post_id):
 
 @api_bp.route("/posts", methods=["GET"])
 def list_posts():
-    posts = Post.query.order_by(Post.created_at.desc()).all()
-    return jsonify([p.to_dict() for p in posts])
+    """List posts with pagination, filtering, and sorting support"""
+    # Get pagination parameters
+    page, per_page = get_pagination_params()
+
+    # Get filters from request
+    filters = get_request_filters(Post)
+
+    # Get sorting parameters
+    sort_by, sort_order = get_sorting_params(default_sort='created_at')
+
+    # Build base query - only show active posts by default
+    query = Post.query.filter(Post.status == 'active')
+
+    # Apply filters and sorting
+    query = apply_filters_and_sorting(query, Post, filters, sort_by, sort_order)
+
+    # Apply pagination
+    pagination_result = Pagination(query, page=page, per_page=per_page).paginate()
+
+    # Return paginated response
+    return jsonify(paginated_response(pagination_result['items'], pagination_result['pagination'])), 200
 
 @api_bp.route("/posts/<int:post_id>", methods=["GET"])
 def get_post(post_id):

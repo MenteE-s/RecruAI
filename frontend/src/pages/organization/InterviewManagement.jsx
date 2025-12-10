@@ -857,8 +857,8 @@ export default function InterviewManagement() {
 
       if (response.ok) {
         const data = await response.json();
-        console.log("Fetched interviews:", data.interviews);
-        let items = data.interviews || [];
+        console.log("Fetched interviews:", data.data);
+        let items = data.data || [];
         // If organizationId is known, filter by this org's interviews only
         if (organizationId) {
           items = items.filter((it) => it.organization_id === organizationId);

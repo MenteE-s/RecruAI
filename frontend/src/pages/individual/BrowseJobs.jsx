@@ -1,10 +1,18 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import IndividualNavbar from "../../components/layout/IndividualNavbar";
 import Card from "../../components/ui/Card";
 import { getSidebarItems, getBackendUrl } from "../../utils/auth";
 import { useToast } from "../../components/ui/ToastContext";
+import {
+  VirtualizedList,
+  useDebounce,
+  LoadingSkeleton,
+  ListErrorBoundary,
+  sanitizeHtml,
+  truncateText,
+} from "../../utils/performance";
 
 export default function BrowseJobs() {
   const role =
@@ -15,12 +23,17 @@ export default function BrowseJobs() {
   const { showToast } = useToast();
 
   const [jobs, setJobs] = useState([]);
-  const [filteredJobs, setFilteredJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [savedJobs, setSavedJobs] = useState(new Set());
   const [appliedJobs, setAppliedJobs] = useState(new Set());
   const [showApplyConfirm, setShowApplyConfirm] = useState(false);
   const [selectedJob, setSelectedJob] = useState(null);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    per_page: 20,
+    total: 0,
+    has_more: false,
+  });
   const [filters, setFilters] = useState({
     search: "",
     category: "",
@@ -28,37 +41,88 @@ export default function BrowseJobs() {
     employment_type: "",
   });
 
+  // Debounced search to reduce API calls
+  const debouncedSearch = useDebounce(filters.search, 300);
+
   useEffect(() => {
-    fetchJobs();
+    fetchJobs(true); // Reset to first page when filters change
     fetchSavedJobs();
     fetchAppliedJobs();
-  }, []);
+  }, [
+    debouncedSearch,
+    filters.category,
+    filters.location,
+    filters.employment_type,
+  ]);
 
-  useEffect(() => {
-    filterJobs();
-  }, [jobs, filters]);
+  const fetchJobs = useCallback(
+    async (reset = false) => {
+      try {
+        if (reset) {
+          setLoading(true);
+          setJobs([]);
+          setPagination((prev) => ({ ...prev, page: 1 }));
+        }
 
-  const fetchJobs = async () => {
-    try {
-      const response = await fetch(`${getBackendUrl()}/api/posts`);
-      if (response.ok) {
-        const data = await response.json();
-        // Filter only active jobs
-        const activeJobs = data.filter((job) => job.status === "active");
-        setJobs(activeJobs);
+        const currentPage = reset ? 1 : pagination.page;
+        const params = new URLSearchParams({
+          page: currentPage,
+          per_page: pagination.per_page,
+          status: "active",
+        });
+
+        // Add filters
+        if (debouncedSearch) params.append("search", debouncedSearch);
+        if (filters.category) params.append("category", filters.category);
+        if (filters.location) params.append("location", filters.location);
+        if (filters.employment_type)
+          params.append("employment_type", filters.employment_type);
+
+        const response = await fetch(`${getBackendUrl()}/api/posts?${params}`, {
+          credentials: "include",
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const newJobs = data.data || [];
+
+          if (reset) {
+            setJobs(newJobs);
+          } else {
+            setJobs((prev) => [...prev, ...newJobs]);
+          }
+
+          setPagination({
+            page: data.page || currentPage,
+            per_page: data.per_page || pagination.per_page,
+            total: data.total || 0,
+            has_more: data.has_more || false,
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching jobs:", error);
+        showToast("Failed to load jobs. Please try again.", "error");
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error("Error fetching jobs:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    [
+      pagination.page,
+      pagination.per_page,
+      debouncedSearch,
+      filters.category,
+      filters.location,
+      filters.employment_type,
+      showToast,
+    ]
+  );
 
   const fetchSavedJobs = async () => {
     try {
       const userId = 1; // TODO: Get from user context
       const response = await fetch(
-        `${getBackendUrl()}/api/saved-jobs/user/${userId}`
+        `${getBackendUrl()}/api/saved-jobs/user/${userId}`,
+        { credentials: "include" }
       );
       if (response.ok) {
         const data = await response.json();
@@ -74,40 +138,18 @@ export default function BrowseJobs() {
     try {
       const userId = 1; // TODO: Get from user context
       const response = await fetch(
-        `${getBackendUrl()}/api/applications/user/${userId}`
+        `${getBackendUrl()}/api/applications/user/${userId}`,
+        { credentials: "include" }
       );
       if (response.ok) {
         const data = await response.json();
-        const appliedIds = new Set(data.map((app) => app.post_id));
+        const applications = data.data || data; // Handle both paginated and old format
+        const appliedIds = new Set(applications.map((app) => app.post_id));
         setAppliedJobs(appliedIds);
       }
     } catch (error) {
       console.error("Error fetching applied jobs:", error);
     }
-  };
-
-  const filterJobs = () => {
-    let filtered = jobs.filter((job) => {
-      const matchesSearch =
-        !filters.search ||
-        job.title.toLowerCase().includes(filters.search.toLowerCase()) ||
-        job.description.toLowerCase().includes(filters.search.toLowerCase()) ||
-        job.organization?.name
-          .toLowerCase()
-          .includes(filters.search.toLowerCase());
-
-      const matchesCategory =
-        !filters.category || job.category === filters.category;
-      const matchesLocation =
-        !filters.location ||
-        job.location?.toLowerCase().includes(filters.location.toLowerCase());
-      const matchesType =
-        !filters.employment_type ||
-        job.employment_type === filters.employment_type;
-
-      return matchesSearch && matchesCategory && matchesLocation && matchesType;
-    });
-    setFilteredJobs(filtered);
   };
 
   const handleSaveJob = async (postId) => {
@@ -208,18 +250,134 @@ export default function BrowseJobs() {
   };
 
   const getUniqueValues = (key) => {
+    // Get unique values from current jobs for filter dropdowns
     const values = jobs.map((job) => job[key]).filter(Boolean);
     return [...new Set(values)];
   };
 
-  if (loading) {
+  // Render individual job item
+  const renderJobItem = (job, index) => (
+    <Card key={job.id}>
+      <div className="flex items-start justify-between">
+        <div className="flex-1">
+          <div className="flex items-start gap-4">
+            <div className="flex-1">
+              <Link to={`/jobs/${job.id}`}>
+                <h3 className="text-xl font-semibold text-gray-900 mb-1 hover:text-indigo-600 cursor-pointer">
+                  {sanitizeHtml(job.title)}
+                </h3>
+              </Link>
+              <p className="text-lg text-indigo-600 font-medium mb-2">
+                {job.organization?.name}
+              </p>
+              <p className="text-gray-600 mb-3 line-clamp-2">
+                {truncateText(job.description, 200)}
+              </p>
+              <div className="flex flex-wrap gap-4 text-sm text-gray-500 mb-3">
+                {job.location && (
+                  <span className="flex items-center gap-1">
+                    📍 {job.location}
+                  </span>
+                )}
+                {job.employment_type && (
+                  <span className="flex items-center gap-1">
+                    💼 {job.employment_type}
+                  </span>
+                )}
+                {job.category && (
+                  <span className="flex items-center gap-1">
+                    🏷️ {job.category}
+                  </span>
+                )}
+                {job.salary_min && job.salary_max && (
+                  <span className="flex items-center gap-1">
+                    💰 ${job.salary_min} - ${job.salary_max}{" "}
+                    {job.salary_currency}
+                  </span>
+                )}
+                {job.application_deadline && (
+                  <span className="flex items-center gap-1">
+                    ⏰ Deadline:{" "}
+                    {new Date(job.application_deadline).toLocaleDateString()}
+                  </span>
+                )}
+              </div>
+              {job.requirements && job.requirements.length > 0 && (
+                <div>
+                  <p className="text-sm font-medium text-gray-700 mb-1">
+                    Key Requirements:
+                  </p>
+                  <ul className="text-sm text-gray-600 list-disc list-inside line-clamp-2">
+                    {job.requirements.slice(0, 3).map((req, index) => (
+                      <li key={index}>{sanitizeHtml(req)}</li>
+                    ))}
+                    {job.requirements.length > 3 && (
+                      <li>...and {job.requirements.length - 3} more</li>
+                    )}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="flex flex-col gap-2 ml-4">
+          {appliedJobs.has(job.id) ? (
+            <button
+              disabled
+              className="px-4 py-2 bg-green-100 text-green-800 rounded-md cursor-not-allowed"
+            >
+              Applied
+            </button>
+          ) : (
+            <button
+              onClick={() => {
+                setSelectedJob(job);
+                setShowApplyConfirm(true);
+              }}
+              className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+            >
+              Apply Now
+            </button>
+          )}
+          {savedJobs.has(job.id) ? (
+            <button
+              onClick={() => {
+                // Find saved job ID - this is simplified
+                fetch(
+                  `${getBackendUrl()}/api/saved-jobs/check?user_id=1&post_id=${
+                    job.id
+                  }`
+                )
+                  .then((r) => r.json())
+                  .then((data) => {
+                    if (data.saved_id) handleUnsaveJob(data.saved_id);
+                  });
+              }}
+              className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 text-gray-700"
+            >
+              Saved
+            </button>
+          ) : (
+            <button
+              onClick={() => handleSaveJob(job.id)}
+              className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 text-gray-700"
+            >
+              Save Job
+            </button>
+          )}
+        </div>
+      </div>
+    </Card>
+  );
+
+  if (loading && jobs.length === 0) {
     return (
       <DashboardLayout
         NavbarComponent={IndividualNavbar}
         sidebarItems={sidebarItems}
       >
         <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+          <LoadingSkeleton count={5} height={120} />
         </div>
       </DashboardLayout>
     );
@@ -240,7 +398,7 @@ export default function BrowseJobs() {
               <p className="mt-1 text-white/90">Find your next opportunity</p>
             </div>
             <div className="text-white text-right">
-              <p className="text-2xl font-bold">{filteredJobs.length}</p>
+              <p className="text-2xl font-bold">{jobs.length}</p>
               <p className="text-sm text-white/80">Jobs found</p>
             </div>
           </div>
@@ -323,133 +481,43 @@ export default function BrowseJobs() {
       </Card>
 
       {/* Job Listings */}
-      <div className="space-y-4">
-        {filteredJobs.length === 0 ? (
-          <Card>
-            <div className="text-center py-12">
-              <p className="text-gray-500">
-                No jobs found matching your criteria.
-              </p>
+      <ListErrorBoundary>
+        <div className="space-y-4">
+          <VirtualizedList
+            items={jobs}
+            itemHeight={160}
+            renderItem={renderJobItem}
+            className="mb-4"
+            emptyMessage="No jobs found matching your criteria."
+            height={600}
+          />
+
+          {/* Load More Button */}
+          {pagination.has_more && (
+            <div className="flex justify-center mt-6">
+              <button
+                onClick={() => fetchJobs(false)}
+                disabled={loading}
+                className="px-6 py-3 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    Loading...
+                  </>
+                ) : (
+                  "Load More Jobs"
+                )}
+              </button>
             </div>
-          </Card>
-        ) : (
-          filteredJobs.map((job) => (
-            <Card key={job.id}>
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-start gap-4">
-                    <div className="flex-1">
-                      <Link to={`/jobs/${job.id}`}>
-                        <h3 className="text-xl font-semibold text-gray-900 mb-1 hover:text-indigo-600 cursor-pointer">
-                          {job.title}
-                        </h3>
-                      </Link>
-                      <p className="text-lg text-indigo-600 font-medium mb-2">
-                        {job.organization?.name}
-                      </p>
-                      <p className="text-gray-600 mb-3 line-clamp-2">
-                        {job.description}
-                      </p>
-                      <div className="flex flex-wrap gap-4 text-sm text-gray-500 mb-3">
-                        {job.location && (
-                          <span className="flex items-center gap-1">
-                            📍 {job.location}
-                          </span>
-                        )}
-                        {job.employment_type && (
-                          <span className="flex items-center gap-1">
-                            💼 {job.employment_type}
-                          </span>
-                        )}
-                        {job.category && (
-                          <span className="flex items-center gap-1">
-                            🏷️ {job.category}
-                          </span>
-                        )}
-                        {job.salary_min && job.salary_max && (
-                          <span className="flex items-center gap-1">
-                            💰 ${job.salary_min} - ${job.salary_max}{" "}
-                            {job.salary_currency}
-                          </span>
-                        )}
-                        {job.application_deadline && (
-                          <span className="flex items-center gap-1">
-                            ⏰ Deadline:{" "}
-                            {new Date(
-                              job.application_deadline
-                            ).toLocaleDateString()}
-                          </span>
-                        )}
-                      </div>
-                      {job.requirements && job.requirements.length > 0 && (
-                        <div>
-                          <p className="text-sm font-medium text-gray-700 mb-1">
-                            Key Requirements:
-                          </p>
-                          <ul className="text-sm text-gray-600 list-disc list-inside line-clamp-2">
-                            {job.requirements.slice(0, 3).map((req, index) => (
-                              <li key={index}>{req}</li>
-                            ))}
-                            {job.requirements.length > 3 && (
-                              <li>...and {job.requirements.length - 3} more</li>
-                            )}
-                          </ul>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                <div className="flex flex-col gap-2 ml-4">
-                  {appliedJobs.has(job.id) ? (
-                    <button
-                      disabled
-                      className="px-4 py-2 bg-green-100 text-green-800 rounded-md cursor-not-allowed"
-                    >
-                      Applied
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => {
-                        setSelectedJob(job);
-                        setShowApplyConfirm(true);
-                      }}
-                      className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
-                    >
-                      Apply Now
-                    </button>
-                  )}
-                  {savedJobs.has(job.id) ? (
-                    <button
-                      onClick={() => {
-                        // Find saved job ID - this is simplified
-                        fetch(
-                          `${getBackendUrl()}/api/saved-jobs/check?user_id=1&post_id=${
-                            job.id
-                          }`
-                        )
-                          .then((r) => r.json())
-                          .then((data) => {
-                            if (data.saved_id) handleUnsaveJob(data.saved_id);
-                          });
-                      }}
-                      className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 text-gray-700"
-                    >
-                      Saved
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => handleSaveJob(job.id)}
-                      className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 text-gray-700"
-                    >
-                      Save Job
-                    </button>
-                  )}
-                </div>
-              </div>
-            </Card>
-          ))
-        )}
-      </div>
+          )}
+
+          {/* Results Summary */}
+          <div className="text-center text-sm text-gray-500 mt-4">
+            Showing {jobs.length} of {pagination.total} jobs
+          </div>
+        </div>
+      </ListErrorBoundary>
 
       {/* Apply Confirmation Modal */}
       {showApplyConfirm && selectedJob && (

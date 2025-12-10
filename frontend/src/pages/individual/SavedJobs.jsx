@@ -48,7 +48,8 @@ export default function SavedJobs() {
       );
       if (response.ok) {
         const data = await response.json();
-        const appliedIds = new Set(data.map((app) => app.post_id));
+        const applications = data.data || data; // Handle both paginated and old format
+        const appliedIds = new Set(applications.map((app) => app.post_id));
         setAppliedJobs(appliedIds);
       }
     } catch (error) {
