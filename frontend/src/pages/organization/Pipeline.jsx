@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
 import Card from "../../components/ui/Card";
@@ -45,14 +45,11 @@ export default function Pipeline() {
       icon: "🎉",
     },
     { key: "hired", label: "Hired", color: "teal", icon: "👥" },
+    { key: "withdrawn", label: "Withdrawn", color: "gray", icon: "🚪" },
     { key: "rejected", label: "Rejected", color: "red", icon: "❌" },
   ];
 
-  useEffect(() => {
-    fetchPipelineData();
-  }, []);
-
-  const fetchPipelineData = async () => {
+  const fetchPipelineData = useCallback(async () => {
     try {
       const response = await fetch(`${getBackendUrl()}/api/pipeline/${orgId}`, {
         credentials: "include",
@@ -69,7 +66,11 @@ export default function Pipeline() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [orgId, selectedPost]);
+
+  useEffect(() => {
+    fetchPipelineData();
+  }, [fetchPipelineData]);
 
   const updatePipelineStage = async (applicationId, newStage) => {
     try {

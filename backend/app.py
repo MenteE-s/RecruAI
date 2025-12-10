@@ -76,9 +76,7 @@ def create_app(config_object: object | None = None):
 		# Restrict CORS origins to the frontend origin when available. In local
 		# development frontend commonly runs on http://localhost:3000; prefer an
 		# explicit origin over a wildcard to reduce CSRF risk for APIs.
-		frontend_origin = os.getenv("FRONTEND_ORIGIN", "http://localhost:3000")
-		jwt_samesite = os.getenv("JWT_COOKIE_SAMESITE", "Lax")
-		jwt_secure = os.getenv("JWT_COOKIE_SECURE", "0")
+		frontend_origin = app.config.get("FRONTEND_ORIGIN", "http://localhost:3000")
 		# Support comma-separated list of origins
 		origins_list = [o.strip().rstrip("/") for o in frontend_origin.split(",")]
 		print(f"Setting CORS origins to: {origins_list}", flush=True)
