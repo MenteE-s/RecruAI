@@ -31,9 +31,9 @@ export default function HirePeople() {
       });
 
       if (response.ok) {
-        const data = await response.json();
+        const result = await response.json();
         // Filter to only show individual users (not organizations)
-        const individualUsers = data.filter(
+        const individualUsers = result.data.filter(
           (user) => user.role === "individual"
         );
         setUsers(individualUsers);

@@ -58,8 +58,8 @@ export default function JobPosts() {
         credentials: "include",
       });
       if (response.ok) {
-        const data = await response.json();
-        setPosts(data);
+        const result = await response.json();
+        setPosts(result.data);
       }
     } catch (error) {
       console.error("Error fetching posts:", error);

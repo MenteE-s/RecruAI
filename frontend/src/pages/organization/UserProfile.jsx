@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
-import { getSidebarItems, getBackendUrl } from "../../utils/auth";
+import { getSidebarItems, getBackendUrl, getUploadUrl } from "../../utils/auth";
 import {
   FiMail,
   FiBriefcase,
@@ -164,11 +164,29 @@ export default function UserProfile() {
 
         {/* Hero Header */}
         <div className="bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 text-white">
+          {user.banner && (
+            <div className="w-full h-48 overflow-hidden">
+              <img 
+                src={getUploadUrl(user.banner)} 
+                alt={`${user.name || user.email} banner`}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          )}
           <div className="max-w-6xl mx-auto px-6 py-12">
             <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
-              <div className="w-24 h-24 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-3xl font-bold">
-                {(user.name || user.email).charAt(0).toUpperCase()}
-              </div>
+              {/* User profile image with fallback to initials */}
+              {user.profile_picture ? (
+                <img 
+                  src={getUploadUrl(user.profile_picture)} 
+                  alt={`${user.name || user.email} profile`}
+                  className="w-24 h-24 rounded-full object-cover border-4 border-white/30 shadow-lg"
+                />
+              ) : (
+                <div className="w-24 h-24 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-3xl font-bold border-4 border-white/30 shadow-lg">
+                  {(user.name || user.email).charAt(0).toUpperCase()}
+                </div>
+              )}
               <div className="flex-1">
                 <h1 className="text-4xl md:text-5xl font-bold mb-2">
                   {user.name || user.email}

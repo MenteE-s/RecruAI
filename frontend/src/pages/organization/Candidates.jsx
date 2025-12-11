@@ -59,12 +59,6 @@ export default function Candidates() {
     getOrgId();
   }, []);
 
-  useEffect(() => {
-    if (organizationId) {
-      fetchApplications(true);
-    }
-  }, [organizationId, fetchApplications]);
-
   const fetchApplications = useCallback(
     async (reset = false) => {
       if (!organizationId) return;
@@ -80,7 +74,7 @@ export default function Candidates() {
         const params = new URLSearchParams({
           page: currentPage,
           per_page: pagination.per_page,
-          organization_id: organizationId,
+          // Add other filters as needed
         });
 
         const response = await fetch(
@@ -91,31 +85,44 @@ export default function Candidates() {
         );
 
         if (response.ok) {
-          const data = await response.json();
-          const newApplications = data.data || [];
-
+          const result = await response.json();
+          
           if (reset) {
-            setApplications(newApplications);
+            setApplications(result.data);
           } else {
-            setApplications((prev) => [...prev, ...newApplications]);
+            setApplications((prev) => [...prev, ...result.data]);
           }
-
+          
           setPagination({
-            page: data.page || currentPage,
-            per_page: data.per_page || pagination.per_page,
-            total: data.total || 0,
-            has_more: data.has_more || false,
+            page: result.pagination.page,
+            per_page: result.pagination.per_page,
+            total: result.pagination.total,
+            has_more: result.pagination.has_next,
+          });
+        } else {
+          showToast({
+            message: "Failed to fetch applications",
+            type: "error",
           });
         }
       } catch (error) {
         console.error("Error fetching applications:", error);
-        showToast("Failed to load candidates. Please try again.", "error");
+        showToast({
+          message: "Error fetching applications",
+          type: "error",
+        });
       } finally {
         setLoading(false);
       }
     },
     [organizationId, pagination.page, pagination.per_page, showToast]
   );
+
+  useEffect(() => {
+    if (organizationId) {
+      fetchApplications(true);
+    }
+  }, [organizationId, fetchApplications]);
 
   const updateApplicationStatus = useCallback(
     async (appId, status) => {
