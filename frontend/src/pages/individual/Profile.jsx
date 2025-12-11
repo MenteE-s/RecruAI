@@ -1350,6 +1350,7 @@ export default function Profile() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   const [userData, setUserData] = useState(null);
   const [uploadingProfilePicture, setUploadingProfilePicture] = useState(false);
+  const [uploadingBanner, setUploadingBanner] = useState(false);
 
   // Load user data and profile data from backend
   useEffect(() => {
@@ -1843,6 +1844,58 @@ export default function Profile() {
     }
   };
 
+  const handleBannerUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif"];
+    if (!allowedTypes.includes(file.type)) {
+      setError("Please select a valid image file (JPEG, PNG, or GIF)");
+      return;
+    }
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      setError("File size must be less than 5MB");
+      return;
+    }
+
+    setUploadingBanner(true);
+    setError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("banner", file);
+
+      const response = await fetch(
+        `${getBackendUrl()}/api/profile/upload-banner`,
+        {
+          method: "POST",
+          credentials: "include",
+          body: formData,
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setUserData((prev) => ({
+          ...prev,
+          banner: data.banner,
+        }));
+        setError(null);
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        setError(errorData.error || "Failed to upload banner");
+      }
+    } catch (error) {
+      console.error("Error uploading banner:", error);
+      setError("Network error. Please try again.");
+    } finally {
+      setUploadingBanner(false);
+    }
+  };
+
   if (loading) {
     return (
       <DashboardLayout
@@ -1891,14 +1944,51 @@ export default function Profile() {
         </div>
       )}
 
-      {/* Profile Header */}
+      {/* Profile Header with Banner */}
       <div className="mb-6">
-        <div className="rounded-2xl p-6 bg-gradient-to-br from-indigo-600/80 via-purple-600/60 to-cyan-500/60 text-white shadow-lg">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
+        {/* Banner Section */}
+        <div className="relative h-48 rounded-t-2xl overflow-hidden">
+          {userData?.banner ? (
+            <img
+              src={getUploadUrl(userData.banner)}
+              alt="Profile Banner"
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-r from-indigo-500 to-purple-600" />
+          )}
+
+          {/* Banner Edit Button */}
+          <label
+            htmlFor="banner-upload"
+            className="absolute top-4 right-4 bg-black/30 rounded-full p-2 cursor-pointer hover:bg-black/50 transition-colors"
+          >
+            <FiCamera size={18} className="text-white" />
+          </label>
+
+          <input
+            id="banner-upload"
+            type="file"
+            accept="image/*"
+            onChange={handleBannerUpload}
+            className="hidden"
+            disabled={uploadingBanner}
+          />
+
+          {uploadingBanner && (
+            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+              <div className="text-white">Uploading banner...</div>
+            </div>
+          )}
+        </div>
+
+        {/* Profile Info Section */}
+        <div className="relative rounded-b-2xl bg-white p-6 shadow-lg -mt-16 pt-20">
+          <div className="flex items-start justify-between">
+            <div className="flex items-start space-x-4">
               {/* Profile Picture */}
-              <div className="relative">
-                <div className="w-20 h-20 rounded-full bg-white/20 flex items-center justify-center overflow-hidden">
+              <div className="relative -mt-16 group">
+                <div className="w-24 h-24 rounded-full bg-white flex items-center justify-center overflow-hidden border-4 border-white shadow-lg">
                   {userData?.profile_picture ? (
                     <img
                       src={getUploadUrl(userData.profile_picture)}
@@ -1906,15 +1996,17 @@ export default function Profile() {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <FiUser size={32} className="text-white/70" />
+                    <FiUser size={36} className="text-gray-400" />
                   )}
                 </div>
+
                 <label
                   htmlFor="profile-picture-upload"
-                  className="absolute bottom-0 right-0 bg-white rounded-full p-1.5 cursor-pointer hover:bg-gray-50 transition-colors shadow-lg"
+                  className="absolute bottom-0 right-0 bg-white rounded-full p-2 cursor-pointer hover:bg-gray-50 transition-colors shadow-lg border border-gray-200"
                 >
                   <FiCamera size={14} className="text-gray-600" />
                 </label>
+
                 <input
                   id="profile-picture-upload"
                   type="file"
@@ -1925,15 +2017,15 @@ export default function Profile() {
                 />
               </div>
 
-              <div>
-                <h1 className="text-2xl md:text-3xl font-bold font-display">
-                  My Profile
+              <div className="pt-4">
+                <h1 className="text-2xl md:text-3xl font-bold font-display text-gray-900">
+                  {userData?.name || "Guest"}
                 </h1>
-                <p className="mt-1 text-white/90">
-                  Build your professional profile
+                <p className="mt-1 text-gray-600">
+                  Welcome back! Manage your professional profile.
                 </p>
                 {uploadingProfilePicture && (
-                  <p className="mt-2 text-sm text-white/80">
+                  <p className="mt-2 text-sm text-gray-500">
                     Uploading profile picture...
                   </p>
                 )}
@@ -1944,7 +2036,7 @@ export default function Profile() {
       </div>
 
       {/* Personal Information Section */}
-      <Card className="lg:col-span-2">
+      <Card shadow="lg" opacity={70} padding="8" className="lg:col-span-2">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold text-gray-800 flex items-center">
             <FiUser className="mr-2" />

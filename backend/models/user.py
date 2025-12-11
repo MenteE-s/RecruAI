@@ -21,6 +21,8 @@ class User(db.Model):
     organization = db.relationship("Organization", back_populates="users")
     # profile picture URL/path
     profile_picture = db.Column(db.String(500), nullable=True)
+    # banner image URL/path
+    banner = db.Column(db.String(500), nullable=True)
     # user's preferred timezone (e.g., 'Asia/Karachi', 'America/New_York')
     timezone = db.Column(db.String(50), nullable=True, default="UTC")
     # Additional profile fields
@@ -98,6 +100,7 @@ class User(db.Model):
             "organization_id": self.organization_id,
             "organization": self.organization.name if self.organization else None,
             "profile_picture": self.profile_picture,
+            "banner": self.banner,
             "timezone": self.timezone or "UTC",
             "phone": self.phone,
             "location": self.location,
@@ -115,6 +118,7 @@ class User(db.Model):
             "role": self.role,
             "organization": self.organization.name if self.organization else None,
             "profile_picture": self.profile_picture,
+            "banner": self.banner,
             "timezone": self.timezone or "UTC",
             # Include profile sections - these will be filtered by visibility settings
             "experiences": [exp.to_dict() for exp in self.experiences] if hasattr(self, 'experiences') else [],
