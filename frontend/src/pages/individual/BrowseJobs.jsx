@@ -6,7 +6,6 @@ import Card from "../../components/ui/Card";
 import { getSidebarItems, getBackendUrl } from "../../utils/auth";
 import { useToast } from "../../components/ui/ToastContext";
 import {
-  VirtualizedList,
   useDebounce,
   LoadingSkeleton,
   ListErrorBoundary,
@@ -152,64 +151,72 @@ export default function BrowseJobs() {
     }
   };
 
-  const handleSaveJob = async (postId) => {
-    try {
-      const userId = 1; // TODO: Get from user context
-      const response = await fetch(`${getBackendUrl()}/api/saved-jobs`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ user_id: userId, post_id: postId }),
-      });
-
-      if (response.ok) {
-        setSavedJobs((prev) => new Set([...prev, postId]));
-        showToast({
-          message: "Job saved successfully!",
-          type: "success",
+  const handleSaveJob = useCallback(
+    async (postId) => {
+      try {
+        const userId = 1; // TODO: Get from user context
+        const response = await fetch(`${getBackendUrl()}/api/saved-jobs`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ user_id: userId, post_id: postId }),
         });
-      } else {
+
+        if (response.ok) {
+          setSavedJobs((prev) => new Set([...prev, postId]));
+          showToast({
+            message: "Job saved successfully!",
+            type: "success",
+          });
+        } else {
+          showToast({
+            message: "Failed to save job",
+            type: "error",
+          });
+        }
+      } catch (error) {
+        console.error("Error saving job:", error);
         showToast({
           message: "Failed to save job",
           type: "error",
         });
       }
-    } catch (error) {
-      console.error("Error saving job:", error);
-      showToast({
-        message: "Failed to save job",
-        type: "error",
-      });
-    }
-  };
+    },
+    [getBackendUrl, showToast]
+  );
 
-  const handleUnsaveJob = async (savedId) => {
-    try {
-      const response = await fetch(
-        `${getBackendUrl()}/api/saved-jobs/${savedId}`,
-        {
-          method: "DELETE",
-          credentials: "include",
-        }
-      );
+  const handleUnsaveJob = useCallback(
+    async (savedId) => {
+      try {
+        const response = await fetch(
+          `${getBackendUrl()}/api/saved-jobs/${savedId}`,
+          {
+            method: "DELETE",
+            credentials: "include",
+          }
+        );
 
-      if (response.ok) {
-        // Find the post_id for this saved job
-        const savedJob = await fetch(`${getBackendUrl()}/api/saved-jobs/user/1`)
-          .then((r) => r.json())
-          .then((data) => data.find((sj) => sj.id === savedId));
-        if (savedJob) {
-          setSavedJobs((prev) => {
-            const newSet = new Set(prev);
-            newSet.delete(savedJob.post_id);
-            return newSet;
-          });
+        if (response.ok) {
+          // Find the post_id for this saved job
+          const savedJob = await fetch(
+            `${getBackendUrl()}/api/saved-jobs/user/1`
+          )
+            .then((r) => r.json())
+            .then((data) => data.find((sj) => sj.id === savedId));
+          if (savedJob) {
+            setSavedJobs((prev) => {
+              const newSet = new Set(prev);
+              newSet.delete(savedJob.post_id);
+              return newSet;
+            });
+          }
         }
+      } catch (error) {
+        console.error("Error unsaving job:", error);
       }
-    } catch (error) {
-      console.error("Error unsaving job:", error);
-    }
-  };
+    },
+    [getBackendUrl]
+  );
 
   const handleApplyJob = async (postId) => {
     try {
@@ -256,118 +263,129 @@ export default function BrowseJobs() {
   };
 
   // Render individual job item
-  const renderJobItem = (job, index) => (
-    <Card key={job.id}>
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <div className="flex items-start gap-4">
-            <div className="flex-1">
-              <Link to={`/jobs/${job.id}`}>
-                <h3 className="text-xl font-semibold text-gray-900 mb-1 hover:text-indigo-600 cursor-pointer">
-                  {sanitizeHtml(job.title)}
-                </h3>
-              </Link>
-              <p className="text-lg text-indigo-600 font-medium mb-2">
-                {job.organization?.name}
-              </p>
-              <p className="text-gray-600 mb-3 line-clamp-2">
-                {truncateText(job.description, 200)}
-              </p>
-              <div className="flex flex-wrap gap-4 text-sm text-gray-500 mb-3">
-                {job.location && (
-                  <span className="flex items-center gap-1">
-                    📍 {job.location}
-                  </span>
-                )}
-                {job.employment_type && (
-                  <span className="flex items-center gap-1">
-                    💼 {job.employment_type}
-                  </span>
-                )}
-                {job.category && (
-                  <span className="flex items-center gap-1">
-                    🏷️ {job.category}
-                  </span>
-                )}
-                {job.salary_min && job.salary_max && (
-                  <span className="flex items-center gap-1">
-                    💰 ${job.salary_min} - ${job.salary_max}{" "}
-                    {job.salary_currency}
-                  </span>
-                )}
-                {job.application_deadline && (
-                  <span className="flex items-center gap-1">
-                    ⏰ Deadline:{" "}
-                    {new Date(job.application_deadline).toLocaleDateString()}
-                  </span>
+  const renderJobItem = useCallback(
+    (job, index) => (
+      <Card key={job.id}>
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <div className="flex items-start gap-4">
+              <div className="flex-1">
+                <Link to={`/jobs/${job.id}`}>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-1 hover:text-indigo-600 cursor-pointer">
+                    {sanitizeHtml(job.title)}
+                  </h3>
+                </Link>
+                <p className="text-lg text-indigo-600 font-medium mb-2">
+                  {job.organization?.name}
+                </p>
+                <p className="text-gray-600 mb-3 line-clamp-2">
+                  {truncateText(job.description, 200)}
+                </p>
+                <div className="flex flex-wrap gap-4 text-sm text-gray-500 mb-3">
+                  {job.location && (
+                    <span className="flex items-center gap-1">
+                      📍 {job.location}
+                    </span>
+                  )}
+                  {job.employment_type && (
+                    <span className="flex items-center gap-1">
+                      💼 {job.employment_type}
+                    </span>
+                  )}
+                  {job.category && (
+                    <span className="flex items-center gap-1">
+                      🏷️ {job.category}
+                    </span>
+                  )}
+                  {job.salary_min && job.salary_max && (
+                    <span className="flex items-center gap-1">
+                      💰 ${job.salary_min} - ${job.salary_max}{" "}
+                      {job.salary_currency}
+                    </span>
+                  )}
+                  {job.application_deadline && (
+                    <span className="flex items-center gap-1">
+                      ⏰ Deadline:{" "}
+                      {new Date(job.application_deadline).toLocaleDateString()}
+                    </span>
+                  )}
+                </div>
+                {job.requirements && job.requirements.length > 0 && (
+                  <div>
+                    <p className="text-sm font-medium text-gray-700 mb-1">
+                      Key Requirements:
+                    </p>
+                    <ul className="text-sm text-gray-600 list-disc list-inside line-clamp-2">
+                      {job.requirements.slice(0, 3).map((req, index) => (
+                        <li key={index}>{sanitizeHtml(req)}</li>
+                      ))}
+                      {job.requirements.length > 3 && (
+                        <li>...and {job.requirements.length - 3} more</li>
+                      )}
+                    </ul>
+                  </div>
                 )}
               </div>
-              {job.requirements && job.requirements.length > 0 && (
-                <div>
-                  <p className="text-sm font-medium text-gray-700 mb-1">
-                    Key Requirements:
-                  </p>
-                  <ul className="text-sm text-gray-600 list-disc list-inside line-clamp-2">
-                    {job.requirements.slice(0, 3).map((req, index) => (
-                      <li key={index}>{sanitizeHtml(req)}</li>
-                    ))}
-                    {job.requirements.length > 3 && (
-                      <li>...and {job.requirements.length - 3} more</li>
-                    )}
-                  </ul>
-                </div>
-              )}
             </div>
           </div>
+          <div className="flex flex-col gap-2 ml-4">
+            {appliedJobs.has(job.id) ? (
+              <button
+                disabled
+                className="px-4 py-2 bg-green-100 text-green-800 rounded-md cursor-not-allowed"
+              >
+                Applied
+              </button>
+            ) : (
+              <button
+                onClick={() => {
+                  setSelectedJob(job);
+                  setShowApplyConfirm(true);
+                }}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+              >
+                Apply Now
+              </button>
+            )}
+            {savedJobs.has(job.id) ? (
+              <button
+                onClick={() => {
+                  // Find saved job ID - this is simplified
+                  fetch(
+                    `${getBackendUrl()}/api/saved-jobs/check?user_id=1&post_id=${
+                      job.id
+                    }`
+                  )
+                    .then((r) => r.json())
+                    .then((data) => {
+                      if (data.saved_id) handleUnsaveJob(data.saved_id);
+                    });
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 text-gray-700"
+              >
+                Saved
+              </button>
+            ) : (
+              <button
+                onClick={() => handleSaveJob(job.id)}
+                className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 text-gray-700"
+              >
+                Save Job
+              </button>
+            )}
+          </div>
         </div>
-        <div className="flex flex-col gap-2 ml-4">
-          {appliedJobs.has(job.id) ? (
-            <button
-              disabled
-              className="px-4 py-2 bg-green-100 text-green-800 rounded-md cursor-not-allowed"
-            >
-              Applied
-            </button>
-          ) : (
-            <button
-              onClick={() => {
-                setSelectedJob(job);
-                setShowApplyConfirm(true);
-              }}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
-            >
-              Apply Now
-            </button>
-          )}
-          {savedJobs.has(job.id) ? (
-            <button
-              onClick={() => {
-                // Find saved job ID - this is simplified
-                fetch(
-                  `${getBackendUrl()}/api/saved-jobs/check?user_id=1&post_id=${
-                    job.id
-                  }`
-                )
-                  .then((r) => r.json())
-                  .then((data) => {
-                    if (data.saved_id) handleUnsaveJob(data.saved_id);
-                  });
-              }}
-              className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 text-gray-700"
-            >
-              Saved
-            </button>
-          ) : (
-            <button
-              onClick={() => handleSaveJob(job.id)}
-              className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 text-gray-700"
-            >
-              Save Job
-            </button>
-          )}
-        </div>
-      </div>
-    </Card>
+      </Card>
+    ),
+    [
+      appliedJobs,
+      savedJobs,
+      handleSaveJob,
+      handleUnsaveJob,
+      setSelectedJob,
+      setShowApplyConfirm,
+      getBackendUrl,
+    ]
   );
 
   if (loading && jobs.length === 0) {
@@ -483,14 +501,7 @@ export default function BrowseJobs() {
       {/* Job Listings */}
       <ListErrorBoundary>
         <div className="space-y-4">
-          <VirtualizedList
-            items={jobs}
-            itemHeight={160}
-            renderItem={renderJobItem}
-            className="mb-4"
-            emptyMessage="No jobs found matching your criteria."
-            height={600}
-          />
+          {jobs.map((job, index) => renderJobItem(job, index))}
 
           {/* Load More Button */}
           {pagination.has_more && (

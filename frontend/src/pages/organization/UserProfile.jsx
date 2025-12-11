@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
 import { getSidebarItems, getBackendUrl } from "../../utils/auth";
 import {
-  FiX,
   FiMail,
   FiBriefcase,
   FiAward,
@@ -12,7 +11,6 @@ import {
   FiCode,
   FiFolder,
   FiFileText,
-  FiUsers,
   FiHeart,
   FiGlobe,
   FiStar,
@@ -34,11 +32,7 @@ export default function UserProfile() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    fetchProfileData();
-  }, [userId]);
-
-  const fetchProfileData = async () => {
+  const fetchProfileData = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(
@@ -61,7 +55,11 @@ export default function UserProfile() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
+
+  useEffect(() => {
+    fetchProfileData();
+  }, [fetchProfileData]);
 
   const formatDate = (dateString) => {
     if (!dateString) return "Present";

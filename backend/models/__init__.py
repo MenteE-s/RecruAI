@@ -30,6 +30,7 @@ from .license import License
 from .ai_interview_agent import AIInterviewAgent
 from .conversation_memory import ConversationMemory
 from .system_issue import SystemIssue
+from .shareable_profile import ShareableProfile, ProfileAnalytics
 
 __all__ = [
     "User",
@@ -64,4 +65,6 @@ __all__ = [
     "AIInterviewAgent",
     "SystemIssue",
     "ConversationMemory",
+    "ShareableProfile",
+    "ProfileAnalytics",
 ]

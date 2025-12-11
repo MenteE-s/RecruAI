@@ -90,7 +90,7 @@ def validate_email(email: str) -> bool:
     email_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
     return bool(re.match(email_regex, email)) and len(email) <= 254
 
-def log_security_event(event_type: str, user_id: str = None, ip_address: str = None, details: dict = None):
+def log_security_event(event_type: str, user_id: str = None, ip_address: str = None, details: dict = None, email: str = None):
     """
     Log security-related events
     """
@@ -104,6 +104,9 @@ def log_security_event(event_type: str, user_id: str = None, ip_address: str = N
         'timestamp': datetime.utcnow().isoformat(),
         'details': details or {}
     }
+    
+    if email:
+        log_data['email'] = email
 
     security_logger.info(f"SECURITY_EVENT: {log_data}")
 

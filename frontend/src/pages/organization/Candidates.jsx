@@ -6,7 +6,6 @@ import { getSidebarItems, getBackendUrl } from "../../utils/auth";
 import { useToast } from "../../components/ui/ToastContext";
 import { formatDate } from "../../utils/timezone";
 import {
-  VirtualizedList,
   LoadingSkeleton,
   ListErrorBoundary,
   sanitizeHtml,
@@ -118,66 +117,72 @@ export default function Candidates() {
     [organizationId, pagination.page, pagination.per_page, showToast]
   );
 
-  const updateApplicationStatus = async (appId, status) => {
-    try {
-      const response = await fetch(
-        `${getBackendUrl()}/api/applications/${appId}`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({ status }),
-        }
-      );
+  const updateApplicationStatus = useCallback(
+    async (appId, status) => {
+      try {
+        const response = await fetch(
+          `${getBackendUrl()}/api/applications/${appId}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ status }),
+          }
+        );
 
-      if (response.ok) {
-        await fetchApplications();
-        showToast({
-          message: `Application ${status} successfully`,
-          type: "success",
-        });
-      } else {
+        if (response.ok) {
+          await fetchApplications();
+          showToast({
+            message: `Application ${status} successfully`,
+            type: "success",
+          });
+        } else {
+          showToast({
+            message: "Failed to update application status",
+            type: "error",
+          });
+        }
+      } catch (error) {
+        console.error("Error updating application status:", error);
         showToast({
           message: "Failed to update application status",
           type: "error",
         });
       }
-    } catch (error) {
-      console.error("Error updating application status:", error);
-      showToast({
-        message: "Failed to update application status",
-        type: "error",
-      });
-    }
-  };
+    },
+    [fetchApplications, showToast, getBackendUrl]
+  );
 
-  const fetchCandidateProfile = async (userId) => {
-    try {
-      const response = await fetch(
-        `${getBackendUrl()}/api/users/${userId}/full-profile`,
-        {
-          credentials: "include",
+  const fetchCandidateProfile = useCallback(
+    async (userId) => {
+      try {
+        const response = await fetch(
+          `${getBackendUrl()}/api/users/${userId}/full-profile`,
+          {
+            credentials: "include",
+          }
+        );
+
+        if (response.ok) {
+          const profile = await response.json();
+          setCandidateProfile(profile);
+          setShowCandidateProfile(true);
+        } else {
+          showToast({
+            message: "Failed to load candidate profile",
+            type: "error",
+          });
         }
-      );
-
-      if (response.ok) {
-        const profile = await response.json();
-        setCandidateProfile(profile);
-        setShowCandidateProfile(true);
-      } else {
+      } catch (error) {
+        console.error("Error fetching candidate profile:", error);
         showToast({
           message: "Failed to load candidate profile",
           type: "error",
         });
       }
-    } catch (error) {
-      console.error("Error fetching candidate profile:", error);
-      showToast({
-        message: "Failed to load candidate profile",
-        type: "error",
-      });
-    }
-  };
+    },
+    [showToast, getBackendUrl]
+  );
 
   const scheduleInterview = async (e) => {
     e.preventDefault();
@@ -252,91 +257,96 @@ export default function Candidates() {
   };
 
   // Render individual application item
-  const renderApplicationItem = (application, index) => (
-    <Card key={application.id}>
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <div className="flex items-center gap-3 mb-2">
-            <h3 className="text-lg font-semibold text-gray-900">
-              {sanitizeHtml(application.user?.name || "Anonymous")}
-            </h3>
-            <span
-              className={`px-2 py-1 text-xs rounded-full ${getStatusColor(
-                application.status
-              )}`}
-            >
-              {application.status}
-            </span>
+  const renderApplicationItem = useCallback(
+    (application, index) => (
+      <Card key={application.id}>
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-2">
+              <h3 className="text-lg font-semibold text-gray-900">
+                {sanitizeHtml(application.user?.name || "Anonymous")}
+              </h3>
+              <span
+                className={`px-2 py-1 text-xs rounded-full ${getStatusColor(
+                  application.status
+                )}`}
+              >
+                {application.status}
+              </span>
+            </div>
+
+            <p className="text-indigo-600 font-medium mb-1">
+              Applied for: {application.post?.title}
+            </p>
+
+            <p className="text-gray-600 text-sm mb-2">
+              Applied {formatDate(application.applied_at)}
+            </p>
+
+            {application.cover_letter && (
+              <div className="mb-3">
+                <p className="text-sm font-medium text-gray-700">
+                  Cover Letter:
+                </p>
+                <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-md">
+                  {truncateText(application.cover_letter, 200)}
+                </p>
+              </div>
+            )}
+
+            {application.resume_url && (
+              <div className="mb-3">
+                <a
+                  href={application.resume_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-indigo-600 hover:text-indigo-800 text-sm underline"
+                >
+                  📄 View Resume
+                </a>
+              </div>
+            )}
           </div>
 
-          <p className="text-indigo-600 font-medium mb-1">
-            Applied for: {application.post?.title}
-          </p>
+          <div className="flex flex-col gap-2 ml-4">
+            <select
+              value={application.status}
+              onChange={(e) =>
+                updateApplicationStatus(application.id, e.target.value)
+              }
+              className="px-3 py-1 border border-gray-300 rounded-md text-sm"
+            >
+              <option value="pending">Pending</option>
+              <option value="reviewed">Reviewed</option>
+              <option value="accepted">Accepted</option>
+              <option value="rejected">Rejected</option>
+            </select>
 
-          <p className="text-gray-600 text-sm mb-2">
-            Applied {formatDate(application.applied_at)}
-          </p>
+            <button
+              onClick={() => {
+                setSelectedApplication(application);
+                setShowScheduleInterview(true);
+                setInterviewForm((prev) => ({
+                  ...prev,
+                  title: `Interview: ${application.post?.title}`,
+                }));
+              }}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              Schedule Interview
+            </button>
 
-          {application.cover_letter && (
-            <div className="mb-3">
-              <p className="text-sm font-medium text-gray-700">Cover Letter:</p>
-              <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-md">
-                {truncateText(application.cover_letter, 200)}
-              </p>
-            </div>
-          )}
-
-          {application.resume_url && (
-            <div className="mb-3">
-              <a
-                href={application.resume_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-indigo-600 hover:text-indigo-800 text-sm underline"
-              >
-                📄 View Resume
-              </a>
-            </div>
-          )}
+            <button
+              onClick={() => fetchCandidateProfile(application.user_id)}
+              className="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50 text-sm"
+            >
+              View Profile
+            </button>
+          </div>
         </div>
-
-        <div className="flex flex-col gap-2 ml-4">
-          <select
-            value={application.status}
-            onChange={(e) =>
-              updateApplicationStatus(application.id, e.target.value)
-            }
-            className="px-3 py-1 border border-gray-300 rounded-md text-sm"
-          >
-            <option value="pending">Pending</option>
-            <option value="reviewed">Reviewed</option>
-            <option value="accepted">Accepted</option>
-            <option value="rejected">Rejected</option>
-          </select>
-
-          <button
-            onClick={() => {
-              setSelectedApplication(application);
-              setShowScheduleInterview(true);
-              setInterviewForm((prev) => ({
-                ...prev,
-                title: `Interview: ${application.post?.title}`,
-              }));
-            }}
-            className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
-          >
-            Schedule Interview
-          </button>
-
-          <button
-            onClick={() => fetchCandidateProfile(application.user_id)}
-            className="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50 text-sm"
-          >
-            View Profile
-          </button>
-        </div>
-      </div>
-    </Card>
+      </Card>
+    ),
+    [updateApplicationStatus, fetchCandidateProfile]
   );
 
   if (loading && applications.length === 0) {
@@ -385,14 +395,9 @@ export default function Candidates() {
       ) : (
         <ListErrorBoundary>
           <div className="space-y-4">
-            <VirtualizedList
-              items={applications}
-              itemHeight={180}
-              renderItem={renderApplicationItem}
-              className="mb-4"
-              emptyMessage="No applications found."
-              height={600}
-            />
+            {applications.map((application, index) =>
+              renderApplicationItem(application, index)
+            )}
 
             {/* Load More Button */}
             {pagination.has_more && (

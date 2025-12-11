@@ -23,6 +23,11 @@ class User(db.Model):
     profile_picture = db.Column(db.String(500), nullable=True)
     # user's preferred timezone (e.g., 'Asia/Karachi', 'America/New_York')
     timezone = db.Column(db.String(50), nullable=True, default="UTC")
+    # Additional profile fields
+    phone = db.Column(db.String(50), nullable=True)
+    location = db.Column(db.String(200), nullable=True)
+    website = db.Column(db.String(500), nullable=True)
+    linkedin = db.Column(db.String(500), nullable=True)
 
     # Security fields
     failed_login_attempts = db.Column(db.Integer, default=0)
@@ -94,6 +99,29 @@ class User(db.Model):
             "organization": self.organization.name if self.organization else None,
             "profile_picture": self.profile_picture,
             "timezone": self.timezone or "UTC",
+            "phone": self.phone,
+            "location": self.location,
+            "website": self.website,
+            "linkedin": self.linkedin,
             "last_login_at": self.last_login_at.isoformat() if self.last_login_at else None,
             "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+
+    def to_public_dict(self):
+        """Return user data for public profile sharing"""
+        return {
+            "id": self.id,
+            "name": self.name,
+            "role": self.role,
+            "organization": self.organization.name if self.organization else None,
+            "profile_picture": self.profile_picture,
+            "timezone": self.timezone or "UTC",
+            # Include profile sections - these will be filtered by visibility settings
+            "experiences": [exp.to_dict() for exp in self.experiences] if hasattr(self, 'experiences') else [],
+            "educations": [edu.to_dict() for edu in self.educations] if hasattr(self, 'educations') else [],
+            "skills": [skill.to_dict() for skill in self.skills] if hasattr(self, 'skills') else [],
+            "projects": [proj.to_dict() for proj in self.projects] if hasattr(self, 'projects') else [],
+            "certifications": [cert.to_dict() for cert in self.certifications] if hasattr(self, 'certifications') else [],
+            "publications": [pub.to_dict() for pub in self.publications] if hasattr(self, 'publications') else [],
+            "awards": [award.to_dict() for award in self.awards] if hasattr(self, 'awards') else [],
         }

@@ -210,3 +210,24 @@ def get_sorting_params(default_sort: str = 'created_at', default_order: str = 'd
         sort_order = default_order
 
     return sort_by, sort_order
+
+
+def paginate_query(query, page: int = None, per_page: int = None):
+    """
+    Convenience function to paginate a query
+
+    Args:
+        query: SQLAlchemy query object
+        page: Page number (defaults to request param)
+        per_page: Items per page (defaults to request param)
+
+    Returns:
+        Tuple of (items, pagination_dict)
+    """
+    if page is None or per_page is None:
+        page, per_page = get_pagination_params()
+
+    paginator = Pagination(query, page=page, per_page=per_page)
+    result = paginator.paginate()
+
+    return result['items'], result['pagination']

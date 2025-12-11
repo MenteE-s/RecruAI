@@ -77,14 +77,77 @@ def logout():
 
 @api_bp.route("/auth/me", methods=["GET"])
 @jwt_required()
-def me():
-    # Return the server-verified user profile. Frontend should use this instead of trusting localStorage.
+def get_me():
+    """Get current user's profile information."""
     uid = get_jwt_identity()
     try:
         user_id = int(uid)
         user = User.query.get(user_id)
         if not user:
             return jsonify({"error": "user not found"}), 404
-        return jsonify({"user": user.to_dict()}), 200
     except (ValueError, TypeError):
         return jsonify({"error": "invalid user identity"}), 400
+
+    return jsonify({"user": user.to_dict()}), 200
+
+@api_bp.route("/auth/me", methods=["PUT"])
+@jwt_required()
+def update_me():
+    """Update current user's profile information."""
+    uid = get_jwt_identity()
+    try:
+        user_id = int(uid)
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({"error": "user not found"}), 404
+    except (ValueError, TypeError):
+        return jsonify({"error": "invalid user identity"}), 400
+
+    try:
+        data = request.get_json()
+    except Exception:
+        log_security_event("invalid_json_request", request.remote_addr, user_id)
+        return jsonify({"error": "Invalid JSON in request body"}), 400
+
+    # Validate request size
+    from ...utils.security import validate_request_size
+    is_valid, error_msg = validate_request_size(data)
+    if not is_valid:
+        log_security_event("request_size_exceeded", request.remote_addr, user_id, details={"error": error_msg})
+        return jsonify({"error": error_msg}), 400
+
+    # Update allowed fields
+    allowed_fields = ['name', 'phone', 'location', 'website', 'linkedin']
+    
+    for field in allowed_fields:
+        if field in data:
+            value = sanitize_input(data[field]) if data[field] else None
+            setattr(user, field, value)
+
+    # Special handling for email
+    if 'email' in data:
+        email = sanitize_input(data.get('email', ''))
+        if not email:
+            return jsonify({"error": "email cannot be empty"}), 400
+        
+        from ...utils.security import validate_email
+        if not validate_email(email):
+            log_security_event("invalid_email_format", request.remote_addr, user_id, email=email)
+            return jsonify({"error": "Invalid email format"}), 400
+
+        # Check if email is already taken by another user
+        existing_user = User.query.filter_by(email=email).first()
+        if existing_user and existing_user.id != user_id:
+            log_security_event("duplicate_email_update_attempt", request.remote_addr, user_id, email=email)
+            return jsonify({"error": "email already exists"}), 400
+
+        user.email = email
+
+    try:
+        db.session.commit()
+        log_security_event("user_profile_updated", request.remote_addr, user_id, details={"fields_updated": list(data.keys())})
+        return jsonify({"user": user.to_dict()}), 200
+    except Exception as e:
+        db.session.rollback()
+        log_security_event("user_profile_update_failed", request.remote_addr, user_id, details={"error": str(e)})
+        return jsonify({"error": "Failed to update profile"}), 500

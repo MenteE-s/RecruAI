@@ -4,14 +4,7 @@ import DashboardLayout from "../../components/layout/DashboardLayout";
 import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
 import Card from "../../components/ui/Card";
 import { getSidebarItems, getBackendUrl } from "../../utils/auth";
-import {
-  FiPlus,
-  FiEdit2,
-  FiTrash2,
-  FiUser,
-  FiUsers,
-  FiEye,
-} from "react-icons/fi";
+import { FiPlus, FiEdit2, FiTrash2, FiUsers, FiEye } from "react-icons/fi";
 
 // Modal Component
 const Modal = ({ isOpen, onClose, children }) => {

@@ -11,8 +11,8 @@ import {
   FiUsers,
   FiSettings,
   FiCheckCircle,
+  FiShare2,
 } from "react-icons/fi";
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "";
 
 // Get the backend URL for API calls and uploaded files
 export function getBackendUrl() {
@@ -117,6 +117,11 @@ export function getSidebarItems(role, plan) {
         { name: "Analytics", link: "/analytics", icon: FiBarChart2 },
         { name: "Practice", link: "/practice", icon: FiClock },
         { name: "My AI Agents", link: "/ai-agents", icon: FiUsers },
+        {
+          name: "Shareable Profiles",
+          link: "/shareable-profiles",
+          icon: FiShare2,
+        },
         { name: "Settings", link: "/settings", icon: FiSettings },
       ];
     } else {
@@ -143,6 +148,11 @@ export function getSidebarItems(role, plan) {
         { name: "Career Coaching", link: "/coaching", icon: FiUsers },
         { name: "Practice", link: "/practice", icon: FiClock },
         { name: "My AI Agents", link: "/ai-agents", icon: FiUsers },
+        {
+          name: "Shareable Profiles",
+          link: "/shareable-profiles",
+          icon: FiShare2,
+        },
         { name: "Settings", link: "/settings", icon: FiSettings },
       ];
     }
