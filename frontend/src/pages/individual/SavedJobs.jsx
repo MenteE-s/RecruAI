@@ -2,7 +2,11 @@ import React, { useState, useEffect } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import IndividualNavbar from "../../components/layout/IndividualNavbar";
 import Card from "../../components/ui/Card";
-import { getSidebarItems, getBackendUrl, getAuthHeaders } from "../../utils/auth";
+import {
+  getSidebarItems,
+  getBackendUrl,
+  getAuthHeaders,
+} from "../../utils/auth";
 import { formatDate } from "../../utils/timezone";
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "";
