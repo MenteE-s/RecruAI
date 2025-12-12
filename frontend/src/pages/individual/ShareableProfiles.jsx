@@ -118,14 +118,17 @@ const ProfileModal = ({ isOpen, onClose, profile, onSave }) => {
 
     setCheckingSlug(true);
     try {
-      const response = await fetch(`${getBackendUrl()}/api/profiles/check-slug`, {
-        method: "POST",
-        headers: {
-          ...getAuthHeaders(),
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ slug }),
-      });
+      const response = await fetch(
+        `${getBackendUrl()}/api/profiles/check-slug`,
+        {
+          method: "POST",
+          headers: {
+            ...getAuthHeaders(),
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ slug }),
+        }
+      );
 
       const data = await response.json();
       setSlugAvailable(data.data.available);
