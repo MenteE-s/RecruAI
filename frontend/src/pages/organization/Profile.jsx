@@ -3,7 +3,12 @@ import { useParams } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
 import Card from "../../components/ui/Card";
-import { getSidebarItems, getUploadUrl, getBackendUrl } from "../../utils/auth";
+import {
+  getSidebarItems,
+  getUploadUrl,
+  getBackendUrl,
+  getAuthHeaders,
+} from "../../utils/auth";
 import {
   FiX,
   FiEdit2,
@@ -188,6 +193,7 @@ export default function OrganizationProfile() {
         // First get user to determine permissions
         const userRes = await fetch(`${getBackendUrl()}/api/auth/me`, {
           credentials: "include",
+          headers: getAuthHeaders(),
         });
         if (!userRes.ok) throw new Error("Failed to get user");
 
@@ -210,6 +216,7 @@ export default function OrganizationProfile() {
           `${getBackendUrl()}/api/organizations/${targetOrgId}`,
           {
             credentials: "include",
+            headers: getAuthHeaders(),
           }
         );
         if (!orgRes.ok) throw new Error("Failed to load organization profile");
@@ -247,6 +254,7 @@ export default function OrganizationProfile() {
     try {
       const userRes = await fetch(`${getBackendUrl()}/api/auth/me`, {
         credentials: "include",
+        headers: getAuthHeaders(),
       });
       const userData = await userRes.json();
       const currentUserOrgId = userData.user.organization_id;
@@ -256,7 +264,7 @@ export default function OrganizationProfile() {
         `${getBackendUrl()}/api/organizations/${targetOrgId}`,
         {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
+          headers: getAuthHeaders({ "Content-Type": "application/json" }),
           credentials: "include",
           body: JSON.stringify({
             name: data.name,
@@ -295,6 +303,7 @@ export default function OrganizationProfile() {
     try {
       const userRes = await fetch(`${getBackendUrl()}/api/auth/me`, {
         credentials: "include",
+        headers: getAuthHeaders(),
       });
       const userData = await userRes.json();
       const currentUserOrgId = userData.user.organization_id;
@@ -304,7 +313,7 @@ export default function OrganizationProfile() {
         `${getBackendUrl()}/api/organizations/${targetOrgId}/profile`,
         {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
+          headers: getAuthHeaders({ "Content-Type": "application/json" }),
           credentials: "include",
           body: JSON.stringify({
             company_size: data.company_size,
@@ -345,6 +354,7 @@ export default function OrganizationProfile() {
     try {
       const userRes = await fetch(`${getBackendUrl()}/api/auth/me`, {
         credentials: "include",
+        headers: getAuthHeaders(),
       });
       const userData = await userRes.json();
       const currentUserOrgId = userData.user.organization_id;
@@ -354,7 +364,7 @@ export default function OrganizationProfile() {
         `${getBackendUrl()}/api/organizations/${targetOrgId}/profile`,
         {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
+          headers: getAuthHeaders({ "Content-Type": "application/json" }),
           credentials: "include",
           body: JSON.stringify({
             social_media_links: links,
@@ -394,6 +404,7 @@ export default function OrganizationProfile() {
     try {
       const userRes = await fetch(`${getBackendUrl()}/api/auth/me`, {
         credentials: "include",
+        headers: getAuthHeaders(),
       });
       const userData = await userRes.json();
       const currentUserOrgId = userData.user.organization_id;
@@ -413,6 +424,7 @@ export default function OrganizationProfile() {
       console.log(`Uploading to endpoint: ${endpoint}`);
       const response = await fetch(endpoint, {
         method: "POST",
+        headers: getAuthHeaders(),
         credentials: "include",
         body: formData,
       });
@@ -449,6 +461,7 @@ export default function OrganizationProfile() {
     try {
       const userRes = await fetch(`${getBackendUrl()}/api/auth/me`, {
         credentials: "include",
+        headers: getAuthHeaders(),
       });
       const userData = await userRes.json();
       const currentUserOrgId = userData.user.organization_id;
@@ -458,7 +471,7 @@ export default function OrganizationProfile() {
         `${getBackendUrl()}/api/organizations/${targetOrgId}/profile`,
         {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
+          headers: getAuthHeaders({ "Content-Type": "application/json" }),
           credentials: "include",
           body: JSON.stringify({
             [imageType === "profile" ? "profile_image" : "banner_image"]: null,

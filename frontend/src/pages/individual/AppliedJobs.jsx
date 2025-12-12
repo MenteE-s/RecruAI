@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { getBackendUrl } from "../../utils/auth";
+import { getBackendUrl, getAuthHeaders } from "../../utils/auth";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import IndividualNavbar from "../../components/layout/IndividualNavbar";
@@ -17,6 +17,7 @@ export default function AppliedJobs() {
 
   const [appliedJobs, setAppliedJobs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [cancelling, setCancelling] = useState(null);
 
   useEffect(() => {
     fetchAppliedJobs();
@@ -26,7 +27,11 @@ export default function AppliedJobs() {
     try {
       const userId = 1; // TODO: Get from user context
       const response = await fetch(
-        `${getBackendUrl()}/api/applied-jobs/user/${userId}`
+        `${getBackendUrl()}/api/applied-jobs/user/${userId}`,
+        {
+          credentials: "include",
+          headers: getAuthHeaders(),
+        }
       );
       if (response.ok) {
         const data = await response.json();
@@ -36,6 +41,46 @@ export default function AppliedJobs() {
       console.error("Error fetching applied jobs:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCancelApplication = async (applicationId) => {
+    if (
+      !window.confirm("Are you sure you want to cancel this job application?")
+    ) {
+      return;
+    }
+
+    setCancelling(applicationId);
+    try {
+      const response = await fetch(
+        `${getBackendUrl()}/api/applied-jobs/${applicationId}`,
+        {
+          method: "DELETE",
+          credentials: "include",
+          headers: getAuthHeaders(),
+        }
+      );
+
+      if (response.ok) {
+        // Update the application status to withdrawn instead of removing it
+        setAppliedJobs(
+          appliedJobs.map((app) =>
+            app.id === applicationId
+              ? { ...app, status: "withdrawn", pipeline_stage: "withdrawn" }
+              : app
+          )
+        );
+        alert("Application cancelled successfully");
+      } else {
+        const error = await response.json();
+        alert(error.error || "Failed to cancel application");
+      }
+    } catch (error) {
+      console.error("Error cancelling application:", error);
+      alert("Failed to cancel application");
+    } finally {
+      setCancelling(null);
     }
   };
 
@@ -49,6 +94,8 @@ export default function AppliedJobs() {
         return "bg-green-100 text-green-800";
       case "rejected":
         return "bg-red-100 text-red-800";
+      case "withdrawn":
+        return "bg-gray-100 text-gray-800";
       default:
         return "bg-gray-100 text-gray-800";
     }
@@ -64,6 +111,8 @@ export default function AppliedJobs() {
         return "Accepted";
       case "rejected":
         return "Rejected";
+      case "withdrawn":
+        return "Withdrawn";
       default:
         return status;
     }
@@ -165,6 +214,21 @@ export default function AppliedJobs() {
                     >
                       View Details
                     </button>
+                    {application.status !== "accepted" &&
+                      application.status !== "rejected" &&
+                      application.status !== "withdrawn" && (
+                        <button
+                          onClick={() =>
+                            handleCancelApplication(application.id)
+                          }
+                          disabled={cancelling === application.id}
+                          className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {cancelling === application.id
+                            ? "Cancelling..."
+                            : "Cancel Application"}
+                        </button>
+                      )}
                   </div>
                 </div>
               </Card>

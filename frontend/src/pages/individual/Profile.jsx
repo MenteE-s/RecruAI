@@ -2,7 +2,12 @@ import { useState, useEffect } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import IndividualNavbar from "../../components/layout/IndividualNavbar";
 import Card from "../../components/ui/Card";
-import { getSidebarItems, getUploadUrl, getBackendUrl } from "../../utils/auth";
+import {
+  getSidebarItems,
+  getUploadUrl,
+  getBackendUrl,
+  getAuthHeaders,
+} from "../../utils/auth";
 import {
   FiPlus,
   FiX,
@@ -1350,6 +1355,7 @@ export default function Profile() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   const [userData, setUserData] = useState(null);
   const [uploadingProfilePicture, setUploadingProfilePicture] = useState(false);
+  const [uploadingBanner, setUploadingBanner] = useState(false);
 
   // Load user data and profile data from backend
   useEffect(() => {
@@ -1357,6 +1363,7 @@ export default function Profile() {
       try {
         const response = await fetch(`${getBackendUrl()}/api/auth/me`, {
           credentials: "include",
+          headers: getAuthHeaders(),
         });
         if (response.ok) {
           const data = await response.json();
@@ -1394,63 +1401,83 @@ export default function Profile() {
         ] = await Promise.all([
           fetch(`${getBackendUrl()}/api/profile/sections`, {
             credentials: "include",
+            headers: getAuthHeaders(),
           }),
           fetch(`${getBackendUrl()}/api/profile/experiences`, {
             credentials: "include",
+            headers: getAuthHeaders(),
           }),
           fetch(`${getBackendUrl()}/api/profile/educations`, {
             credentials: "include",
+            headers: getAuthHeaders(),
           }),
           fetch(`${getBackendUrl()}/api/profile/skills`, {
             credentials: "include",
+            headers: getAuthHeaders(),
           }),
           fetch(`${getBackendUrl()}/api/profile/projects`, {
             credentials: "include",
+            headers: getAuthHeaders(),
           }),
           fetch(`${getBackendUrl()}/api/profile/publications`, {
             credentials: "include",
+            headers: getAuthHeaders(),
           }),
           fetch(`${getBackendUrl()}/api/profile/awards`, {
             credentials: "include",
+            headers: getAuthHeaders(),
           }),
           fetch(`${getBackendUrl()}/api/profile/certifications`, {
             credentials: "include",
+            headers: getAuthHeaders(),
           }),
           fetch(`${getBackendUrl()}/api/profile/languages`, {
             credentials: "include",
+            headers: getAuthHeaders(),
           }),
           fetch(`${getBackendUrl()}/api/profile/volunteer-experiences`, {
             credentials: "include",
+            headers: getAuthHeaders(),
           }),
           fetch(`${getBackendUrl()}/api/profile/references`, {
             credentials: "include",
+            headers: getAuthHeaders(),
           }),
           fetch(`${getBackendUrl()}/api/profile/hobby-interests`, {
             credentials: "include",
+            headers: getAuthHeaders(),
           }),
           fetch(`${getBackendUrl()}/api/profile/professional-memberships`, {
             credentials: "include",
+            headers: getAuthHeaders(),
           }),
           fetch(`${getBackendUrl()}/api/profile/patents`, {
             credentials: "include",
+            headers: getAuthHeaders(),
           }),
           fetch(`${getBackendUrl()}/api/profile/course-trainings`, {
             credentials: "include",
+            headers: getAuthHeaders(),
           }),
           fetch(`${getBackendUrl()}/api/profile/social-media-links`, {
             credentials: "include",
+            headers: getAuthHeaders(),
           }),
           fetch(`${getBackendUrl()}/api/profile/key-achievements`, {
             credentials: "include",
+            headers: getAuthHeaders(),
           }),
           fetch(`${getBackendUrl()}/api/profile/conferences`, {
             credentials: "include",
+            headers: getAuthHeaders(),
           }),
           fetch(`${getBackendUrl()}/api/profile/speaking-engagements`, {
             credentials: "include",
+            headers: getAuthHeaders(),
           }),
           fetch(`${getBackendUrl()}/api/profile/licenses`, {
             credentials: "include",
+            headers: getAuthHeaders(),
           }),
         ]);
 
@@ -1613,6 +1640,7 @@ export default function Profile() {
       if (endpoint) {
         const response = await fetch(endpoint, {
           method: "DELETE",
+          headers: getAuthHeaders(),
           credentials: "include",
         });
 
@@ -1652,7 +1680,10 @@ export default function Profile() {
 
       const response = await fetch(endpoint, {
         method,
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...getAuthHeaders(),
+        },
         credentials: "include",
         body: JSON.stringify(body),
       });
@@ -1727,6 +1758,35 @@ export default function Profile() {
     }
   };
 
+  const savePersonalInfo = async (personalData) => {
+    setSaving(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`${getBackendUrl()}/api/auth/me`, {
+        method: "PUT",
+        headers: getAuthHeaders({ "Content-Type": "application/json" }),
+        credentials: "include",
+        body: JSON.stringify(personalData),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setUserData(data.user);
+        setEditingItem(null);
+        setError(null); // Clear any previous errors
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        setError(errorData.error || "Failed to update personal information");
+      }
+    } catch (error) {
+      console.error("Error saving personal info:", error);
+      setError("Network error. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const saveAbout = async (aboutData) => {
     setSaving(true);
     setError(null);
@@ -1734,20 +1794,25 @@ export default function Profile() {
     try {
       const response = await fetch(`${getBackendUrl()}/api/profile/sections`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders({ "Content-Type": "application/json" }),
         credentials: "include",
         body: JSON.stringify({
           section_type: "about",
           section_data: aboutData,
-          order_index: 0,
         }),
       });
 
       if (response.ok) {
-        setProfileData((prev) => ({ ...prev, about: aboutData }));
+        // const data = await response.json();
+        setProfileData((prev) => ({
+          ...prev,
+          about: aboutData,
+        }));
         setEditingItem(null);
+        setError(null);
       } else {
-        setError("Failed to save about section");
+        const errorData = await response.json().catch(() => ({}));
+        setError(errorData.error || "Failed to update about section");
       }
     } catch (error) {
       console.error("Error saving about:", error);
@@ -1785,6 +1850,7 @@ export default function Profile() {
         `${getBackendUrl()}/api/profile/upload-profile-picture`,
         {
           method: "POST",
+          headers: getAuthHeaders(),
           credentials: "include",
           body: formData,
         }
@@ -1806,6 +1872,59 @@ export default function Profile() {
       setError("Network error. Please try again.");
     } finally {
       setUploadingProfilePicture(false);
+    }
+  };
+
+  const handleBannerUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif"];
+    if (!allowedTypes.includes(file.type)) {
+      setError("Please select a valid image file (JPEG, PNG, or GIF)");
+      return;
+    }
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      setError("File size must be less than 5MB");
+      return;
+    }
+
+    setUploadingBanner(true);
+    setError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("banner", file);
+
+      const response = await fetch(
+        `${getBackendUrl()}/api/profile/upload-banner`,
+        {
+          method: "POST",
+          headers: getAuthHeaders(),
+          credentials: "include",
+          body: formData,
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setUserData((prev) => ({
+          ...prev,
+          banner: data.banner,
+        }));
+        setError(null);
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        setError(errorData.error || "Failed to upload banner");
+      }
+    } catch (error) {
+      console.error("Error uploading banner:", error);
+      setError("Network error. Please try again.");
+    } finally {
+      setUploadingBanner(false);
     }
   };
 
@@ -1857,14 +1976,51 @@ export default function Profile() {
         </div>
       )}
 
-      {/* Profile Header */}
+      {/* Profile Header with Banner */}
       <div className="mb-6">
-        <div className="rounded-2xl p-6 bg-gradient-to-br from-indigo-600/80 via-purple-600/60 to-cyan-500/60 text-white shadow-lg">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
+        {/* Banner Section */}
+        <div className="relative h-48 rounded-t-2xl overflow-hidden">
+          {userData?.banner ? (
+            <img
+              src={getUploadUrl(userData.banner)}
+              alt="Profile Banner"
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-r from-indigo-500 to-purple-600" />
+          )}
+
+          {/* Banner Edit Button */}
+          <label
+            htmlFor="banner-upload"
+            className="absolute top-4 right-4 bg-black/30 rounded-full p-2 cursor-pointer hover:bg-black/50 transition-colors"
+          >
+            <FiCamera size={18} className="text-white" />
+          </label>
+
+          <input
+            id="banner-upload"
+            type="file"
+            accept="image/*"
+            onChange={handleBannerUpload}
+            className="hidden"
+            disabled={uploadingBanner}
+          />
+
+          {uploadingBanner && (
+            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+              <div className="text-white">Uploading banner...</div>
+            </div>
+          )}
+        </div>
+
+        {/* Profile Info Section */}
+        <div className="relative rounded-b-2xl bg-white p-6 shadow-lg -mt-16 pt-20">
+          <div className="flex items-start justify-between">
+            <div className="flex items-start space-x-4">
               {/* Profile Picture */}
-              <div className="relative">
-                <div className="w-20 h-20 rounded-full bg-white/20 flex items-center justify-center overflow-hidden">
+              <div className="relative -mt-16 group">
+                <div className="w-24 h-24 rounded-full bg-white flex items-center justify-center overflow-hidden border-4 border-white shadow-lg">
                   {userData?.profile_picture ? (
                     <img
                       src={getUploadUrl(userData.profile_picture)}
@@ -1872,15 +2028,17 @@ export default function Profile() {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <FiUser size={32} className="text-white/70" />
+                    <FiUser size={36} className="text-gray-400" />
                   )}
                 </div>
+
                 <label
                   htmlFor="profile-picture-upload"
-                  className="absolute bottom-0 right-0 bg-white rounded-full p-1.5 cursor-pointer hover:bg-gray-50 transition-colors shadow-lg"
+                  className="absolute bottom-0 right-0 bg-white rounded-full p-2 cursor-pointer hover:bg-gray-50 transition-colors shadow-lg border border-gray-200"
                 >
                   <FiCamera size={14} className="text-gray-600" />
                 </label>
+
                 <input
                   id="profile-picture-upload"
                   type="file"
@@ -1891,15 +2049,15 @@ export default function Profile() {
                 />
               </div>
 
-              <div>
-                <h1 className="text-2xl md:text-3xl font-bold font-display">
-                  My Profile
+              <div className="pt-4">
+                <h1 className="text-2xl md:text-3xl font-bold font-display text-gray-900">
+                  {userData?.name || "Guest"}
                 </h1>
-                <p className="mt-1 text-white/90">
-                  Build your professional profile
+                <p className="mt-1 text-gray-600">
+                  Welcome back! Manage your professional profile.
                 </p>
                 {uploadingProfilePicture && (
-                  <p className="mt-2 text-sm text-white/80">
+                  <p className="mt-2 text-sm text-gray-500">
                     Uploading profile picture...
                   </p>
                 )}
@@ -1909,865 +2067,687 @@ export default function Profile() {
         </div>
       </div>
 
-      {/* Profile Sections */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* About Section */}
-        <Card className="lg:col-span-2">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-800 flex items-center">
-              <FiUsers className="mr-2" />
-              About
-            </h3>
-            <button
-              onClick={() =>
-                setEditingItem({ type: "about", data: profileData.about })
-              }
-              className="text-gray-400 hover:text-gray-600"
-            >
-              <FiEdit2 size={16} />
-            </button>
+      {/* Personal Information Section */}
+      <Card shadow="lg" opacity={70} padding="8" className="lg:col-span-2">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-gray-800 flex items-center">
+            <FiUser className="mr-2" />
+            Personal Information
+          </h3>
+          <button
+            onClick={() =>
+              setEditingItem({
+                type: "personal",
+                data: {
+                  name: userData?.name || "",
+                  email: userData?.email || "",
+                  phone: userData?.phone || "",
+                  location: userData?.location || "",
+                  website: userData?.website || "",
+                  linkedin: userData?.linkedin || "",
+                },
+              })
+            }
+            className="text-gray-400 hover:text-gray-600"
+          >
+            <FiEdit2 size={16} />
+          </button>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Full Name
+            </label>
+            <p className="text-gray-900">{userData?.name || "Not provided"}</p>
           </div>
-          <p className="text-gray-700 leading-relaxed">
-            {profileData.about.summary || "Tell us about yourself..."}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Email
+            </label>
+            <p className="text-gray-900">{userData?.email || "Not provided"}</p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Phone
+            </label>
+            <p className="text-gray-900">{userData?.phone || "Not provided"}</p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Location
+            </label>
+            <p className="text-gray-900">
+              {userData?.location || "Not provided"}
+            </p>
+          </div>
+          {userData?.website && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Website
+              </label>
+              <p className="text-gray-900">
+                <a
+                  href={userData.website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:text-blue-800 underline"
+                >
+                  {userData.website}
+                </a>
+              </p>
+            </div>
+          )}
+          {userData?.linkedin && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                LinkedIn
+              </label>
+              <p className="text-gray-900">
+                <a
+                  href={userData.linkedin}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:text-blue-800 underline"
+                >
+                  {userData.linkedin}
+                </a>
+              </p>
+            </div>
+          )}
+        </div>
+      </Card>
+
+      {/* About Section */}
+      <Card>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-gray-800 flex items-center">
+            <FiUsers className="mr-2" />
+            About
+          </h3>
+          <button
+            onClick={() =>
+              setEditingItem({ type: "about", data: profileData.about })
+            }
+            className="text-gray-400 hover:text-gray-600"
+          >
+            <FiEdit2 size={16} />
+          </button>
+        </div>
+        <p className="text-gray-700 leading-relaxed">
+          {profileData.about.summary || "Tell us about yourself..."}
+        </p>
+      </Card>
+
+      <Card>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-gray-800 flex items-center">
+            <FiBriefcase className="mr-2" />
+            Experience
+          </h3>
+          <button
+            onClick={() => addItem("experiences")}
+            className="text-blue-600 hover:text-blue-700"
+          >
+            <FiPlus size={16} />
+          </button>
+        </div>
+        {(profileData.experiences || []).length === 0 ? (
+          <p className="text-gray-500 text-sm">No experience added yet</p>
+        ) : (
+          <div className="space-y-3">
+            {(profileData.experiences || []).map((exp, index) => (
+              <div
+                key={exp.id || index}
+                className="border-l-2 border-blue-200 pl-3"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <h4 className="font-medium text-gray-900">{exp.title}</h4>
+                    <p className="text-sm text-gray-600">{exp.company}</p>
+                    <p className="text-xs text-gray-500">{exp.location}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => editItem("experiences", exp, index)}
+                      className="text-gray-400 hover:text-gray-600"
+                    >
+                      <FiEdit2 size={14} />
+                    </button>
+                    <button
+                      onClick={() => removeItem("experiences", index)}
+                      className="text-red-400 hover:text-red-600"
+                    >
+                      <FiTrash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+
+      {/* Education Section */}
+      <Card>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-gray-800 flex items-center">
+            <FiBook className="mr-2" />
+            Education
+          </h3>
+          <button
+            onClick={() => addItem("educations")}
+            className="text-blue-600 hover:text-blue-700"
+          >
+            <FiPlus size={16} />
+          </button>
+        </div>
+        {(profileData.educations || []).length === 0 ? (
+          <p className="text-gray-500 text-sm">No education added yet</p>
+        ) : (
+          <div className="space-y-3">
+            {(profileData.educations || []).map((edu, index) => (
+              <div
+                key={edu.id || index}
+                className="border-l-2 border-green-200 pl-3"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <h4 className="font-medium text-gray-900">{edu.degree}</h4>
+                    <p className="text-sm text-gray-600">{edu.school}</p>
+                    <p className="text-xs text-gray-500">{edu.field}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => editItem("educations", edu, index)}
+                      className="text-gray-400 hover:text-gray-600"
+                    >
+                      <FiEdit2 size={14} />
+                    </button>
+                    <button
+                      onClick={() => removeItem("educations", index)}
+                      className="text-red-400 hover:text-red-600"
+                    >
+                      <FiTrash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+
+      {/* Skills Section */}
+      <Card>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-gray-800 flex items-center">
+            <FiCode className="mr-2" />
+            Skills
+          </h3>
+          <button
+            onClick={() => addItem("skills")}
+            className="text-blue-600 hover:text-blue-700"
+          >
+            <FiPlus size={16} />
+          </button>
+        </div>
+        {(profileData.skills || []).length === 0 ? (
+          <p className="text-gray-500 text-sm">No skills added yet</p>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {(profileData.skills || []).map((skill, index) => (
+              <span
+                key={skill.id || index}
+                className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800"
+              >
+                {skill.name}
+                <button
+                  onClick={() => removeItem("skills", index)}
+                  className="ml-2 text-blue-600 hover:text-blue-800"
+                >
+                  <FiX size={12} />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+      </Card>
+
+      {/* Projects Section */}
+      <Card>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-gray-800 flex items-center">
+            <FiFileText className="mr-2" />
+            Projects
+          </h3>
+          <button
+            onClick={() => addItem("projects")}
+            className="text-blue-600 hover:text-blue-700"
+          >
+            <FiPlus size={16} />
+          </button>
+        </div>
+        {(profileData.projects || []).length === 0 ? (
+          <p className="text-gray-500 text-sm">No projects added yet</p>
+        ) : (
+          <div className="space-y-3">
+            {(profileData.projects || []).map((project, index) => (
+              <div key={project.id || index} className="border rounded p-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <h4 className="font-medium text-gray-900">
+                      {project.name}
+                    </h4>
+                    <p className="text-sm text-gray-600">
+                      {project.description}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => editItem("projects", project, index)}
+                      className="text-gray-400 hover:text-gray-600"
+                    >
+                      <FiEdit2 size={14} />
+                    </button>
+                    <button
+                      onClick={() => removeItem("projects", index)}
+                      className="text-red-400 hover:text-red-600"
+                    >
+                      <FiTrash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+
+      {/* Publications Section */}
+      <Card>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-gray-800 flex items-center">
+            <FiAward className="mr-2" />
+            Publications
+          </h3>
+          <button
+            onClick={() => addItem("publications")}
+            className="text-blue-600 hover:text-blue-700"
+          >
+            <FiPlus size={16} />
+          </button>
+        </div>
+        {(profileData.publications || []).length === 0 ? (
+          <p className="text-gray-500 text-sm">No publications added yet</p>
+        ) : (
+          <div className="space-y-3">
+            {(profileData.publications || []).map((pub, index) => (
+              <div key={pub.id || index} className="border rounded p-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <h4 className="font-medium text-gray-900">{pub.title}</h4>
+                    <p className="text-sm text-gray-600">
+                      {pub.journal} ({pub.year})
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => editItem("publications", pub, index)}
+                      className="text-gray-400 hover:text-gray-600"
+                    >
+                      <FiEdit2 size={14} />
+                    </button>
+                    <button
+                      onClick={() => removeItem("publications", index)}
+                      className="text-red-400 hover:text-red-600"
+                    >
+                      <FiTrash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+
+      {/* Awards Section */}
+      <Card>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-gray-800 flex items-center">
+            <FiAward className="mr-2" />
+            Awards
+          </h3>
+          <button
+            onClick={() => addItem("awards")}
+            className="text-blue-600 hover:text-blue-700"
+          >
+            <FiPlus size={16} />
+          </button>
+        </div>
+        {(profileData.awards || []).length === 0 ? (
+          <p className="text-gray-500 text-sm">No awards added yet</p>
+        ) : (
+          <div className="space-y-3">
+            {(profileData.awards || []).map((award, index) => (
+              <div key={award.id || index} className="border rounded p-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <h4 className="font-medium text-gray-900">{award.title}</h4>
+                    <p className="text-sm text-gray-600">{award.issuer}</p>
+                    {award.date && (
+                      <p className="text-xs text-gray-500">
+                        {formatDate(award.date)}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => editItem("awards", award, index)}
+                      className="text-gray-400 hover:text-gray-600"
+                    >
+                      <FiEdit2 size={14} />
+                    </button>
+                    <button
+                      onClick={() => removeItem("awards", index)}
+                      className="text-red-400 hover:text-red-600"
+                    >
+                      <FiTrash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+
+      {/* Certifications Section */}
+      <Card>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-gray-800 flex items-center">
+            <FiCheck className="mr-2" />
+            Certifications
+          </h3>
+          <button
+            onClick={() => addItem("certifications")}
+            className="text-blue-600 hover:text-blue-700"
+          >
+            <FiPlus size={16} />
+          </button>
+        </div>
+        {(profileData.certifications || []).length === 0 ? (
+          <p className="text-gray-500 text-sm">No certifications added yet</p>
+        ) : (
+          <div className="space-y-3">
+            {(profileData.certifications || []).map((cert, index) => (
+              <div key={cert.id || index} className="border rounded p-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <h4 className="font-medium text-gray-900">{cert.name}</h4>
+                    <p className="text-sm text-gray-600">{cert.issuer}</p>
+                    {cert.date_obtained && (
+                      <p className="text-xs text-gray-500">
+                        Obtained: {formatDate(cert.date_obtained)}
+                        {cert.expiry_date &&
+                          ` - Expires: ${formatDate(cert.expiry_date)}`}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => editItem("certifications", cert, index)}
+                      className="text-gray-400 hover:text-gray-600"
+                    >
+                      <FiEdit2 size={14} />
+                    </button>
+                    <button
+                      onClick={() => removeItem("certifications", index)}
+                      className="text-red-400 hover:text-red-600"
+                    >
+                      <FiTrash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+
+      {/* Languages Section */}
+      <Card>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-gray-800 flex items-center">
+            <FiCode className="mr-2" />
+            Languages
+          </h3>
+          <button
+            onClick={() => addItem("languages")}
+            className="text-blue-600 hover:text-blue-700"
+          >
+            <FiPlus size={16} />
+          </button>
+        </div>
+        {(profileData.languages || []).length === 0 ? (
+          <p className="text-gray-500 text-sm">No languages added yet</p>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {(profileData.languages || []).map((lang, index) => (
+              <span
+                key={lang.id || index}
+                className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-green-100 text-green-800"
+              >
+                {lang.name} - {lang.proficiency_level}
+                <button
+                  onClick={() => removeItem("languages", index)}
+                  className="ml-2 text-green-600 hover:text-green-800"
+                >
+                  <FiX size={12} />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+      </Card>
+
+      {/* Volunteer Experience Section */}
+      <Card>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-gray-800 flex items-center">
+            <FiUsers className="mr-2" />
+            Volunteer Experience
+          </h3>
+          <button
+            onClick={() => addItem("volunteerExperiences")}
+            className="text-blue-600 hover:text-blue-700"
+          >
+            <FiPlus size={16} />
+          </button>
+        </div>
+        {(profileData.volunteerExperiences || []).length === 0 ? (
+          <p className="text-gray-500 text-sm">
+            No volunteer experience added yet
           </p>
-        </Card>
-
-        {/* Experience Section */}
-        <Card>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-800 flex items-center">
-              <FiBriefcase className="mr-2" />
-              Experience
-            </h3>
-            <button
-              onClick={() => addItem("experiences")}
-              className="text-blue-600 hover:text-blue-700"
-            >
-              <FiPlus size={16} />
-            </button>
+        ) : (
+          <div className="space-y-3">
+            {(profileData.volunteerExperiences || []).map((vol, index) => (
+              <div
+                key={vol.id || index}
+                className="border-l-2 border-purple-200 pl-3"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <h4 className="font-medium text-gray-900">{vol.title}</h4>
+                    <p className="text-sm text-gray-600">{vol.organization}</p>
+                    <p className="text-xs text-gray-500">{vol.location}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() =>
+                        editItem("volunteerExperiences", vol, index)
+                      }
+                      className="text-gray-400 hover:text-gray-600"
+                    >
+                      <FiEdit2 size={14} />
+                    </button>
+                    <button
+                      onClick={() => removeItem("volunteerExperiences", index)}
+                      className="text-red-400 hover:text-red-600"
+                    >
+                      <FiTrash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
-          {(profileData.experiences || []).length === 0 ? (
-            <p className="text-gray-500 text-sm">No experience added yet</p>
-          ) : (
-            <div className="space-y-3">
-              {(profileData.experiences || []).map((exp, index) => (
+        )}
+      </Card>
+
+      {/* References Section */}
+      <Card>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-gray-800 flex items-center">
+            <FiUsers className="mr-2" />
+            References
+          </h3>
+          <button
+            onClick={() => addItem("references")}
+            className="text-blue-600 hover:text-blue-700"
+          >
+            <FiPlus size={16} />
+          </button>
+        </div>
+        {(profileData.references || []).length === 0 ? (
+          <p className="text-gray-500 text-sm">No references added yet</p>
+        ) : (
+          <div className="space-y-3">
+            {(profileData.references || []).map((ref, index) => (
+              <div key={ref.id || index} className="border rounded p-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <h4 className="font-medium text-gray-900">{ref.name}</h4>
+                    <p className="text-sm text-gray-600">
+                      {ref.title} at {ref.company}
+                    </p>
+                    <p className="text-xs text-gray-500">{ref.relationship}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => editItem("references", ref, index)}
+                      className="text-gray-400 hover:text-gray-600"
+                    >
+                      <FiEdit2 size={14} />
+                    </button>
+                    <button
+                      onClick={() => removeItem("references", index)}
+                      className="text-red-400 hover:text-red-600"
+                    >
+                      <FiTrash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+
+      {/* Hobby Interests Section */}
+      <Card>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-gray-800 flex items-center">
+            <FiCode className="mr-2" />
+            Hobby Interests
+          </h3>
+          <button
+            onClick={() => addItem("hobbyInterests")}
+            className="text-blue-600 hover:text-blue-700"
+          >
+            <FiPlus size={16} />
+          </button>
+        </div>
+        {(profileData.hobbyInterests || []).length === 0 ? (
+          <p className="text-gray-500 text-sm">No hobby interests added yet</p>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {(profileData.hobbyInterests || []).map((hobby, index) => (
+              <span
+                key={hobby.id || index}
+                className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-pink-100 text-pink-800"
+              >
+                {hobby.name}
+                <button
+                  onClick={() => removeItem("hobbyInterests", index)}
+                  className="ml-2 text-pink-600 hover:text-pink-800"
+                >
+                  <FiX size={12} />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+      </Card>
+
+      {/* Professional Memberships Section */}
+      <Card>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-gray-800 flex items-center">
+            <FiBriefcase className="mr-2" />
+            Professional Memberships
+          </h3>
+          <button
+            onClick={() => addItem("professionalMemberships")}
+            className="text-blue-600 hover:text-blue-700"
+          >
+            <FiPlus size={16} />
+          </button>
+        </div>
+        {(profileData.professionalMemberships || []).length === 0 ? (
+          <p className="text-gray-500 text-sm">
+            No professional memberships added yet
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {(profileData.professionalMemberships || []).map(
+              (membership, index) => (
                 <div
-                  key={exp.id || index}
-                  className="border-l-2 border-blue-200 pl-3"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h4 className="font-medium text-gray-900">{exp.title}</h4>
-                      <p className="text-sm text-gray-600">{exp.company}</p>
-                      <p className="text-xs text-gray-500">{exp.location}</p>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => editItem("experiences", exp, index)}
-                        className="text-gray-400 hover:text-gray-600"
-                      >
-                        <FiEdit2 size={14} />
-                      </button>
-                      <button
-                        onClick={() => removeItem("experiences", index)}
-                        className="text-red-400 hover:text-red-600"
-                      >
-                        <FiTrash2 size={14} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
-
-        {/* Education Section */}
-        <Card>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-800 flex items-center">
-              <FiBook className="mr-2" />
-              Education
-            </h3>
-            <button
-              onClick={() => addItem("educations")}
-              className="text-blue-600 hover:text-blue-700"
-            >
-              <FiPlus size={16} />
-            </button>
-          </div>
-          {(profileData.educations || []).length === 0 ? (
-            <p className="text-gray-500 text-sm">No education added yet</p>
-          ) : (
-            <div className="space-y-3">
-              {(profileData.educations || []).map((edu, index) => (
-                <div
-                  key={edu.id || index}
-                  className="border-l-2 border-green-200 pl-3"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h4 className="font-medium text-gray-900">
-                        {edu.degree}
-                      </h4>
-                      <p className="text-sm text-gray-600">{edu.school}</p>
-                      <p className="text-xs text-gray-500">{edu.field}</p>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => editItem("educations", edu, index)}
-                        className="text-gray-400 hover:text-gray-600"
-                      >
-                        <FiEdit2 size={14} />
-                      </button>
-                      <button
-                        onClick={() => removeItem("educations", index)}
-                        className="text-red-400 hover:text-red-600"
-                      >
-                        <FiTrash2 size={14} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
-
-        {/* Skills Section */}
-        <Card>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-800 flex items-center">
-              <FiCode className="mr-2" />
-              Skills
-            </h3>
-            <button
-              onClick={() => addItem("skills")}
-              className="text-blue-600 hover:text-blue-700"
-            >
-              <FiPlus size={16} />
-            </button>
-          </div>
-          {(profileData.skills || []).length === 0 ? (
-            <p className="text-gray-500 text-sm">No skills added yet</p>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {(profileData.skills || []).map((skill, index) => (
-                <span
-                  key={skill.id || index}
-                  className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800"
-                >
-                  {skill.name}
-                  <button
-                    onClick={() => removeItem("skills", index)}
-                    className="ml-2 text-blue-600 hover:text-blue-800"
-                  >
-                    <FiX size={12} />
-                  </button>
-                </span>
-              ))}
-            </div>
-          )}
-        </Card>
-
-        {/* Projects Section */}
-        <Card>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-800 flex items-center">
-              <FiFileText className="mr-2" />
-              Projects
-            </h3>
-            <button
-              onClick={() => addItem("projects")}
-              className="text-blue-600 hover:text-blue-700"
-            >
-              <FiPlus size={16} />
-            </button>
-          </div>
-          {(profileData.projects || []).length === 0 ? (
-            <p className="text-gray-500 text-sm">No projects added yet</p>
-          ) : (
-            <div className="space-y-3">
-              {(profileData.projects || []).map((project, index) => (
-                <div key={project.id || index} className="border rounded p-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h4 className="font-medium text-gray-900">
-                        {project.name}
-                      </h4>
-                      <p className="text-sm text-gray-600">
-                        {project.description}
-                      </p>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => editItem("projects", project, index)}
-                        className="text-gray-400 hover:text-gray-600"
-                      >
-                        <FiEdit2 size={14} />
-                      </button>
-                      <button
-                        onClick={() => removeItem("projects", index)}
-                        className="text-red-400 hover:text-red-600"
-                      >
-                        <FiTrash2 size={14} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
-
-        {/* Publications Section */}
-        <Card>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-800 flex items-center">
-              <FiAward className="mr-2" />
-              Publications
-            </h3>
-            <button
-              onClick={() => addItem("publications")}
-              className="text-blue-600 hover:text-blue-700"
-            >
-              <FiPlus size={16} />
-            </button>
-          </div>
-          {(profileData.publications || []).length === 0 ? (
-            <p className="text-gray-500 text-sm">No publications added yet</p>
-          ) : (
-            <div className="space-y-3">
-              {(profileData.publications || []).map((pub, index) => (
-                <div key={pub.id || index} className="border rounded p-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h4 className="font-medium text-gray-900">{pub.title}</h4>
-                      <p className="text-sm text-gray-600">
-                        {pub.journal} ({pub.year})
-                      </p>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => editItem("publications", pub, index)}
-                        className="text-gray-400 hover:text-gray-600"
-                      >
-                        <FiEdit2 size={14} />
-                      </button>
-                      <button
-                        onClick={() => removeItem("publications", index)}
-                        className="text-red-400 hover:text-red-600"
-                      >
-                        <FiTrash2 size={14} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
-
-        {/* Awards Section */}
-        <Card>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-800 flex items-center">
-              <FiAward className="mr-2" />
-              Awards
-            </h3>
-            <button
-              onClick={() => addItem("awards")}
-              className="text-blue-600 hover:text-blue-700"
-            >
-              <FiPlus size={16} />
-            </button>
-          </div>
-          {(profileData.awards || []).length === 0 ? (
-            <p className="text-gray-500 text-sm">No awards added yet</p>
-          ) : (
-            <div className="space-y-3">
-              {(profileData.awards || []).map((award, index) => (
-                <div key={award.id || index} className="border rounded p-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h4 className="font-medium text-gray-900">
-                        {award.title}
-                      </h4>
-                      <p className="text-sm text-gray-600">{award.issuer}</p>
-                      {award.date && (
-                        <p className="text-xs text-gray-500">
-                          {formatDate(award.date)}
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => editItem("awards", award, index)}
-                        className="text-gray-400 hover:text-gray-600"
-                      >
-                        <FiEdit2 size={14} />
-                      </button>
-                      <button
-                        onClick={() => removeItem("awards", index)}
-                        className="text-red-400 hover:text-red-600"
-                      >
-                        <FiTrash2 size={14} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
-
-        {/* Certifications Section */}
-        <Card>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-800 flex items-center">
-              <FiCheck className="mr-2" />
-              Certifications
-            </h3>
-            <button
-              onClick={() => addItem("certifications")}
-              className="text-blue-600 hover:text-blue-700"
-            >
-              <FiPlus size={16} />
-            </button>
-          </div>
-          {(profileData.certifications || []).length === 0 ? (
-            <p className="text-gray-500 text-sm">No certifications added yet</p>
-          ) : (
-            <div className="space-y-3">
-              {(profileData.certifications || []).map((cert, index) => (
-                <div key={cert.id || index} className="border rounded p-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h4 className="font-medium text-gray-900">{cert.name}</h4>
-                      <p className="text-sm text-gray-600">{cert.issuer}</p>
-                      {cert.date_obtained && (
-                        <p className="text-xs text-gray-500">
-                          Obtained: {formatDate(cert.date_obtained)}
-                          {cert.expiry_date &&
-                            ` - Expires: ${formatDate(cert.expiry_date)}`}
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => editItem("certifications", cert, index)}
-                        className="text-gray-400 hover:text-gray-600"
-                      >
-                        <FiEdit2 size={14} />
-                      </button>
-                      <button
-                        onClick={() => removeItem("certifications", index)}
-                        className="text-red-400 hover:text-red-600"
-                      >
-                        <FiTrash2 size={14} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
-
-        {/* Languages Section */}
-        <Card>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-800 flex items-center">
-              <FiCode className="mr-2" />
-              Languages
-            </h3>
-            <button
-              onClick={() => addItem("languages")}
-              className="text-blue-600 hover:text-blue-700"
-            >
-              <FiPlus size={16} />
-            </button>
-          </div>
-          {(profileData.languages || []).length === 0 ? (
-            <p className="text-gray-500 text-sm">No languages added yet</p>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {(profileData.languages || []).map((lang, index) => (
-                <span
-                  key={lang.id || index}
-                  className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-green-100 text-green-800"
-                >
-                  {lang.name} - {lang.proficiency_level}
-                  <button
-                    onClick={() => removeItem("languages", index)}
-                    className="ml-2 text-green-600 hover:text-green-800"
-                  >
-                    <FiX size={12} />
-                  </button>
-                </span>
-              ))}
-            </div>
-          )}
-        </Card>
-
-        {/* Volunteer Experience Section */}
-        <Card>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-800 flex items-center">
-              <FiUsers className="mr-2" />
-              Volunteer Experience
-            </h3>
-            <button
-              onClick={() => addItem("volunteerExperiences")}
-              className="text-blue-600 hover:text-blue-700"
-            >
-              <FiPlus size={16} />
-            </button>
-          </div>
-          {(profileData.volunteerExperiences || []).length === 0 ? (
-            <p className="text-gray-500 text-sm">
-              No volunteer experience added yet
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {(profileData.volunteerExperiences || []).map((vol, index) => (
-                <div
-                  key={vol.id || index}
-                  className="border-l-2 border-purple-200 pl-3"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h4 className="font-medium text-gray-900">{vol.title}</h4>
-                      <p className="text-sm text-gray-600">
-                        {vol.organization}
-                      </p>
-                      <p className="text-xs text-gray-500">{vol.location}</p>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() =>
-                          editItem("volunteerExperiences", vol, index)
-                        }
-                        className="text-gray-400 hover:text-gray-600"
-                      >
-                        <FiEdit2 size={14} />
-                      </button>
-                      <button
-                        onClick={() =>
-                          removeItem("volunteerExperiences", index)
-                        }
-                        className="text-red-400 hover:text-red-600"
-                      >
-                        <FiTrash2 size={14} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
-
-        {/* References Section */}
-        <Card>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-800 flex items-center">
-              <FiUsers className="mr-2" />
-              References
-            </h3>
-            <button
-              onClick={() => addItem("references")}
-              className="text-blue-600 hover:text-blue-700"
-            >
-              <FiPlus size={16} />
-            </button>
-          </div>
-          {(profileData.references || []).length === 0 ? (
-            <p className="text-gray-500 text-sm">No references added yet</p>
-          ) : (
-            <div className="space-y-3">
-              {(profileData.references || []).map((ref, index) => (
-                <div key={ref.id || index} className="border rounded p-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h4 className="font-medium text-gray-900">{ref.name}</h4>
-                      <p className="text-sm text-gray-600">
-                        {ref.title} at {ref.company}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {ref.relationship}
-                      </p>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => editItem("references", ref, index)}
-                        className="text-gray-400 hover:text-gray-600"
-                      >
-                        <FiEdit2 size={14} />
-                      </button>
-                      <button
-                        onClick={() => removeItem("references", index)}
-                        className="text-red-400 hover:text-red-600"
-                      >
-                        <FiTrash2 size={14} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
-
-        {/* Hobby Interests Section */}
-        <Card>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-800 flex items-center">
-              <FiCode className="mr-2" />
-              Hobby Interests
-            </h3>
-            <button
-              onClick={() => addItem("hobbyInterests")}
-              className="text-blue-600 hover:text-blue-700"
-            >
-              <FiPlus size={16} />
-            </button>
-          </div>
-          {(profileData.hobbyInterests || []).length === 0 ? (
-            <p className="text-gray-500 text-sm">
-              No hobby interests added yet
-            </p>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {(profileData.hobbyInterests || []).map((hobby, index) => (
-                <span
-                  key={hobby.id || index}
-                  className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-pink-100 text-pink-800"
-                >
-                  {hobby.name}
-                  <button
-                    onClick={() => removeItem("hobbyInterests", index)}
-                    className="ml-2 text-pink-600 hover:text-pink-800"
-                  >
-                    <FiX size={12} />
-                  </button>
-                </span>
-              ))}
-            </div>
-          )}
-        </Card>
-
-        {/* Professional Memberships Section */}
-        <Card>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-800 flex items-center">
-              <FiBriefcase className="mr-2" />
-              Professional Memberships
-            </h3>
-            <button
-              onClick={() => addItem("professionalMemberships")}
-              className="text-blue-600 hover:text-blue-700"
-            >
-              <FiPlus size={16} />
-            </button>
-          </div>
-          {(profileData.professionalMemberships || []).length === 0 ? (
-            <p className="text-gray-500 text-sm">
-              No professional memberships added yet
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {(profileData.professionalMemberships || []).map(
-                (membership, index) => (
-                  <div
-                    key={membership.id || index}
-                    className="border rounded p-3"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h4 className="font-medium text-gray-900">
-                          {membership.organization}
-                        </h4>
-                        {membership.membership_id && (
-                          <p className="text-sm text-gray-600">
-                            ID: {membership.membership_id}
-                          </p>
-                        )}
-                        {(membership.start_date || membership.end_date) && (
-                          <p className="text-xs text-gray-500">
-                            {membership.start_date &&
-                              `From: ${formatDate(membership.start_date)}`}
-                            {membership.end_date &&
-                              ` - To: ${formatDate(membership.end_date)}`}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() =>
-                            editItem(
-                              "professionalMemberships",
-                              membership,
-                              index
-                            )
-                          }
-                          className="text-gray-400 hover:text-gray-600"
-                        >
-                          <FiEdit2 size={14} />
-                        </button>
-                        <button
-                          onClick={() =>
-                            removeItem("professionalMemberships", index)
-                          }
-                          className="text-red-400 hover:text-red-600"
-                        >
-                          <FiTrash2 size={14} />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )
-              )}
-            </div>
-          )}
-        </Card>
-
-        {/* Patents Section */}
-        <Card>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-800 flex items-center">
-              <FiFileText className="mr-2" />
-              Patents
-            </h3>
-            <button
-              onClick={() => addItem("patents")}
-              className="text-blue-600 hover:text-blue-700"
-            >
-              <FiPlus size={16} />
-            </button>
-          </div>
-          {(profileData.patents || []).length === 0 ? (
-            <p className="text-gray-500 text-sm">No patents added yet</p>
-          ) : (
-            <div className="space-y-3">
-              {(profileData.patents || []).map((patent, index) => (
-                <div key={patent.id || index} className="border rounded p-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h4 className="font-medium text-gray-900">
-                        {patent.title}
-                      </h4>
-                      {patent.patent_number && (
-                        <p className="text-sm text-gray-600">
-                          Patent #: {patent.patent_number}
-                        </p>
-                      )}
-                      {(patent.filing_date || patent.grant_date) && (
-                        <p className="text-xs text-gray-500">
-                          {patent.filing_date &&
-                            `Filed: ${formatDate(patent.filing_date)}`}
-                          {patent.grant_date &&
-                            ` - Granted: ${formatDate(patent.grant_date)}`}
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => editItem("patents", patent, index)}
-                        className="text-gray-400 hover:text-gray-600"
-                      >
-                        <FiEdit2 size={14} />
-                      </button>
-                      <button
-                        onClick={() => removeItem("patents", index)}
-                        className="text-red-400 hover:text-red-600"
-                      >
-                        <FiTrash2 size={14} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
-
-        {/* Course Trainings Section */}
-        <Card>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-800 flex items-center">
-              <FiBook className="mr-2" />
-              Course Trainings
-            </h3>
-            <button
-              onClick={() => addItem("courseTrainings")}
-              className="text-blue-600 hover:text-blue-700"
-            >
-              <FiPlus size={16} />
-            </button>
-          </div>
-          {(profileData.courseTrainings || []).length === 0 ? (
-            <p className="text-gray-500 text-sm">
-              No course trainings added yet
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {(profileData.courseTrainings || []).map((course, index) => (
-                <div key={course.id || index} className="border rounded p-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h4 className="font-medium text-gray-900">
-                        {course.name}
-                      </h4>
-                      {course.provider && (
-                        <p className="text-sm text-gray-600">
-                          {course.provider}
-                        </p>
-                      )}
-                      {course.completion_date && (
-                        <p className="text-xs text-gray-500">
-                          Completed:{" "}
-                          {formatDate(course.completion_date, "full")}
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() =>
-                          editItem("courseTrainings", course, index)
-                        }
-                        className="text-gray-400 hover:text-gray-600"
-                      >
-                        <FiEdit2 size={14} />
-                      </button>
-                      <button
-                        onClick={() => removeItem("courseTrainings", index)}
-                        className="text-red-400 hover:text-red-600"
-                      >
-                        <FiTrash2 size={14} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
-
-        {/* Social Media Links Section */}
-        <Card>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-800 flex items-center">
-              <FiCode className="mr-2" />
-              Social Media Links
-            </h3>
-            <button
-              onClick={() => addItem("socialMediaLinks")}
-              className="text-blue-600 hover:text-blue-700"
-            >
-              <FiPlus size={16} />
-            </button>
-          </div>
-          {(profileData.socialMediaLinks || []).length === 0 ? (
-            <p className="text-gray-500 text-sm">
-              No social media links added yet
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {(profileData.socialMediaLinks || []).map((link, index) => (
-                <div key={link.id || index} className="border rounded p-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h4 className="font-medium text-gray-900">
-                        {link.platform}
-                      </h4>
-                      <a
-                        href={link.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-blue-600 hover:text-blue-700"
-                      >
-                        {link.url}
-                      </a>
-                      {link.username && (
-                        <p className="text-xs text-gray-500">
-                          @{link.username}
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() =>
-                          editItem("socialMediaLinks", link, index)
-                        }
-                        className="text-gray-400 hover:text-gray-600"
-                      >
-                        <FiEdit2 size={14} />
-                      </button>
-                      <button
-                        onClick={() => removeItem("socialMediaLinks", index)}
-                        className="text-red-400 hover:text-red-600"
-                      >
-                        <FiTrash2 size={14} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
-
-        {/* Key Achievements Section */}
-        <Card>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-800 flex items-center">
-              <FiAward className="mr-2" />
-              Key Achievements
-            </h3>
-            <button
-              onClick={() => addItem("keyAchievements")}
-              className="text-blue-600 hover:text-blue-700"
-            >
-              <FiPlus size={16} />
-            </button>
-          </div>
-          {(profileData.keyAchievements || []).length === 0 ? (
-            <p className="text-gray-500 text-sm">
-              No key achievements added yet
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {(profileData.keyAchievements || []).map((achievement, index) => (
-                <div
-                  key={achievement.id || index}
+                  key={membership.id || index}
                   className="border rounded p-3"
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <h4 className="font-medium text-gray-900">
-                        {achievement.title}
+                        {membership.organization}
                       </h4>
-                      <p className="text-sm text-gray-600">
-                        {achievement.category}
-                      </p>
-                      {achievement.date && (
+                      {membership.membership_id && (
+                        <p className="text-sm text-gray-600">
+                          ID: {membership.membership_id}
+                        </p>
+                      )}
+                      {(membership.start_date || membership.end_date) && (
                         <p className="text-xs text-gray-500">
-                          {formatDate(achievement.date)}
+                          {membership.start_date &&
+                            `From: ${formatDate(membership.start_date)}`}
+                          {membership.end_date &&
+                            ` - To: ${formatDate(membership.end_date)}`}
                         </p>
                       )}
                     </div>
                     <div className="flex gap-2">
                       <button
                         onClick={() =>
-                          editItem("keyAchievements", achievement, index)
+                          editItem("professionalMemberships", membership, index)
                         }
                         className="text-gray-400 hover:text-gray-600"
                       >
                         <FiEdit2 size={14} />
                       </button>
                       <button
-                        onClick={() => removeItem("keyAchievements", index)}
+                        onClick={() =>
+                          removeItem("professionalMemberships", index)
+                        }
                         className="text-red-400 hover:text-red-600"
                       >
                         <FiTrash2 size={14} />
@@ -2775,58 +2755,348 @@ export default function Profile() {
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </Card>
-
-        {/* Conferences Section */}
-        <Card>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-800 flex items-center">
-              <FiUsers className="mr-2" />
-              Conferences
-            </h3>
-            <button
-              onClick={() => addItem("conferences")}
-              className="text-blue-600 hover:text-blue-700"
-            >
-              <FiPlus size={16} />
-            </button>
+              )
+            )}
           </div>
-          {(profileData.conferences || []).length === 0 ? (
-            <p className="text-gray-500 text-sm">No conferences added yet</p>
-          ) : (
-            <div className="space-y-3">
-              {(profileData.conferences || []).map((conference, index) => (
+        )}
+      </Card>
+
+      {/* Patents Section */}
+      <Card>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-gray-800 flex items-center">
+            <FiFileText className="mr-2" />
+            Patents
+          </h3>
+          <button
+            onClick={() => addItem("patents")}
+            className="text-blue-600 hover:text-blue-700"
+          >
+            <FiPlus size={16} />
+          </button>
+        </div>
+        {(profileData.patents || []).length === 0 ? (
+          <p className="text-gray-500 text-sm">No patents added yet</p>
+        ) : (
+          <div className="space-y-3">
+            {(profileData.patents || []).map((patent, index) => (
+              <div key={patent.id || index} className="border rounded p-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <h4 className="font-medium text-gray-900">
+                      {patent.title}
+                    </h4>
+                    {patent.patent_number && (
+                      <p className="text-sm text-gray-600">
+                        Patent #: {patent.patent_number}
+                      </p>
+                    )}
+                    {(patent.filing_date || patent.grant_date) && (
+                      <p className="text-xs text-gray-500">
+                        {patent.filing_date &&
+                          `Filed: ${formatDate(patent.filing_date)}`}
+                        {patent.grant_date &&
+                          ` - Granted: ${formatDate(patent.grant_date)}`}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => editItem("patents", patent, index)}
+                      className="text-gray-400 hover:text-gray-600"
+                    >
+                      <FiEdit2 size={14} />
+                    </button>
+                    <button
+                      onClick={() => removeItem("patents", index)}
+                      className="text-red-400 hover:text-red-600"
+                    >
+                      <FiTrash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+
+      {/* Course Trainings Section */}
+      <Card>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-gray-800 flex items-center">
+            <FiBook className="mr-2" />
+            Course Trainings
+          </h3>
+          <button
+            onClick={() => addItem("courseTrainings")}
+            className="text-blue-600 hover:text-blue-700"
+          >
+            <FiPlus size={16} />
+          </button>
+        </div>
+        {(profileData.courseTrainings || []).length === 0 ? (
+          <p className="text-gray-500 text-sm">No course trainings added yet</p>
+        ) : (
+          <div className="space-y-3">
+            {(profileData.courseTrainings || []).map((course, index) => (
+              <div key={course.id || index} className="border rounded p-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <h4 className="font-medium text-gray-900">{course.name}</h4>
+                    {course.provider && (
+                      <p className="text-sm text-gray-600">{course.provider}</p>
+                    )}
+                    {course.completion_date && (
+                      <p className="text-xs text-gray-500">
+                        Completed: {formatDate(course.completion_date, "full")}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => editItem("courseTrainings", course, index)}
+                      className="text-gray-400 hover:text-gray-600"
+                    >
+                      <FiEdit2 size={14} />
+                    </button>
+                    <button
+                      onClick={() => removeItem("courseTrainings", index)}
+                      className="text-red-400 hover:text-red-600"
+                    >
+                      <FiTrash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+
+      {/* Social Media Links Section */}
+      <Card>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-gray-800 flex items-center">
+            <FiCode className="mr-2" />
+            Social Media Links
+          </h3>
+          <button
+            onClick={() => addItem("socialMediaLinks")}
+            className="text-blue-600 hover:text-blue-700"
+          >
+            <FiPlus size={16} />
+          </button>
+        </div>
+        {(profileData.socialMediaLinks || []).length === 0 ? (
+          <p className="text-gray-500 text-sm">
+            No social media links added yet
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {(profileData.socialMediaLinks || []).map((link, index) => (
+              <div key={link.id || index} className="border rounded p-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <h4 className="font-medium text-gray-900">
+                      {link.platform}
+                    </h4>
+                    <a
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-blue-600 hover:text-blue-700"
+                    >
+                      {link.url}
+                    </a>
+                    {link.username && (
+                      <p className="text-xs text-gray-500">@{link.username}</p>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => editItem("socialMediaLinks", link, index)}
+                      className="text-gray-400 hover:text-gray-600"
+                    >
+                      <FiEdit2 size={14} />
+                    </button>
+                    <button
+                      onClick={() => removeItem("socialMediaLinks", index)}
+                      className="text-red-400 hover:text-red-600"
+                    >
+                      <FiTrash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+
+      {/* Key Achievements Section */}
+      <Card>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-gray-800 flex items-center">
+            <FiAward className="mr-2" />
+            Key Achievements
+          </h3>
+          <button
+            onClick={() => addItem("keyAchievements")}
+            className="text-blue-600 hover:text-blue-700"
+          >
+            <FiPlus size={16} />
+          </button>
+        </div>
+        {(profileData.keyAchievements || []).length === 0 ? (
+          <p className="text-gray-500 text-sm">No key achievements added yet</p>
+        ) : (
+          <div className="space-y-3">
+            {(profileData.keyAchievements || []).map((achievement, index) => (
+              <div key={achievement.id || index} className="border rounded p-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <h4 className="font-medium text-gray-900">
+                      {achievement.title}
+                    </h4>
+                    <p className="text-sm text-gray-600">
+                      {achievement.category}
+                    </p>
+                    {achievement.date && (
+                      <p className="text-xs text-gray-500">
+                        {formatDate(achievement.date)}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() =>
+                        editItem("keyAchievements", achievement, index)
+                      }
+                      className="text-gray-400 hover:text-gray-600"
+                    >
+                      <FiEdit2 size={14} />
+                    </button>
+                    <button
+                      onClick={() => removeItem("keyAchievements", index)}
+                      className="text-red-400 hover:text-red-600"
+                    >
+                      <FiTrash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+
+      {/* Conferences Section */}
+      <Card>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-gray-800 flex items-center">
+            <FiUsers className="mr-2" />
+            Conferences
+          </h3>
+          <button
+            onClick={() => addItem("conferences")}
+            className="text-blue-600 hover:text-blue-700"
+          >
+            <FiPlus size={16} />
+          </button>
+        </div>
+        {(profileData.conferences || []).length === 0 ? (
+          <p className="text-gray-500 text-sm">No conferences added yet</p>
+        ) : (
+          <div className="space-y-3">
+            {(profileData.conferences || []).map((conference, index) => (
+              <div key={conference.id || index} className="border rounded p-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <h4 className="font-medium text-gray-900">
+                      {conference.name}
+                    </h4>
+                    <p className="text-sm text-gray-600">
+                      Role: {conference.role}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {conference.location} -{" "}
+                      {conference.date && formatDate(conference.date)}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => editItem("conferences", conference, index)}
+                      className="text-gray-400 hover:text-gray-600"
+                    >
+                      <FiEdit2 size={14} />
+                    </button>
+                    <button
+                      onClick={() => removeItem("conferences", index)}
+                      className="text-red-400 hover:text-red-600"
+                    >
+                      <FiTrash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+
+      {/* Speaking Engagements Section */}
+      <Card>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-gray-800 flex items-center">
+            <FiBriefcase className="mr-2" />
+            Speaking Engagements
+          </h3>
+          <button
+            onClick={() => addItem("speakingEngagements")}
+            className="text-blue-600 hover:text-blue-700"
+          >
+            <FiPlus size={16} />
+          </button>
+        </div>
+        {(profileData.speakingEngagements || []).length === 0 ? (
+          <p className="text-gray-500 text-sm">
+            No speaking engagements added yet
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {(profileData.speakingEngagements || []).map(
+              (engagement, index) => (
                 <div
-                  key={conference.id || index}
+                  key={engagement.id || index}
                   className="border rounded p-3"
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <h4 className="font-medium text-gray-900">
-                        {conference.name}
+                        {engagement.title}
                       </h4>
                       <p className="text-sm text-gray-600">
-                        Role: {conference.role}
+                        {engagement.event_name} ({engagement.event_type})
                       </p>
                       <p className="text-xs text-gray-500">
-                        {conference.location} -{" "}
-                        {conference.date && formatDate(conference.date)}
+                        {engagement.location} -{" "}
+                        {engagement.date && formatDate(engagement.date, "full")}
+                        {engagement.audience_size &&
+                          ` - Audience: ${engagement.audience_size}`}
                       </p>
                     </div>
                     <div className="flex gap-2">
                       <button
                         onClick={() =>
-                          editItem("conferences", conference, index)
+                          editItem("speakingEngagements", engagement, index)
                         }
                         className="text-gray-400 hover:text-gray-600"
                       >
                         <FiEdit2 size={14} />
                       </button>
                       <button
-                        onClick={() => removeItem("conferences", index)}
+                        onClick={() => removeItem("speakingEngagements", index)}
                         className="text-red-400 hover:text-red-600"
                       >
                         <FiTrash2 size={14} />
@@ -2834,154 +3104,202 @@ export default function Profile() {
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </Card>
-
-        {/* Speaking Engagements Section */}
-        <Card>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-800 flex items-center">
-              <FiBriefcase className="mr-2" />
-              Speaking Engagements
-            </h3>
-            <button
-              onClick={() => addItem("speakingEngagements")}
-              className="text-blue-600 hover:text-blue-700"
-            >
-              <FiPlus size={16} />
-            </button>
+              )
+            )}
           </div>
-          {(profileData.speakingEngagements || []).length === 0 ? (
-            <p className="text-gray-500 text-sm">
-              No speaking engagements added yet
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {(profileData.speakingEngagements || []).map(
-                (engagement, index) => (
-                  <div
-                    key={engagement.id || index}
-                    className="border rounded p-3"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h4 className="font-medium text-gray-900">
-                          {engagement.title}
-                        </h4>
-                        <p className="text-sm text-gray-600">
-                          {engagement.event_name} ({engagement.event_type})
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {engagement.location} -{" "}
-                          {engagement.date &&
-                            formatDate(engagement.date, "full")}
-                          {engagement.audience_size &&
-                            ` - Audience: ${engagement.audience_size}`}
-                        </p>
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() =>
-                            editItem("speakingEngagements", engagement, index)
-                          }
-                          className="text-gray-400 hover:text-gray-600"
-                        >
-                          <FiEdit2 size={14} />
-                        </button>
-                        <button
-                          onClick={() =>
-                            removeItem("speakingEngagements", index)
-                          }
-                          className="text-red-400 hover:text-red-600"
-                        >
-                          <FiTrash2 size={14} />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )
-              )}
-            </div>
-          )}
-        </Card>
+        )}
+      </Card>
 
-        {/* Licenses Section */}
-        <Card>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-800 flex items-center">
-              <FiCheck className="mr-2" />
-              Licenses
-            </h3>
-            <button
-              onClick={() => addItem("licenses")}
-              className="text-blue-600 hover:text-blue-700"
-            >
-              <FiPlus size={16} />
-            </button>
-          </div>
-          {(profileData.licenses || []).length === 0 ? (
-            <p className="text-gray-500 text-sm">No licenses added yet</p>
-          ) : (
-            <div className="space-y-3">
-              {(profileData.licenses || []).map((license, index) => (
-                <div key={license.id || index} className="border rounded p-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h4 className="font-medium text-gray-900">
-                        {license.name}
-                      </h4>
-                      <p className="text-sm text-gray-600">
-                        {license.issuing_authority}
+      {/* Licenses Section */}
+      <Card>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-gray-800 flex items-center">
+            <FiCheck className="mr-2" />
+            Licenses
+          </h3>
+          <button
+            onClick={() => addItem("licenses")}
+            className="text-blue-600 hover:text-blue-700"
+          >
+            <FiPlus size={16} />
+          </button>
+        </div>
+        {(profileData.licenses || []).length === 0 ? (
+          <p className="text-gray-500 text-sm">No licenses added yet</p>
+        ) : (
+          <div className="space-y-3">
+            {(profileData.licenses || []).map((license, index) => (
+              <div key={license.id || index} className="border rounded p-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <h4 className="font-medium text-gray-900">
+                      {license.name}
+                    </h4>
+                    <p className="text-sm text-gray-600">
+                      {license.issuing_authority}
+                    </p>
+                    {license.license_number && (
+                      <p className="text-xs text-gray-500">
+                        License #: {license.license_number}
                       </p>
-                      {license.license_number && (
-                        <p className="text-xs text-gray-500">
-                          License #: {license.license_number}
-                        </p>
-                      )}
-                      {(license.issue_date || license.expiry_date) && (
-                        <p className="text-xs text-gray-500">
-                          {license.issue_date &&
-                            `Issued: ${formatDate(license.issue_date)}`}
-                          {license.expiry_date &&
-                            ` - Expires: ${formatDate(license.expiry_date)}`}
-                          {license.is_active && " (Active)"}
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => editItem("licenses", license, index)}
-                        className="text-gray-400 hover:text-gray-600"
-                      >
-                        <FiEdit2 size={14} />
-                      </button>
-                      <button
-                        onClick={() => removeItem("licenses", index)}
-                        className="text-red-400 hover:text-red-600"
-                      >
-                        <FiTrash2 size={14} />
-                      </button>
-                    </div>
+                    )}
+                    {(license.issue_date || license.expiry_date) && (
+                      <p className="text-xs text-gray-500">
+                        {license.issue_date &&
+                          `Issued: ${formatDate(license.issue_date)}`}
+                        {license.expiry_date &&
+                          ` - Expires: ${formatDate(license.expiry_date)}`}
+                        {license.is_active && " (Active)"}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => editItem("licenses", license, index)}
+                      className="text-gray-400 hover:text-gray-600"
+                    >
+                      <FiEdit2 size={14} />
+                    </button>
+                    <button
+                      onClick={() => removeItem("licenses", index)}
+                      className="text-red-400 hover:text-red-600"
+                    >
+                      <FiTrash2 size={14} />
+                    </button>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </Card>
-      </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
 
       {/* Item Modal */}
-      {editingItem && editingItem.type !== "about" && (
-        <ItemModal
-          isOpen={true}
-          onClose={() => setEditingItem(null)}
-          itemType={editingItem.type}
-          itemData={editingItem.data}
-          onSave={saveItem}
-          saving={saving}
-        />
+      {editingItem &&
+        editingItem.type !== "about" &&
+        editingItem.type !== "personal" && (
+          <ItemModal
+            isOpen={true}
+            onClose={() => setEditingItem(null)}
+            itemType={editingItem.type}
+            itemData={editingItem.data}
+            onSave={saveItem}
+            saving={saving}
+          />
+        )}
+
+      {/* Personal Information Modal */}
+      {editingItem && editingItem.type === "personal" && (
+        <Modal isOpen={true} onClose={() => setEditingItem(null)}>
+          <h2 className="text-xl font-bold text-gray-900 mb-4">
+            Edit Personal Information
+          </h2>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              const formData = new FormData(e.target);
+              savePersonalInfo({
+                name: formData.get("name"),
+                email: formData.get("email"),
+                phone: formData.get("phone"),
+                location: formData.get("location"),
+                website: formData.get("website"),
+                linkedin: formData.get("linkedin"),
+              });
+            }}
+          >
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Full Name *
+                </label>
+                <input
+                  type="text"
+                  name="name"
+                  defaultValue={editingItem.data?.name || ""}
+                  className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Email Address *
+                </label>
+                <input
+                  type="email"
+                  name="email"
+                  defaultValue={editingItem.data?.email || ""}
+                  className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Phone Number
+                </label>
+                <input
+                  type="tel"
+                  name="phone"
+                  defaultValue={editingItem.data?.phone || ""}
+                  className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Location
+                </label>
+                <input
+                  type="text"
+                  name="location"
+                  defaultValue={editingItem.data?.location || ""}
+                  className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Personal Website
+                </label>
+                <input
+                  type="url"
+                  name="website"
+                  defaultValue={editingItem.data?.website || ""}
+                  className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  LinkedIn Profile
+                </label>
+                <input
+                  type="url"
+                  name="linkedin"
+                  defaultValue={editingItem.data?.linkedin || ""}
+                  className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 justify-end mt-6">
+              <button
+                type="button"
+                onClick={() => setEditingItem(null)}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={saving}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {saving ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                ) : (
+                  "Update"
+                )}
+              </button>
+            </div>
+          </form>
+        </Modal>
       )}
 
       {/* About Modal */}

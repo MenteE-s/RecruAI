@@ -49,6 +49,9 @@ def create_app(config_object: object | None = None):
 	app = Flask(__name__)
 	app.config.from_object(config_object or Config)
 
+	# Security: Set max content length
+	app.config['MAX_CONTENT_LENGTH'] = app.config.get('MAX_CONTENT_LENGTH', 16 * 1024 * 1024)  # 16MB
+
 	# initialize extensions
 	db.init_app(app)
 	migrate.init_app(app, db)
@@ -60,6 +63,47 @@ def create_app(config_object: object | None = None):
 		raise RuntimeError("JWT extension not available; check backend.extensions")
 
 	jwt.init_app(app)
+
+	# Security: Initialize rate limiter
+	try:
+		from flask_limiter import Limiter
+		from flask_limiter.util import get_remote_address
+		limiter = Limiter(
+			app=app,
+			key_func=get_remote_address,
+			storage_uri=app.config.get('RATELIMIT_STORAGE_URL', "memory://"),
+			strategy=app.config.get('RATELIMIT_STRATEGY', "fixed-window")
+		)
+	except ImportError:
+		print("Warning: Flask-Limiter not installed. Rate limiting disabled.")
+		limiter = None
+
+	# Security: Initialize Flask-Talisman for security headers
+	try:
+		from flask_talisman import Talisman
+		talisman = Talisman(
+			app,
+			content_security_policy={
+				'default-src': "'self'",
+				'script-src': "'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com",
+				'style-src': "'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net",
+				'font-src': "'self' https://fonts.gstatic.com",
+				'img-src': "'self' data: https:",
+				'connect-src': "'self' https://api.openai.com https://api.groq.com",
+			},
+			content_security_policy_nonce_in=['script-src', 'style-src'],
+			force_https=app.config['IS_PRODUCTION'],
+			strict_transport_security=app.config['IS_PRODUCTION'],
+			strict_transport_security_max_age=31536000,  # 1 year
+			strict_transport_security_include_subdomains=True,
+			frame_options='DENY',
+			x_content_type_options='nosniff',
+			x_xss_protection=True,
+			referrer_policy='strict-origin-when-cross-origin'
+		)
+	except ImportError:
+		print("Warning: Flask-Talisman not installed. Security headers disabled.")
+		talisman = None
 
 	# Initialize background scheduler for interview status updates
 	# Temporarily disabled to debug API issues
@@ -76,9 +120,7 @@ def create_app(config_object: object | None = None):
 		# Restrict CORS origins to the frontend origin when available. In local
 		# development frontend commonly runs on http://localhost:3000; prefer an
 		# explicit origin over a wildcard to reduce CSRF risk for APIs.
-		frontend_origin = os.getenv("FRONTEND_ORIGIN", "http://localhost:3000")
-		jwt_samesite = os.getenv("JWT_COOKIE_SAMESITE", "Lax")
-		jwt_secure = os.getenv("JWT_COOKIE_SECURE", "0")
+		frontend_origin = app.config.get("FRONTEND_ORIGIN", "http://localhost:3000")
 		# Support comma-separated list of origins
 		origins_list = [o.strip().rstrip("/") for o in frontend_origin.split(",")]
 		print(f"Setting CORS origins to: {origins_list}", flush=True)
@@ -87,6 +129,15 @@ def create_app(config_object: object | None = None):
 		print(f"Failed to configure CORS: {e}", flush=True)
 		# flask-cors not installed or not needed in production
 		pass
+
+	# Security: Apply rate limiting to auth endpoints
+	if limiter:
+		# Authentication endpoints - strict rate limiting
+		limiter.limit("10 per minute")(app.view_functions.get('api_bp.login', lambda: None))
+		limiter.limit("5 per minute")(app.view_functions.get('api_bp.register', lambda: None))
+
+		# General API endpoints - moderate rate limiting
+		limiter.limit("100 per minute")(app.view_functions.get('api_bp.me', lambda: None))
 
 	# register blueprints
 	app.register_blueprint(api_bp, url_prefix="/api")
@@ -175,6 +226,93 @@ def create_app(config_object: object | None = None):
 
 # Create the app instance for gunicorn
 app = create_app()
+
+
+@app.cli.command("db-optimize")
+def optimize_database():
+    """Create database indexes for optimal query performance"""
+    from sqlalchemy import text
+
+    try:
+        # Use the app's database engine directly
+        engine = db.get_engine()
+
+        with engine.connect() as conn:
+            # Indexes for User model
+            conn.execute(text("""
+                CREATE INDEX IF NOT EXISTS idx_users_created_at ON users(created_at DESC);
+            """))
+            conn.execute(text("""
+                CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+            """))
+            conn.execute(text("""
+                CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
+            """))
+            conn.execute(text("""
+                CREATE INDEX IF NOT EXISTS idx_users_organization_id ON users(organization_id);
+            """))
+
+            # Indexes for Post model
+            conn.execute(text("""
+                CREATE INDEX IF NOT EXISTS idx_posts_created_at ON posts(created_at DESC);
+            """))
+            conn.execute(text("""
+                CREATE INDEX IF NOT EXISTS idx_posts_status ON posts(status);
+            """))
+            conn.execute(text("""
+                CREATE INDEX IF NOT EXISTS idx_posts_organization_id ON posts(organization_id);
+            """))
+            conn.execute(text("""
+                CREATE INDEX IF NOT EXISTS idx_posts_category ON posts(category);
+            """))
+            conn.execute(text("""
+                CREATE INDEX IF NOT EXISTS idx_posts_employment_type ON posts(employment_type);
+            """))
+
+            # Indexes for Application model
+            conn.execute(text("""
+                CREATE INDEX IF NOT EXISTS idx_applications_applied_at ON applications(applied_at DESC);
+            """))
+            conn.execute(text("""
+                CREATE INDEX IF NOT EXISTS idx_applications_user_id ON applications(user_id);
+            """))
+            conn.execute(text("""
+                CREATE INDEX IF NOT EXISTS idx_applications_post_id ON applications(post_id);
+            """))
+            conn.execute(text("""
+                CREATE INDEX IF NOT EXISTS idx_applications_pipeline_stage ON applications(pipeline_stage);
+            """))
+
+            # Indexes for Interview model
+            conn.execute(text("""
+                CREATE INDEX IF NOT EXISTS idx_interviews_scheduled_at ON interviews(scheduled_at DESC);
+            """))
+            conn.execute(text("""
+                CREATE INDEX IF NOT EXISTS idx_interviews_user_id ON interviews(user_id);
+            """))
+            conn.execute(text("""
+                CREATE INDEX IF NOT EXISTS idx_interviews_organization_id ON interviews(organization_id);
+            """))
+            conn.execute(text("""
+                CREATE INDEX IF NOT EXISTS idx_interviews_status ON interviews(status);
+            """))
+
+            # Composite indexes for common query patterns
+            conn.execute(text("""
+                CREATE INDEX IF NOT EXISTS idx_applications_user_post ON applications(user_id, post_id);
+            """))
+            conn.execute(text("""
+                CREATE INDEX IF NOT EXISTS idx_posts_org_status ON posts(organization_id, status);
+            """))
+            conn.execute(text("""
+                CREATE INDEX IF NOT EXISTS idx_interviews_user_status ON interviews(user_id, status);
+            """))
+
+            conn.commit()
+            print("✅ Database indexes created successfully!")
+
+    except Exception as e:
+        print(f"❌ Error creating indexes: {e}")
 
 
 if __name__ == "__main__":

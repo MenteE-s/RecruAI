@@ -4,6 +4,7 @@ from .. import api_bp
 from ...extensions import db
 from ...models import ProfessionalMembership
 from datetime import datetime
+from sqlalchemy import desc
 
 # Professional Membership endpoints
 @api_bp.route('/profile/professional-memberships', methods=['GET'])

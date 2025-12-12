@@ -11,13 +11,38 @@ import {
   FiUsers,
   FiSettings,
   FiCheckCircle,
+  FiShare2,
 } from "react-icons/fi";
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "";
 
 // Get the backend URL for API calls and uploaded files
 export function getBackendUrl() {
-  // Use environment variable for API base URL
-  return process.env.REACT_APP_API_BASE_URL || "";
+  // Use environment variable for API base URL, with fallback logic
+  const envUrl = process.env.REACT_APP_API_BASE_URL;
+
+  // If no env var, try to detect based on current location
+  if (!envUrl) {
+    // In production, assume we're on Vercel and backend is on Railway
+    if (
+      typeof window !== "undefined" &&
+      window.location.hostname !== "localhost"
+    ) {
+      return "https://recruai-production.up.railway.app";
+    }
+    // In local development
+    return "http://localhost:5000";
+  }
+
+  return envUrl;
+}
+
+// Helper to get headers with Authorization if token exists
+export function getAuthHeaders(additionalHeaders = {}) {
+  const headers = { ...additionalHeaders };
+  const token = localStorage.getItem("access_token");
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  return headers;
 }
 
 // Get full URL for uploaded files
@@ -37,9 +62,10 @@ export async function verifyTokenWithServer() {
 
     // With cookie-based auth we don't need to send Authorization header.
     // Ensure cookies are sent by including credentials.
-    const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
+    const res = await fetch(`${getBackendUrl()}/api/auth/me`, {
       method: "GET",
       credentials: "include",
+      headers: getAuthHeaders(),
     });
     if (!res.ok) {
       // clear stale auth
@@ -102,6 +128,11 @@ export function getSidebarItems(role, plan) {
         { name: "Analytics", link: "/analytics", icon: FiBarChart2 },
         { name: "Practice", link: "/practice", icon: FiClock },
         { name: "My AI Agents", link: "/ai-agents", icon: FiUsers },
+        {
+          name: "Shareable Profiles",
+          link: "/shareable-profiles",
+          icon: FiShare2,
+        },
         { name: "Settings", link: "/settings", icon: FiSettings },
       ];
     } else {
@@ -128,6 +159,11 @@ export function getSidebarItems(role, plan) {
         { name: "Career Coaching", link: "/coaching", icon: FiUsers },
         { name: "Practice", link: "/practice", icon: FiClock },
         { name: "My AI Agents", link: "/ai-agents", icon: FiUsers },
+        {
+          name: "Shareable Profiles",
+          link: "/shareable-profiles",
+          icon: FiShare2,
+        },
         { name: "Settings", link: "/settings", icon: FiSettings },
       ];
     }

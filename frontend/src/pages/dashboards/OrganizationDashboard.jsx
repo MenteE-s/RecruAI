@@ -3,7 +3,11 @@ import DashboardLayout from "../../components/layout/DashboardLayout";
 import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
 import StatCard from "../../components/ui/StatCard";
 import Card from "../../components/ui/Card";
-import { getSidebarItems, getBackendUrl } from "../../utils/auth";
+import {
+  getSidebarItems,
+  getBackendUrl,
+  getAuthHeaders,
+} from "../../utils/auth";
 import {
   FiUsers,
   FiBarChart2,
@@ -52,6 +56,7 @@ export default function OrganizationDashboard() {
       const response = await fetch(`${getBackendUrl()}/api/auth/me`, {
         method: "GET",
         credentials: "include",
+        headers: getAuthHeaders(),
       });
       if (response.ok) {
         const data = await response.json();
@@ -66,6 +71,7 @@ export default function OrganizationDashboard() {
     try {
       const response = await fetch(`${getBackendUrl()}/api/dashboard/stats`, {
         credentials: "include",
+        headers: getAuthHeaders(),
       });
       if (response.ok) {
         const data = await response.json();
@@ -82,6 +88,7 @@ export default function OrganizationDashboard() {
         `${getBackendUrl()}/api/analytics/overview`,
         {
           credentials: "include",
+          headers: getAuthHeaders(),
         }
       );
       if (response.ok) {

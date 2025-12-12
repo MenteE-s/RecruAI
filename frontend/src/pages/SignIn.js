@@ -83,9 +83,10 @@ export default function SignIn() {
         setRole(data.user.role);
       }
       // store token, mark authenticated and redirect to dashboard
-      // With cookie-based auth the server sets an HttpOnly cookie. We keep
-      // returning the token in the JSON for backward compatibility but do not
-      // store it in localStorage.
+      // Store the access token for header-based auth
+      if (data.access_token) {
+        localStorage.setItem("access_token", data.access_token);
+      }
       // mark auth for frontend-only checks (will be refreshed by /api/auth/me)
       localStorage.setItem("isAuthenticated", "true");
       // use server-verified role from response (do not trust the client-side role selector)

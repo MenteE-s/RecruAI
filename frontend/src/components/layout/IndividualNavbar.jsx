@@ -30,9 +30,9 @@ export default function IndividualNavbar({ isAuthenticated }) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-14 items-center">
           <div className="flex items-center">
-            <Link to="/" className="font-bold text-lg text-primary-700">
+            {/* <Link to="/" className="font-bold text-lg text-primary-700">
               RecruAI
-            </Link>
+            </Link> */}
             {/* Top nav intentionally minimal - main navigation lives in the left sidebar */}
           </div>
 
@@ -40,22 +40,23 @@ export default function IndividualNavbar({ isAuthenticated }) {
             {!signedIn ? (
               <>
                 <Link to="/signin" className="text-sm text-primary-700">
-                  Sign in
+                  <i className="fa-solid fa-user"></i> Sign in
                 </Link>
                 <Link
                   to="/register"
                   className="ml-2 px-3 py-1 bg-primary-700 text-white rounded text-sm"
                 >
+                  <i className="fa-solid fa-user-plus"></i>
                   Register
                 </Link>
               </>
             ) : (
               <>
                 <Link to="/profile" className="text-sm text-secondary-700">
-                  Profile
+                  <i className="fa-solid fa-user"></i> Profile
                 </Link>
                 <button onClick={signOut} className="ml-2 text-sm text-red-600">
-                  Sign out
+                  <i className="fa-solid fa-right-from-bracket"></i> Sign out
                 </button>
               </>
             )}

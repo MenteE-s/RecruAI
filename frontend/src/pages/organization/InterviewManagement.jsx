@@ -3,7 +3,11 @@ import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
 import Card from "../../components/ui/Card";
-import { getSidebarItems, getBackendUrl } from "../../utils/auth";
+import {
+  getSidebarItems,
+  getBackendUrl,
+  getAuthHeaders,
+} from "../../utils/auth";
 import { formatDateTime as formatDateTimeTz } from "../../utils/timezone";
 
 // Modal Component
@@ -71,6 +75,7 @@ const ScheduleInterviewModal = ({
         `${getBackendUrl()}/api/organizations/${organizationId}/posts`,
         {
           credentials: "include",
+          headers: getAuthHeaders(),
         }
       );
       if (response.ok) {
@@ -832,6 +837,7 @@ export default function InterviewManagement() {
       try {
         const res = await fetch(`${getBackendUrl()}/api/auth/me`, {
           credentials: "include",
+          headers: getAuthHeaders(),
         });
         if (res.ok) {
           const data = await res.json();
@@ -853,12 +859,13 @@ export default function InterviewManagement() {
       console.log("Fetching interviews...");
       const response = await fetch(`${getBackendUrl()}/api/interviews`, {
         credentials: "include",
+        headers: getAuthHeaders(),
       });
 
       if (response.ok) {
         const data = await response.json();
-        console.log("Fetched interviews:", data.interviews);
-        let items = data.interviews || [];
+        console.log("Fetched interviews:", data.data);
+        let items = data.data || [];
         // If organizationId is known, filter by this org's interviews only
         if (organizationId) {
           items = items.filter((it) => it.organization_id === organizationId);
@@ -885,7 +892,10 @@ export default function InterviewManagement() {
       // TODO: Get organization ID from user context
       const orgId = organizationId || 1; // Fallback to 1 if missing
       const response = await fetch(
-        `${getBackendUrl()}/api/organizations/${orgId}/ai-agents`
+        `${getBackendUrl()}/api/organizations/${orgId}/ai-agents`,
+        {
+          headers: getAuthHeaders(),
+        }
       );
       if (response.ok) {
         const data = await response.json();
@@ -911,7 +921,7 @@ export default function InterviewManagement() {
     try {
       const response = await fetch(`${getBackendUrl()}/api/interviews`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders({ "Content-Type": "application/json" }),
         credentials: "include",
         body: JSON.stringify(interviewData),
       });
@@ -945,7 +955,7 @@ export default function InterviewManagement() {
         }/assign-agent`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: getAuthHeaders({ "Content-Type": "application/json" }),
           credentials: "include",
           body: JSON.stringify({ agent_id: agentId }),
         }
@@ -978,7 +988,7 @@ export default function InterviewManagement() {
         `${getBackendUrl()}/api/interviews/${selectedInterview.id}`,
         {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
+          headers: getAuthHeaders({ "Content-Type": "application/json" }),
           credentials: "include",
           body: JSON.stringify(formData),
         }
@@ -1015,7 +1025,7 @@ export default function InterviewManagement() {
         `${getBackendUrl()}/api/interviews/${selectedInterview.id}`,
         {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
+          headers: getAuthHeaders({ "Content-Type": "application/json" }),
           credentials: "include",
           body: JSON.stringify({ status: "cancelled" }),
         }
@@ -1062,7 +1072,7 @@ export default function InterviewManagement() {
         }/decision`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: getAuthHeaders({ "Content-Type": "application/json" }),
           credentials: "include",
           body: JSON.stringify({
             decision,

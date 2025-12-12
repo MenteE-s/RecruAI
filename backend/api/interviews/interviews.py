@@ -4,6 +4,9 @@ from ...extensions import db
 from ...models import Interview, Application, ConversationMemory, Message, InterviewAnalysis
 import json
 from datetime import datetime, timezone, timedelta
+from ...utils.security import log_security_event, sanitize_input, validate_request_size
+from ...utils.pagination import Pagination, get_pagination_params, paginated_response, apply_filters_and_sorting, get_request_filters, get_sorting_params
+from ...utils.security import log_security_event, sanitize_input, validate_request_size
 
 def update_pipeline_stage_for_interview(interview):
     """Update pipeline stage based on interview status"""
@@ -33,13 +36,27 @@ def update_pipeline_stage_for_interview(interview):
 
 @api_bp.route('/interviews', methods=['GET'])
 def get_interviews():
-    """Get all interviews, optionally filtered by user_id"""
-    user_id = request.args.get('user_id', type=int)
+    """Get interviews with pagination, filtering, and sorting support"""
+    # Get pagination parameters
+    page, per_page = get_pagination_params()
+
+    # Get filters from request
+    filters = get_request_filters(Interview)
+
+    # Get sorting parameters
+    sort_by, sort_order = get_sorting_params(default_sort='scheduled_at')
+
+    # Build base query
     query = Interview.query
-    if user_id:
-        query = query.filter_by(user_id=user_id)
-    interviews = query.order_by(Interview.scheduled_at.desc()).all()
-    return jsonify({'interviews': [interview.to_dict() for interview in interviews]}), 200
+
+    # Apply filters and sorting
+    query = apply_filters_and_sorting(query, Interview, filters, sort_by, sort_order)
+
+    # Apply pagination
+    pagination_result = Pagination(query, page=page, per_page=per_page).paginate()
+
+    # Return paginated response
+    return jsonify(paginated_response(pagination_result['items'], pagination_result['pagination'])), 200
 
 @api_bp.route('/interviews/<int:interview_id>', methods=['GET'])
 def get_interview(interview_id):
@@ -50,12 +67,29 @@ def get_interview(interview_id):
 @api_bp.route('/interviews', methods=['POST'])
 def create_interview():
     """Create a new interview"""
-    data = request.get_json()
+    try:
+        data = request.get_json()
+    except Exception:
+        log_security_event("invalid_json_request", request.remote_addr, None)
+        return jsonify({'error': 'Invalid JSON in request body'}), 400
+
+    # Validate request size
+    is_valid, error_msg = validate_request_size(data)
+    if not is_valid:
+        log_security_event("request_size_exceeded", request.remote_addr, None, details={"error": error_msg})
+        return jsonify({'error': error_msg}), 400
 
     required_fields = ['title', 'scheduled_at', 'user_id', 'organization_id']
     for field in required_fields:
         if field not in data:
+            log_security_event("missing_required_field", request.remote_addr, None, details={"field": field})
             return jsonify({'error': f'Missing required field: {field}'}), 400
+
+    # Sanitize input fields
+    title = sanitize_input(data.get('title', ''))
+    description = sanitize_input(data.get('description', ''))
+    location = sanitize_input(data.get('location', ''))
+    meeting_link = sanitize_input(data.get('meeting_link', ''))
 
     # Validate scheduled_at is in the future
     datetime_str = data['scheduled_at']
@@ -67,6 +101,7 @@ def create_interview():
             datetime_str = datetime_str[:-1] + '+00:00'
         scheduled_at = datetime.fromisoformat(datetime_str)
     except ValueError:
+        log_security_event("invalid_datetime_format", request.remote_addr, None, details={"datetime_str": datetime_str})
         return jsonify({'error': 'Invalid datetime format. Use ISO 8601 with timezone (e.g., 2024-01-15T14:30Z)'}), 400
 
     # Ensure timezone-aware and normalize to UTC
@@ -81,19 +116,20 @@ def create_interview():
 
     # Validate scheduled_at is in the future
     if scheduled_at <= datetime.utcnow():
+        log_security_event("interview_scheduled_past", request.remote_addr, None, details={"scheduled_at": scheduled_at.isoformat()})
         return jsonify({'error': 'scheduled_at must be in the future.'}), 400
 
     interview = Interview(
-        title=data['title'],
-        description=data.get('description'),
+        title=title,
+        description=description,
         scheduled_at=scheduled_at,
         duration_minutes=data.get('duration_minutes', 60),
         user_id=data['user_id'],
         organization_id=data['organization_id'],
         post_id=data.get('post_id'),
         interview_type=data.get('interview_type', 'text'),
-        location=data.get('location'),
-        meeting_link=data.get('meeting_link'),
+        location=location,
+        meeting_link=meeting_link,
         interviewers=json.dumps(data.get('interviewers', []))
     )
 
@@ -102,6 +138,9 @@ def create_interview():
 
     # Update pipeline stage
     update_pipeline_stage_for_interview(interview)
+
+    log_security_event("interview_created", request.remote_addr, data['user_id'],
+                      details={"interview_id": interview.id, "title": title, "scheduled_at": scheduled_at.isoformat()})
 
     return jsonify({
         'message': 'Interview scheduled successfully',
@@ -260,6 +299,20 @@ def update_interview_decision(interview_id):
 
     # Refresh interview data
     interview = Interview.query.get_or_404(interview_id)
+    
+    # If candidate passed the final interview, update the application status
+    if decision == 'passed' and interview.post_id:
+        from ...models import Application
+        # Find the application for this user and post
+        application = Application.query.filter_by(
+            user_id=interview.user_id,
+            post_id=interview.post_id
+        ).first()
+        
+        if application:
+            application.pipeline_stage = 'hired'
+            application.status = 'accepted'
+            db.session.commit()
 
     return jsonify({
         "message": message,

@@ -1,10 +1,20 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
 import Card from "../../components/ui/Card";
-import { getSidebarItems, getBackendUrl } from "../../utils/auth";
+import {
+  getSidebarItems,
+  getBackendUrl,
+  getAuthHeaders,
+} from "../../utils/auth";
 import { useToast } from "../../components/ui/ToastContext";
 import { formatDate } from "../../utils/timezone";
+import {
+  LoadingSkeleton,
+  ListErrorBoundary,
+  sanitizeHtml,
+  truncateText,
+} from "../../utils/performance";
 
 export default function Candidates() {
   const role =
@@ -21,6 +31,12 @@ export default function Candidates() {
   const [showScheduleInterview, setShowScheduleInterview] = useState(false);
   const [showCandidateProfile, setShowCandidateProfile] = useState(false);
   const [candidateProfile, setCandidateProfile] = useState(null);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    per_page: 20,
+    total: 0,
+    has_more: false,
+  });
   const [interviewForm, setInterviewForm] = useState({
     title: "",
     description: "",
@@ -31,14 +47,11 @@ export default function Candidates() {
   });
 
   useEffect(() => {
-    fetchApplications();
-  }, []);
-
-  useEffect(() => {
     const getOrgId = async () => {
       try {
         const res = await fetch(`${getBackendUrl()}/api/auth/me`, {
           credentials: "include",
+          headers: getAuthHeaders(),
         });
         if (res.ok) {
           const data = await res.json();
@@ -51,83 +64,135 @@ export default function Candidates() {
     getOrgId();
   }, []);
 
-  const fetchApplications = async () => {
-    try {
-      // For now, fetch all applications - in production, filter by organization's posts
-      const response = await fetch(`${getBackendUrl()}/api/applications`, {
-        credentials: "include",
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setApplications(data);
-      }
-    } catch (error) {
-      console.error("Error fetching applications:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const fetchApplications = useCallback(
+    async (reset = false) => {
+      if (!organizationId) return;
 
-  const updateApplicationStatus = async (appId, status) => {
-    try {
-      const response = await fetch(
-        `${getBackendUrl()}/api/applications/${appId}`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({ status }),
+      try {
+        if (reset) {
+          setLoading(true);
+          setApplications([]);
+          setPagination((prev) => ({ ...prev, page: 1 }));
         }
-      );
 
-      if (response.ok) {
-        await fetchApplications();
-        showToast({
-          message: `Application ${status} successfully`,
-          type: "success",
+        const currentPage = reset ? 1 : pagination.page;
+        const params = new URLSearchParams({
+          page: currentPage,
+          per_page: pagination.per_page,
+          // Add other filters as needed
         });
-      } else {
+
+        const response = await fetch(
+          `${getBackendUrl()}/api/applications?${params}`,
+          {
+            credentials: "include",
+            headers: getAuthHeaders(),
+          }
+        );
+
+        if (response.ok) {
+          const result = await response.json();
+
+          if (reset) {
+            setApplications(result.data);
+          } else {
+            setApplications((prev) => [...prev, ...result.data]);
+          }
+
+          setPagination({
+            page: result.pagination.page,
+            per_page: result.pagination.per_page,
+            total: result.pagination.total,
+            has_more: result.pagination.has_next,
+          });
+        } else {
+          throw new Error("Failed to fetch applications");
+        }
+      } catch (err) {
+        console.error("Error fetching applications:", err);
+        showToast("Error fetching applications", "error");
+      } finally {
+        if (reset) {
+          setLoading(false);
+        }
+      }
+    },
+    [organizationId, pagination.page, pagination.per_page, showToast]
+  );
+
+  useEffect(() => {
+    if (organizationId) {
+      fetchApplications(true);
+    }
+  }, [organizationId, fetchApplications]);
+
+  const updateApplicationStatus = useCallback(
+    async (appId, status) => {
+      try {
+        const response = await fetch(
+          `${getBackendUrl()}/api/applications/${appId}`,
+          {
+            method: "PUT",
+            headers: getAuthHeaders({ "Content-Type": "application/json" }),
+            credentials: "include",
+            body: JSON.stringify({ status }),
+          }
+        );
+
+        if (response.ok) {
+          await fetchApplications();
+          showToast({
+            message: `Application ${status} successfully`,
+            type: "success",
+          });
+        } else {
+          showToast({
+            message: "Failed to update application status",
+            type: "error",
+          });
+        }
+      } catch (error) {
+        console.error("Error updating application status:", error);
         showToast({
           message: "Failed to update application status",
           type: "error",
         });
       }
-    } catch (error) {
-      console.error("Error updating application status:", error);
-      showToast({
-        message: "Failed to update application status",
-        type: "error",
-      });
-    }
-  };
+    },
+    [fetchApplications, showToast, getBackendUrl]
+  );
 
-  const fetchCandidateProfile = async (userId) => {
-    try {
-      const response = await fetch(
-        `${getBackendUrl()}/api/users/${userId}/full-profile`,
-        {
-          credentials: "include",
+  const fetchCandidateProfile = useCallback(
+    async (userId) => {
+      try {
+        const response = await fetch(
+          `${getBackendUrl()}/api/users/${userId}/full-profile`,
+          {
+            credentials: "include",
+            headers: getAuthHeaders(),
+          }
+        );
+
+        if (response.ok) {
+          const profile = await response.json();
+          setCandidateProfile(profile);
+          setShowCandidateProfile(true);
+        } else {
+          showToast({
+            message: "Failed to load candidate profile",
+            type: "error",
+          });
         }
-      );
-
-      if (response.ok) {
-        const profile = await response.json();
-        setCandidateProfile(profile);
-        setShowCandidateProfile(true);
-      } else {
+      } catch (error) {
+        console.error("Error fetching candidate profile:", error);
         showToast({
           message: "Failed to load candidate profile",
           type: "error",
         });
       }
-    } catch (error) {
-      console.error("Error fetching candidate profile:", error);
-      showToast({
-        message: "Failed to load candidate profile",
-        type: "error",
-      });
-    }
-  };
+    },
+    [showToast, getBackendUrl]
+  );
 
   const scheduleInterview = async (e) => {
     e.preventDefault();
@@ -148,7 +213,7 @@ export default function Candidates() {
 
       const response = await fetch(`${getBackendUrl()}/api/interviews`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders({ "Content-Type": "application/json" }),
         credentials: "include",
         body: JSON.stringify(payload),
       });
@@ -201,14 +266,169 @@ export default function Candidates() {
     }
   };
 
-  if (loading) {
+  // Function to toggle onboarding status
+  const toggleOnboardingStatus = async (applicationId, currentlyOnboarded) => {
+    try {
+      const endpoint = currentlyOnboarded
+        ? `/api/applications/${applicationId}/offboard`
+        : `/api/applications/${applicationId}/onboard`;
+
+      const response = await fetch(`${getBackendUrl()}${endpoint}`, {
+        method: "POST",
+        credentials: "include",
+        headers: getAuthHeaders({ "Content-Type": "application/json" }),
+      });
+
+      if (response.ok) {
+        // Update the local state to reflect the change
+        setApplications((prev) =>
+          prev.map((app) =>
+            app.id === applicationId
+              ? {
+                  ...app,
+                  onboarded: !currentlyOnboarded,
+                  pipeline_stage: !currentlyOnboarded
+                    ? "hired"
+                    : app.pipeline_stage,
+                }
+              : app
+          )
+        );
+
+        showToast(
+          `Candidate ${
+            !currentlyOnboarded
+              ? "marked as onboarded"
+              : "marked as not onboarded"
+          }`,
+          "success"
+        );
+      } else {
+        throw new Error("Failed to update onboarding status");
+      }
+    } catch (err) {
+      console.error("Error updating onboarding status:", err);
+      showToast("Error updating onboarding status", "error");
+    }
+  };
+
+  // Render individual application item
+  const renderApplicationItem = useCallback(
+    (application, index) => (
+      <Card key={application.id}>
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-2">
+              <h3 className="text-lg font-semibold text-gray-900">
+                {sanitizeHtml(application.user?.name || "Anonymous")}
+              </h3>
+              <span
+                className={`px-2 py-1 text-xs rounded-full ${getStatusColor(
+                  application.status
+                )}`}
+              >
+                {application.status}
+              </span>
+            </div>
+
+            <p className="text-indigo-600 font-medium mb-1">
+              Applied for: {application.post?.title}
+            </p>
+
+            <p className="text-gray-600 text-sm mb-2">
+              Applied {formatDate(application.applied_at)}
+            </p>
+
+            {application.cover_letter && (
+              <div className="mb-3">
+                <p className="text-sm font-medium text-gray-700">
+                  Cover Letter:
+                </p>
+                <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-md">
+                  {truncateText(application.cover_letter, 200)}
+                </p>
+              </div>
+            )}
+
+            {application.resume_url && (
+              <div className="mb-3">
+                <a
+                  href={application.resume_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-indigo-600 hover:text-indigo-800 text-sm underline"
+                >
+                  📄 View Resume
+                </a>
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-2 ml-4">
+            <select
+              value={application.status}
+              onChange={(e) =>
+                updateApplicationStatus(application.id, e.target.value)
+              }
+              className="px-3 py-1 border border-gray-300 rounded-md text-sm"
+            >
+              <option value="pending">Pending</option>
+              <option value="reviewed">Reviewed</option>
+              <option value="accepted">Accepted</option>
+              <option value="rejected">Rejected</option>
+            </select>
+
+            <button
+              onClick={() => {
+                setSelectedApplication(application);
+                setShowScheduleInterview(true);
+                setInterviewForm((prev) => ({
+                  ...prev,
+                  title: `Interview: ${application.post?.title}`,
+                }));
+              }}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              Schedule Interview
+            </button>
+
+            <button
+              onClick={() => fetchCandidateProfile(application.user_id)}
+              className="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50 text-sm"
+            >
+              View Profile
+            </button>
+
+            {application.onboarded ? (
+              <button
+                onClick={() => toggleOnboardingStatus(application.id, true)}
+                className="px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm"
+              >
+                Offboard
+              </button>
+            ) : (
+              <button
+                onClick={() => toggleOnboardingStatus(application.id, false)}
+                className="px-3 py-1 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm"
+              >
+                Onboard
+              </button>
+            )}
+          </div>
+        </div>
+      </Card>
+    ),
+    [updateApplicationStatus, fetchCandidateProfile]
+  );
+
+  if (loading && applications.length === 0) {
     return (
       <DashboardLayout
         NavbarComponent={OrganizationNavbar}
         sidebarItems={sidebarItems}
       >
         <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+          <LoadingSkeleton count={5} height={120} />
         </div>
       </DashboardLayout>
     );
@@ -245,96 +465,38 @@ export default function Candidates() {
           </div>
         </Card>
       ) : (
-        <div className="space-y-4">
-          {applications.map((application) => (
-            <Card key={application.id}>
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      {application.user?.name || "Anonymous"}
-                    </h3>
-                    <span
-                      className={`px-2 py-1 text-xs rounded-full ${getStatusColor(
-                        application.status
-                      )}`}
-                    >
-                      {application.status}
-                    </span>
-                  </div>
+        <ListErrorBoundary>
+          <div className="space-y-4">
+            {applications.map((application, index) =>
+              renderApplicationItem(application, index)
+            )}
 
-                  <p className="text-indigo-600 font-medium mb-1">
-                    Applied for: {application.post?.title}
-                  </p>
-
-                  <p className="text-gray-600 text-sm mb-2">
-                    Applied {formatDate(application.applied_at)}
-                  </p>
-
-                  {application.cover_letter && (
-                    <div className="mb-3">
-                      <p className="text-sm font-medium text-gray-700">
-                        Cover Letter:
-                      </p>
-                      <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-md">
-                        {application.cover_letter}
-                      </p>
-                    </div>
+            {/* Load More Button */}
+            {pagination.has_more && (
+              <div className="flex justify-center mt-6">
+                <button
+                  onClick={() => fetchApplications(false)}
+                  disabled={loading}
+                  className="px-6 py-3 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {loading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Loading...
+                    </>
+                  ) : (
+                    "Load More Candidates"
                   )}
-
-                  {application.resume_url && (
-                    <div className="mb-3">
-                      <a
-                        href={application.resume_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-indigo-600 hover:text-indigo-800 text-sm underline"
-                      >
-                        📄 View Resume
-                      </a>
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex flex-col gap-2 ml-4">
-                  <select
-                    value={application.status}
-                    onChange={(e) =>
-                      updateApplicationStatus(application.id, e.target.value)
-                    }
-                    className="px-3 py-1 border border-gray-300 rounded-md text-sm"
-                  >
-                    <option value="pending">Pending</option>
-                    <option value="reviewed">Reviewed</option>
-                    <option value="accepted">Accepted</option>
-                    <option value="rejected">Rejected</option>
-                  </select>
-
-                  <button
-                    onClick={() => {
-                      setSelectedApplication(application);
-                      setShowScheduleInterview(true);
-                      setInterviewForm((prev) => ({
-                        ...prev,
-                        title: `Interview: ${application.post?.title}`,
-                      }));
-                    }}
-                    className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
-                  >
-                    Schedule Interview
-                  </button>
-
-                  <button
-                    onClick={() => fetchCandidateProfile(application.user_id)}
-                    className="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50 text-sm"
-                  >
-                    View Profile
-                  </button>
-                </div>
+                </button>
               </div>
-            </Card>
-          ))}
-        </div>
+            )}
+
+            {/* Results Summary */}
+            <div className="text-center text-sm text-gray-500 mt-4">
+              Showing {applications.length} of {pagination.total} applications
+            </div>
+          </div>
+        </ListErrorBoundary>
       )}
 
       {/* Interview Scheduling Modal */}

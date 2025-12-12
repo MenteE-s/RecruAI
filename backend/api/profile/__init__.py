@@ -1,1 +1,1 @@
-from . import routes, experiences, educations, uploads, awards, publications, certifications, references, volunteer_experiences, course_trainings, professional_memberships, hobby_interests, conferences, patents, speaking_engagements, social_media_links, licenses, key_achievements  
+from . import routes, experiences, educations, uploads, awards, publications, certifications, references, volunteer_experiences, course_trainings, professional_memberships, hobby_interests, conferences, patents, speaking_engagements, social_media_links, licenses, key_achievements, shareable  

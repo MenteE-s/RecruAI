@@ -6,6 +6,7 @@ import {
   getSidebarItems,
   verifyTokenWithServer,
   getBackendUrl,
+  getAuthHeaders,
 } from "../../utils/auth";
 import TimezoneSelector from "../../components/ui/TimezoneSelector";
 
@@ -28,7 +29,10 @@ export default function OrganizationSettings() {
         setUser(userData);
         if (userData && userData.organization_id) {
           const orgRes = await fetch(
-            `${getBackendUrl()}/api/organizations/${userData.organization_id}`
+            `${getBackendUrl()}/api/organizations/${userData.organization_id}`,
+            {
+              headers: getAuthHeaders(),
+            }
           );
           if (orgRes.ok) {
             const orgData = await orgRes.json();
@@ -61,7 +65,7 @@ export default function OrganizationSettings() {
         `${getBackendUrl()}/api/organizations/${organization.id}/profile`,
         {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
+          headers: getAuthHeaders({ "Content-Type": "application/json" }),
           credentials: "include",
           body: JSON.stringify(payload),
         }

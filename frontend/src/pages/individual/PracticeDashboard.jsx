@@ -1,22 +1,21 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import IndividualNavbar from "../../components/layout/IndividualNavbar";
 import Card from "../../components/ui/Card";
 import { getSidebarItems, verifyTokenWithServer } from "../../utils/auth";
 
 export default function PracticeDashboard() {
-  const navigate = useNavigate();
   const role =
     typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
   const plan =
     typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
   const sidebarItems = getSidebarItems(role, plan);
-  const [user, setUser] = useState(null);
   const [duration, setDuration] = useState(15);
   const [title, setTitle] = useState("Practice Interview");
   const [type, setType] = useState("text");
   const location = useLocation();
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
     (async () => {

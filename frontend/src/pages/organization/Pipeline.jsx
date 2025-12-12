@@ -1,8 +1,12 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
 import Card from "../../components/ui/Card";
-import { getSidebarItems, getBackendUrl } from "../../utils/auth";
+import {
+  getSidebarItems,
+  getBackendUrl,
+  getAuthHeaders,
+} from "../../utils/auth";
 import { formatDate } from "../../utils/timezone";
 
 export default function Pipeline() {
@@ -45,17 +49,15 @@ export default function Pipeline() {
       icon: "🎉",
     },
     { key: "hired", label: "Hired", color: "teal", icon: "👥" },
+    { key: "withdrawn", label: "Withdrawn", color: "gray", icon: "🚪" },
     { key: "rejected", label: "Rejected", color: "red", icon: "❌" },
   ];
 
-  useEffect(() => {
-    fetchPipelineData();
-  }, []);
-
-  const fetchPipelineData = async () => {
+  const fetchPipelineData = useCallback(async () => {
     try {
       const response = await fetch(`${getBackendUrl()}/api/pipeline/${orgId}`, {
         credentials: "include",
+        headers: getAuthHeaders(),
       });
       if (response.ok) {
         const data = await response.json();
@@ -69,7 +71,11 @@ export default function Pipeline() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [orgId, selectedPost]);
+
+  useEffect(() => {
+    fetchPipelineData();
+  }, [fetchPipelineData]);
 
   const updatePipelineStage = async (applicationId, newStage) => {
     try {
@@ -77,7 +83,7 @@ export default function Pipeline() {
         `${getBackendUrl()}/api/pipeline/application/${applicationId}/stage`,
         {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
+          headers: getAuthHeaders({ "Content-Type": "application/json" }),
           credentials: "include",
           body: JSON.stringify({ pipeline_stage: newStage }),
         }

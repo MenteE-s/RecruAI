@@ -2,7 +2,11 @@ import { useState, useEffect } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
 import Card from "../../components/ui/Card";
-import { getSidebarItems, getBackendUrl } from "../../utils/auth";
+import {
+  getSidebarItems,
+  getBackendUrl,
+  getAuthHeaders,
+} from "../../utils/auth";
 
 export default function Reports() {
   const role =
@@ -27,6 +31,7 @@ export default function Reports() {
         `${getBackendUrl()}/api/organizations/${orgId}/analytics`,
         {
           credentials: "include",
+          headers: getAuthHeaders(),
         }
       );
 

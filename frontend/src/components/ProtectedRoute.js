@@ -1,6 +1,7 @@
 // src/components/ProtectedRoute.js
 import { Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { getAuthHeaders } from "../utils/auth";
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "";
 
@@ -14,10 +15,21 @@ export default function ProtectedRoute({ children }) {
     let cancelled = false;
 
     (async () => {
+      // Check if token exists before making the request
+      const token = localStorage.getItem("access_token");
+      if (!token) {
+        if (!cancelled) {
+          setChecking(false);
+          setOk(false);
+        }
+        return;
+      }
+
       try {
         // rely on HttpOnly cookies; include credentials so browser sends the cookie
         const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
           credentials: "include",
+          headers: getAuthHeaders(),
         });
         // debug log
         // eslint-disable-next-line no-console

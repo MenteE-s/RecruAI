@@ -95,6 +95,16 @@ def get_user_profile(user_id):
         profile_data['is_team_member'] = is_team_member
         profile_data['team_member_info'] = target_team_member.to_dict() if target_team_member else None
 
+        # Add hired organizations
+        hired_team_members = TeamMember.query.options(joinedload(TeamMember.organization)).filter_by(user_id=user_id).all()
+        profile_data['hired_organizations'] = [
+            {
+                'organization_name': tm.organization.name if tm.organization else 'Unknown',
+                'role': tm.role,
+                'join_date': tm.join_date.isoformat() if tm.join_date else None
+            } for tm in hired_team_members
+        ]
+
         return jsonify(profile_data), 200
     except Exception as e:
         import traceback
@@ -158,3 +168,66 @@ def upload_profile_picture():
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": f"Failed to update profile picture: {str(e)}"}), 500
+
+
+# Banner Upload endpoint
+@api_bp.route('/profile/upload-banner', methods=['POST'])
+@jwt_required()
+def upload_banner():
+    """Upload a banner image for the current user"""
+    user_id = int(get_jwt_identity())
+    try:
+        user_id_int = int(user_id)
+        user = User.query.get(user_id_int)
+    except (ValueError, TypeError):
+        return jsonify({"error": "invalid user identity"}), 400
+
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    if 'banner' not in request.files:
+        return jsonify({'error': 'No file provided'}), 400
+
+    file = request.files['banner']
+
+    if file.filename == '':
+        return jsonify({'error': 'No file selected'}), 400
+
+    # Validate file type
+    allowed_extensions = {'png', 'jpg', 'jpeg', 'gif'}
+    if not file.filename.lower().split('.')[-1] in allowed_extensions:
+        return jsonify({'error': 'Invalid file type. Only PNG, JPG, JPEG, and GIF are allowed'}), 400
+
+    # Validate file size (max 5MB)
+    file.seek(0, os.SEEK_END)
+    file_size = file.tell()
+    file.seek(0)
+    if file_size > 5 * 1024 * 1024:  # 5MB
+        return jsonify({'error': 'File too large. Maximum size is 5MB'}), 400
+
+    # Secure filename and create unique filename
+    filename = secure_filename(file.filename)
+    extension = filename.rsplit('.', 1)[1].lower()
+    unique_filename = f"user_{user_id_int}_banner.{extension}"
+
+    # Create banners directory if it doesn't exist
+    banners_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'uploads', 'banners')
+    if not os.path.exists(banners_dir):
+        os.makedirs(banners_dir)
+
+    # Save file
+    upload_path = os.path.join(banners_dir, unique_filename)
+    file.save(upload_path)
+
+    # Update user banner path
+    banner_url = f"/uploads/banners/{unique_filename}"
+    user.banner = banner_url
+    try:
+        db.session.commit()
+        return jsonify({
+            'message': 'Banner uploaded successfully',
+            'banner': banner_url
+        }), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Failed to update banner: {str(e)}"}), 500

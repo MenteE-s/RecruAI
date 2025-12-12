@@ -6,6 +6,7 @@ import {
   getSidebarItems,
   verifyTokenWithServer,
   getBackendUrl,
+  getAuthHeaders,
 } from "../../utils/auth";
 import { formatDate } from "../../utils/timezone";
 
@@ -39,6 +40,7 @@ export default function IndividualAIAgents() {
               me.organization_id
             }/ai-agents`,
             {
+              headers: getAuthHeaders(),
               credentials: "include",
             }
           );

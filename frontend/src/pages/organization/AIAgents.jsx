@@ -6,6 +6,7 @@ import {
   getSidebarItems,
   verifyTokenWithServer,
   getBackendUrl,
+  getAuthHeaders,
 } from "../../utils/auth";
 import { useToast } from "../../components/ui/ToastContext";
 import { formatDate } from "../../utils/timezone";
@@ -46,6 +47,7 @@ export default function AIAgents() {
         `${getBackendUrl()}/api/organizations/${organizationId}/ai-agents`,
         {
           credentials: "include",
+          headers: getAuthHeaders(),
         }
       );
       if (response.ok) {
@@ -140,7 +142,7 @@ export default function AIAgents() {
 
       const response = await fetch(url, {
         method,
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders({ "Content-Type": "application/json" }),
         credentials: "include",
         body: JSON.stringify(payload),
       });
@@ -179,6 +181,7 @@ export default function AIAgents() {
         {
           method: "DELETE",
           credentials: "include",
+          headers: getAuthHeaders(),
         }
       );
 
@@ -219,7 +222,7 @@ export default function AIAgents() {
         `${getBackendUrl()}/api/ai-agents/${testingAgent.id}/test`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: getAuthHeaders({ "Content-Type": "application/json" }),
           credentials: "include",
           body: JSON.stringify({ message: testMessage }),
         }

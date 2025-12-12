@@ -4,6 +4,7 @@ from .. import api_bp
 from ...extensions import db
 from ...models import VolunteerExperience
 from datetime import datetime
+from sqlalchemy import desc
 
 # Volunteer Experience endpoints
 @api_bp.route('/profile/volunteer-experiences', methods=['GET'])

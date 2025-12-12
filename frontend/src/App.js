@@ -23,6 +23,7 @@ import SystemStatus from "./pages/SystemStatus";
 import Community from "./pages/Community";
 import CookiesPolicy from "./pages/CookiesPolicy";
 import NotFound from "./pages/NotFound";
+import PublicProfile from "./pages/PublicProfile";
 import ProtectedRoute from "./components/ProtectedRoute";
 // Dashboard Pages
 import DashboardSwitcher from "./pages/DashboardSwitcher";
@@ -41,6 +42,7 @@ import JobDetails from "./pages/individual/JobDetails";
 import PracticeDashboard from "./pages/individual/PracticeDashboard";
 import PracticeRoom from "./pages/individual/PracticeRoom";
 import IndividualAIAgents from "./pages/individual/AIAgents";
+import ShareableProfiles from "./pages/individual/ShareableProfiles";
 // Organization Pages
 import OrganizationProfile from "./pages/organization/Profile";
 import BrowseOrganizations from "./pages/organization/BrowseOrganizations";
@@ -112,6 +114,9 @@ function App() {
           <Route path="/status" element={<SystemStatus />} />
           <Route path="/community" element={<Community />} />
           <Route path="/cookies" element={<CookiesPolicy />} />
+
+          {/* Public Profile Route (no auth required) */}
+          <Route path="/:slug" element={<PublicProfile />} />
 
           {/* Protected Routes */}
           <Route
@@ -423,6 +428,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <IndividualAIAgents />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/shareable-profiles"
+            element={
+              <ProtectedRoute>
+                <ShareableProfiles />
               </ProtectedRoute>
             }
           />
