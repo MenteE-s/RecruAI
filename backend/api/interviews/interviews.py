@@ -6,6 +6,7 @@ import json
 from datetime import datetime, timezone, timedelta
 from ...utils.security import log_security_event, sanitize_input, validate_request_size
 from ...utils.pagination import Pagination, get_pagination_params, paginated_response, apply_filters_and_sorting, get_request_filters, get_sorting_params
+from ...utils.security import log_security_event, sanitize_input, validate_request_size
 
 def update_pipeline_stage_for_interview(interview):
     """Update pipeline stage based on interview status"""
@@ -299,6 +300,20 @@ def update_interview_decision(interview_id):
     # Refresh interview data
     interview = Interview.query.get_or_404(interview_id)
     
+    # If candidate passed the final interview, update the application status
+    if decision == 'passed' and interview.post_id:
+        from ...models import Application
+        # Find the application for this user and post
+        application = Application.query.filter_by(
+            user_id=interview.user_id,
+            post_id=interview.post_id
+        ).first()
+        
+        if application:
+            application.pipeline_stage = 'hired'
+            application.status = 'accepted'
+            db.session.commit()
+
     return jsonify({
         "message": message,
         "interview": interview.to_dict()
@@ -327,7 +342,6 @@ def update_organization_interview_decision(org_id, interview_id):
     from ...utils.interview_utils import update_interview_decision as update_decision_util
 
     interview = Interview.query.filter_by(id=interview_id, organization_id=org_id).first_or_404()
-    print(f"Interview {interview_id} post_id: {interview.post_id}, post_title: {interview.post.title if interview.post else 'No post'}")
     payload = request.get_json(silent=True)
     if payload is None:
         return jsonify({"error": "Invalid JSON payload"}), 400
@@ -355,7 +369,7 @@ def update_organization_interview_decision(org_id, interview_id):
 
     # Refresh interview data
     interview = Interview.query.get_or_404(interview_id)
-    
+
     return jsonify({
         "message": message,
         "interview": interview.to_dict()

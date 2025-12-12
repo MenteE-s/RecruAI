@@ -95,6 +95,16 @@ def get_user_profile(user_id):
         profile_data['is_team_member'] = is_team_member
         profile_data['team_member_info'] = target_team_member.to_dict() if target_team_member else None
 
+        # Add hired organizations
+        hired_team_members = TeamMember.query.options(joinedload(TeamMember.organization)).filter_by(user_id=user_id).all()
+        profile_data['hired_organizations'] = [
+            {
+                'organization_name': tm.organization.name if tm.organization else 'Unknown',
+                'role': tm.role,
+                'join_date': tm.join_date.isoformat() if tm.join_date else None
+            } for tm in hired_team_members
+        ]
+
         return jsonify(profile_data), 200
     except Exception as e:
         import traceback

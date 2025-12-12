@@ -19,21 +19,34 @@ import {
   FiArrowLeft,
 } from "react-icons/fi";
 
+/**
+ * UserProfile component displays detailed information about a user profile
+ * @component
+ */
 export default function UserProfile() {
+  // Extract userId from URL parameters
   const { userId } = useParams();
+  // Navigation hook for programmatic navigation
   const navigate = useNavigate();
+  // Retrieve user role and plan from localStorage
   const role =
     typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
   const plan =
     typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
+  // Get sidebar items based on user role and plan
   const sidebarItems = getSidebarItems(role, plan);
 
-  const [profileData, setProfileData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [currentUser, setCurrentUser] = useState(null);
-  const [likedProfiles, setLikedProfiles] = useState(new Set());
+  // State hooks for managing component state
+  const [profileData, setProfileData] = useState(null); // User profile data
+  const [loading, setLoading] = useState(true); // Loading state
+  const [error, setError] = useState(null); // Error state
+  const [currentUser, setCurrentUser] = useState(null); // Current logged-in user
+  const [likedProfiles, setLikedProfiles] = useState(new Set()); // Track liked profiles
 
+  /**
+   * Fetches profile data from the backend API
+   * Uses useCallback for memoization
+   */
   const fetchProfileData = useCallback(async () => {
     try {
       setLoading(true);
@@ -90,7 +103,7 @@ export default function UserProfile() {
       if (response.ok) {
         const data = await response.json();
         if (data.favorited) {
-          setLikedProfiles(prev => new Set(prev).add(userId));
+          setLikedProfiles((prev) => new Set(prev).add(userId));
         }
       }
     } catch (err) {
@@ -114,7 +127,9 @@ export default function UserProfile() {
 
     try {
       const response = await fetch(
-        `${getBackendUrl()}/api/users/${currentUser.id}/toggle-favorite/${targetUserId}`,
+        `${getBackendUrl()}/api/users/${
+          currentUser.id
+        }/toggle-favorite/${targetUserId}`,
         {
           method: "POST",
           credentials: "include",
@@ -124,9 +139,9 @@ export default function UserProfile() {
       if (response.ok) {
         const data = await response.json();
         if (data.favorited) {
-          setLikedProfiles(prev => new Set(prev).add(targetUserId));
+          setLikedProfiles((prev) => new Set(prev).add(targetUserId));
         } else {
-          setLikedProfiles(prev => {
+          setLikedProfiles((prev) => {
             const newSet = new Set(prev);
             newSet.delete(targetUserId);
             return newSet;
@@ -218,6 +233,7 @@ export default function UserProfile() {
     licenses,
     team_member_info,
     is_team_member,
+    hired_organizations,
   } = profileData;
 
   return (
@@ -244,8 +260,8 @@ export default function UserProfile() {
           {/* Banner Section */}
           {user.banner && (
             <div className="w-full h-48 overflow-hidden">
-              <img 
-                src={getUploadUrl(user.banner)} 
+              <img
+                src={getUploadUrl(user.banner)}
                 alt={`${user.name || user.email} banner`}
                 className="w-full h-full object-cover"
               />
@@ -255,8 +271,8 @@ export default function UserProfile() {
             <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
               {/* User profile image with fallback to initials */}
               {user.profile_picture ? (
-                <img 
-                  src={getUploadUrl(user.profile_picture)} 
+                <img
+                  src={getUploadUrl(user.profile_picture)}
                   alt={`${user.name || user.email} profile`}
                   className="w-24 h-24 rounded-full object-cover border-4 border-white/30 shadow-lg"
                 />
@@ -293,23 +309,57 @@ export default function UserProfile() {
                           </span>
                         </>
                       )}
+
+                      {hired_organizations &&
+                        hired_organizations.length > 0 && (
+                          <div className="flex flex-wrap gap-2">
+                            {hired_organizations.map((org, index) => (
+                              <span
+                                key={index}
+                                className="bg-blue-500/80 text-white px-4 py-2 rounded-full text-sm font-medium"
+                                title={`Hired as ${org.role} on ${formatDate(
+                                  org.join_date
+                                )}`}
+                              >
+                                Hired by {org.organization_name}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                     </div>
                   </div>
                   {currentUser && currentUser.id !== parseInt(userId) && (
-                    <button
-                      onClick={() => toggleLike(parseInt(userId))}
-                      className={`p-3 rounded-full ${
-                        likedProfiles.has(userId)
-                          ? "bg-red-500 text-white"
-                          : "bg-white/20 text-white hover:bg-white/30"
-                      } transition-colors`}
-                      title={likedProfiles.has(userId) ? "Unlike profile" : "Like profile"}
-                    >
-                      <FiHeart 
-                        className={likedProfiles.has(userId) ? "fill-current" : ""} 
-                        size={24} 
-                      />
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => toggleLike(parseInt(userId))}
+                        className={`p-3 rounded-full ${
+                          likedProfiles.has(userId)
+                            ? "bg-red-500 text-white"
+                            : "bg-white/20 text-white hover:bg-white/30"
+                        } transition-colors`}
+                        title={
+                          likedProfiles.has(userId)
+                            ? "Unlike profile"
+                            : "Like profile"
+                        }
+                      >
+                        <FiHeart
+                          className={
+                            likedProfiles.has(userId) ? "fill-current" : ""
+                          }
+                          size={24}
+                        />
+                      </button>
+                      <button
+                        onClick={() =>
+                          window.open(`/profile/${userId}`, "_blank")
+                        }
+                        className="p-3 rounded-full bg-white/20 text-white hover:bg-white/30 transition-colors"
+                        title="View Public Profile"
+                      >
+                        <FiGlobe size={24} />
+                      </button>
+                    </div>
                   )}
                 </div>
                 <div className="flex items-center gap-4 mt-4">
@@ -355,11 +405,15 @@ export default function UserProfile() {
                       ? "bg-red-100 text-red-500"
                       : "bg-gray-100 text-gray-400 hover:bg-gray-200"
                   } transition-colors`}
-                  title={likedProfiles.has(userId) ? "Unlike profile" : "Like profile"}
+                  title={
+                    likedProfiles.has(userId)
+                      ? "Unlike profile"
+                      : "Like profile"
+                  }
                 >
-                  <FiHeart 
-                    className={likedProfiles.has(userId) ? "fill-current" : ""} 
-                    size={18} 
+                  <FiHeart
+                    className={likedProfiles.has(userId) ? "fill-current" : ""}
+                    size={18}
                   />
                 </button>
                 <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
@@ -404,11 +458,17 @@ export default function UserProfile() {
                         ? "bg-red-100 text-red-500"
                         : "bg-gray-100 text-gray-400 hover:bg-gray-200"
                     } transition-colors`}
-                    title={likedProfiles.has(userId) ? "Unlike profile" : "Like profile"}
+                    title={
+                      likedProfiles.has(userId)
+                        ? "Unlike profile"
+                        : "Like profile"
+                    }
                   >
-                    <FiHeart 
-                      className={likedProfiles.has(userId) ? "fill-current" : ""} 
-                      size={18} 
+                    <FiHeart
+                      className={
+                        likedProfiles.has(userId) ? "fill-current" : ""
+                      }
+                      size={18}
                     />
                   </button>
                   <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
@@ -460,11 +520,17 @@ export default function UserProfile() {
                         ? "bg-red-100 text-red-500"
                         : "bg-gray-100 text-gray-400 hover:bg-gray-200"
                     } transition-colors`}
-                    title={likedProfiles.has(userId) ? "Unlike profile" : "Like profile"}
+                    title={
+                      likedProfiles.has(userId)
+                        ? "Unlike profile"
+                        : "Like profile"
+                    }
                   >
-                    <FiHeart 
-                      className={likedProfiles.has(userId) ? "fill-current" : ""} 
-                      size={18} 
+                    <FiHeart
+                      className={
+                        likedProfiles.has(userId) ? "fill-current" : ""
+                      }
+                      size={18}
                     />
                   </button>
                   <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
@@ -502,11 +568,17 @@ export default function UserProfile() {
                         ? "bg-red-100 text-red-500"
                         : "bg-gray-100 text-gray-400 hover:bg-gray-200"
                     } transition-colors`}
-                    title={likedProfiles.has(userId) ? "Unlike profile" : "Like profile"}
+                    title={
+                      likedProfiles.has(userId)
+                        ? "Unlike profile"
+                        : "Like profile"
+                    }
                   >
-                    <FiHeart 
-                      className={likedProfiles.has(userId) ? "fill-current" : ""} 
-                      size={18} 
+                    <FiHeart
+                      className={
+                        likedProfiles.has(userId) ? "fill-current" : ""
+                      }
+                      size={18}
                     />
                   </button>
                   <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
@@ -568,11 +640,17 @@ export default function UserProfile() {
                         ? "bg-red-100 text-red-500"
                         : "bg-gray-100 text-gray-400 hover:bg-gray-200"
                     } transition-colors`}
-                    title={likedProfiles.has(userId) ? "Unlike profile" : "Like profile"}
+                    title={
+                      likedProfiles.has(userId)
+                        ? "Unlike profile"
+                        : "Like profile"
+                    }
                   >
-                    <FiHeart 
-                      className={likedProfiles.has(userId) ? "fill-current" : ""} 
-                      size={18} 
+                    <FiHeart
+                      className={
+                        likedProfiles.has(userId) ? "fill-current" : ""
+                      }
+                      size={18}
                     />
                   </button>
                   <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
@@ -601,7 +679,9 @@ export default function UserProfile() {
                             </p>
                           )}
                           {edu.grade && (
-                            <p className="text-gray-700 mt-1">Grade: {edu.grade}</p>
+                            <p className="text-gray-700 mt-1">
+                              Grade: {edu.grade}
+                            </p>
                           )}
                           {edu.activities_and_societies && (
                             <p className="text-gray-700 mt-1">
@@ -630,11 +710,17 @@ export default function UserProfile() {
                         ? "bg-red-100 text-red-500"
                         : "bg-gray-100 text-gray-400 hover:bg-gray-200"
                     } transition-colors`}
-                    title={likedProfiles.has(userId) ? "Unlike profile" : "Like profile"}
+                    title={
+                      likedProfiles.has(userId)
+                        ? "Unlike profile"
+                        : "Like profile"
+                    }
                   >
-                    <FiHeart 
-                      className={likedProfiles.has(userId) ? "fill-current" : ""} 
-                      size={18} 
+                    <FiHeart
+                      className={
+                        likedProfiles.has(userId) ? "fill-current" : ""
+                      }
+                      size={18}
                     />
                   </button>
                   <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
@@ -651,7 +737,10 @@ export default function UserProfile() {
                           {project.name}
                         </h4>
                         <p className="text-gray-600 text-sm mt-1">
-                          {formatDateRange(project.start_date, project.end_date)}
+                          {formatDateRange(
+                            project.start_date,
+                            project.end_date
+                          )}
                         </p>
                         {project.description && (
                           <p className="text-gray-700 mt-2 text-sm">
@@ -684,11 +773,17 @@ export default function UserProfile() {
                         ? "bg-red-100 text-red-500"
                         : "bg-gray-100 text-gray-400 hover:bg-gray-200"
                     } transition-colors`}
-                    title={likedProfiles.has(userId) ? "Unlike profile" : "Like profile"}
+                    title={
+                      likedProfiles.has(userId)
+                        ? "Unlike profile"
+                        : "Like profile"
+                    }
                   >
-                    <FiHeart 
-                      className={likedProfiles.has(userId) ? "fill-current" : ""} 
-                      size={18} 
+                    <FiHeart
+                      className={
+                        likedProfiles.has(userId) ? "fill-current" : ""
+                      }
+                      size={18}
                     />
                   </button>
                   <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
@@ -744,11 +839,17 @@ export default function UserProfile() {
                         ? "bg-red-100 text-red-500"
                         : "bg-gray-100 text-gray-400 hover:bg-gray-200"
                     } transition-colors`}
-                    title={likedProfiles.has(userId) ? "Unlike profile" : "Like profile"}
+                    title={
+                      likedProfiles.has(userId)
+                        ? "Unlike profile"
+                        : "Like profile"
+                    }
                   >
-                    <FiHeart 
-                      className={likedProfiles.has(userId) ? "fill-current" : ""} 
-                      size={18} 
+                    <FiHeart
+                      className={
+                        likedProfiles.has(userId) ? "fill-current" : ""
+                      }
+                      size={18}
                     />
                   </button>
                   <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
@@ -791,11 +892,17 @@ export default function UserProfile() {
                         ? "bg-red-100 text-red-500"
                         : "bg-gray-100 text-gray-400 hover:bg-gray-200"
                     } transition-colors`}
-                    title={likedProfiles.has(userId) ? "Unlike profile" : "Like profile"}
+                    title={
+                      likedProfiles.has(userId)
+                        ? "Unlike profile"
+                        : "Like profile"
+                    }
                   >
-                    <FiHeart 
-                      className={likedProfiles.has(userId) ? "fill-current" : ""} 
-                      size={18} 
+                    <FiHeart
+                      className={
+                        likedProfiles.has(userId) ? "fill-current" : ""
+                      }
+                      size={18}
                     />
                   </button>
                   <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
@@ -848,11 +955,17 @@ export default function UserProfile() {
                         ? "bg-red-100 text-red-500"
                         : "bg-gray-100 text-gray-400 hover:bg-gray-200"
                     } transition-colors`}
-                    title={likedProfiles.has(userId) ? "Unlike profile" : "Like profile"}
+                    title={
+                      likedProfiles.has(userId)
+                        ? "Unlike profile"
+                        : "Like profile"
+                    }
                   >
-                    <FiHeart 
-                      className={likedProfiles.has(userId) ? "fill-current" : ""} 
-                      size={18} 
+                    <FiHeart
+                      className={
+                        likedProfiles.has(userId) ? "fill-current" : ""
+                      }
+                      size={18}
                     />
                   </button>
                   <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
@@ -900,11 +1013,17 @@ export default function UserProfile() {
                         ? "bg-red-100 text-red-500"
                         : "bg-gray-100 text-gray-400 hover:bg-gray-200"
                     } transition-colors`}
-                    title={likedProfiles.has(userId) ? "Unlike profile" : "Like profile"}
+                    title={
+                      likedProfiles.has(userId)
+                        ? "Unlike profile"
+                        : "Like profile"
+                    }
                   >
-                    <FiHeart 
-                      className={likedProfiles.has(userId) ? "fill-current" : ""} 
-                      size={18} 
+                    <FiHeart
+                      className={
+                        likedProfiles.has(userId) ? "fill-current" : ""
+                      }
+                      size={18}
                     />
                   </button>
                   <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
@@ -947,11 +1066,17 @@ export default function UserProfile() {
                         ? "bg-red-100 text-red-500"
                         : "bg-gray-100 text-gray-400 hover:bg-gray-200"
                     } transition-colors`}
-                    title={likedProfiles.has(userId) ? "Unlike profile" : "Like profile"}
+                    title={
+                      likedProfiles.has(userId)
+                        ? "Unlike profile"
+                        : "Like profile"
+                    }
                   >
-                    <FiHeart 
-                      className={likedProfiles.has(userId) ? "fill-current" : ""} 
-                      size={18} 
+                    <FiHeart
+                      className={
+                        likedProfiles.has(userId) ? "fill-current" : ""
+                      }
+                      size={18}
                     />
                   </button>
                   <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
@@ -994,11 +1119,17 @@ export default function UserProfile() {
                         ? "bg-red-100 text-red-500"
                         : "bg-gray-100 text-gray-400 hover:bg-gray-200"
                     } transition-colors`}
-                    title={likedProfiles.has(userId) ? "Unlike profile" : "Like profile"}
+                    title={
+                      likedProfiles.has(userId)
+                        ? "Unlike profile"
+                        : "Like profile"
+                    }
                   >
-                    <FiHeart 
-                      className={likedProfiles.has(userId) ? "fill-current" : ""} 
-                      size={18} 
+                    <FiHeart
+                      className={
+                        likedProfiles.has(userId) ? "fill-current" : ""
+                      }
+                      size={18}
                     />
                   </button>
                   <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
@@ -1012,7 +1143,9 @@ export default function UserProfile() {
                           {engagement.title}
                         </h4>
                         <p className="text-red-600">{engagement.event_name}</p>
-                        <p className="text-gray-500">{formatDate(engagement.date)}</p>
+                        <p className="text-gray-500">
+                          {formatDate(engagement.date)}
+                        </p>
                       </div>
                     ))}
                   </div>
@@ -1020,40 +1153,52 @@ export default function UserProfile() {
               )}
 
               {/* Professional Memberships */}
-              {professional_memberships && professional_memberships.length > 0 && (
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 relative">
-                  <button
-                    onClick={() => toggleLike(parseInt(userId))}
-                    className={`absolute top-4 right-4 p-2 rounded-full ${
-                      likedProfiles.has(userId)
-                        ? "bg-red-100 text-red-500"
-                        : "bg-gray-100 text-gray-400 hover:bg-gray-200"
-                    } transition-colors`}
-                    title={likedProfiles.has(userId) ? "Unlike profile" : "Like profile"}
-                  >
-                    <FiHeart 
-                      className={likedProfiles.has(userId) ? "fill-current" : ""} 
-                      size={18} 
-                    />
-                  </button>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
-                    <FiShield className="mr-3 text-teal-500" />
-                    Memberships
-                  </h3>
-                  <div className="space-y-3">
-                    {professional_memberships.slice(0, 3).map((membership) => (
-                      <div key={membership.id} className="text-sm">
-                        <h4 className="font-medium text-gray-900">
-                          {membership.organization}
-                        </h4>
-                        <p className="text-gray-500">
-                          {formatDateRange(membership.start_date, membership.end_date)}
-                        </p>
-                      </div>
-                    ))}
+              {professional_memberships &&
+                professional_memberships.length > 0 && (
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 relative">
+                    <button
+                      onClick={() => toggleLike(parseInt(userId))}
+                      className={`absolute top-4 right-4 p-2 rounded-full ${
+                        likedProfiles.has(userId)
+                          ? "bg-red-100 text-red-500"
+                          : "bg-gray-100 text-gray-400 hover:bg-gray-200"
+                      } transition-colors`}
+                      title={
+                        likedProfiles.has(userId)
+                          ? "Unlike profile"
+                          : "Like profile"
+                      }
+                    >
+                      <FiHeart
+                        className={
+                          likedProfiles.has(userId) ? "fill-current" : ""
+                        }
+                        size={18}
+                      />
+                    </button>
+                    <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
+                      <FiShield className="mr-3 text-teal-500" />
+                      Memberships
+                    </h3>
+                    <div className="space-y-3">
+                      {professional_memberships
+                        .slice(0, 3)
+                        .map((membership) => (
+                          <div key={membership.id} className="text-sm">
+                            <h4 className="font-medium text-gray-900">
+                              {membership.organization}
+                            </h4>
+                            <p className="text-gray-500">
+                              {formatDateRange(
+                                membership.start_date,
+                                membership.end_date
+                              )}
+                            </p>
+                          </div>
+                        ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
               {/* Hobbies & Interests */}
               {hobby_interests && hobby_interests.length > 0 && (
@@ -1065,11 +1210,17 @@ export default function UserProfile() {
                         ? "bg-red-100 text-red-500"
                         : "bg-gray-100 text-gray-400 hover:bg-gray-200"
                     } transition-colors`}
-                    title={likedProfiles.has(userId) ? "Unlike profile" : "Like profile"}
+                    title={
+                      likedProfiles.has(userId)
+                        ? "Unlike profile"
+                        : "Like profile"
+                    }
                   >
-                    <FiHeart 
-                      className={likedProfiles.has(userId) ? "fill-current" : ""} 
-                      size={18} 
+                    <FiHeart
+                      className={
+                        likedProfiles.has(userId) ? "fill-current" : ""
+                      }
+                      size={18}
                     />
                   </button>
                   <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
