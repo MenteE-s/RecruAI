@@ -59,6 +59,7 @@ export default function UserProfile() {
         `${getBackendUrl()}/api/profile/user/${userId}`,
         {
           credentials: "include",
+          headers: getAuthHeaders(),
         }
       );
 

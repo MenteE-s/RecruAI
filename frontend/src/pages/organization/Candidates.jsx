@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
 import Card from "../../components/ui/Card";
-import { getSidebarItems, getBackendUrl } from "../../utils/auth";
+import { getSidebarItems, getBackendUrl, getAuthHeaders } from "../../utils/auth";
 import { useToast } from "../../components/ui/ToastContext";
 import { formatDate } from "../../utils/timezone";
 import {
@@ -47,6 +47,7 @@ export default function Candidates() {
       try {
         const res = await fetch(`${getBackendUrl()}/api/auth/me`, {
           credentials: "include",
+          headers: getAuthHeaders(),
         });
         if (res.ok) {
           const data = await res.json();
@@ -81,6 +82,7 @@ export default function Candidates() {
           `${getBackendUrl()}/api/applications?${params}`,
           {
             credentials: "include",
+            headers: getAuthHeaders(),
           }
         );
 
@@ -127,7 +129,7 @@ export default function Candidates() {
           `${getBackendUrl()}/api/applications/${appId}`,
           {
             method: "PUT",
-            headers: { "Content-Type": "application/json" },
+            headers: getAuthHeaders({ "Content-Type": "application/json" }),
             credentials: "include",
             body: JSON.stringify({ status }),
           }
@@ -163,6 +165,7 @@ export default function Candidates() {
           `${getBackendUrl()}/api/users/${userId}/full-profile`,
           {
             credentials: "include",
+            headers: getAuthHeaders(),
           }
         );
 
@@ -206,7 +209,7 @@ export default function Candidates() {
 
       const response = await fetch(`${getBackendUrl()}/api/interviews`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders({ "Content-Type": "application/json" }),
         credentials: "include",
         body: JSON.stringify(payload),
       });
@@ -271,9 +274,7 @@ export default function Candidates() {
         {
           method: "POST",
           credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: getAuthHeaders({ "Content-Type": "application/json" }),
         }
       );
 
