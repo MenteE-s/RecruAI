@@ -31,6 +31,8 @@ export default function UserProfile() {
   const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [likedProfiles, setLikedProfiles] = useState(new Set());
 
   const fetchProfileData = useCallback(async () => {
     try {
@@ -57,9 +59,84 @@ export default function UserProfile() {
     }
   }, [userId]);
 
+  // Fetch current user data
+  const fetchCurrentUser = useCallback(async () => {
+    try {
+      const response = await fetch(`${getBackendUrl()}/api/auth/me`, {
+        credentials: "include",
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setCurrentUser(data.user);
+      }
+    } catch (err) {
+      console.error("Error fetching current user:", err);
+    }
+  }, []);
+
+  // Check if profile is liked
+  const checkIfLiked = useCallback(async () => {
+    if (!currentUser || !userId) return;
+
+    try {
+      const response = await fetch(
+        `${getBackendUrl()}/api/users/${currentUser.id}/is-favorite/${userId}`,
+        {
+          credentials: "include",
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.favorited) {
+          setLikedProfiles(prev => new Set(prev).add(userId));
+        }
+      }
+    } catch (err) {
+      console.error("Error checking if profile is liked:", err);
+    }
+  }, [currentUser, userId]);
+
   useEffect(() => {
     fetchProfileData();
-  }, [fetchProfileData]);
+    fetchCurrentUser();
+  }, [fetchProfileData, fetchCurrentUser]);
+
+  useEffect(() => {
+    if (currentUser && userId) {
+      checkIfLiked();
+    }
+  }, [checkIfLiked, currentUser, userId]);
+
+  const toggleLike = async (targetUserId) => {
+    if (!currentUser) return;
+
+    try {
+      const response = await fetch(
+        `${getBackendUrl()}/api/users/${currentUser.id}/toggle-favorite/${targetUserId}`,
+        {
+          method: "POST",
+          credentials: "include",
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.favorited) {
+          setLikedProfiles(prev => new Set(prev).add(targetUserId));
+        } else {
+          setLikedProfiles(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(targetUserId);
+            return newSet;
+          });
+        }
+      }
+    } catch (err) {
+      console.error("Error toggling like:", err);
+    }
+  };
 
   const formatDate = (dateString) => {
     if (!dateString) return "Present";
@@ -164,6 +241,7 @@ export default function UserProfile() {
 
         {/* Hero Header */}
         <div className="bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 text-white">
+          {/* Banner Section */}
           {user.banner && (
             <div className="w-full h-48 overflow-hidden">
               <img 
@@ -188,30 +266,50 @@ export default function UserProfile() {
                 </div>
               )}
               <div className="flex-1">
-                <h1 className="text-4xl md:text-5xl font-bold mb-2">
-                  {user.name || user.email}
-                </h1>
-                <div className="flex flex-wrap gap-4 text-white/90">
-                  {/* Team Membership Status */}
-                  <span
-                    className={`px-4 py-2 rounded-full text-sm font-medium ${
-                      is_team_member
-                        ? "bg-green-500/80 text-white"
-                        : "bg-orange-500/80 text-white"
-                    }`}
-                  >
-                    {is_team_member ? "In Your Team" : "Not In Your Team"}
-                  </span>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h1 className="text-4xl md:text-5xl font-bold mb-2">
+                      {user.name || user.email}
+                    </h1>
+                    <div className="flex flex-wrap gap-4 text-white/90">
+                      {/* Team Membership Status */}
+                      <span
+                        className={`px-4 py-2 rounded-full text-sm font-medium ${
+                          is_team_member
+                            ? "bg-green-500/80 text-white"
+                            : "bg-orange-500/80 text-white"
+                        }`}
+                      >
+                        {is_team_member ? "In Your Team" : "Not In Your Team"}
+                      </span>
 
-                  {team_member_info && (
-                    <>
-                      <span className="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full text-sm font-medium">
-                        {team_member_info.role}
-                      </span>
-                      <span className="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full text-sm">
-                        Joined {formatDate(team_member_info.join_date)}
-                      </span>
-                    </>
+                      {team_member_info && (
+                        <>
+                          <span className="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full text-sm font-medium">
+                            {team_member_info.role}
+                          </span>
+                          <span className="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full text-sm">
+                            Joined {formatDate(team_member_info.join_date)}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  {currentUser && currentUser.id !== parseInt(userId) && (
+                    <button
+                      onClick={() => toggleLike(parseInt(userId))}
+                      className={`p-3 rounded-full ${
+                        likedProfiles.has(userId)
+                          ? "bg-red-500 text-white"
+                          : "bg-white/20 text-white hover:bg-white/30"
+                      } transition-colors`}
+                      title={likedProfiles.has(userId) ? "Unlike profile" : "Like profile"}
+                    >
+                      <FiHeart 
+                        className={likedProfiles.has(userId) ? "fill-current" : ""} 
+                        size={24} 
+                      />
+                    </button>
                   )}
                 </div>
                 <div className="flex items-center gap-4 mt-4">
@@ -249,7 +347,21 @@ export default function UserProfile() {
             {/* Left Column - Summary & Skills */}
             <div className="lg:col-span-1 space-y-6">
               {/* Quick Stats Card */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 relative">
+                <button
+                  onClick={() => toggleLike(parseInt(userId))}
+                  className={`absolute top-4 right-4 p-2 rounded-full ${
+                    likedProfiles.has(userId)
+                      ? "bg-red-100 text-red-500"
+                      : "bg-gray-100 text-gray-400 hover:bg-gray-200"
+                  } transition-colors`}
+                  title={likedProfiles.has(userId) ? "Unlike profile" : "Like profile"}
+                >
+                  <FiHeart 
+                    className={likedProfiles.has(userId) ? "fill-current" : ""} 
+                    size={18} 
+                  />
+                </button>
                 <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                   <FiStar className="mr-2 text-yellow-500" />
                   Profile Summary
@@ -284,7 +396,21 @@ export default function UserProfile() {
 
               {/* Skills Card */}
               {skills && skills.length > 0 && (
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 relative">
+                  <button
+                    onClick={() => toggleLike(parseInt(userId))}
+                    className={`absolute top-4 right-4 p-2 rounded-full ${
+                      likedProfiles.has(userId)
+                        ? "bg-red-100 text-red-500"
+                        : "bg-gray-100 text-gray-400 hover:bg-gray-200"
+                    } transition-colors`}
+                    title={likedProfiles.has(userId) ? "Unlike profile" : "Like profile"}
+                  >
+                    <FiHeart 
+                      className={likedProfiles.has(userId) ? "fill-current" : ""} 
+                      size={18} 
+                    />
+                  </button>
                   <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                     <FiCode className="mr-2 text-blue-500" />
                     Skills & Expertise
@@ -326,7 +452,21 @@ export default function UserProfile() {
 
               {/* Languages Card */}
               {languages && languages.length > 0 && (
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 relative">
+                  <button
+                    onClick={() => toggleLike(parseInt(userId))}
+                    className={`absolute top-4 right-4 p-2 rounded-full ${
+                      likedProfiles.has(userId)
+                        ? "bg-red-100 text-red-500"
+                        : "bg-gray-100 text-gray-400 hover:bg-gray-200"
+                    } transition-colors`}
+                    title={likedProfiles.has(userId) ? "Unlike profile" : "Like profile"}
+                  >
+                    <FiHeart 
+                      className={likedProfiles.has(userId) ? "fill-current" : ""} 
+                      size={18} 
+                    />
+                  </button>
                   <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                     <FiGlobe className="mr-2 text-green-500" />
                     Languages
@@ -354,7 +494,21 @@ export default function UserProfile() {
             <div className="lg:col-span-2 space-y-6">
               {/* Experience Timeline */}
               {experiences && experiences.length > 0 && (
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 relative">
+                  <button
+                    onClick={() => toggleLike(parseInt(userId))}
+                    className={`absolute top-4 right-4 p-2 rounded-full ${
+                      likedProfiles.has(userId)
+                        ? "bg-red-100 text-red-500"
+                        : "bg-gray-100 text-gray-400 hover:bg-gray-200"
+                    } transition-colors`}
+                    title={likedProfiles.has(userId) ? "Unlike profile" : "Like profile"}
+                  >
+                    <FiHeart 
+                      className={likedProfiles.has(userId) ? "fill-current" : ""} 
+                      size={18} 
+                    />
+                  </button>
                   <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
                     <FiBriefcase className="mr-3 text-blue-500" />
                     Professional Experience
@@ -404,224 +558,114 @@ export default function UserProfile() {
                 </div>
               )}
 
-              {/* Education Section */}
+              {/* Education */}
               {educations && educations.length > 0 && (
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 relative">
+                  <button
+                    onClick={() => toggleLike(parseInt(userId))}
+                    className={`absolute top-4 right-4 p-2 rounded-full ${
+                      likedProfiles.has(userId)
+                        ? "bg-red-100 text-red-500"
+                        : "bg-gray-100 text-gray-400 hover:bg-gray-200"
+                    } transition-colors`}
+                    title={likedProfiles.has(userId) ? "Unlike profile" : "Like profile"}
+                  >
+                    <FiHeart 
+                      className={likedProfiles.has(userId) ? "fill-current" : ""} 
+                      size={18} 
+                    />
+                  </button>
                   <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
-                    <FiBook className="mr-3 text-green-500" />
+                    <FiBook className="mr-3 text-purple-500" />
                     Education
                   </h3>
-                  <div className="grid gap-6">
+                  <div className="space-y-6">
                     {educations.map((edu) => (
-                      <div
-                        key={edu.id}
-                        className="border-l-4 border-green-500 pl-6 py-2"
-                      >
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2">
+                      <div key={edu.id} className="flex gap-4">
+                        <div className="flex-shrink-0 w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+                          <FiBook className="text-purple-600" />
+                        </div>
+                        <div className="flex-1">
                           <h4 className="text-lg font-semibold text-gray-900">
                             {edu.degree}
                           </h4>
-                          <span className="text-sm text-gray-500 bg-green-50 px-3 py-1 rounded-full">
+                          <p className="text-purple-600 font-medium">
+                            {edu.school}
+                          </p>
+                          <p className="text-gray-600 text-sm">
                             {formatDateRange(edu.start_date, edu.end_date)}
-                          </span>
+                          </p>
+                          {edu.field_of_study && (
+                            <p className="text-gray-700 mt-1">
+                              Field of Study: {edu.field_of_study}
+                            </p>
+                          )}
+                          {edu.grade && (
+                            <p className="text-gray-700 mt-1">Grade: {edu.grade}</p>
+                          )}
+                          {edu.activities_and_societies && (
+                            <p className="text-gray-700 mt-1">
+                              Activities: {edu.activities_and_societies}
+                            </p>
+                          )}
+                          {edu.description && (
+                            <p className="text-gray-700 mt-2">
+                              {edu.description}
+                            </p>
+                          )}
                         </div>
-                        <p className="text-green-600 font-medium mb-1">
-                          {edu.school}
-                        </p>
-                        {edu.field && (
-                          <p className="text-gray-600 mb-1">{edu.field}</p>
-                        )}
-                        {edu.gpa && (
-                          <p className="text-sm text-gray-500 mb-1">
-                            🎓 GPA: {edu.gpa}
-                          </p>
-                        )}
-                        {edu.achievements && (
-                          <p className="text-gray-700 text-sm leading-relaxed mt-2">
-                            {edu.achievements}
-                          </p>
-                        )}
                       </div>
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* Projects Grid */}
+              {/* Projects */}
               {projects && projects.length > 0 && (
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 relative">
+                  <button
+                    onClick={() => toggleLike(parseInt(userId))}
+                    className={`absolute top-4 right-4 p-2 rounded-full ${
+                      likedProfiles.has(userId)
+                        ? "bg-red-100 text-red-500"
+                        : "bg-gray-100 text-gray-400 hover:bg-gray-200"
+                    } transition-colors`}
+                    title={likedProfiles.has(userId) ? "Unlike profile" : "Like profile"}
+                  >
+                    <FiHeart 
+                      className={likedProfiles.has(userId) ? "fill-current" : ""} 
+                      size={18} 
+                    />
+                  </button>
                   <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
-                    <FiFolder className="mr-3 text-purple-500" />
-                    Projects & Portfolio
+                    <FiFolder className="mr-3 text-indigo-500" />
+                    Projects
                   </h3>
-                  <div className="grid gap-6 md:grid-cols-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {projects.map((project) => (
                       <div
                         key={project.id}
                         className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
                       >
-                        <h4 className="text-lg font-semibold text-gray-900 mb-2">
+                        <h4 className="font-semibold text-gray-900">
                           {project.name}
                         </h4>
+                        <p className="text-gray-600 text-sm mt-1">
+                          {formatDateRange(project.start_date, project.end_date)}
+                        </p>
                         {project.description && (
-                          <p className="text-gray-700 text-sm mb-3 leading-relaxed">
+                          <p className="text-gray-700 mt-2 text-sm">
                             {project.description}
                           </p>
                         )}
-                        {project.technologies &&
-                          project.technologies.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mb-3">
-                              {project.technologies.map((tech, index) => (
-                                <span
-                                  key={index}
-                                  className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs font-medium"
-                                >
-                                  {tech}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                        <div className="flex gap-3 text-sm">
-                          {project.github_url && (
-                            <a
-                              href={project.github_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-purple-600 hover:text-purple-800 font-medium"
-                            >
-                              🔗 GitHub
-                            </a>
-                          )}
-                          {project.demo_url && (
-                            <a
-                              href={project.demo_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-purple-600 hover:text-purple-800 font-medium"
-                            >
-                              🌐 Demo
-                            </a>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Certifications & Awards */}
-              <div className="grid gap-6 md:grid-cols-2">
-                {/* Certifications */}
-                {certifications && certifications.length > 0 && (
-                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                      <FiAward className="mr-2 text-yellow-500" />
-                      Certifications
-                    </h3>
-                    <div className="space-y-4">
-                      {certifications.map((cert) => (
-                        <div
-                          key={cert.id}
-                          className="border-l-4 border-yellow-500 pl-4"
-                        >
-                          <h4 className="font-semibold text-gray-900">
-                            {cert.name}
-                          </h4>
-                          <p className="text-yellow-600 text-sm mb-1">
-                            {cert.issuer}
-                          </p>
-                          <p className="text-gray-500 text-xs">
-                            Obtained: {formatDate(cert.date_obtained)}
-                          </p>
-                          {cert.expiry_date && (
-                            <p className="text-gray-500 text-xs">
-                              Expires: {formatDate(cert.expiry_date)}
-                            </p>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Awards */}
-                {awards && awards.length > 0 && (
-                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                      <FiStar className="mr-2 text-orange-500" />
-                      Awards & Recognition
-                    </h3>
-                    <div className="space-y-4">
-                      {awards.map((award) => (
-                        <div
-                          key={award.id}
-                          className="border-l-4 border-orange-500 pl-4"
-                        >
-                          <h4 className="font-semibold text-gray-900">
-                            {award.title}
-                          </h4>
-                          <p className="text-orange-600 text-sm mb-1">
-                            {award.issuer}
-                          </p>
-                          <p className="text-gray-500 text-xs">
-                            {formatDate(award.date)}
-                          </p>
-                          {award.description && (
-                            <p className="text-gray-700 text-sm mt-1">
-                              {award.description}
-                            </p>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Publications */}
-              {publications && publications.length > 0 && (
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                  <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
-                    <FiFileText className="mr-3 text-indigo-500" />
-                    Publications & Research
-                  </h3>
-                  <div className="space-y-4">
-                    {publications.map((pub) => (
-                      <div
-                        key={pub.id}
-                        className="border border-gray-200 rounded-lg p-4"
-                      >
-                        <h4 className="text-lg font-semibold text-gray-900 mb-2">
-                          {pub.title}
-                        </h4>
-                        {pub.journal && (
-                          <p className="text-indigo-600 font-medium mb-1">
-                            {pub.journal}
-                          </p>
-                        )}
-                        {pub.authors && pub.authors.length > 0 && (
-                          <p className="text-gray-600 text-sm mb-1">
-                            👥 {pub.authors.join(", ")}
-                          </p>
-                        )}
-                        {pub.year && (
-                          <p className="text-gray-500 text-sm mb-2">
-                            📅 {pub.year}
-                          </p>
-                        )}
-                        {pub.abstract && (
-                          <p className="text-gray-700 text-sm leading-relaxed mb-3">
-                            {pub.abstract}
-                          </p>
-                        )}
-                        {pub.publication_url && (
+                        {project.link && (
                           <a
-                            href={pub.publication_url}
+                            href={project.link}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center text-indigo-600 hover:text-indigo-800 font-medium text-sm"
+                            className="text-indigo-600 hover:text-indigo-800 text-sm mt-2 inline-block"
                           >
-                            📖 Read Publication →
+                            View Project ↗
                           </a>
                         )}
                       </div>
@@ -630,81 +674,420 @@ export default function UserProfile() {
                 </div>
               )}
 
-              {/* Additional Sections Grid */}
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {/* Speaking Engagements */}
-                {speaking_engagements && speaking_engagements.length > 0 && (
-                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                      <FiMic className="mr-2 text-red-500" />
-                      Speaking
-                    </h3>
-                    <div className="space-y-3">
-                      {speaking_engagements.slice(0, 3).map((engagement) => (
-                        <div key={engagement.id} className="text-sm">
-                          <h4 className="font-medium text-gray-900">
-                            {engagement.title}
-                          </h4>
-                          <p className="text-red-600">
-                            {engagement.event_name}
-                          </p>
-                          <p className="text-gray-500">
-                            {formatDate(engagement.date)}
-                          </p>
+              {/* Certifications */}
+              {certifications && certifications.length > 0 && (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 relative">
+                  <button
+                    onClick={() => toggleLike(parseInt(userId))}
+                    className={`absolute top-4 right-4 p-2 rounded-full ${
+                      likedProfiles.has(userId)
+                        ? "bg-red-100 text-red-500"
+                        : "bg-gray-100 text-gray-400 hover:bg-gray-200"
+                    } transition-colors`}
+                    title={likedProfiles.has(userId) ? "Unlike profile" : "Like profile"}
+                  >
+                    <FiHeart 
+                      className={likedProfiles.has(userId) ? "fill-current" : ""} 
+                      size={18} 
+                    />
+                  </button>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
+                    <FiAward className="mr-3 text-yellow-500" />
+                    Certifications
+                  </h3>
+                  <div className="space-y-4">
+                    {certifications.map((cert) => (
+                      <div key={cert.id} className="flex gap-4">
+                        <div className="flex-shrink-0 w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
+                          <FiAward className="text-yellow-600" />
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Professional Memberships */}
-                {professional_memberships &&
-                  professional_memberships.length > 0 && (
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                        <FiShield className="mr-2 text-teal-500" />
-                        Memberships
-                      </h3>
-                      <div className="space-y-3">
-                        {professional_memberships
-                          .slice(0, 3)
-                          .map((membership) => (
-                            <div key={membership.id} className="text-sm">
-                              <h4 className="font-medium text-gray-900">
-                                {membership.organization}
-                              </h4>
-                              <p className="text-gray-500">
-                                {formatDateRange(
-                                  membership.start_date,
-                                  membership.end_date
-                                )}
-                              </p>
-                            </div>
-                          ))}
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-gray-900">
+                            {cert.name}
+                          </h4>
+                          <p className="text-yellow-600">{cert.organization}</p>
+                          <p className="text-gray-600 text-sm">
+                            {formatDate(cert.issue_date)}
+                            {cert.expiration_date && (
+                              <span> - {formatDate(cert.expiration_date)}</span>
+                            )}
+                          </p>
+                          {cert.credential_id && (
+                            <p className="text-gray-700 text-sm mt-1">
+                              Credential ID: {cert.credential_id}
+                            </p>
+                          )}
+                          {cert.credential_url && (
+                            <a
+                              href={cert.credential_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-yellow-600 hover:text-yellow-800 text-sm mt-1 inline-block"
+                            >
+                              View Credential ↗
+                            </a>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  )}
-
-                {/* Hobbies & Interests */}
-                {hobby_interests && hobby_interests.length > 0 && (
-                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                      <FiHeart className="mr-2 text-pink-500" />
-                      Interests
-                    </h3>
-                    <div className="flex flex-wrap gap-2">
-                      {hobby_interests.slice(0, 6).map((hobby) => (
-                        <span
-                          key={hobby.id}
-                          className="bg-pink-100 text-pink-800 px-3 py-1 rounded-full text-sm"
-                        >
-                          {hobby.name}
-                        </span>
-                      ))}
-                    </div>
+                    ))}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
+
+              {/* Awards */}
+              {awards && awards.length > 0 && (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 relative">
+                  <button
+                    onClick={() => toggleLike(parseInt(userId))}
+                    className={`absolute top-4 right-4 p-2 rounded-full ${
+                      likedProfiles.has(userId)
+                        ? "bg-red-100 text-red-500"
+                        : "bg-gray-100 text-gray-400 hover:bg-gray-200"
+                    } transition-colors`}
+                    title={likedProfiles.has(userId) ? "Unlike profile" : "Like profile"}
+                  >
+                    <FiHeart 
+                      className={likedProfiles.has(userId) ? "fill-current" : ""} 
+                      size={18} 
+                    />
+                  </button>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
+                    <FiStar className="mr-3 text-amber-500" />
+                    Awards
+                  </h3>
+                  <div className="space-y-4">
+                    {awards.map((award) => (
+                      <div key={award.id} className="flex gap-4">
+                        <div className="flex-shrink-0 w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center">
+                          <FiStar className="text-amber-600" />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-gray-900">
+                            {award.title}
+                          </h4>
+                          <p className="text-amber-600">{award.organization}</p>
+                          <p className="text-gray-600 text-sm">
+                            {formatDate(award.issue_date)}
+                          </p>
+                          {award.description && (
+                            <p className="text-gray-700 mt-2">
+                              {award.description}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Publications */}
+              {publications && publications.length > 0 && (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 relative">
+                  <button
+                    onClick={() => toggleLike(parseInt(userId))}
+                    className={`absolute top-4 right-4 p-2 rounded-full ${
+                      likedProfiles.has(userId)
+                        ? "bg-red-100 text-red-500"
+                        : "bg-gray-100 text-gray-400 hover:bg-gray-200"
+                    } transition-colors`}
+                    title={likedProfiles.has(userId) ? "Unlike profile" : "Like profile"}
+                  >
+                    <FiHeart 
+                      className={likedProfiles.has(userId) ? "fill-current" : ""} 
+                      size={18} 
+                    />
+                  </button>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
+                    <FiFileText className="mr-3 text-emerald-500" />
+                    Publications
+                  </h3>
+                  <div className="space-y-4">
+                    {publications.map((pub) => (
+                      <div key={pub.id} className="flex gap-4">
+                        <div className="flex-shrink-0 w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center">
+                          <FiFileText className="text-emerald-600" />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-gray-900">
+                            {pub.title}
+                          </h4>
+                          <p className="text-emerald-600">{pub.publisher}</p>
+                          <p className="text-gray-600 text-sm">
+                            {formatDate(pub.publication_date)}
+                          </p>
+                          {pub.description && (
+                            <p className="text-gray-700 mt-2">
+                              {pub.description}
+                            </p>
+                          )}
+                          {pub.link && (
+                            <a
+                              href={pub.link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-emerald-600 hover:text-emerald-800 text-sm mt-1 inline-block"
+                            >
+                              View Publication ↗
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Volunteer Experience */}
+              {volunteer_experiences && volunteer_experiences.length > 0 && (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 relative">
+                  <button
+                    onClick={() => toggleLike(parseInt(userId))}
+                    className={`absolute top-4 right-4 p-2 rounded-full ${
+                      likedProfiles.has(userId)
+                        ? "bg-red-100 text-red-500"
+                        : "bg-gray-100 text-gray-400 hover:bg-gray-200"
+                    } transition-colors`}
+                    title={likedProfiles.has(userId) ? "Unlike profile" : "Like profile"}
+                  >
+                    <FiHeart 
+                      className={likedProfiles.has(userId) ? "fill-current" : ""} 
+                      size={18} 
+                    />
+                  </button>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
+                    <FiHeart className="mr-3 text-rose-500" />
+                    Volunteer Experience
+                  </h3>
+                  <div className="space-y-4">
+                    {volunteer_experiences.map((vol) => (
+                      <div key={vol.id} className="flex gap-4">
+                        <div className="flex-shrink-0 w-12 h-12 bg-rose-100 rounded-full flex items-center justify-center">
+                          <FiHeart className="text-rose-600" />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-gray-900">
+                            {vol.role}
+                          </h4>
+                          <p className="text-rose-600">{vol.organization}</p>
+                          <p className="text-gray-600 text-sm">
+                            {formatDateRange(vol.start_date, vol.end_date)}
+                          </p>
+                          {vol.cause && (
+                            <p className="text-gray-700 text-sm mt-1">
+                              Cause: {vol.cause}
+                            </p>
+                          )}
+                          {vol.description && (
+                            <p className="text-gray-700 mt-2">
+                              {vol.description}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Courses & Trainings */}
+              {course_trainings && course_trainings.length > 0 && (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 relative">
+                  <button
+                    onClick={() => toggleLike(parseInt(userId))}
+                    className={`absolute top-4 right-4 p-2 rounded-full ${
+                      likedProfiles.has(userId)
+                        ? "bg-red-100 text-red-500"
+                        : "bg-gray-100 text-gray-400 hover:bg-gray-200"
+                    } transition-colors`}
+                    title={likedProfiles.has(userId) ? "Unlike profile" : "Like profile"}
+                  >
+                    <FiHeart 
+                      className={likedProfiles.has(userId) ? "fill-current" : ""} 
+                      size={18} 
+                    />
+                  </button>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
+                    <FiBook className="mr-3 text-cyan-500" />
+                    Courses & Training
+                  </h3>
+                  <div className="space-y-4">
+                    {course_trainings.map((course) => (
+                      <div key={course.id} className="flex gap-4">
+                        <div className="flex-shrink-0 w-12 h-12 bg-cyan-100 rounded-full flex items-center justify-center">
+                          <FiBook className="text-cyan-600" />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-gray-900">
+                            {course.name}
+                          </h4>
+                          <p className="text-cyan-600">{course.provider}</p>
+                          <p className="text-gray-600 text-sm">
+                            {formatDate(course.completion_date)}
+                          </p>
+                          {course.description && (
+                            <p className="text-gray-700 mt-2">
+                              {course.description}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Conferences */}
+              {conferences && conferences.length > 0 && (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 relative">
+                  <button
+                    onClick={() => toggleLike(parseInt(userId))}
+                    className={`absolute top-4 right-4 p-2 rounded-full ${
+                      likedProfiles.has(userId)
+                        ? "bg-red-100 text-red-500"
+                        : "bg-gray-100 text-gray-400 hover:bg-gray-200"
+                    } transition-colors`}
+                    title={likedProfiles.has(userId) ? "Unlike profile" : "Like profile"}
+                  >
+                    <FiHeart 
+                      className={likedProfiles.has(userId) ? "fill-current" : ""} 
+                      size={18} 
+                    />
+                  </button>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
+                    <FiMic className="mr-3 text-violet-500" />
+                    Conferences
+                  </h3>
+                  <div className="space-y-4">
+                    {conferences.map((conf) => (
+                      <div key={conf.id} className="flex gap-4">
+                        <div className="flex-shrink-0 w-12 h-12 bg-violet-100 rounded-full flex items-center justify-center">
+                          <FiMic className="text-violet-600" />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-gray-900">
+                            {conf.name}
+                          </h4>
+                          <p className="text-violet-600">{conf.organization}</p>
+                          <p className="text-gray-600 text-sm">
+                            {formatDate(conf.date)}
+                          </p>
+                          {conf.description && (
+                            <p className="text-gray-700 mt-2">
+                              {conf.description}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Speaking Engagements */}
+              {speaking_engagements && speaking_engagements.length > 0 && (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 relative">
+                  <button
+                    onClick={() => toggleLike(parseInt(userId))}
+                    className={`absolute top-4 right-4 p-2 rounded-full ${
+                      likedProfiles.has(userId)
+                        ? "bg-red-100 text-red-500"
+                        : "bg-gray-100 text-gray-400 hover:bg-gray-200"
+                    } transition-colors`}
+                    title={likedProfiles.has(userId) ? "Unlike profile" : "Like profile"}
+                  >
+                    <FiHeart 
+                      className={likedProfiles.has(userId) ? "fill-current" : ""} 
+                      size={18} 
+                    />
+                  </button>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
+                    <FiMic className="mr-3 text-red-500" />
+                    Speaking Engagements
+                  </h3>
+                  <div className="space-y-3">
+                    {speaking_engagements.slice(0, 3).map((engagement) => (
+                      <div key={engagement.id} className="text-sm">
+                        <h4 className="font-medium text-gray-900">
+                          {engagement.title}
+                        </h4>
+                        <p className="text-red-600">{engagement.event_name}</p>
+                        <p className="text-gray-500">{formatDate(engagement.date)}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Professional Memberships */}
+              {professional_memberships && professional_memberships.length > 0 && (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 relative">
+                  <button
+                    onClick={() => toggleLike(parseInt(userId))}
+                    className={`absolute top-4 right-4 p-2 rounded-full ${
+                      likedProfiles.has(userId)
+                        ? "bg-red-100 text-red-500"
+                        : "bg-gray-100 text-gray-400 hover:bg-gray-200"
+                    } transition-colors`}
+                    title={likedProfiles.has(userId) ? "Unlike profile" : "Like profile"}
+                  >
+                    <FiHeart 
+                      className={likedProfiles.has(userId) ? "fill-current" : ""} 
+                      size={18} 
+                    />
+                  </button>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
+                    <FiShield className="mr-3 text-teal-500" />
+                    Memberships
+                  </h3>
+                  <div className="space-y-3">
+                    {professional_memberships.slice(0, 3).map((membership) => (
+                      <div key={membership.id} className="text-sm">
+                        <h4 className="font-medium text-gray-900">
+                          {membership.organization}
+                        </h4>
+                        <p className="text-gray-500">
+                          {formatDateRange(membership.start_date, membership.end_date)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Hobbies & Interests */}
+              {hobby_interests && hobby_interests.length > 0 && (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 relative">
+                  <button
+                    onClick={() => toggleLike(parseInt(userId))}
+                    className={`absolute top-4 right-4 p-2 rounded-full ${
+                      likedProfiles.has(userId)
+                        ? "bg-red-100 text-red-500"
+                        : "bg-gray-100 text-gray-400 hover:bg-gray-200"
+                    } transition-colors`}
+                    title={likedProfiles.has(userId) ? "Unlike profile" : "Like profile"}
+                  >
+                    <FiHeart 
+                      className={likedProfiles.has(userId) ? "fill-current" : ""} 
+                      size={18} 
+                    />
+                  </button>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                    <FiHeart className="mr-2 text-pink-500" />
+                    Interests
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {hobby_interests.slice(0, 6).map((hobby) => (
+                      <span
+                        key={hobby.id}
+                        className="bg-pink-100 text-pink-800 px-3 py-1 rounded-full text-sm"
+                      >
+                        {hobby.name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

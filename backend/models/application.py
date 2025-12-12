@@ -1,7 +1,5 @@
 from datetime import datetime
-
-from ..extensions import db
-
+from backend.extensions import db
 
 class Application(db.Model):
     __tablename__ = "applications"
@@ -15,6 +13,8 @@ class Application(db.Model):
     pipeline_stage = db.Column(db.String(50), default="applied")  # applied, screening, interview_scheduled, interview_completed, offer_extended, offer_accepted, hired, rejected
     applied_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    # Add onboarding status field
+    onboarded = db.Column(db.Boolean, default=False)  # Track if candidate has been onboarded
 
     user = db.relationship("User", backref="applications")
     post = db.relationship("Post", backref="applications")
@@ -30,6 +30,7 @@ class Application(db.Model):
             "pipeline_stage": self.pipeline_stage,
             "applied_at": self.applied_at.isoformat() if self.applied_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "onboarded": self.onboarded,  # Include in dict representation
             "user": {
                 "id": self.user.id if self.user else None,
                 "name": self.user.name if self.user else None,

@@ -5,7 +5,8 @@ from ...extensions import db
 from ...models import (
     User, Experience, Education, Skill, Project, Certification,
     Award, Language, VolunteerExperience, Reference, HobbyInterest,
-    ProfessionalMembership, Patent, CourseTraining, SocialMediaLink, KeyAchievement
+    ProfessionalMembership, Patent, CourseTraining, SocialMediaLink, KeyAchievement,
+    Favorite
 )
 from ...utils.timezone_utils import get_timezone_list, is_valid_timezone, get_current_time_info
 from ...utils.security import log_security_event, sanitize_input, validate_email, validate_request_size
@@ -160,3 +161,74 @@ def get_user_full_profile(user_id):
     }
 
     return jsonify(profile_data), 200
+
+
+@api_bp.route("/users/<int:user_id>/toggle-favorite/<int:target_user_id>", methods=["POST"])
+def toggle_favorite(user_id, target_user_id):
+    """Toggle favorite status for a user"""
+    # Check if the favorite relationship already exists
+    favorite = Favorite.query.filter_by(
+        user_id=user_id, 
+        target_user_id=target_user_id
+    ).first()
+    
+    if favorite:
+        # If favorite exists, remove it (unfavorite)
+        db.session.delete(favorite)
+        db.session.commit()
+        return jsonify({
+            "favorited": False,
+            "message": "User unfavorited successfully"
+        }), 200
+    else:
+        # If favorite doesn't exist, create it (favorite)
+        # Check if both users exist
+        user = User.query.get_or_404(user_id)
+        target_user = User.query.get_or_404(target_user_id)
+        
+        favorite = Favorite(
+            user_id=user_id,
+            target_user_id=target_user_id
+        )
+        db.session.add(favorite)
+        db.session.commit()
+        return jsonify({
+            "favorited": True,
+            "message": "User favorited successfully"
+        }), 201
+
+
+@api_bp.route("/users/<int:user_id>/favorites", methods=["GET"])
+def get_favorites(user_id):
+    """Get list of favorited users for a specific user"""
+    user = User.query.get_or_404(user_id)
+    
+    # Get pagination parameters
+    page, per_page = get_pagination_params()
+    
+    # Build query for favorites
+    query = Favorite.query.filter_by(user_id=user_id)
+    
+    # Apply pagination
+    pagination_result = Pagination(query, page=page, per_page=per_page).paginate()
+    
+    # Convert favorites to user objects
+    favorited_users = []
+    for fav in pagination_result['items']:
+        favorited_users.append(fav.target_user.to_dict())
+    
+    # Return paginated response
+    return jsonify(paginated_response(favorited_users, pagination_result['pagination'])), 200
+
+
+@api_bp.route("/users/<int:user_id>/is-favorite/<int:target_user_id>", methods=["GET"])
+def is_favorite(user_id, target_user_id):
+    """Check if a user is favorited by another user"""
+    favorite = Favorite.query.filter_by(
+        user_id=user_id,
+        target_user_id=target_user_id
+    ).first()
+    
+    return jsonify({
+        "favorited": favorite is not None
+    }), 200

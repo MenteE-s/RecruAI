@@ -4,7 +4,7 @@ import DashboardLayout from "../../components/layout/DashboardLayout";
 import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
 import Card from "../../components/ui/Card";
 import { getSidebarItems, getBackendUrl } from "../../utils/auth";
-import { FiPlus, FiEdit2, FiTrash2, FiUsers, FiEye } from "react-icons/fi";
+import { FiPlus, FiEdit2, FiTrash2, FiUsers, FiEye, FiCheckCircle, FiXCircle } from "react-icons/fi";
 
 // Modal Component
 const Modal = ({ isOpen, onClose, children }) => {
@@ -48,9 +48,11 @@ export default function TeamMembers() {
   const sidebarItems = getSidebarItems(role, plan);
 
   const [teamMembers, setTeamMembers] = useState([]);
+  const [candidates, setCandidates] = useState([]); // Added to show hired candidates
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [organizationId, setOrganizationId] = useState(null);
+  const [activeTab, setActiveTab] = useState("team"); // Toggle between team members and candidates
 
   // Modal states
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -115,11 +117,45 @@ export default function TeamMembers() {
     }
   };
 
+  // Load hired candidates
+  const loadHiredCandidates = async () => {
+    if (!organizationId) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch(
+        `${getBackendUrl()}/api/applications?status=hired&organization_id=${organizationId}`,
+        {
+          credentials: "include",
+        }
+      );
+
+      if (response.ok) {
+        const result = await response.json();
+        setCandidates(result.data || []);
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        setError(errorData.error || "Failed to load hired candidates");
+      }
+    } catch (err) {
+      console.error("Error loading hired candidates:", err);
+      setError("Network error. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (organizationId) {
-      loadTeamMembers();
+      if (activeTab === "team") {
+        loadTeamMembers();
+      } else {
+        loadHiredCandidates();
+      }
     }
-  }, [organizationId]);
+  }, [organizationId, activeTab]);
 
   // Invite team member
   const inviteMember = async (formData) => {
@@ -212,421 +248,420 @@ export default function TeamMembers() {
         loadTeamMembers(); // Refresh list
       } else {
         const errorData = await response.json().catch(() => ({}));
-        setError(errorData.error || "Failed to remove member");
+        setError(errorData.error || "Failed to delete member");
       }
     } catch (err) {
-      console.error("Error removing member:", err);
+      console.error("Error deleting member:", err);
       setError("Network error. Please try again.");
     } finally {
       setSaving(false);
     }
   };
 
-  const openEditModal = (member) => {
-    setEditingMember(member);
-    setShowEditModal(true);
-  };
+  // Function to toggle onboarding status for candidates
+  const toggleOnboardingStatus = async (applicationId, currentlyOnboarded, candidateName) => {
+    try {
+      const endpoint = currentlyOnboarded 
+        ? `/api/applications/${applicationId}/offboard`
+        : `/api/applications/${applicationId}/onboard`;
+      
+      const response = await fetch(
+        `${getBackendUrl()}${endpoint}`,
+        {
+          method: "POST",
+          credentials: "include",
+        }
+      );
 
-  const openDeleteConfirm = (member) => {
-    setEditingMember(member);
-    setShowDeleteConfirm(true);
+      if (response.ok) {
+        // Reload candidates to reflect the change
+        await loadHiredCandidates();
+        alert(`Candidate ${candidateName} ${currentlyOnboarded ? "removed from" : "added to"} onboarded list`);
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to update onboarding status");
+      }
+    } catch (err) {
+      console.error("Error updating onboarding status:", err);
+      alert(`Error updating onboarding status: ${err.message}`);
+    }
   };
-
-  const openProfileModal = (member) => {
-    navigate(`/organization/user/${member.user_id}`);
-  };
-
-  if (loading && !organizationId) {
-    return (
-      <DashboardLayout
-        NavbarComponent={OrganizationNavbar}
-        sidebarItems={sidebarItems}
-      >
-        <div className="flex justify-center items-center py-12">
-          <div className="animate-pulse">
-            <div className="text-gray-500 mb-4">Loading...</div>
-            <div className="w-64 h-4 bg-gray-200 rounded mb-2"></div>
-            <div className="w-48 h-4 bg-gray-200 rounded"></div>
-          </div>
-        </div>
-      </DashboardLayout>
-    );
-  }
 
   return (
-    <DashboardLayout
-      NavbarComponent={OrganizationNavbar}
-      sidebarItems={sidebarItems}
-    >
-      {/* Error Message */}
-      {error && (
-        <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <span>{error}</span>
-            </div>
+    <DashboardLayout sidebarItems={sidebarItems}>
+      <OrganizationNavbar />
+      <div className="p-4 md:p-8">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4 md:mb-0">
+            Team Management
+          </h1>
+          <div className="flex space-x-2">
             <button
-              onClick={() => setError(null)}
-              className="text-red-700 hover:text-red-900"
+              onClick={() => setActiveTab("team")}
+              className={`px-4 py-2 rounded-md ${
+                activeTab === "team"
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+              }`}
             >
-              ×
+              Team Members
             </button>
-          </div>
-        </div>
-      )}
-
-      <div className="mb-6">
-        <div className="rounded-2xl p-6 bg-gradient-to-br from-yellow-600/90 via-amber-600/80 to-purple-700/70 text-white shadow-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold font-display">
-                Team Members
-              </h1>
-              <p className="mt-1 text-white/90">
-                Manage your organization's team members
-              </p>
-            </div>
             <button
-              onClick={() => setShowInviteModal(true)}
-              className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+              onClick={() => setActiveTab("candidates")}
+              className={`px-4 py-2 rounded-md ${
+                activeTab === "candidates"
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+              }`}
             >
-              <FiPlus size={16} />
-              Invite Member
+              Hired Candidates
             </button>
-          </div>
-        </div>
-      </div>
-
-      <div className="space-y-6">
-        {loading ? (
-          <div className="flex justify-center items-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          </div>
-        ) : teamMembers.length === 0 ? (
-          <Card>
-            <div className="text-center py-12">
-              <FiUsers size={48} className="mx-auto text-gray-400 mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                No Team Members Yet
-              </h3>
-              <p className="text-gray-500 mb-4">
-                Start by inviting your first team member.
-              </p>
+            {activeTab === "team" && (
               <button
                 onClick={() => setShowInviteModal(true)}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition"
               >
-                Invite First Member
+                <FiPlus className="mr-2" />
+                Invite Member
               </button>
-            </div>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {teamMembers.map((member) => (
-              <Card
-                key={member.id}
-                className="hover:shadow-lg transition-shadow duration-200"
-              >
-                <div className="p-6">
-                  <div className="flex items-center space-x-4 mb-4">
-                    <div className="relative">
-                      <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-xl">
-                        {(member.user?.name || member.user?.email || "U")
-                          .charAt(0)
-                          .toUpperCase()}
-                      </div>
-                      <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
-                        <div className="w-2 h-2 bg-white rounded-full"></div>
-                      </div>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-lg font-semibold text-gray-900 truncate">
-                        {member.user?.name || "Unknown User"}
-                      </h3>
-                      <p className="text-sm text-gray-500 truncate">
-                        {member.user?.email}
-                      </p>
-                    </div>
-                  </div>
+            )}
+          </div>
+        </div>
 
-                  <div className="space-y-3 mb-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-700">
-                        Role
-                      </span>
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          member.role === "Admin"
-                            ? "bg-purple-100 text-purple-800"
-                            : member.role === "Manager"
-                            ? "bg-blue-100 text-blue-800"
-                            : member.role === "HR"
-                            ? "bg-green-100 text-green-800"
-                            : "bg-gray-100 text-gray-800"
-                        }`}
-                      >
-                        {member.role}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-700">
-                        Joined
-                      </span>
-                      <span className="text-sm text-gray-500">
-                        {formatDate(member.join_date)}
-                      </span>
-                    </div>
-                  </div>
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-md">
+            {error}
+          </div>
+        )}
 
-                  <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => openProfileModal(member)}
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                        title="View Profile"
-                      >
-                        <FiEye size={18} />
-                      </button>
-                      <button
-                        onClick={() => openEditModal(member)}
-                        className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                        title="Edit Member"
-                      >
-                        <FiEdit2 size={18} />
-                      </button>
-                    </div>
-                    <button
-                      onClick={() => openDeleteConfirm(member)}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      title="Remove Member"
-                    >
-                      <FiTrash2 size={18} />
-                    </button>
-                  </div>
-                </div>
+        {loading ? (
+          <div className="space-y-4">
+            {[...Array(3)].map((_, i) => (
+              <Card key={i} className="animate-pulse">
+                <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
+                <div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
+                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
               </Card>
             ))}
           </div>
+        ) : activeTab === "team" ? (
+          <>
+            {teamMembers.length === 0 ? (
+              <Card className="text-center py-12">
+                <FiUsers className="mx-auto h-12 w-12 text-gray-400" />
+                <h3 className="mt-2 text-sm font-medium text-gray-900">
+                  No team members
+                </h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  Get started by inviting a new team member.
+                </p>
+                <div className="mt-6">
+                  <button
+                    onClick={() => setShowInviteModal(true)}
+                    className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none"
+                  >
+                    <FiPlus className="-ml-1 mr-2 h-5 w-5" />
+                    Invite Member
+                  </button>
+                </div>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {teamMembers.map((member) => (
+                  <Card key={member.id} className="relative">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h3 className="text-lg font-medium text-gray-900">
+                          {member.user?.name || "Unnamed User"}
+                        </h3>
+                        <p className="text-sm text-gray-500">
+                          {member.role || "No role assigned"}
+                        </p>
+                        <p className="text-sm text-gray-500 mt-1">
+                          Joined: {formatDate(member.join_date)}
+                        </p>
+                      </div>
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => {
+                            setEditingMember(member);
+                            setShowEditModal(true);
+                          }}
+                          className="text-gray-500 hover:text-gray-700"
+                          aria-label="Edit member"
+                        >
+                          <FiEdit2 />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setEditingMember(member);
+                            setShowDeleteConfirm(true);
+                          }}
+                          className="text-gray-500 hover:text-red-700"
+                          aria-label="Remove member"
+                        >
+                          <FiTrash2 />
+                        </button>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </>
+        ) : (
+          // Hired candidates tab
+          <>
+            {candidates.length === 0 ? (
+              <Card className="text-center py-12">
+                <FiUsers className="mx-auto h-12 w-12 text-gray-400" />
+                <h3 className="mt-2 text-sm font-medium text-gray-900">
+                  No hired candidates
+                </h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  Candidates who pass their interviews will appear here.
+                </p>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {candidates.map((candidate) => (
+                  <Card key={candidate.id} className="relative">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h3 className="text-lg font-medium text-gray-900">
+                          {candidate.user?.name || "Unnamed Candidate"}
+                        </h3>
+                        <p className="text-sm text-gray-500">
+                          Applied for: {candidate.post?.title || "Unknown Position"}
+                        </p>
+                        <p className="text-sm text-gray-500 mt-1">
+                          Applied: {formatDate(candidate.applied_at)}
+                        </p>
+                        <div className="mt-2 flex items-center">
+                          {candidate.onboarded ? (
+                            <>
+                              <FiCheckCircle className="text-green-500 mr-2" />
+                              <span className="text-sm text-green-700">Onboarded</span>
+                            </>
+                          ) : (
+                            <>
+                              <FiXCircle className="text-yellow-500 mr-2" />
+                              <span className="text-sm text-yellow-700">Not Onboarded</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => 
+                            toggleOnboardingStatus(
+                              candidate.id, 
+                              candidate.onboarded, 
+                              candidate.user?.name || "Unnamed Candidate"
+                            )
+                          }
+                          className={`px-3 py-1 rounded text-xs ${
+                            candidate.onboarded
+                              ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-200"
+                              : "bg-green-100 text-green-800 hover:bg-green-200"
+                          }`}
+                        >
+                          Mark {candidate.onboarded ? "Not Onboarded" : "Onboarded"}
+                        </button>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
 
       {/* Invite Modal */}
-      <Modal isOpen={showInviteModal} onClose={() => setShowInviteModal(false)}>
-        <h2 className="text-xl font-bold text-gray-900 mb-4">
-          Invite Team Member
-        </h2>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            const formData = new FormData(e.target);
-            inviteMember({
-              email: formData.get("email"),
-              role: formData.get("role") || "Member",
-              permissions: formData.get("permissions")
-                ? formData
-                    .get("permissions")
-                    .split(",")
-                    .map((p) => p.trim())
-                : [],
-              join_date: formData.get("join_date") || null,
-            });
-          }}
-        >
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Email Address *
+      {showInviteModal && (
+        <Modal onClose={() => setShowInviteModal(false)}>
+          <h2 id="modal-title" className="text-xl font-bold mb-4">
+            Invite Team Member
+          </h2>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              const formData = new FormData(e.target);
+              inviteMember({
+                email: formData.get("email"),
+                role: formData.get("role"),
+              });
+            }}
+          >
+            <div className="mb-4">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Email
               </label>
               <input
                 type="email"
+                id="email"
                 name="email"
                 required
-                className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
-                placeholder="member@example.com"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+            <div className="mb-4">
+              <label
+                htmlFor="role"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Role
               </label>
               <select
+                id="role"
                 name="role"
-                className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+                required
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               >
-                <option value="Member">Member</option>
+                <option value="">Select a role</option>
                 <option value="Admin">Admin</option>
                 <option value="HR">HR</option>
                 <option value="Manager">Manager</option>
+                <option value="Member">Member</option>
               </select>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Permissions (comma-separated)
-              </label>
-              <input
-                type="text"
-                name="permissions"
-                className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
-                placeholder="read,write,delete"
-              />
+            <div className="flex justify-end space-x-3">
+              <button
+                type="button"
+                onClick={() => setShowInviteModal(false)}
+                className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={saving}
+                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none disabled:opacity-50"
+              >
+                {saving ? "Inviting..." : "Invite"}
+              </button>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Join Date
-              </label>
-              <input
-                type="date"
-                name="join_date"
-                className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          </div>
-          <div className="flex gap-3 justify-end mt-6">
-            <button
-              type="button"
-              onClick={() => setShowInviteModal(false)}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {saving ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-              ) : (
-                "Send Invite"
-              )}
-            </button>
-          </div>
-        </form>
-      </Modal>
+          </form>
+        </Modal>
+      )}
 
       {/* Edit Modal */}
-      <Modal isOpen={showEditModal} onClose={() => setShowEditModal(false)}>
-        <h2 className="text-xl font-bold text-gray-900 mb-4">
-          Edit Team Member
-        </h2>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            const formData = new FormData(e.target);
-            editMember({
-              role: formData.get("role"),
-              permissions: formData.get("permissions")
-                ? formData
-                    .get("permissions")
-                    .split(",")
-                    .map((p) => p.trim())
-                : [],
-              join_date: formData.get("join_date") || null,
-            });
-          }}
-        >
-          <div className="space-y-4">
-            <div>
+      {showEditModal && editingMember && (
+        <Modal onClose={() => setShowEditModal(false)}>
+          <h2 id="modal-title" className="text-xl font-bold mb-4">
+            Edit Team Member
+          </h2>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              const formData = new FormData(e.target);
+              editMember({
+                role: formData.get("role"),
+                join_date: formData.get("join_date"),
+              });
+            }}
+          >
+            <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-1">
+                Name
+              </label>
+              <p className="text-gray-900">{editingMember.user?.name}</p>
+            </div>
+            <div className="mb-4">
+              <label
+                htmlFor="edit-role"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Role
               </label>
               <select
+                id="edit-role"
                 name="role"
-                defaultValue={editingMember?.role || "Member"}
-                className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+                defaultValue={editingMember.role}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               >
-                <option value="Member">Member</option>
                 <option value="Admin">Admin</option>
                 <option value="HR">HR</option>
                 <option value="Manager">Manager</option>
+                <option value="Member">Member</option>
               </select>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Permissions (comma-separated)
-              </label>
-              <input
-                type="text"
-                name="permissions"
-                defaultValue={editingMember?.permissions?.join(", ") || ""}
-                className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
-                placeholder="read,write,delete"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+            <div className="mb-4">
+              <label
+                htmlFor="join_date"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Join Date
               </label>
               <input
                 type="date"
+                id="join_date"
                 name="join_date"
                 defaultValue={
-                  editingMember?.join_date
-                    ? editingMember.join_date.split("T")[0]
+                  editingMember.join_date
+                    ? new Date(editingMember.join_date)
+                        .toISOString()
+                        .split("T")[0]
                     : ""
                 }
-                className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               />
             </div>
-          </div>
-          <div className="flex gap-3 justify-end mt-6">
+            <div className="flex justify-end space-x-3">
+              <button
+                type="button"
+                onClick={() => setShowEditModal(false)}
+                className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={saving}
+                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none disabled:opacity-50"
+              >
+                {saving ? "Saving..." : "Save"}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {/* Delete Confirmation */}
+      {showDeleteConfirm && editingMember && (
+        <Modal onClose={() => setShowDeleteConfirm(false)}>
+          <h2 id="modal-title" className="text-xl font-bold mb-4">
+            Confirm Removal
+          </h2>
+          <p className="mb-6">
+            Are you sure you want to remove{" "}
+            <span className="font-semibold">
+              {editingMember.user?.name || "this member"}
+            </span>{" "}
+            from the team?
+          </p>
+          <div className="flex justify-end space-x-3">
             <button
               type="button"
-              onClick={() => setShowEditModal(false)}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+              onClick={() => setShowDeleteConfirm(false)}
+              className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none"
             >
               Cancel
             </button>
             <button
-              type="submit"
+              onClick={deleteMember}
               disabled={saving}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none disabled:opacity-50"
             >
-              {saving ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-              ) : (
-                "Update"
-              )}
+              {saving ? "Removing..." : "Remove"}
             </button>
           </div>
-        </form>
-      </Modal>
-
-      {/* Delete Confirmation Modal */}
-      <Modal
-        isOpen={showDeleteConfirm}
-        onClose={() => setShowDeleteConfirm(false)}
-      >
-        <h2 className="text-xl font-bold text-gray-900 mb-4">
-          Remove Team Member
-        </h2>
-        <p className="text-gray-600 mb-6">
-          Are you sure you want to remove{" "}
-          <strong>
-            {editingMember?.user?.name || editingMember?.user?.email}
-          </strong>{" "}
-          from the team? This action cannot be undone.
-        </p>
-        <div className="flex gap-3 justify-end">
-          <button
-            onClick={() => setShowDeleteConfirm(false)}
-            className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={deleteMember}
-            disabled={saving}
-            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {saving ? (
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-            ) : (
-              "Remove"
-            )}
-          </button>
-        </div>
-      </Modal>
+        </Modal>
+      )}
     </DashboardLayout>
   );
 }

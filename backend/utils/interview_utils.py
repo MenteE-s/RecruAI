@@ -3,8 +3,8 @@ Interview utilities for managing interview lifecycle and status updates
 """
 
 from datetime import datetime, timezone, timedelta
-from backend.extensions import db
-from backend.models import Interview
+from ..extensions import db
+from ..models import Interview, Application
 
 
 def update_expired_interviews():
@@ -117,6 +117,30 @@ def update_interview_decision(interview_id, decision, feedback=None, rating=None
 
         interview.updated_at = datetime.utcnow()
         db.session.commit()
+
+        # If candidate passed the final interview, update the application status
+        if decision == 'passed' and interview.post_id:
+            # Find the application for this user and post
+            application = Application.query.filter_by(
+                user_id=interview.user_id,
+                post_id=interview.post_id
+            ).first()
+            print(f"Application for user {interview.user_id}, post {interview.post_id}: {'found' if application else 'not found'}")
+            
+            if not application:
+                # Create application if it doesn't exist
+                application = Application(
+                    user_id=interview.user_id,
+                    post_id=interview.post_id,
+                    pipeline_stage='applied'
+                )
+                db.session.add(application)
+                db.session.commit()
+            
+            if application:
+                application.pipeline_stage = 'hired'
+                application.status = 'accepted'
+                db.session.commit()
 
         # Build appropriate message
         if decision in ['second_round', 'third_round']:

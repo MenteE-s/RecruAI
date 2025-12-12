@@ -1,7 +1,7 @@
 from flask import request, jsonify
 from .. import api_bp
 from ...extensions import db
-from ...models import Application, Post, Interview
+from ...models import Application, Post, Interview, TeamMember
 from sqlalchemy import func
 from ...utils.pagination import Pagination, get_pagination_params, paginated_response, apply_filters_and_sorting, get_request_filters, get_sorting_params
 
@@ -18,8 +18,13 @@ def get_applications():
     # Get sorting parameters
     sort_by, sort_order = get_sorting_params(default_sort='applied_at')
 
-    # Build base query
-    query = Application.query
+    # Special handling for organization_id filter
+    organization_id = request.args.get('organization_id')
+    if organization_id:
+        # Join with Post to filter by organization
+        query = db.session.query(Application).join(Post, Application.post_id == Post.id).filter(Post.organization_id == organization_id)
+    else:
+        query = Application.query
 
     # Apply filters and sorting
     query = apply_filters_and_sorting(query, Application, filters, sort_by, sort_order)
@@ -33,6 +38,7 @@ def get_applications():
 @api_bp.route("/applications", methods=["POST"])
 def create_application():
     payload = request.get_json(silent=True) or {}
+    print(f"Create application payload: {payload}")
     user_id = payload.get("user_id")
     post_id = payload.get("post_id")
     if not user_id or not post_id:
@@ -112,8 +118,49 @@ def update_application_status(app_id):
         application.status = payload["status"]
     if "pipeline_stage" in payload:
         application.pipeline_stage = payload["pipeline_stage"]
+    # Handle onboarding status update
+    if "onboarded" in payload:
+        application.onboarded = payload["onboarded"]
     db.session.commit()
     return jsonify(application.to_dict()), 200
+
+
+@api_bp.route("/applications/<int:app_id>/onboard", methods=["POST"])
+def mark_application_onboarded(app_id):
+    """Mark an application as onboarded"""
+    from datetime import datetime
+    application = Application.query.get_or_404(app_id)
+    application.onboarded = True
+    application.pipeline_stage = "hired"  # Update pipeline stage to hired when onboarded
+    
+    # Check if team member already exists
+    existing_team_member = TeamMember.query.filter_by(
+        organization_id=application.post.organization_id,
+        user_id=application.user_id
+    ).first()
+    
+    if not existing_team_member:
+        # Create team member
+        team_member = TeamMember(
+            organization_id=application.post.organization_id,
+            user_id=application.user_id,
+            role='Employee',
+            join_date=datetime.utcnow().date()
+        )
+        db.session.add(team_member)
+    
+    db.session.commit()
+    return jsonify({"message": "Application marked as onboarded", "application": application.to_dict()}), 200
+
+
+@api_bp.route("/applications/<int:app_id>/offboard", methods=["POST"])
+def mark_application_offboarded(app_id):
+    """Mark an application as not onboarded"""
+    application = Application.query.get_or_404(app_id)
+    application.onboarded = False
+    # Optionally update pipeline stage when offboarding
+    db.session.commit()
+    return jsonify({"message": "Application marked as not onboarded", "application": application.to_dict()}), 200
 
 @api_bp.route("/pipeline/<int:org_id>", methods=["GET"])
 def get_pipeline_data(org_id):

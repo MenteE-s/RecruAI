@@ -31,6 +31,7 @@ from .ai_interview_agent import AIInterviewAgent
 from .conversation_memory import ConversationMemory
 from .system_issue import SystemIssue
 from .shareable_profile import ShareableProfile, ProfileAnalytics
+from .favorite import Favorite
 
 __all__ = [
     "User",
@@ -67,4 +68,5 @@ __all__ = [
     "ConversationMemory",
     "ShareableProfile",
     "ProfileAnalytics",
+    "Favorite",
 ]
