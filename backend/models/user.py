@@ -77,6 +77,8 @@ class User(db.Model):
             self.last_login_at = datetime.utcnow()
         else:
             # Failed login - increment attempts and potentially lock account
+            if self.failed_login_attempts is None:
+                self.failed_login_attempts = 0
             self.failed_login_attempts += 1
             max_attempts = current_app.config.get('MAX_LOGIN_ATTEMPTS', 5)
 
