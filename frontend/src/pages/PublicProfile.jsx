@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import Card from "../components/ui/Card";
-import { getBackendUrl } from "../utils/auth";
+import { getBackendUrl, getUploadUrl } from "../utils/auth";
 import {
   FiMail,
   FiCalendar,
@@ -108,7 +108,7 @@ const PublicProfile = () => {
             <div className="flex-shrink-0">
               {user.profile_picture ? (
                 <img
-                  src={user.profile_picture}
+                  src={getUploadUrl(user.profile_picture)}
                   alt={user.name}
                   className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg"
                 />

@@ -498,8 +498,13 @@ const ShareableProfiles = () => {
       });
 
       const data = await response.json();
-      if (data.success) {
-        setProfiles(data.data);
+      if (response.ok) {
+        // Handle both paginated response format and direct data format
+        const profiles = data.data || data;
+        setProfiles(profiles);
+      } else {
+        console.error("Failed to load profiles:", data);
+        toast.error(data.message || "Failed to load profiles");
       }
     } catch (error) {
       console.error("Error loading profiles:", error);
