@@ -41,7 +41,9 @@ export default function AppliedJobs() {
   };
 
   const handleCancelApplication = async (applicationId) => {
-    if (!window.confirm("Are you sure you want to cancel this job application?")) {
+    if (
+      !window.confirm("Are you sure you want to cancel this job application?")
+    ) {
       return;
     }
 
