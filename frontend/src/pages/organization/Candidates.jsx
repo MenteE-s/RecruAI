@@ -2,7 +2,11 @@ import React, { useState, useEffect, useCallback } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
 import Card from "../../components/ui/Card";
-import { getSidebarItems, getBackendUrl, getAuthHeaders } from "../../utils/auth";
+import {
+  getSidebarItems,
+  getBackendUrl,
+  getAuthHeaders,
+} from "../../utils/auth";
 import { useToast } from "../../components/ui/ToastContext";
 import { formatDate } from "../../utils/timezone";
 import {
@@ -88,13 +92,13 @@ export default function Candidates() {
 
         if (response.ok) {
           const result = await response.json();
-          
+
           if (reset) {
             setApplications(result.data);
           } else {
             setApplications((prev) => [...prev, ...result.data]);
           }
-          
+
           setPagination({
             page: result.pagination.page,
             per_page: result.pagination.per_page,
@@ -265,29 +269,38 @@ export default function Candidates() {
   // Function to toggle onboarding status
   const toggleOnboardingStatus = async (applicationId, currentlyOnboarded) => {
     try {
-      const endpoint = currentlyOnboarded 
+      const endpoint = currentlyOnboarded
         ? `/api/applications/${applicationId}/offboard`
         : `/api/applications/${applicationId}/onboard`;
-      
-      const response = await fetch(
-        `${getBackendUrl()}${endpoint}`,
-        {
-          method: "POST",
-          credentials: "include",
-          headers: getAuthHeaders({ "Content-Type": "application/json" }),
-        }
-      );
+
+      const response = await fetch(`${getBackendUrl()}${endpoint}`, {
+        method: "POST",
+        credentials: "include",
+        headers: getAuthHeaders({ "Content-Type": "application/json" }),
+      });
 
       if (response.ok) {
         // Update the local state to reflect the change
-        setApplications(prev => prev.map(app => 
-          app.id === applicationId 
-            ? { ...app, onboarded: !currentlyOnboarded, pipeline_stage: !currentlyOnboarded ? "hired" : app.pipeline_stage } 
-            : app
-        ));
-        
+        setApplications((prev) =>
+          prev.map((app) =>
+            app.id === applicationId
+              ? {
+                  ...app,
+                  onboarded: !currentlyOnboarded,
+                  pipeline_stage: !currentlyOnboarded
+                    ? "hired"
+                    : app.pipeline_stage,
+                }
+              : app
+          )
+        );
+
         showToast(
-          `Candidate ${!currentlyOnboarded ? "marked as onboarded" : "marked as not onboarded"}`, 
+          `Candidate ${
+            !currentlyOnboarded
+              ? "marked as onboarded"
+              : "marked as not onboarded"
+          }`,
           "success"
         );
       } else {

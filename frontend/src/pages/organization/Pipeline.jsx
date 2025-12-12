@@ -2,7 +2,11 @@ import React, { useState, useEffect, useCallback } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
 import Card from "../../components/ui/Card";
-import { getSidebarItems, getBackendUrl, getAuthHeaders } from "../../utils/auth";
+import {
+  getSidebarItems,
+  getBackendUrl,
+  getAuthHeaders,
+} from "../../utils/auth";
 import { formatDate } from "../../utils/timezone";
 
 export default function Pipeline() {

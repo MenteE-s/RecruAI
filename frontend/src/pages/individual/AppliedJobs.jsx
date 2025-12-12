@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { getBackendUrl } from "../../utils/auth";
+import { getBackendUrl, getAuthHeaders } from "../../utils/auth";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import IndividualNavbar from "../../components/layout/IndividualNavbar";
@@ -27,7 +27,11 @@ export default function AppliedJobs() {
     try {
       const userId = 1; // TODO: Get from user context
       const response = await fetch(
-        `${getBackendUrl()}/api/applied-jobs/user/${userId}`
+        `${getBackendUrl()}/api/applied-jobs/user/${userId}`,
+        {
+          credentials: "include",
+          headers: getAuthHeaders(),
+        }
       );
       if (response.ok) {
         const data = await response.json();
@@ -54,6 +58,7 @@ export default function AppliedJobs() {
         {
           method: "DELETE",
           credentials: "include",
+          headers: getAuthHeaders(),
         }
       );
 

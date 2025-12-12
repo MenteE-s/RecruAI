@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import IndividualNavbar from "../../components/layout/IndividualNavbar";
 import Card from "../../components/ui/Card";
-import { getSidebarItems, getBackendUrl } from "../../utils/auth";
+import { getSidebarItems, getBackendUrl, getAuthHeaders } from "../../utils/auth";
 import {
   FiPlus,
   FiEdit2,
@@ -117,8 +117,8 @@ const ProfileModal = ({ isOpen, onClose, profile, onSave }) => {
       const response = await fetch(`${getBackendUrl()}/profiles/check-slug`, {
         method: "POST",
         headers: {
+          ...getAuthHeaders(),
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
         body: JSON.stringify({ slug }),
       });
@@ -153,8 +153,8 @@ const ProfileModal = ({ isOpen, onClose, profile, onSave }) => {
       const response = await fetch(url, {
         method,
         headers: {
+          ...getAuthHeaders(),
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
         body: JSON.stringify({
           ...formData,
@@ -368,9 +368,7 @@ const AnalyticsModal = ({ isOpen, onClose, profile }) => {
       const response = await fetch(
         `${getBackendUrl()}/profiles/${profile.slug}/analytics`,
         {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
+          headers: getAuthHeaders(),
         }
       );
 
@@ -492,9 +490,7 @@ const ShareableProfiles = () => {
   const loadProfiles = async () => {
     try {
       const response = await fetch(`${getBackendUrl()}/profiles`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
+        headers: getAuthHeaders(),
       });
 
       const data = await response.json();
@@ -523,9 +519,7 @@ const ShareableProfiles = () => {
         `${getBackendUrl()}/profiles/${profile.slug}`,
         {
           method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
+          headers: getAuthHeaders(),
         }
       );
 
@@ -555,8 +549,8 @@ const ShareableProfiles = () => {
         {
           method: "PUT",
           headers: {
+            ...getAuthHeaders(),
             "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
           body: JSON.stringify({
             is_active: !profile.is_active,

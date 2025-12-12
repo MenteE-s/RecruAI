@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import IndividualNavbar from "../../components/layout/IndividualNavbar";
 import Card from "../../components/ui/Card";
-import { getSidebarItems } from "../../utils/auth";
+import { getSidebarItems, getBackendUrl, getAuthHeaders } from "../../utils/auth";
 import { formatDate } from "../../utils/timezone";
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "";
@@ -27,7 +27,10 @@ export default function SavedJobs() {
     try {
       const userId = 1; // TODO: Get from user context
       const response = await fetch(
-        `${API_BASE_URL}/api/saved-jobs/user/${userId}`
+        `${getBackendUrl()}/api/saved-jobs/user/${userId}`,
+        {
+          headers: getAuthHeaders(),
+        }
       );
       if (response.ok) {
         const data = await response.json();
@@ -44,7 +47,10 @@ export default function SavedJobs() {
     try {
       const userId = 1; // TODO: Get from user context
       const response = await fetch(
-        `${API_BASE_URL}/api/applications/user/${userId}`
+        `${getBackendUrl()}/api/applications/user/${userId}`,
+        {
+          headers: getAuthHeaders(),
+        }
       );
       if (response.ok) {
         const data = await response.json();
@@ -60,9 +66,10 @@ export default function SavedJobs() {
   const handleUnsaveJob = async (savedId) => {
     try {
       const response = await fetch(
-        `${API_BASE_URL}/api/saved-jobs/${savedId}`,
+        `${getBackendUrl()}/api/saved-jobs/${savedId}`,
         {
           method: "DELETE",
+          headers: getAuthHeaders(),
           credentials: "include",
         }
       );
@@ -78,9 +85,12 @@ export default function SavedJobs() {
   const handleApplyJob = async (postId) => {
     try {
       const userId = 1; // TODO: Get from user context
-      const response = await fetch(`${API_BASE_URL}/api/applications`, {
+      const response = await fetch(`${getBackendUrl()}/api/applications`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          ...getAuthHeaders(),
+          "Content-Type": "application/json",
+        },
         credentials: "include",
         body: JSON.stringify({
           user_id: userId,

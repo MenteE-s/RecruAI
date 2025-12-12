@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import IndividualNavbar from "../../components/layout/IndividualNavbar";
 import Card from "../../components/ui/Card";
-import { getSidebarItems, getBackendUrl } from "../../utils/auth";
+import { getSidebarItems, getBackendUrl, getAuthHeaders } from "../../utils/auth";
 import { useToast } from "../../components/ui/ToastContext";
 import {
   useDebounce,
@@ -121,7 +121,10 @@ export default function BrowseJobs() {
       const userId = 1; // TODO: Get from user context
       const response = await fetch(
         `${getBackendUrl()}/api/saved-jobs/user/${userId}`,
-        { credentials: "include" }
+        {
+          headers: getAuthHeaders(),
+          credentials: "include",
+        }
       );
       if (response.ok) {
         const data = await response.json();
@@ -138,7 +141,10 @@ export default function BrowseJobs() {
       const userId = 1; // TODO: Get from user context
       const response = await fetch(
         `${getBackendUrl()}/api/applications/user/${userId}`,
-        { credentials: "include" }
+        {
+          headers: getAuthHeaders(),
+          credentials: "include",
+        }
       );
       if (response.ok) {
         const data = await response.json();
@@ -157,7 +163,10 @@ export default function BrowseJobs() {
         const userId = 1; // TODO: Get from user context
         const response = await fetch(`${getBackendUrl()}/api/saved-jobs`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            ...getAuthHeaders(),
+            "Content-Type": "application/json",
+          },
           credentials: "include",
           body: JSON.stringify({ user_id: userId, post_id: postId }),
         });
@@ -192,6 +201,7 @@ export default function BrowseJobs() {
           `${getBackendUrl()}/api/saved-jobs/${savedId}`,
           {
             method: "DELETE",
+            headers: getAuthHeaders(),
             credentials: "include",
           }
         );
@@ -199,7 +209,10 @@ export default function BrowseJobs() {
         if (response.ok) {
           // Find the post_id for this saved job
           const savedJob = await fetch(
-            `${getBackendUrl()}/api/saved-jobs/user/1`
+            `${getBackendUrl()}/api/saved-jobs/user/1`,
+            {
+              headers: getAuthHeaders(),
+            }
           )
             .then((r) => r.json())
             .then((data) => data.find((sj) => sj.id === savedId));
@@ -223,7 +236,10 @@ export default function BrowseJobs() {
       const userId = 1; // TODO: Get from user context
       const response = await fetch(`${getBackendUrl()}/api/applications`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          ...getAuthHeaders(),
+          "Content-Type": "application/json",
+        },
         credentials: "include",
         body: JSON.stringify({
           user_id: userId,

@@ -3,7 +3,11 @@ import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
 import Card from "../../components/ui/Card";
-import { getSidebarItems, getBackendUrl, getAuthHeaders } from "../../utils/auth";
+import {
+  getSidebarItems,
+  getBackendUrl,
+  getAuthHeaders,
+} from "../../utils/auth";
 import { formatDateTime as formatDateTimeTz } from "../../utils/timezone";
 
 // Modal Component
