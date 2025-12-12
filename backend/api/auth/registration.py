@@ -74,10 +74,10 @@ def register():
             db.session.add(team_member)
 
         db.session.commit()
-        log_security_event("registration_success", request.remote_addr, user.id, email=email, role=role)
+        log_security_event("registration_success", user_id=user.id, ip_address=request.remote_addr, email=email, details={"role": role})
     except Exception as e:
         db.session.rollback()
-        log_security_event("registration_failed", request.remote_addr, None, email=email, error=str(e))
+        log_security_event("registration_failed", user_id=None, ip_address=request.remote_addr, email=email, details={"error": str(e)})
         return jsonify({"error": f"Failed to register user: {str(e)}"}), 500
 
     # generate an access token on successful registration so frontend can auto-login
