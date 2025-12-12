@@ -118,7 +118,7 @@ const ProfileModal = ({ isOpen, onClose, profile, onSave }) => {
 
     setCheckingSlug(true);
     try {
-      const response = await fetch(`${getBackendUrl()}/profiles/check-slug`, {
+      const response = await fetch(`${getBackendUrl()}/api/profiles/check-slug`, {
         method: "POST",
         headers: {
           ...getAuthHeaders(),
@@ -151,8 +151,8 @@ const ProfileModal = ({ isOpen, onClose, profile, onSave }) => {
     try {
       const method = profile ? "PUT" : "POST";
       const url = profile
-        ? `${getBackendUrl()}/profiles/${profile.slug}`
-        : `${getBackendUrl()}/profiles`;
+        ? `${getBackendUrl()}/api/profiles/${profile.slug}`
+        : `${getBackendUrl()}/api/profiles`;
 
       const response = await fetch(url, {
         method,
@@ -370,7 +370,7 @@ const AnalyticsModal = ({ isOpen, onClose, profile }) => {
     setLoading(true);
     try {
       const response = await fetch(
-        `${getBackendUrl()}/profiles/${profile.slug}/analytics`,
+        `${getBackendUrl()}/api/profiles/${profile.slug}/analytics`,
         {
           headers: getAuthHeaders(),
         }
@@ -493,7 +493,7 @@ const ShareableProfiles = () => {
 
   const loadProfiles = async () => {
     try {
-      const response = await fetch(`${getBackendUrl()}/profiles`, {
+      const response = await fetch(`${getBackendUrl()}/api/profiles`, {
         headers: getAuthHeaders(),
       });
 
@@ -520,7 +520,7 @@ const ShareableProfiles = () => {
 
     try {
       const response = await fetch(
-        `${getBackendUrl()}/profiles/${profile.slug}`,
+        `${getBackendUrl()}/api/profiles/${profile.slug}`,
         {
           method: "DELETE",
           headers: getAuthHeaders(),
@@ -549,7 +549,7 @@ const ShareableProfiles = () => {
   const toggleProfileStatus = async (profile) => {
     try {
       const response = await fetch(
-        `${getBackendUrl()}/profiles/${profile.slug}`,
+        `${getBackendUrl()}/api/profiles/${profile.slug}`,
         {
           method: "PUT",
           headers: {
