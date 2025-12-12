@@ -1640,6 +1640,7 @@ export default function Profile() {
       if (endpoint) {
         const response = await fetch(endpoint, {
           method: "DELETE",
+          headers: getAuthHeaders(),
           credentials: "include",
         });
 
@@ -1679,7 +1680,10 @@ export default function Profile() {
 
       const response = await fetch(endpoint, {
         method,
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          ...getAuthHeaders()
+        },
         credentials: "include",
         body: JSON.stringify(body),
       });
