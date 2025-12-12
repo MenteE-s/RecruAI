@@ -45,7 +45,7 @@ const PublicProfile = () => {
 
   const loadPublicProfile = useCallback(async () => {
     try {
-      const response = await fetch(`${getBackendUrl()}/public/${slug}`);
+      const response = await fetch(`${getBackendUrl()}/api/public/${slug}`);
       const data = await response.json();
 
       if (data.success) {
