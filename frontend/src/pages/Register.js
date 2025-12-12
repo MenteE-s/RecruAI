@@ -78,6 +78,8 @@ export default function Register() {
       }
       // registration success — if backend returned token, sign in immediately
       if (data.access_token) {
+        // Store the access token for header-based auth
+        localStorage.setItem("access_token", data.access_token);
         // server set cookie; set local flags and role (server-verified)
         localStorage.setItem("isAuthenticated", "true");
         if (data.user && data.user.role) {

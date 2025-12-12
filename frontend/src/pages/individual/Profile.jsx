@@ -1363,6 +1363,7 @@ export default function Profile() {
       try {
         const response = await fetch(`${getBackendUrl()}/api/auth/me`, {
           credentials: "include",
+          headers: getAuthHeaders(),
         });
         if (response.ok) {
           const data = await response.json();
@@ -1400,63 +1401,83 @@ export default function Profile() {
         ] = await Promise.all([
           fetch(`${getBackendUrl()}/api/profile/sections`, {
             credentials: "include",
+            headers: getAuthHeaders(),
           }),
           fetch(`${getBackendUrl()}/api/profile/experiences`, {
             credentials: "include",
+            headers: getAuthHeaders(),
           }),
           fetch(`${getBackendUrl()}/api/profile/educations`, {
             credentials: "include",
+            headers: getAuthHeaders(),
           }),
           fetch(`${getBackendUrl()}/api/profile/skills`, {
             credentials: "include",
+            headers: getAuthHeaders(),
           }),
           fetch(`${getBackendUrl()}/api/profile/projects`, {
             credentials: "include",
+            headers: getAuthHeaders(),
           }),
           fetch(`${getBackendUrl()}/api/profile/publications`, {
             credentials: "include",
+            headers: getAuthHeaders(),
           }),
           fetch(`${getBackendUrl()}/api/profile/awards`, {
             credentials: "include",
+            headers: getAuthHeaders(),
           }),
           fetch(`${getBackendUrl()}/api/profile/certifications`, {
             credentials: "include",
+            headers: getAuthHeaders(),
           }),
           fetch(`${getBackendUrl()}/api/profile/languages`, {
             credentials: "include",
+            headers: getAuthHeaders(),
           }),
           fetch(`${getBackendUrl()}/api/profile/volunteer-experiences`, {
             credentials: "include",
+            headers: getAuthHeaders(),
           }),
           fetch(`${getBackendUrl()}/api/profile/references`, {
             credentials: "include",
+            headers: getAuthHeaders(),
           }),
           fetch(`${getBackendUrl()}/api/profile/hobby-interests`, {
             credentials: "include",
+            headers: getAuthHeaders(),
           }),
           fetch(`${getBackendUrl()}/api/profile/professional-memberships`, {
             credentials: "include",
+            headers: getAuthHeaders(),
           }),
           fetch(`${getBackendUrl()}/api/profile/patents`, {
             credentials: "include",
+            headers: getAuthHeaders(),
           }),
           fetch(`${getBackendUrl()}/api/profile/course-trainings`, {
             credentials: "include",
+            headers: getAuthHeaders(),
           }),
           fetch(`${getBackendUrl()}/api/profile/social-media-links`, {
             credentials: "include",
+            headers: getAuthHeaders(),
           }),
           fetch(`${getBackendUrl()}/api/profile/key-achievements`, {
             credentials: "include",
+            headers: getAuthHeaders(),
           }),
           fetch(`${getBackendUrl()}/api/profile/conferences`, {
             credentials: "include",
+            headers: getAuthHeaders(),
           }),
           fetch(`${getBackendUrl()}/api/profile/speaking-engagements`, {
             credentials: "include",
+            headers: getAuthHeaders(),
           }),
           fetch(`${getBackendUrl()}/api/profile/licenses`, {
             credentials: "include",
+            headers: getAuthHeaders(),
           }),
         ]);
 
