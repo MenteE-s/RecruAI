@@ -198,6 +198,10 @@ def get_public_profile(slug):
     if not profile.show_projects:
         user_data['projects'] = []
 
+    # Include profile sections
+    profile_sections = ProfileSection.query.filter_by(user_id=user.id).order_by(ProfileSection.order_index).all()
+    user_data['profile_sections'] = [section.to_dict() for section in profile_sections]
+
     return jsonify({
         'success': True,
         'data': {
