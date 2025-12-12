@@ -1,8 +1,8 @@
-"""Initial migration
+"""initial migration
 
-Revision ID: cea977a3622e
+Revision ID: 8c12cfc531b0
 Revises: 
-Create Date: 2025-11-30 15:19:43.413349
+Create Date: 2025-12-12 22:37:26.123236
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'cea977a3622e'
+revision = '8c12cfc531b0'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -33,20 +33,10 @@ def upgrade():
     sa.Column('social_media_links', sa.Text(), nullable=True),
     sa.Column('profile_image', sa.String(length=500), nullable=True),
     sa.Column('banner_image', sa.String(length=500), nullable=True),
+    sa.Column('timezone', sa.String(length=50), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('name')
-    )
-    op.create_table('ai_agents',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('organization_id', sa.Integer(), nullable=False),
-    sa.Column('name', sa.String(length=255), nullable=False),
-    sa.Column('description', sa.Text(), nullable=True),
-    sa.Column('industry', sa.String(length=100), nullable=True),
-    sa.Column('is_active', sa.Boolean(), nullable=True),
-    sa.Column('created_at', sa.DateTime(), nullable=True),
-    sa.ForeignKeyConstraint(['organization_id'], ['organizations.id'], ),
-    sa.PrimaryKeyConstraint('id')
     )
     op.create_table('ai_interview_agents',
     sa.Column('id', sa.Integer(), nullable=False),
@@ -90,6 +80,16 @@ def upgrade():
     sa.Column('plan', sa.String(length=32), nullable=False),
     sa.Column('organization_id', sa.Integer(), nullable=True),
     sa.Column('profile_picture', sa.String(length=500), nullable=True),
+    sa.Column('banner', sa.String(length=500), nullable=True),
+    sa.Column('timezone', sa.String(length=50), nullable=True),
+    sa.Column('phone', sa.String(length=50), nullable=True),
+    sa.Column('location', sa.String(length=200), nullable=True),
+    sa.Column('website', sa.String(length=500), nullable=True),
+    sa.Column('linkedin', sa.String(length=500), nullable=True),
+    sa.Column('failed_login_attempts', sa.Integer(), nullable=True),
+    sa.Column('locked_until', sa.DateTime(), nullable=True),
+    sa.Column('last_login_at', sa.DateTime(), nullable=True),
+    sa.Column('password_changed_at', sa.DateTime(), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.ForeignKeyConstraint(['organization_id'], ['organizations.id'], ),
     sa.PrimaryKeyConstraint('id'),
@@ -105,6 +105,7 @@ def upgrade():
     sa.Column('pipeline_stage', sa.String(length=50), nullable=True),
     sa.Column('applied_at', sa.DateTime(), nullable=True),
     sa.Column('updated_at', sa.DateTime(), nullable=True),
+    sa.Column('onboarded', sa.Boolean(), nullable=True),
     sa.ForeignKeyConstraint(['post_id'], ['posts.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
@@ -160,7 +161,7 @@ def upgrade():
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('degree', sa.String(length=255), nullable=False),
-    sa.Column('school', sa.String(length=255), nullable=False),
+    sa.Column('school', sa.String(length=255), nullable=True),
     sa.Column('field', sa.String(length=255), nullable=True),
     sa.Column('year', sa.String(length=50), nullable=True),
     sa.Column('gpa', sa.String(length=10), nullable=True),
@@ -184,6 +185,15 @@ def upgrade():
     sa.Column('current_job', sa.Boolean(), nullable=True),
     sa.Column('employment_type', sa.String(length=50), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('favorites',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('target_user_id', sa.Integer(), nullable=False),
+    sa.Column('created_at', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['target_user_id'], ['users.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
@@ -213,11 +223,19 @@ def upgrade():
     sa.Column('status', sa.String(length=50), nullable=True),
     sa.Column('feedback', sa.Text(), nullable=True),
     sa.Column('rating', sa.Integer(), nullable=True),
+    sa.Column('current_round', sa.Integer(), nullable=True),
+    sa.Column('max_rounds', sa.Integer(), nullable=True),
+    sa.Column('round_status', sa.String(length=20), nullable=True),
+    sa.Column('final_decision', sa.String(length=20), nullable=True),
+    sa.Column('completed_at', sa.DateTime(), nullable=True),
+    sa.Column('analysis_data', sa.Text(), nullable=True),
+    sa.Column('strengths', sa.Text(), nullable=True),
+    sa.Column('improvements', sa.Text(), nullable=True),
     sa.Column('interviewers', sa.Text(), nullable=True),
     sa.Column('ai_agent_id', sa.Integer(), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.Column('updated_at', sa.DateTime(), nullable=True),
-    sa.ForeignKeyConstraint(['ai_agent_id'], ['ai_agents.id'], ),
+    sa.ForeignKeyConstraint(['ai_agent_id'], ['ai_interview_agents.id'], ),
     sa.ForeignKeyConstraint(['organization_id'], ['organizations.id'], ),
     sa.ForeignKeyConstraint(['post_id'], ['posts.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
@@ -345,6 +363,29 @@ def upgrade():
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
+    op.create_table('shareable_profiles',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('slug', sa.String(length=100), nullable=False),
+    sa.Column('is_public', sa.Boolean(), nullable=True),
+    sa.Column('show_contact_info', sa.Boolean(), nullable=True),
+    sa.Column('show_resume', sa.Boolean(), nullable=True),
+    sa.Column('show_experience', sa.Boolean(), nullable=True),
+    sa.Column('show_education', sa.Boolean(), nullable=True),
+    sa.Column('show_skills', sa.Boolean(), nullable=True),
+    sa.Column('show_projects', sa.Boolean(), nullable=True),
+    sa.Column('expires_at', sa.DateTime(), nullable=True),
+    sa.Column('is_active', sa.Boolean(), nullable=True),
+    sa.Column('view_count', sa.Integer(), nullable=True),
+    sa.Column('last_viewed_at', sa.DateTime(), nullable=True),
+    sa.Column('created_at', sa.DateTime(), nullable=True),
+    sa.Column('updated_at', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    with op.batch_alter_table('shareable_profiles', schema=None) as batch_op:
+        batch_op.create_index(batch_op.f('ix_shareable_profiles_slug'), ['slug'], unique=True)
+
     op.create_table('skills',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
@@ -379,6 +420,24 @@ def upgrade():
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
+    op.create_table('system_issues',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('title', sa.String(length=255), nullable=False),
+    sa.Column('description', sa.Text(), nullable=False),
+    sa.Column('issue_type', sa.String(length=50), nullable=False),
+    sa.Column('severity', sa.String(length=20), nullable=False),
+    sa.Column('status', sa.String(length=20), nullable=True),
+    sa.Column('user_id', sa.Integer(), nullable=True),
+    sa.Column('user_email', sa.String(length=120), nullable=True),
+    sa.Column('resolution', sa.Text(), nullable=True),
+    sa.Column('resolved_by', sa.Integer(), nullable=True),
+    sa.Column('resolved_at', sa.DateTime(), nullable=True),
+    sa.Column('created_at', sa.DateTime(), nullable=True),
+    sa.Column('updated_at', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['resolved_by'], ['users.id'], ),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
     op.create_table('team_members',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('organization_id', sa.Integer(), nullable=False),
@@ -402,6 +461,18 @@ def upgrade():
     sa.Column('start_date', sa.Date(), nullable=True),
     sa.Column('end_date', sa.Date(), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('conversation_memories',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('interview_id', sa.Integer(), nullable=False),
+    sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('message_type', sa.String(length=20), nullable=False),
+    sa.Column('content', sa.Text(), nullable=False),
+    sa.Column('timestamp', sa.DateTime(), nullable=True),
+    sa.Column('extra_data', sa.Text(), nullable=True),
+    sa.ForeignKeyConstraint(['interview_id'], ['interviews.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
@@ -438,18 +509,38 @@ def upgrade():
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
+    op.create_table('profile_analytics',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('profile_id', sa.Integer(), nullable=False),
+    sa.Column('ip_address', sa.String(length=45), nullable=True),
+    sa.Column('user_agent', sa.Text(), nullable=True),
+    sa.Column('referrer', sa.String(length=500), nullable=True),
+    sa.Column('country', sa.String(length=100), nullable=True),
+    sa.Column('city', sa.String(length=100), nullable=True),
+    sa.Column('session_id', sa.String(length=100), nullable=True),
+    sa.Column('viewed_at', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['profile_id'], ['shareable_profiles.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
     # ### end Alembic commands ###
 
 
 def downgrade():
     # ### commands auto generated by Alembic - please adjust! ###
+    op.drop_table('profile_analytics')
     op.drop_table('messages')
     op.drop_table('interview_analyses')
+    op.drop_table('conversation_memories')
     op.drop_table('volunteer_experiences')
     op.drop_table('team_members')
+    op.drop_table('system_issues')
     op.drop_table('speaking_engagements')
     op.drop_table('social_media_links')
     op.drop_table('skills')
+    with op.batch_alter_table('shareable_profiles', schema=None) as batch_op:
+        batch_op.drop_index(batch_op.f('ix_shareable_profiles_slug'))
+
+    op.drop_table('shareable_profiles')
     op.drop_table('saved_jobs')
     op.drop_table('references')
     op.drop_table('publications')
@@ -462,6 +553,7 @@ def downgrade():
     op.drop_table('key_achievements')
     op.drop_table('interviews')
     op.drop_table('hobby_interests')
+    op.drop_table('favorites')
     op.drop_table('experiences')
     op.drop_table('educations')
     op.drop_table('course_trainings')
@@ -472,6 +564,5 @@ def downgrade():
     op.drop_table('users')
     op.drop_table('posts')
     op.drop_table('ai_interview_agents')
-    op.drop_table('ai_agents')
     op.drop_table('organizations')
     # ### end Alembic commands ###

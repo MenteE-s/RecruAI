@@ -2,7 +2,12 @@ import { useState, useEffect } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import IndividualNavbar from "../../components/layout/IndividualNavbar";
 import Card from "../../components/ui/Card";
-import { getSidebarItems, getUploadUrl, getBackendUrl } from "../../utils/auth";
+import {
+  getSidebarItems,
+  getUploadUrl,
+  getBackendUrl,
+  getAuthHeaders,
+} from "../../utils/auth";
 import {
   FiPlus,
   FiX,
@@ -1735,7 +1740,7 @@ export default function Profile() {
     try {
       const response = await fetch(`${getBackendUrl()}/api/auth/me`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders({ "Content-Type": "application/json" }),
         credentials: "include",
         body: JSON.stringify(personalData),
       });
@@ -1764,7 +1769,7 @@ export default function Profile() {
     try {
       const response = await fetch(`${getBackendUrl()}/api/profile/sections`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders({ "Content-Type": "application/json" }),
         credentials: "include",
         body: JSON.stringify({
           section_type: "about",
@@ -1820,6 +1825,7 @@ export default function Profile() {
         `${getBackendUrl()}/api/profile/upload-profile-picture`,
         {
           method: "POST",
+          headers: getAuthHeaders(),
           credentials: "include",
           body: formData,
         }
@@ -1872,6 +1878,7 @@ export default function Profile() {
         `${getBackendUrl()}/api/profile/upload-banner`,
         {
           method: "POST",
+          headers: getAuthHeaders(),
           credentials: "include",
           body: formData,
         }

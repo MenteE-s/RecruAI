@@ -2,7 +2,12 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
-import { getSidebarItems, getBackendUrl, getUploadUrl } from "../../utils/auth";
+import {
+  getSidebarItems,
+  getBackendUrl,
+  getUploadUrl,
+  getAuthHeaders,
+} from "../../utils/auth";
 import {
   FiMail,
   FiBriefcase,
@@ -77,6 +82,7 @@ export default function UserProfile() {
     try {
       const response = await fetch(`${getBackendUrl()}/api/auth/me`, {
         credentials: "include",
+        headers: getAuthHeaders(),
       });
 
       if (response.ok) {
@@ -97,6 +103,7 @@ export default function UserProfile() {
         `${getBackendUrl()}/api/users/${currentUser.id}/is-favorite/${userId}`,
         {
           credentials: "include",
+          headers: getAuthHeaders(),
         }
       );
 
@@ -133,6 +140,7 @@ export default function UserProfile() {
         {
           method: "POST",
           credentials: "include",
+          headers: getAuthHeaders(),
         }
       );
 

@@ -35,6 +35,16 @@ export function getBackendUrl() {
   return envUrl;
 }
 
+// Helper to get headers with Authorization if token exists
+export function getAuthHeaders(additionalHeaders = {}) {
+  const headers = { ...additionalHeaders };
+  const token = localStorage.getItem("access_token");
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  return headers;
+}
+
 // Get full URL for uploaded files
 export function getUploadUrl(relativePath) {
   if (!relativePath) return "";
@@ -55,6 +65,7 @@ export async function verifyTokenWithServer() {
     const res = await fetch(`${getBackendUrl()}/api/auth/me`, {
       method: "GET",
       credentials: "include",
+      headers: getAuthHeaders(),
     });
     if (!res.ok) {
       // clear stale auth

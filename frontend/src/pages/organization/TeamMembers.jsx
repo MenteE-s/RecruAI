@@ -3,8 +3,20 @@ import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
 import Card from "../../components/ui/Card";
-import { getSidebarItems, getBackendUrl } from "../../utils/auth";
-import { FiPlus, FiEdit2, FiTrash2, FiUsers, FiEye, FiCheckCircle, FiXCircle } from "react-icons/fi";
+import {
+  getSidebarItems,
+  getBackendUrl,
+  getAuthHeaders,
+} from "../../utils/auth";
+import {
+  FiPlus,
+  FiEdit2,
+  FiTrash2,
+  FiUsers,
+  FiEye,
+  FiCheckCircle,
+  FiXCircle,
+} from "react-icons/fi";
 
 // Modal Component
 const Modal = ({ isOpen, onClose, children }) => {
@@ -67,6 +79,7 @@ export default function TeamMembers() {
       try {
         const res = await fetch(`${getBackendUrl()}/api/auth/me`, {
           credentials: "include",
+          headers: getAuthHeaders(),
         });
         if (res.ok) {
           const data = await res.json();
@@ -99,6 +112,7 @@ export default function TeamMembers() {
         `${getBackendUrl()}/api/organizations/${organizationId}/team-members`,
         {
           credentials: "include",
+          headers: getAuthHeaders(),
         }
       );
 
@@ -129,6 +143,7 @@ export default function TeamMembers() {
         `${getBackendUrl()}/api/applications?status=hired&organization_id=${organizationId}`,
         {
           credentials: "include",
+          headers: getAuthHeaders(),
         }
       );
 
@@ -167,7 +182,7 @@ export default function TeamMembers() {
         `${getBackendUrl()}/api/organizations/${organizationId}/invite`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: getAuthHeaders({ "Content-Type": "application/json" }),
           credentials: "include",
           body: JSON.stringify(formData),
         }
@@ -202,7 +217,7 @@ export default function TeamMembers() {
         }`,
         {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
+          headers: getAuthHeaders({ "Content-Type": "application/json" }),
           credentials: "include",
           body: JSON.stringify(formData),
         }
@@ -239,6 +254,7 @@ export default function TeamMembers() {
         {
           method: "DELETE",
           credentials: "include",
+          headers: getAuthHeaders(),
         }
       );
 
@@ -259,27 +275,35 @@ export default function TeamMembers() {
   };
 
   // Function to toggle onboarding status for candidates
-  const toggleOnboardingStatus = async (applicationId, currentlyOnboarded, candidateName) => {
+  const toggleOnboardingStatus = async (
+    applicationId,
+    currentlyOnboarded,
+    candidateName
+  ) => {
     try {
-      const endpoint = currentlyOnboarded 
+      const endpoint = currentlyOnboarded
         ? `/api/applications/${applicationId}/offboard`
         : `/api/applications/${applicationId}/onboard`;
-      
-      const response = await fetch(
-        `${getBackendUrl()}${endpoint}`,
-        {
-          method: "POST",
-          credentials: "include",
-        }
-      );
+
+      const response = await fetch(`${getBackendUrl()}${endpoint}`, {
+        method: "POST",
+        credentials: "include",
+        headers: getAuthHeaders(),
+      });
 
       if (response.ok) {
         // Reload candidates to reflect the change
         await loadHiredCandidates();
-        alert(`Candidate ${candidateName} ${currentlyOnboarded ? "removed from" : "added to"} onboarded list`);
+        alert(
+          `Candidate ${candidateName} ${
+            currentlyOnboarded ? "removed from" : "added to"
+          } onboarded list`
+        );
       } else {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || "Failed to update onboarding status");
+        throw new Error(
+          errorData.error || "Failed to update onboarding status"
+        );
       }
     } catch (err) {
       console.error("Error updating onboarding status:", err);
@@ -432,7 +456,8 @@ export default function TeamMembers() {
                           {candidate.user?.name || "Unnamed Candidate"}
                         </h3>
                         <p className="text-sm text-gray-500">
-                          Applied for: {candidate.post?.title || "Unknown Position"}
+                          Applied for:{" "}
+                          {candidate.post?.title || "Unknown Position"}
                         </p>
                         <p className="text-sm text-gray-500 mt-1">
                           Applied: {formatDate(candidate.applied_at)}
@@ -441,22 +466,26 @@ export default function TeamMembers() {
                           {candidate.onboarded ? (
                             <>
                               <FiCheckCircle className="text-green-500 mr-2" />
-                              <span className="text-sm text-green-700">Onboarded</span>
+                              <span className="text-sm text-green-700">
+                                Onboarded
+                              </span>
                             </>
                           ) : (
                             <>
                               <FiXCircle className="text-yellow-500 mr-2" />
-                              <span className="text-sm text-yellow-700">Not Onboarded</span>
+                              <span className="text-sm text-yellow-700">
+                                Not Onboarded
+                              </span>
                             </>
                           )}
                         </div>
                       </div>
                       <div className="flex space-x-2">
                         <button
-                          onClick={() => 
+                          onClick={() =>
                             toggleOnboardingStatus(
-                              candidate.id, 
-                              candidate.onboarded, 
+                              candidate.id,
+                              candidate.onboarded,
                               candidate.user?.name || "Unnamed Candidate"
                             )
                           }
@@ -466,7 +495,8 @@ export default function TeamMembers() {
                               : "bg-green-100 text-green-800 hover:bg-green-200"
                           }`}
                         >
-                          Mark {candidate.onboarded ? "Not Onboarded" : "Onboarded"}
+                          Mark{" "}
+                          {candidate.onboarded ? "Not Onboarded" : "Onboarded"}
                         </button>
                       </div>
                     </div>

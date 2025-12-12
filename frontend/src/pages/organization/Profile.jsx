@@ -3,7 +3,12 @@ import { useParams } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
 import Card from "../../components/ui/Card";
-import { getSidebarItems, getUploadUrl, getBackendUrl } from "../../utils/auth";
+import {
+  getSidebarItems,
+  getUploadUrl,
+  getBackendUrl,
+  getAuthHeaders,
+} from "../../utils/auth";
 import {
   FiX,
   FiEdit2,
@@ -188,6 +193,7 @@ export default function OrganizationProfile() {
         // First get user to determine permissions
         const userRes = await fetch(`${getBackendUrl()}/api/auth/me`, {
           credentials: "include",
+          headers: getAuthHeaders(),
         });
         if (!userRes.ok) throw new Error("Failed to get user");
 
