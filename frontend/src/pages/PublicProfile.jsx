@@ -170,9 +170,13 @@ const PublicProfile = () => {
               </h2>
               <p className="text-gray-700">
                 {(() => {
-                  const aboutSection = user.profile_sections?.find(section => section.section_type === 'about');
-                  return aboutSection?.section_data?.content || 
-                    "Welcome to my professional profile. Here you can find information about my experience, skills, and projects.";
+                  const aboutSection = user.profile_sections?.find(
+                    (section) => section.section_type === "about"
+                  );
+                  return (
+                    aboutSection?.section_data?.content ||
+                    "Welcome to my professional profile. Here you can find information about my experience, skills, and projects."
+                  );
                 })()}
               </p>
             </Card>

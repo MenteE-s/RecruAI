@@ -1680,9 +1680,9 @@ export default function Profile() {
 
       const response = await fetch(endpoint, {
         method,
-        headers: { 
+        headers: {
           "Content-Type": "application/json",
-          ...getAuthHeaders()
+          ...getAuthHeaders(),
         },
         credentials: "include",
         body: JSON.stringify(body),
