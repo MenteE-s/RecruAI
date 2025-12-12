@@ -6,6 +6,7 @@ import {
   getSidebarItems,
   verifyTokenWithServer,
   getBackendUrl,
+  getAuthHeaders,
 } from "../../utils/auth";
 import { useToast } from "../../components/ui/ToastContext";
 
@@ -56,6 +57,7 @@ export default function JobPosts() {
     try {
       const response = await fetch(`${getBackendUrl()}/api/posts`, {
         credentials: "include",
+        headers: getAuthHeaders(),
       });
       if (response.ok) {
         const result = await response.json();
@@ -94,7 +96,7 @@ export default function JobPosts() {
 
       const response = await fetch(url, {
         method,
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders({ "Content-Type": "application/json" }),
         credentials: "include",
         body: JSON.stringify(payload),
       });
@@ -139,6 +141,7 @@ export default function JobPosts() {
         {
           method: "DELETE",
           credentials: "include",
+          headers: getAuthHeaders(),
         }
       );
 

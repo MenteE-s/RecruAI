@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
 import Card from "../../components/ui/Card";
-import { getSidebarItems, getBackendUrl } from "../../utils/auth";
+import { getSidebarItems, getBackendUrl, getAuthHeaders } from "../../utils/auth";
 import { formatDate } from "../../utils/timezone";
 
 export default function OrganizationAnalytics() {
@@ -28,6 +28,7 @@ export default function OrganizationAnalytics() {
         `${getBackendUrl()}/api/organizations/${orgId}/analytics`,
         {
           credentials: "include",
+          headers: getAuthHeaders(),
         }
       );
       if (response.ok) {

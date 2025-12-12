@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
 import Card from "../../components/ui/Card";
-import { getSidebarItems, getUploadUrl, getBackendUrl } from "../../utils/auth";
+import { getSidebarItems, getUploadUrl, getBackendUrl, getAuthHeaders } from "../../utils/auth";
 import {
   FiSearch,
   FiBriefcase,
@@ -35,6 +35,7 @@ export default function BrowseOrganizations() {
     try {
       const response = await fetch(`${getBackendUrl()}/api/organizations`, {
         credentials: "include",
+        headers: getAuthHeaders(),
       });
 
       if (response.ok) {
