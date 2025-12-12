@@ -6,6 +6,7 @@ import {
   getSidebarItems,
   getBackendUrl,
   getAuthHeaders,
+  getUploadUrl,
 } from "../../utils/auth";
 import {
   FiPlus,
@@ -628,26 +629,51 @@ const ShareableProfiles = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {profiles.map((profile) => (
             <Card key={profile.id} className="p-6">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    {profile.slug}
-                  </h3>
-                  <p className="text-sm text-gray-500">
-                    {profile.view_count} views
-                  </p>
+              <div className="flex items-start space-x-4 mb-4">
+                {/* Profile Image */}
+                <div className="flex-shrink-0">
+                  {profile.user?.profile_picture ? (
+                    <img
+                      src={getUploadUrl(profile.user.profile_picture)}
+                      alt={profile.user.name}
+                      className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-gray-300 flex items-center justify-center">
+                      <span className="text-sm font-bold text-gray-600">
+                        {profile.user?.name?.charAt(0)?.toUpperCase() || "?"}
+                      </span>
+                    </div>
+                  )}
                 </div>
-                <div className="flex items-center space-x-2">
-                  {profile.is_public ? (
-                    <FiGlobe className="text-green-500" title="Public" />
-                  ) : (
-                    <FiLock className="text-gray-400" title="Private" />
-                  )}
-                  {profile.is_active ? (
-                    <FiEye className="text-green-500" title="Active" />
-                  ) : (
-                    <FiEyeOff className="text-red-500" title="Inactive" />
-                  )}
+
+                {/* Profile Info */}
+                <div className="flex-1">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        {profile.slug}
+                      </h3>
+                      <p className="text-sm text-gray-500">
+                        {profile.view_count} views
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        {profile.user?.name}
+                      </p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      {profile.is_public ? (
+                        <FiGlobe className="text-green-500" title="Public" />
+                      ) : (
+                        <FiLock className="text-gray-400" title="Private" />
+                      )}
+                      {profile.is_active ? (
+                        <FiEye className="text-green-500" title="Active" />
+                      ) : (
+                        <FiEyeOff className="text-red-500" title="Inactive" />
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
 

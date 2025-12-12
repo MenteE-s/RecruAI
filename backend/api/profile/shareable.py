@@ -19,6 +19,20 @@ def get_user_profiles():
     query = ShareableProfile.query.filter_by(user_id=user_id)
     pagination_result = Pagination(query, page=page, per_page=per_page).paginate()
 
+    # Include user data for each profile
+    profiles_with_user = []
+    for profile in pagination_result['items']:
+        profile_dict = profile.to_dict()
+        profile_dict['user'] = {
+            'id': profile.user.id,
+            'name': profile.user.name,
+            'profile_picture': profile.user.profile_picture,
+            'role': profile.user.role
+        }
+        profiles_with_user.append(profile_dict)
+
+    pagination_result['items'] = profiles_with_user
+
     return jsonify(paginated_response(pagination_result['items'], pagination_result['pagination'])), 200
 
 
