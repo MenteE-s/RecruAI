@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from .. import api_bp
-from ...models import ShareableProfile, ProfileAnalytics, User
+from ...models import ShareableProfile, ProfileAnalytics, User, ProfileSection
 from ...extensions import db
 from ...utils.pagination import Pagination, get_pagination_params, paginated_response
 from datetime import datetime, timedelta
