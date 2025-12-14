@@ -175,6 +175,7 @@ export default function OrganizationProfile() {
     social_media_links: [],
     profile_image: "",
     banner_image: "",
+    subscription_status: null,
   });
 
   const [loading, setLoading] = useState(true);
@@ -233,6 +234,7 @@ export default function OrganizationProfile() {
           social_media_links: orgData.social_media_links || [],
           profile_image: orgData.profile_image || "",
           banner_image: orgData.banner_image || "",
+          subscription_status: orgData.subscription_status || null,
         });
       } catch (error) {
         console.error("Error loading profile data:", error);
@@ -618,7 +620,13 @@ export default function OrganizationProfile() {
           {/* Profile Image */}
           <div className="absolute -bottom-8 left-6 md:left-8">
             <div className="relative">
-              <div className="w-24 h-24 md:w-32 md:h-32 bg-white rounded-full border-4 border-white shadow-lg overflow-hidden">
+              <div
+                className={`w-24 h-24 md:w-32 md:h-32 bg-white rounded-full border-4 border-white shadow-lg overflow-hidden ${
+                  profileData.subscription_status?.is_paid_active
+                    ? "ring-4 ring-gradient-to-r from-yellow-400 to-green-500"
+                    : ""
+                }`}
+              >
                 {profileData.profile_image ? (
                   <img
                     src={getUploadUrl(profileData.profile_image)}
@@ -665,6 +673,13 @@ export default function OrganizationProfile() {
             </div>
           </div>
         </div>
+
+        {/* PRO Badge for paid organizations */}
+        {profileData.subscription_status?.is_paid_active && (
+          <div className="absolute top-4 right-4 bg-gradient-to-r from-yellow-400 to-green-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg animate-pulse">
+            PRO ORGANIZATION
+          </div>
+        )}
 
         {/* Loading overlay for image uploads */}
         {uploadingImage && (
@@ -716,7 +731,14 @@ export default function OrganizationProfile() {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Company Name
               </label>
-              <p className="text-gray-900">{profileData.name || "Not set"}</p>
+              <div className="flex items-center gap-2">
+                <p className="text-gray-900">{profileData.name || "Not set"}</p>
+                {profileData.subscription_status?.is_paid_active && (
+                  <span className="bg-gradient-to-r from-yellow-400 to-green-500 text-white text-xs font-bold px-2 py-1 rounded-full animate-pulse">
+                    PRO ORGANIZATION
+                  </span>
+                )}
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">

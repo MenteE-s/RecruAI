@@ -124,7 +124,6 @@ const ProfileModal = ({ isOpen, onClose, profile, onSave }) => {
         {
           method: "POST",
           headers: {
-            ...getAuthHeaders(),
             "Content-Type": "application/json",
           },
           body: JSON.stringify({ slug }),
@@ -161,7 +160,6 @@ const ProfileModal = ({ isOpen, onClose, profile, onSave }) => {
       const response = await fetch(url, {
         method,
         headers: {
-          ...getAuthHeaders(),
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -497,9 +495,7 @@ const ShareableProfiles = () => {
 
   const loadProfiles = async () => {
     try {
-      const response = await fetch(`${getBackendUrl()}/api/profiles`, {
-        headers: getAuthHeaders(),
-      });
+      const response = await fetch(`${getBackendUrl()}/api/profiles`);
 
       const data = await response.json();
       if (response.ok) {

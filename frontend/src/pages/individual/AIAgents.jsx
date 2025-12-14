@@ -27,34 +27,28 @@ export default function IndividualAIAgents() {
     description: "",
     custom_instructions: "",
   });
+  const [saving, setSaving] = useState(false);
+  const [startingInterview, setStartingInterview] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
       try {
         const me = await verifyTokenWithServer();
         setUser(me);
-        if (me?.organization_id) {
-          // User belongs to an organization, fetch organization AI agents
-          const res = await fetch(
-            `${getBackendUrl()}/api/organizations/${
-              me.organization_id
-            }/ai-agents`,
-            {
-              headers: getAuthHeaders(),
-              credentials: "include",
-            }
-          );
-          if (res.ok) {
-            const data = await res.json();
-            setAgents(data.aiAgents || []);
-          } else {
-            setError("Failed to load AI agents");
+
+        // Load practice AI agents for individual users
+        const agentsRes = await fetch(
+          `${getBackendUrl()}/api/practice-ai-agents`,
+          {
+            headers: getAuthHeaders(),
+            credentials: "include",
           }
+        );
+        if (agentsRes.ok) {
+          const data = await agentsRes.json();
+          setAgents(data);
         } else {
-          // Individual user without organization
-          setError(
-            "AI agents are only available for organization members. Please join or create an organization to access AI agents."
-          );
+          setError("Failed to load practice AI agents");
         }
       } catch (error) {
         setError("Failed to load data");
@@ -67,7 +61,67 @@ export default function IndividualAIAgents() {
 
   const createAgent = async (e) => {
     e.preventDefault();
-    alert("Personal AI agents are coming soon. Stay tuned!");
+    setSaving(true);
+    setError(null);
+
+    try {
+      const response = await fetch(
+        `${getBackendUrl()}/api/practice-ai-agents`,
+        {
+          method: "POST",
+          headers: getAuthHeaders({ "Content-Type": "application/json" }),
+          credentials: "include",
+          body: JSON.stringify(form),
+        }
+      );
+
+      if (response.ok) {
+        const newAgent = await response.json();
+        setAgents([newAgent, ...agents]);
+        setForm({
+          name: "",
+          industry: "",
+          description: "",
+          custom_instructions: "",
+        });
+      } else {
+        const errorData = await response.json();
+        setError(errorData.error || "Failed to create practice AI agent");
+      }
+    } catch (error) {
+      setError("Network error. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const startPracticeInterview = async (agentId) => {
+    setStartingInterview(true);
+    setError(null);
+
+    try {
+      const response = await fetch(
+        `${getBackendUrl()}/api/practice-ai-agents/${agentId}/schedule-practice`,
+        {
+          method: "POST",
+          headers: getAuthHeaders({ "Content-Type": "application/json" }),
+          credentials: "include",
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        // Redirect to interview room
+        window.location.href = `/interview/${data.id}`;
+      } else {
+        const errorData = await response.json();
+        setError(errorData.error || "Failed to start practice interview");
+      }
+    } catch (error) {
+      setError("Network error. Please try again.");
+    } finally {
+      setStartingInterview(false);
+    }
   };
 
   return (
@@ -77,13 +131,14 @@ export default function IndividualAIAgents() {
     >
       <div className="mb-6">
         <div className="flex items-center gap-2">
-          <h3 className="font-semibold text-gray-800">Your AI Agents</h3>
-          <span className="px-2 py-0.5 text-xs rounded-full bg-yellow-100 text-yellow-800">
-            Coming Soon
+          <h3 className="font-semibold text-gray-800">My Practice AI Agents</h3>
+          <span className="px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-800">
+            Free Practice Tool
           </span>
         </div>
         <p className="text-gray-600">
-          Create and manage personal practice interview agents.
+          Create and manage personal AI interviewers for practice interviews.
+          Available during trial and with active subscriptions.
         </p>
       </div>
 
@@ -137,10 +192,11 @@ export default function IndividualAIAgents() {
           </div>
           <div className="md:col-span-2">
             <button
-              className="px-4 py-2 bg-indigo-600 text-white rounded opacity-60 cursor-not-allowed"
-              disabled
+              type="submit"
+              className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-50"
+              disabled={saving}
             >
-              Create Agent
+              {saving ? "Creating..." : "Create Practice Agent"}
             </button>
           </div>
         </form>
@@ -156,8 +212,8 @@ export default function IndividualAIAgents() {
         ) : (
           agents.map((agent) => (
             <Card key={agent.id}>
-              <div className="flex justify-between">
-                <div>
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
                   <h4 className="font-medium text-gray-900">{agent.name}</h4>
                   <p className="text-sm text-gray-600">{agent.industry}</p>
                   <p className="text-xs text-gray-500">
@@ -166,6 +222,17 @@ export default function IndividualAIAgents() {
                   {agent.description && (
                     <p className="text-sm mt-2">{agent.description}</p>
                   )}
+                </div>
+                <div className="ml-4">
+                  <button
+                    onClick={() => startPracticeInterview(agent.id)}
+                    className="px-4 py-2 bg-green-600 text-white text-sm rounded hover:bg-green-700 disabled:opacity-50"
+                    disabled={startingInterview}
+                  >
+                    {startingInterview
+                      ? "Starting..."
+                      : "Start Practice Interview"}
+                  </button>
                 </div>
               </div>
             </Card>

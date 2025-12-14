@@ -59,6 +59,32 @@ def query_rag():
             user_context=user_context
         )
 
+        # Handle RAG disabled case
+        if result.get('rag_disabled'):
+            # Fallback to direct AI generation without RAG
+            try:
+                from ...ai_service import get_ai_service
+                ai_service = get_ai_service()
+
+                system_prompt = "You are a helpful AI assistant for recruitment and career guidance. Provide accurate, helpful responses based on your knowledge."
+                ai_response = ai_service.generate_response(system_prompt, query)
+
+                return jsonify({
+                    'success': True,
+                    'workflow_id': result.get('workflow_id'),
+                    'answer': ai_response,
+                    'confidence': 0.5,  # Default confidence for non-RAG responses
+                    'sources': [],
+                    'rag_disabled': True,
+                    'processing_time': result.get('performance', {}).get('total_time', 0)
+                })
+            except Exception as fallback_error:
+                logger.error(f"RAG fallback error: {fallback_error}")
+                return jsonify({
+                    'error': 'AI service unavailable',
+                    'rag_disabled': True
+                }), 503
+
         return jsonify({
             'success': True,
             'workflow_id': result.get('workflow_id'),

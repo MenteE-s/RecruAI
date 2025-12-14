@@ -1,76 +1,25 @@
 """
 AI Service module for handling AI-powered interviews.
-Supports both Groq and OpenAI with easy switching.
+Uses provider-agnostic AI system with support for OpenAI, Groq, and local models.
 """
 
 import os
 import json
 from typing import Dict, List, Optional, Any
-import requests
 from datetime import datetime
+
+from .ai_providers import get_ai_provider_manager
 
 
 class AIService:
-    """Base AI service class with common functionality"""
+    """Base AI service class with provider-agnostic functionality"""
 
-    def __init__(self, provider: str = "groq"):
-        self.provider = provider
-        self._api_key = None
-        self._base_url = None
-        self._model = None
+    def __init__(self):
+        self.provider_manager = get_ai_provider_manager()
+        self.llm_provider = self.provider_manager.llm
 
-    @property
-    def api_key(self):
-        if self._api_key is None:
-            self._api_key = self._get_api_key()
-        return self._api_key
-
-    @property
-    def base_url(self):
-        if self._base_url is None:
-            self._base_url = self._get_base_url()
-        return self._base_url
-
-    @property
-    def model(self):
-        if self._model is None:
-            self._model = self._get_model()
-        return self._model
-
-    def _get_api_key(self) -> str:
-        """Get API key based on provider"""
-        if self.provider == "groq":
-            return os.getenv("GROQ_API_KEY", "")
-        elif self.provider == "openai":
-            return os.getenv("OPENAI_API_KEY", "")
-        else:
-            raise ValueError(f"Unsupported AI provider: {self.provider}")
-
-    def _get_base_url(self) -> str:
-        """Get base URL for API calls"""
-        if self.provider == "groq":
-            return "https://api.groq.com/openai/v1"
-        elif self.provider == "openai":
-            return "https://api.openai.com/v1"
-        else:
-            raise ValueError(f"Unsupported AI provider: {self.provider}")
-
-    def _get_model(self) -> str:
-        """Get model name based on provider"""
-        # Check environment variable first
-        env_model = os.getenv("AI_MODEL")
-        if env_model:
-            return env_model
-
-        # Fallback to provider-specific defaults
-        if self.provider == "groq":
-            return "groq/compound"  # Popular Groq model
-        elif self.provider == "openai":
-            return "gpt-4"  # or gpt-3.5-turbo
-        else:
-            raise ValueError(f"Unsupported AI provider: {self.provider}")
-
-    def generate_response(self, system_prompt: str, user_message: str, conversation_history: Optional[List[Dict]] = None) -> str:
+    def generate_response(self, system_prompt: str, user_message: str, conversation_history: Optional[List[Dict]] = None,
+                        user: Optional['User'] = None, operation_type: str = "ai_chat") -> str:
         """
         Generate AI response for interview conversation
 
@@ -78,19 +27,25 @@ class AIService:
             system_prompt: The system prompt defining the AI agent's role
             user_message: The current user message
             conversation_history: Previous conversation turns
+            user: User object for subscription checking and token tracking
+            operation_type: Type of operation for token tracking
 
         Returns:
             AI response as string
         """
-        try:
-            print(f"DEBUG: AI Service - Provider: {self.provider}, Model: {self.model}")
-            print(f"DEBUG: API Key loaded: {'Yes' if self.api_key else 'No'} (length: {len(self.api_key) if self.api_key else 0})")
-            print(f"DEBUG: Base URL: {self.base_url}")
+        # Check subscription access
+        if user:
+            from backend.utils.subscription import SubscriptionManager
+            if user.organization:
+                if not SubscriptionManager.check_organization_access(user.organization, "ai_chat"):
+                    return "Your organization's trial has expired or subscription is inactive. Please upgrade to continue using AI features."
+            else:
+                if not SubscriptionManager.check_user_access(user, "ai_chat"):
+                    return "Your trial has expired or subscription is inactive. Please upgrade to continue using AI features."
 
-            headers = {
-                "Authorization": f"Bearer {self.api_key}",
-                "Content-Type": "application/json"
-            }
+        try:
+            print(f"DEBUG: AI Service - Provider: {self.provider_manager.config.AI_PROVIDER}, Model: {self.provider_manager.config.AI_MODEL}")
+            print(f"DEBUG: API Key loaded: {'Yes' if self._has_api_key() else 'No'}")
 
             messages = [{"role": "system", "content": system_prompt}]
 
@@ -101,43 +56,46 @@ class AIService:
             # Add current user message
             messages.append({"role": "user", "content": user_message})
 
-            payload = {
-                "model": self.model,
-                "messages": messages,
-                "max_tokens": 1000,
-                "temperature": 0.7,
-            }
+            # Use provider-agnostic chat
+            response = self.llm_provider.chat(messages)
 
-            print(f"DEBUG: Making request to {self.base_url}/chat/completions")
-            response = requests.post(
-                f"{self.base_url}/chat/completions",
-                headers=headers,
-                json=payload,
-                timeout=30
-            )
+            # Track token usage if user provided
+            if user and hasattr(self.llm_provider, 'get_last_token_usage'):
+                token_usage = self.llm_provider.get_last_token_usage()
+                if token_usage:
+                    SubscriptionManager.track_token_usage(
+                        user=user,
+                        org=user.organization,
+                        provider=self.provider_manager.config.AI_PROVIDER,
+                        model=self.provider_manager.config.AI_MODEL,
+                        tokens=token_usage,
+                        operation_type=operation_type
+                    )
 
-            print(f"DEBUG: Response status: {response.status_code}")
-            if response.status_code == 200:
-                data = response.json()
-                ai_response = data["choices"][0]["message"]["content"]
-                print(f"DEBUG: AI response length: {len(ai_response)}")
-                return ai_response
-            else:
-                print(f"AI API error: {response.status_code} - {response.text}")
-                return "I apologize, but I'm having trouble processing your response right now. Could you please try again?"
+            print(f"DEBUG: AI response length: {len(response)}")
+            return response
 
         except Exception as e:
             print(f"AI service error: {str(e)}")
             import traceback
             traceback.print_exc()
-            return "I apologize, but I'm experiencing technical difficulties. Please try again in a moment."
+            return "I apologize, but I'm having trouble processing your response right now. Could you please try again?"
+
+    def _has_api_key(self) -> bool:
+        """Check if the current provider has an API key configured"""
+        provider = self.provider_manager.config.AI_PROVIDER
+        if provider == "openai":
+            return bool(self.provider_manager.config.OPENAI_API_KEY)
+        elif provider == "groq":
+            return bool(self.provider_manager.config.GROQ_API_KEY)
+        return False
 
 
 class InterviewAIService(AIService):
     """Specialized AI service for conducting interviews"""
 
-    def __init__(self, provider: str = "groq"):
-        super().__init__(provider)
+    def __init__(self):
+        super().__init__()
 
     def conduct_interview_round(self, agent_data: Dict, candidate_response: str, interview_context: Dict) -> Dict[str, Any]:
         """
@@ -207,7 +165,7 @@ Remember to be fair, unbiased, and professional."""
 
 
 # Global instance for easy access
-ai_service = InterviewAIService(provider="groq")  # Change to "openai" when switching providers
+ai_service = InterviewAIService()
 
 
 def get_ai_service() -> InterviewAIService:
@@ -216,9 +174,11 @@ def get_ai_service() -> InterviewAIService:
 
 
 def switch_ai_provider(provider: str):
-    """Switch AI provider globally"""
-    global ai_service
-    ai_service = InterviewAIService(provider=provider)
+    """Switch AI provider globally (deprecated - use environment variables instead)"""
+    import warnings
+    warnings.warn("switch_ai_provider is deprecated. Use AI_PROVIDER environment variable instead.", DeprecationWarning)
+    # This function is kept for backward compatibility but does nothing
+    # Provider switching should be done via environment variables now
 
 
 # Test function
@@ -227,7 +187,8 @@ def test_ai_connection():
     try:
         print("DEBUG: Testing AI connection...")
         service = get_ai_service()
-        print(f"DEBUG: Service initialized - Provider: {service.provider}")
+        provider_info = service.provider_manager.get_provider_info()
+        print(f"DEBUG: Service initialized - LLM: {provider_info['llm_provider']}, Embedding: {provider_info['embedding_provider']}")
 
         test_prompt = "You are a helpful assistant. Respond with 'Hello, AI service is working!'"
         test_message = "Test message"

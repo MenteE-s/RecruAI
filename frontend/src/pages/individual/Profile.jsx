@@ -2020,17 +2020,38 @@ export default function Profile() {
             <div className="flex items-start space-x-4">
               {/* Profile Picture */}
               <div className="relative -mt-16 group">
-                <div className="w-24 h-24 rounded-full bg-white flex items-center justify-center overflow-hidden border-4 border-white shadow-lg">
-                  {userData?.profile_picture ? (
-                    <img
-                      src={getUploadUrl(userData.profile_picture)}
-                      alt="Profile"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <FiUser size={36} className="text-gray-400" />
-                  )}
+                <div
+                  className={`w-24 h-24 rounded-full flex items-center justify-center overflow-hidden border-4 shadow-lg ${
+                    userData?.subscription_status?.is_paid_active
+                      ? "border-transparent bg-gradient-to-r from-yellow-400 via-green-400 to-emerald-500 p-1"
+                      : "border-white bg-white"
+                  }`}
+                >
+                  <div
+                    className={`w-full h-full rounded-full overflow-hidden ${
+                      userData?.subscription_status?.is_paid_active
+                        ? "bg-white"
+                        : ""
+                    }`}
+                  >
+                    {userData?.profile_picture ? (
+                      <img
+                        src={getUploadUrl(userData.profile_picture)}
+                        alt="Profile"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <FiUser size={36} className="text-gray-400" />
+                    )}
+                  </div>
                 </div>
+
+                {/* Paid User Badge */}
+                {userData?.subscription_status?.is_paid_active && (
+                  <div className="absolute -top-2 -right-2 bg-gradient-to-r from-yellow-400 to-green-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg border-2 border-white">
+                    PRO
+                  </div>
+                )}
 
                 <label
                   htmlFor="profile-picture-upload"
@@ -2050,9 +2071,17 @@ export default function Profile() {
               </div>
 
               <div className="pt-4">
-                <h1 className="text-2xl md:text-3xl font-bold font-display text-gray-900">
-                  {userData?.name || "Guest"}
-                </h1>
+                <div className="flex items-center gap-3">
+                  <h1 className="text-2xl md:text-3xl font-bold font-display text-gray-900">
+                    {userData?.name || "Guest"}
+                  </h1>
+                  {userData?.subscription_status?.is_paid_active && (
+                    <div className="flex items-center gap-1 bg-gradient-to-r from-yellow-400 to-green-500 text-white text-sm font-semibold px-3 py-1 rounded-full shadow-md">
+                      <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
+                      PRO USER
+                    </div>
+                  )}
+                </div>
                 <p className="mt-1 text-gray-600">
                   Welcome back! Manage your professional profile.
                 </p>

@@ -213,17 +213,49 @@ export default function OrganizationSettings() {
           <h3 className="font-semibold text-gray-800 mb-4">Current Plan</h3>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-lg font-medium text-gray-900 capitalize">
-                {plan || "Trial"} Plan
+              <p className="text-lg font-medium text-gray-900 capitalize flex items-center gap-2">
+                {organization?.subscription_status?.is_paid_active
+                  ? "Pro"
+                  : organization?.subscription_status?.is_trial_active
+                  ? "Trial"
+                  : "Free"}{" "}
+                Plan
+                {organization?.subscription_status?.is_paid_active && (
+                  <span className="bg-gradient-to-r from-yellow-400 to-green-500 text-white text-xs font-bold px-2 py-1 rounded-full animate-pulse">
+                    ACTIVE
+                  </span>
+                )}
               </p>
               <p className="text-gray-600 text-sm">
-                {plan === "trial"
-                  ? "Limited features for small teams"
-                  : "Full access to advanced hiring tools and analytics"}
+                {organization?.subscription_status?.is_paid_active
+                  ? "Full access to advanced hiring tools and analytics"
+                  : organization?.subscription_status?.is_trial_active
+                  ? `Trial active - ${
+                      organization?.subscription_status?.features_accessible?.includes(
+                        "all"
+                      )
+                        ? "Full features"
+                        : "Limited features"
+                    }`
+                  : "Limited features for small teams"}
               </p>
+              {organization?.subscription_status?.status === "trial" &&
+                organization?.subscription_status?.is_trial_active && (
+                  <p className="text-xs text-orange-600 mt-1">
+                    Trial expires:{" "}
+                    {organization?.subscription_status?.trial_start_date
+                      ? new Date(
+                          new Date(
+                            organization.subscription_status.trial_start_date
+                          ).getTime() +
+                            7 * 24 * 60 * 60 * 1000
+                        ).toLocaleDateString()
+                      : "Unknown"}
+                  </p>
+                )}
             </div>
-            {plan === "trial" && (
-              <button className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+            {!organization?.subscription_status?.is_paid_active && (
+              <button className="px-6 py-2 bg-gradient-to-r from-yellow-400 to-green-500 text-white rounded hover:from-yellow-500 hover:to-green-600 font-medium transition-all duration-200">
                 Upgrade to Pro
               </button>
             )}
@@ -236,8 +268,8 @@ export default function OrganizationSettings() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div
               className={`border rounded-lg p-4 ${
-                plan === "trial"
-                  ? "border-blue-500 bg-blue-50"
+                !organization?.subscription_status?.is_paid_active
+                  ? "border-yellow-400 bg-yellow-50 ring-2 ring-yellow-200"
                   : "border-gray-200"
               }`}
             >
@@ -248,9 +280,10 @@ export default function OrganizationSettings() {
                 <li>• Basic job posting</li>
                 <li>• Candidate tracking</li>
                 <li>• Limited analytics</li>
+                <li>• 5 interview credits</li>
               </ul>
-              {plan === "trial" && (
-                <span className="inline-block mt-3 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
+              {!organization?.subscription_status?.is_paid_active && (
+                <span className="inline-block mt-3 px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded font-medium">
                   Current Plan
                 </span>
               )}
@@ -258,12 +291,19 @@ export default function OrganizationSettings() {
 
             <div
               className={`border rounded-lg p-4 ${
-                plan === "pro"
-                  ? "border-green-500 bg-green-50"
+                organization?.subscription_status?.is_paid_active
+                  ? "border-green-500 bg-green-50 ring-2 ring-green-200"
                   : "border-gray-200"
               }`}
             >
-              <h4 className="font-medium text-gray-900">Pro Plan</h4>
+              <h4 className="font-medium text-gray-900 flex items-center gap-2">
+                Pro Plan
+                {organization?.subscription_status?.is_paid_active && (
+                  <span className="bg-gradient-to-r from-yellow-400 to-green-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                    ACTIVE
+                  </span>
+                )}
+              </h4>
               <p className="text-2xl font-bold text-gray-900 mt-2">
                 $29.99<span className="text-sm font-normal">/month</span>
               </p>
@@ -273,14 +313,16 @@ export default function OrganizationSettings() {
                 <li>• AI-powered candidate matching</li>
                 <li>• Full analytics & reporting</li>
                 <li>• Integrations & API access</li>
+                <li>• Unlimited interviews</li>
+                <li>• Priority support</li>
               </ul>
-              {plan === "pro" ? (
-                <span className="inline-block mt-3 px-2 py-1 bg-green-100 text-green-800 text-xs rounded">
+              {organization?.subscription_status?.is_paid_active ? (
+                <span className="inline-block mt-3 px-2 py-1 bg-green-100 text-green-800 text-xs rounded font-medium">
                   Current Plan
                 </span>
               ) : (
-                <button className="mt-3 px-4 py-2 bg-green-600 text-white text-sm rounded hover:bg-green-700">
-                  Upgrade
+                <button className="mt-3 px-4 py-2 bg-gradient-to-r from-yellow-400 to-green-500 text-white text-sm rounded hover:from-yellow-500 hover:to-green-600 font-medium transition-all duration-200">
+                  Upgrade Now
                 </button>
               )}
             </div>

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from backend.extensions import db
 
@@ -23,6 +23,12 @@ class Organization(db.Model):
     banner_image = db.Column(db.String(500), nullable=True)
     # organization's preferred timezone (e.g., 'Asia/Karachi', 'America/New_York')
     timezone = db.Column(db.String(50), nullable=True, default="UTC")
+    # Subscription fields
+    subscription_status = db.Column(db.String(20), nullable=True, default="trial")  # 'trial', 'active', 'expired', 'cancelled'
+    trial_start_date = db.Column(db.DateTime, nullable=True, default=datetime.utcnow)
+    paid_plan = db.Column(db.Boolean, nullable=True, default=False)
+    interviews_used = db.Column(db.Integer, nullable=True, default=0)
+    tokens_used = db.Column(db.Integer, nullable=True, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     users = db.relationship("User", back_populates="organization")
@@ -55,5 +61,90 @@ class Organization(db.Model):
             "profile_image": self.profile_image,
             "banner_image": self.banner_image,
             "timezone": self.timezone or "UTC",
+            "subscription_status": self.get_subscription_status(),
             "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+
+    # Subscription methods
+    def is_trial_active(self) -> bool:
+        """Check if organization is still in trial period (7 days)"""
+        if self.subscription_status != "trial":
+            return False
+
+        if not self.trial_start_date:
+            return False
+
+        trial_end = self.trial_start_date + timedelta(days=7)
+        return datetime.utcnow() < trial_end
+
+    def is_subscription_active(self) -> bool:
+        """Check if organization has active subscription"""
+        return self.subscription_status == "active" and self.paid_plan
+
+    def can_schedule_interview(self) -> bool:
+        """Check if organization can schedule more interviews (5 limit during trial)"""
+        if self.is_subscription_active():
+            return True
+
+        if self.is_trial_active():
+            # During trial, allow up to 5 interviews
+            return (self.interviews_used or 0) < 5
+
+        # Trial expired - no more interviews
+        return False
+
+    def can_access_feature(self, feature: str) -> bool:
+        """Check if organization can access a specific feature based on subscription"""
+        if self.is_subscription_active():
+            return True
+
+        if self.is_trial_active():
+            # During trial, allow access to all features
+            return True
+
+        # Trial expired - restrict features
+        basic_features = ["profile_management", "job_posting", "basic_matching"]
+        return feature in basic_features
+
+    def track_interview_usage(self):
+        """Track interview usage for organizations"""
+        if self.interviews_used is None:
+            self.interviews_used = 0
+        self.interviews_used += 1
+        db.session.commit()
+
+    def track_token_usage(self, provider: str, model: str, tokens: int, operation_type: str):
+        """Track token usage for billing/analytics"""
+        from backend.models.token_usage import TokenUsage
+
+        # Create token usage record
+        usage = TokenUsage(
+            organization_id=self.id,
+            provider=provider,
+            model=model,
+            tokens_used=tokens,
+            operation_type=operation_type
+        )
+        db.session.add(usage)
+
+        # Update organization's total token count
+        if self.tokens_used is None:
+            self.tokens_used = 0
+        self.tokens_used += tokens
+
+        db.session.commit()
+
+    def get_subscription_status(self) -> dict:
+        """Get comprehensive subscription status"""
+        return {
+            "status": self.subscription_status,
+            "is_trial_active": self.is_trial_active(),
+            "is_paid_active": self.is_subscription_active(),
+            "trial_start_date": self.trial_start_date.isoformat() if self.trial_start_date else None,
+            "paid_plan": self.paid_plan,
+            "tokens_used": self.tokens_used or 0,
+            "interviews_used": self.interviews_used or 0,
+            "interviews_remaining": max(0, 5 - (self.interviews_used or 0)) if self.is_trial_active() else 0,
+            "can_schedule_interview": self.can_schedule_interview(),
+            "features_accessible": ["all"] if (self.is_subscription_active() or self.is_trial_active()) else ["basic"]
         }

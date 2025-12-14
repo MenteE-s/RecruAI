@@ -16,6 +16,12 @@ class User(db.Model):
     role = db.Column(db.String(32), nullable=False, default="individual")
     # user plan: 'trial' or 'pro'
     plan = db.Column(db.String(32), nullable=False, default="trial")
+    # Subscription fields
+    subscription_status = db.Column(db.String(20), nullable=True, default="trial")  # 'trial', 'active', 'expired', 'cancelled'
+    trial_start_date = db.Column(db.DateTime, nullable=True, default=datetime.utcnow)
+    paid_plan = db.Column(db.Boolean, nullable=True, default=False)
+    tokens_used = db.Column(db.Integer, nullable=True, default=0)
+    interviews_count = db.Column(db.Integer, nullable=True, default=0)
     # optional organization FK
     organization_id = db.Column(db.Integer, db.ForeignKey("organizations.id"), nullable=True)
     organization = db.relationship("Organization", back_populates="users")
@@ -108,6 +114,7 @@ class User(db.Model):
             "location": self.location,
             "website": self.website,
             "linkedin": self.linkedin,
+            "subscription_status": self.get_subscription_status(),
             "last_login_at": self.last_login_at.isoformat() if self.last_login_at else None,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
@@ -130,4 +137,80 @@ class User(db.Model):
             "certifications": [cert.to_dict() for cert in self.certifications] if hasattr(self, 'certifications') else [],
             "publications": [pub.to_dict() for pub in self.publications] if hasattr(self, 'publications') else [],
             "awards": [award.to_dict() for award in self.awards] if hasattr(self, 'awards') else [],
+        }
+
+    # Subscription methods
+    def is_trial_active(self) -> bool:
+        """Check if user is still in trial period (7 days for individuals)"""
+        if self.subscription_status != "trial":
+            return False
+
+        if not self.trial_start_date:
+            return False
+
+        trial_end = self.trial_start_date + timedelta(days=7)
+        return datetime.utcnow() < trial_end
+
+    def is_subscription_active(self) -> bool:
+        """Check if user has active subscription"""
+        return self.subscription_status == "active" and self.paid_plan
+
+    def can_access_feature(self, feature: str) -> bool:
+        """Check if user can access a specific feature based on subscription"""
+        if self.is_subscription_active():
+            return True
+
+        if self.is_trial_active():
+            # During trial, allow access to all features
+            return True
+
+        # Trial expired - restrict features
+        basic_features = ["profile_management", "job_search", "basic_matching"]
+        return feature in basic_features
+
+    def can_schedule_interview(self) -> bool:
+        """Check if user can schedule more interviews"""
+        if self.is_subscription_active():
+            return True
+
+        if self.is_trial_active():
+            # During trial, allow unlimited interviews
+            return True
+
+        # Trial expired - no more interviews
+        return False
+
+    def track_token_usage(self, provider: str, model: str, tokens: int, operation_type: str):
+        """Track token usage for billing/analytics"""
+        from backend.models.token_usage import TokenUsage
+
+        # Create token usage record
+        usage = TokenUsage(
+            user_id=self.id,
+            provider=provider,
+            model=model,
+            tokens_used=tokens,
+            operation_type=operation_type
+        )
+        db.session.add(usage)
+
+        # Update user's total token count
+        if self.tokens_used is None:
+            self.tokens_used = 0
+        self.tokens_used += tokens
+
+        db.session.commit()
+
+    def get_subscription_status(self) -> dict:
+        """Get comprehensive subscription status"""
+        return {
+            "status": self.subscription_status,
+            "is_trial_active": self.is_trial_active(),
+            "is_paid_active": self.is_subscription_active(),
+            "trial_start_date": self.trial_start_date.isoformat() if self.trial_start_date else None,
+            "paid_plan": self.paid_plan,
+            "tokens_used": self.tokens_used or 0,
+            "interviews_count": self.interviews_count or 0,
+            "can_schedule_interview": self.can_schedule_interview(),
+            "features_accessible": ["all"] if (self.is_subscription_active() or self.is_trial_active()) else ["basic"]
         }

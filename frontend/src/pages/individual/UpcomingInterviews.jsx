@@ -290,7 +290,11 @@ export default function UpcomingInterviews() {
                     <div className="flex flex-col space-y-2 ml-4">
                       {canJoinInterview(interview) ? (
                         <button
-                          onClick={() => navigate(`/interview/${interview.id}`)}
+                          onClick={() => {
+                            console.log("Interview object:", interview);
+                            console.log("Interview ID:", interview.id);
+                            navigate(`/interview/${interview.id}`);
+                          }}
                           className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm animate-pulse"
                         >
                           {getJoinButtonText(interview)}

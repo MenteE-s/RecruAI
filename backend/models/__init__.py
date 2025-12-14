@@ -28,10 +28,13 @@ from .conference import Conference
 from .speaking_engagement import SpeakingEngagement
 from .license import License
 from .ai_interview_agent import AIInterviewAgent
+from .practice_ai_agent import PracticeAIAgent
 from .conversation_memory import ConversationMemory
+from .conversation_message import ConversationMessage
 from .system_issue import SystemIssue
 from .shareable_profile import ShareableProfile, ProfileAnalytics
 from .favorite import Favorite
+from .token_usage import TokenUsage
 
 __all__ = [
     "User",
@@ -64,9 +67,12 @@ __all__ = [
     "SpeakingEngagement",
     "License",
     "AIInterviewAgent",
+    "PracticeAIAgent",
     "SystemIssue",
     "ConversationMemory",
+    "ConversationMessage",
     "ShareableProfile",
     "ProfileAnalytics",
     "Favorite",
+    "TokenUsage",
 ]

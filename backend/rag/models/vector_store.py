@@ -106,7 +106,7 @@ class DocumentChunk(Base):
             word_count=len(content.split()),
             char_count=len(content),
             language='en',  # TODO: Implement language detection
-            embedding_model=RAGConfig.OPENAI_EMBEDDING_MODEL,
+            embedding_model=RAGConfig.EMBEDDING_MODEL or RAGConfig.EMBEDDING_PROVIDER,
             chunking_strategy='semantic',  # TODO: Make configurable
             chunk_metadata=json.dumps(metadata) if metadata else None,
         )
@@ -124,7 +124,7 @@ class EmbeddingStore(Base):
 
     # Vector embedding (using pgvector if available, otherwise Text for JSON storage)
     if HAS_VECTOR:
-        embedding = Column(VECTOR(RAGConfig.OPENAI_EMBEDDING_DIMENSIONS), nullable=False)
+        embedding = Column(VECTOR(RAGConfig.EMBEDDING_DIMENSIONS), nullable=False)
     else:
         embedding = Column(Text, nullable=False)  # Store as JSON string for now
 
