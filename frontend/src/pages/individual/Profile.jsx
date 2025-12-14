@@ -1784,7 +1784,7 @@ export default function Profile() {
       setError("Network error. Please try again.");
     }
   };
-  const handleSavePersonalInfo = async () => {
+  const savePersonalInfo = async (personalData) => {
     setSaving(true);
     setError(null);
 
