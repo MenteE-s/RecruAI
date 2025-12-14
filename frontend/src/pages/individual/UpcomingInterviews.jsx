@@ -92,10 +92,16 @@ export default function UpcomingInterviews() {
           Cancelled
         </span>
       );
-    } else if (minutesDiff < 0) {
+    } else if (minutesDiff < 0 && minutesDiff >= -interview.duration_minutes) {
       return (
-        <span className="px-2 py-1 bg-orange-100 text-orange-800 text-xs rounded-full animate-pulse">
-          In Progress
+        <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full animate-pulse">
+          Join Now
+        </span>
+      );
+    } else if (minutesDiff < -interview.duration_minutes) {
+      return (
+        <span className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">
+          Ended
         </span>
       );
     } else if (minutesDiff <= 15) {
@@ -127,8 +133,9 @@ export default function UpcomingInterviews() {
     const timeDiff = scheduledTime - nowUTC;
     const minutesDiff = timeDiff / (1000 * 60);
 
-    // Can join 15 minutes before and during the interview
-    return minutesDiff <= 15 && minutesDiff >= -interview.duration_minutes;
+    // Can join only when interview time has arrived (within duration)
+    // No early joining allowed
+    return minutesDiff <= 0 && minutesDiff >= -interview.duration_minutes;
   };
 
   const getJoinButtonText = (interview) => {
@@ -148,7 +155,7 @@ export default function UpcomingInterviews() {
     if (minutesDiff > 15) {
       return "Scheduled"; // More than 15 minutes away
     } else if (minutesDiff > 0) {
-      return `Join in ${Math.ceil(minutesDiff)} min`;
+      return `Starts in ${Math.ceil(minutesDiff)} min`;
     } else if (minutesDiff >= -interview.duration_minutes) {
       return "Join Now";
     } else {

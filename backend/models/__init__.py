@@ -3,6 +3,7 @@ from .organization import Organization
 from .team_member import TeamMember
 from .interview import Interview
 from .interview_analysis import InterviewAnalysis
+from .interview_decision_history import InterviewDecisionHistory
 from .post import Post
 from .application import Application
 from .saved_job import SavedJob
@@ -42,6 +43,7 @@ __all__ = [
     "TeamMember",
     "Interview",
     "InterviewAnalysis",
+    "InterviewDecisionHistory",
     "Post",
     "Application",
     "SavedJob",

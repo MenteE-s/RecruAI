@@ -128,11 +128,14 @@ def generate_agent_response(message, interview, agent, user):
         ai_service = get_ai_service()
 
         # Build comprehensive system prompt
-        system_prompt = build_agent_system_prompt(agent, interview)
+        system_prompt = build_agent_system_prompt(agent, interview, is_first_message)
 
         # Get conversation history (last 10 messages)
         recent_messages = ConversationMessage.get_recent_conversation(interview.id, limit=10)
         recent_messages.reverse()  # Chronological order
+
+        # Check if this is the first message (no previous conversation)
+        is_first_message = len(recent_messages) == 0
 
         # Format for AI service
         conversation_history = []
@@ -143,7 +146,13 @@ def generate_agent_response(message, interview, agent, user):
                 "content": msg.content
             })
 
-        # Generate response
+        # Use the interview AI service for better round handling
+        interview_context = {
+            "round_number": interview.current_round or 1,
+            "is_first_message": is_first_message
+        }
+
+        # Generate response using the specialized interview AI service
         response = ai_service.generate_response(system_prompt, message, conversation_history, user, "interview_ai")
         return response
 
@@ -152,7 +161,7 @@ def generate_agent_response(message, interview, agent, user):
         return generate_fallback_response(message, interview, agent)
 
 
-def build_agent_system_prompt(agent, interview):
+def build_agent_system_prompt(agent, interview, is_first_message=False):
     """Build comprehensive system prompt for the AI agent"""
     from datetime import datetime
     from ...models.ai_interview_agent import AIInterviewAgent
@@ -187,11 +196,14 @@ def build_agent_system_prompt(agent, interview):
     time_until_interview = interview.scheduled_at - current_time
     minutes_remaining = int(time_until_interview.total_seconds() / 60)
 
+    round_number = interview.current_round or 1
+
     prompt_parts.append(f"""
 INTERVIEW CONTEXT:
 - Position: {interview.title}
 - Description: {interview.description or 'Not specified'}
 - Organization: {interview.organization.name if interview.organization else 'Unknown'}
+- Current Round: {round_number}
 - Current Time: {current_time.strftime('%Y-%m-%d %H:%M UTC')}
 - Time Status: {'Interview in progress' if minutes_remaining < 0 else f'Starts in {abs(minutes_remaining)} minutes'}
 """)
@@ -210,6 +222,36 @@ JOB REQUIREMENTS:
     # Custom instructions
     if agent.custom_instructions:
         prompt_parts.append(f"\nCUSTOM INSTRUCTIONS:\n{agent.custom_instructions}")
+
+    # Round-specific instructions
+    if round_number > 1:
+        prompt_parts.append(f"""
+ROUND {round_number} INSTRUCTIONS:
+- This is Round {round_number} of the interview process
+- The candidate has successfully passed Round {round_number - 1}
+- Build upon previous conversations - ask more advanced questions
+- Reference their previous answers when appropriate
+- Focus on deeper technical skills and problem-solving abilities
+""")
+
+    # First message instructions
+    if is_first_message:
+        if round_number == 1:
+            prompt_parts.append("""
+FIRST MESSAGE INSTRUCTIONS:
+- Start with a professional greeting and introduce yourself
+- Briefly explain the interview process
+- Ask an opening question to begin the conversation
+- Set a positive, professional tone
+""")
+        else:
+            prompt_parts.append(f"""
+ROUND {round_number} START INSTRUCTIONS:
+- Acknowledge that the candidate has advanced to Round {round_number}
+- Reference that they successfully completed Round {round_number - 1}
+- Briefly welcome them to this round
+- Ask your first question for this round
+""")
 
     # Response guidelines
     prompt_parts.append("""

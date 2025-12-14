@@ -4,7 +4,7 @@ Interview utilities for managing interview lifecycle and status updates
 
 from datetime import datetime, timezone, timedelta
 from ..extensions import db
-from ..models import Interview, Application
+from ..models import Interview, Application, InterviewDecisionHistory
 
 
 def update_expired_interviews():
@@ -75,6 +75,17 @@ def update_interview_decision(interview_id, decision, feedback=None, rating=None
         # Update decision
         interview.final_decision = decision
 
+        # Record decision in history before updating current state
+        decision_history = InterviewDecisionHistory(
+            interview_id=interview_id,
+            round_number=interview.current_round or 1,
+            decision=decision,
+            feedback=feedback,
+            rating=rating,
+            decided_at=datetime.utcnow()
+        )
+        db.session.add(decision_history)
+
         # Initialize round fields if this is the first decision
         if interview.current_round is None:
             interview.current_round = 1
@@ -101,6 +112,17 @@ def update_interview_decision(interview_id, decision, feedback=None, rating=None
             # Reset status to scheduled for the next round
             interview.status = 'scheduled'
             interview.completed_at = None  # Clear so it can be scheduled again
+
+            # Add round transition message to conversation
+            from ..models import ConversationMessage
+            round_transition = ConversationMessage(
+                interview_id=interview_id,
+                sender_type='agent',
+                sender_agent_id=interview.ai_agent_id,
+                content=f"--- ROUND 1 COMPLETED: Candidate advanced to Round 2 ---\n\nWelcome to Round 2! Based on your performance in Round 1, you've been selected to continue the interview process. Let's dive deeper into your experience and skills.",
+                created_at=datetime.utcnow()
+            )
+            db.session.add(round_transition)
         elif decision == 'third_round':
             # Passed round 2, moving to round 3
             interview.round_status = 'passed'
@@ -108,6 +130,17 @@ def update_interview_decision(interview_id, decision, feedback=None, rating=None
             # Reset status to scheduled for the next round
             interview.status = 'scheduled'
             interview.completed_at = None  # Clear so it can be scheduled again
+
+            # Add round transition message to conversation
+            from ..models import ConversationMessage
+            round_transition = ConversationMessage(
+                interview_id=interview_id,
+                sender_type='agent',
+                sender_agent_id=interview.ai_agent_id,
+                content=f"--- ROUND 2 COMPLETED: Candidate advanced to Round 3 ---\n\nCongratulations on advancing to Round 3! This is the final round of our interview process. Let's explore your technical expertise and problem-solving abilities in more detail.",
+                created_at=datetime.utcnow()
+            )
+            db.session.add(round_transition)
 
         # Update feedback and rating if provided
         if feedback is not None:

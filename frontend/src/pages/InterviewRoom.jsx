@@ -39,6 +39,42 @@ const InterviewRoom = () => {
     }
   }, [interviewId]);
 
+  // Add exit confirmation for ongoing interviews
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (interview && !error) {
+        e.preventDefault();
+        e.returnValue = ""; // Chrome requires returnValue to be set
+        return ""; // Some browsers show this message
+      }
+    };
+
+    const handlePopState = (e) => {
+      if (interview && !error) {
+        const confirmLeave = window.confirm(
+          "Are you sure you want to leave the interview? Your progress may not be saved."
+        );
+        if (!confirmLeave) {
+          // Prevent navigation by pushing the current state back
+          window.history.pushState(null, "", window.location.pathname);
+        }
+      }
+    };
+
+    // Add event listeners
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    window.addEventListener("popstate", handlePopState);
+
+    // Push initial state for back button handling
+    window.history.pushState(null, "", window.location.pathname);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, [interview, error]);
+
   const loadConversation = async () => {
     try {
       const response = await fetch(
@@ -252,7 +288,14 @@ const InterviewRoom = () => {
           </h2>
           <p className="text-gray-600 mb-4">{error}</p>
           <button
-            onClick={() => navigate("/dashboard")}
+            onClick={() => {
+              const confirmLeave = window.confirm(
+                "Are you sure you want to leave the interview? Your progress may not be saved."
+              );
+              if (confirmLeave) {
+                navigate("/dashboard");
+              }
+            }}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             Return to Dashboard
@@ -270,8 +313,8 @@ const InterviewRoom = () => {
     const timeDiff = scheduledTime - now;
     const minutesDiff = timeDiff / (1000 * 60);
 
-    // Interview is ready 15 minutes before scheduled time
-    return minutesDiff <= 15;
+    // Interview is ready only when scheduled time has arrived (no early joining)
+    return minutesDiff <= 0;
   };
 
   // Render waiting room
@@ -292,8 +335,8 @@ const InterviewRoom = () => {
             {minutesDiff > 0
               ? `Your interview starts in ${minutesDiff} minute${
                   minutesDiff !== 1 ? "s" : ""
-                }.`
-              : "Your interview is about to start!"}
+                }. You can join exactly at the scheduled time.`
+              : "Your interview is starting now! Click the button below to join."}
           </p>
           <div className="space-y-2 text-sm text-gray-500">
             <p>📅 {formatDateTime(interview.scheduled_at)}</p>
@@ -306,12 +349,28 @@ const InterviewRoom = () => {
             </p>
           </div>
           <div className="mt-6">
-            <div className="animate-pulse bg-blue-100 text-blue-800 px-4 py-2 rounded-lg">
-              Waiting for interview to begin...
-            </div>
+            {minutesDiff <= 0 ? (
+              <button
+                onClick={() => window.location.reload()}
+                className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 animate-pulse"
+              >
+                Join Interview Now
+              </button>
+            ) : (
+              <div className="animate-pulse bg-blue-100 text-blue-800 px-4 py-2 rounded-lg">
+                Waiting for interview to begin...
+              </div>
+            )}
           </div>
           <button
-            onClick={() => navigate("/dashboard")}
+            onClick={() => {
+              const confirmLeave = window.confirm(
+                "Are you sure you want to leave the interview? Your progress may not be saved."
+              );
+              if (confirmLeave) {
+                navigate("/dashboard");
+              }
+            }}
             className="mt-4 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
           >
             Return to Dashboard

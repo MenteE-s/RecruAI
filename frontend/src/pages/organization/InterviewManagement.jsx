@@ -307,11 +307,18 @@ const MakeDecisionModal = ({ isOpen, onClose, onSave, saving, interview }) => {
   return (
     <Modal isOpen={isOpen} onClose={handleClose}>
       <h2 className="text-xl font-bold text-gray-900 mb-4">
-        Make Interview Decision
+        Make Interview Decision - Round {interview?.current_round || 1}
       </h2>
       <p className="text-gray-600 mb-6">
-        Review the interview results and make your hiring decision for{" "}
+        Review the Round {interview?.current_round || 1} interview results and
+        make your hiring decision for{" "}
         <span className="font-semibold">{interview?.title}</span>
+        {interview?.decision_history &&
+          interview.decision_history.length > 0 && (
+            <span className="block text-sm mt-2 text-blue-600">
+              📋 Previous rounds completed: {interview.decision_history.length}
+            </span>
+          )}
       </p>
 
       <form onSubmit={handleSubmit}>
@@ -1129,10 +1136,24 @@ export default function InterviewManagement() {
     // Show final decision if available
     if (interview.final_decision) {
       const decisionLabels = {
-        passed: { text: "✅ Passed", color: "green" },
-        failed: { text: "❌ Rejected", color: "red" },
-        second_round: { text: "🔄 Second Round", color: "blue" },
-        third_round: { text: "🎯 Third Round", color: "purple" },
+        passed: {
+          text: `✅ Passed${
+            interview.current_round > 1
+              ? ` (Round ${interview.current_round})`
+              : ""
+          }`,
+          color: "green",
+        },
+        failed: {
+          text: `❌ Rejected${
+            interview.current_round > 1
+              ? ` (Round ${interview.current_round})`
+              : ""
+          }`,
+          color: "red",
+        },
+        second_round: { text: "🔄 Second Round Scheduled", color: "blue" },
+        third_round: { text: "🎯 Third Round Scheduled", color: "purple" },
       };
       const decision = decisionLabels[interview.final_decision];
       return (
@@ -1480,6 +1501,89 @@ export default function InterviewManagement() {
               )}
             </div>
           )}
+          {interview.decision_history &&
+            interview.decision_history.length > 0 && (
+              <div className="bg-blue-50 p-3 rounded-lg mt-3">
+                <h4 className="text-sm font-medium text-gray-900 mb-2">
+                  📋 Interview Progress History
+                </h4>
+                <div className="space-y-2">
+                  {interview.decision_history
+                    .sort((a, b) => a.round_number - b.round_number)
+                    .map((decision, index) => (
+                      <div
+                        key={decision.id}
+                        className="flex items-start space-x-2"
+                      >
+                        <div className="flex-shrink-0 w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-xs font-medium text-blue-800">
+                          {decision.round_number}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center space-x-2">
+                            <span className="text-sm font-medium text-gray-900">
+                              Round {decision.round_number}
+                            </span>
+                            <span
+                              className={`px-2 py-0.5 text-xs rounded-full ${
+                                decision.decision === "passed"
+                                  ? "bg-green-100 text-green-800"
+                                  : decision.decision === "failed"
+                                  ? "bg-red-100 text-red-800"
+                                  : decision.decision === "second_round"
+                                  ? "bg-blue-100 text-blue-800"
+                                  : decision.decision === "third_round"
+                                  ? "bg-purple-100 text-purple-800"
+                                  : "bg-gray-100 text-gray-800"
+                              }`}
+                            >
+                              {decision.decision === "passed" && "✅ Passed"}
+                              {decision.decision === "failed" && "❌ Failed"}
+                              {decision.decision === "second_round" &&
+                                "🔄 Advanced to Round 2"}
+                              {decision.decision === "third_round" &&
+                                "🎯 Advanced to Round 3"}
+                            </span>
+                          </div>
+                          {decision.feedback && (
+                            <p className="text-sm text-gray-700 mt-1">
+                              {decision.feedback}
+                            </p>
+                          )}
+                          {decision.rating && (
+                            <div className="flex items-center mt-1">
+                              <span className="text-xs text-gray-600 mr-2">
+                                Rating:
+                              </span>
+                              <div className="flex">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <span
+                                    key={star}
+                                    className={`text-xs ${
+                                      star <= decision.rating
+                                        ? "text-yellow-400"
+                                        : "text-gray-300"
+                                    }`}
+                                  >
+                                    ★
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          <p className="text-xs text-gray-500 mt-1">
+                            Decided on{" "}
+                            {new Date(decision.decided_at).toLocaleDateString()}{" "}
+                            at{" "}
+                            {new Date(decision.decided_at).toLocaleTimeString()}
+                            {decision.decided_by_name &&
+                              ` by ${decision.decided_by_name}`}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
         </div>
         <div className="flex flex-col space-y-2 ml-4">
           {canJoinInterview(interview) ? (

@@ -101,6 +101,7 @@ class Interview(db.Model):
             "round_status": self.round_status,
             "final_decision": self.final_decision,
             "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+            "decision_history": [dh.to_dict() for dh in self.decision_history] if self.decision_history else [],
             "analysis_data": self.analysis_data,
             "strengths": json.loads(self.strengths) if self.strengths else [],
             "improvements": json.loads(self.improvements) if self.improvements else [],

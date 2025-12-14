@@ -199,9 +199,8 @@ def update_interview(interview_id):
 
                 value = value.replace(tzinfo=None)
 
-                # Validate scheduled_at is in the future
-                if value <= datetime.utcnow():
-                    return jsonify({'error': 'scheduled_at must be in the future.'}), 400
+                # Note: For updates, we allow past dates to enable rescheduling
+                # The future date validation only applies to new interview creation
 
                 setattr(interview, field, value)
             elif field == 'interviewers':
@@ -265,11 +264,22 @@ def get_upcoming_interviews():
 
 @api_bp.route('/interviews/history', methods=['GET'])
 def get_interview_history():
-    """Get completed/cancelled interviews"""
-    interviews = Interview.query.filter(
+    """Get interviews with decision history (completed, cancelled, or advanced to next round)"""
+    # Get interviews that have decision history (have been evaluated)
+    interviews_with_decisions = Interview.query.join(Interview.decision_history).distinct().all()
+
+    # Also include traditionally completed interviews (for backward compatibility)
+    completed_interviews = Interview.query.filter(
         Interview.status.in_(['completed', 'cancelled', 'no_show'])
-    ).order_by(Interview.scheduled_at.desc()).all()
-    return jsonify({'interviews': [interview.to_dict() for interview in interviews]}), 200
+    ).all()
+
+    # Combine and deduplicate
+    all_interviews = list(set(interviews_with_decisions + completed_interviews))
+
+    # Sort by most recent scheduled date
+    all_interviews.sort(key=lambda x: x.scheduled_at or datetime.min, reverse=True)
+
+    return jsonify({'interviews': [interview.to_dict() for interview in all_interviews]}), 200
 
 @api_bp.route('/interviews/<int:interview_id>/complete', methods=['POST'])
 def complete_interview(interview_id):

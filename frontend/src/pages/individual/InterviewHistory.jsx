@@ -158,6 +158,41 @@ export default function InterviewHistory() {
     }
   };
 
+  const getDecisionBadge = (decision) => {
+    switch (decision) {
+      case "passed":
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+            Passed
+          </span>
+        );
+      case "failed":
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+            Failed
+          </span>
+        );
+      case "second_round":
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+            Advanced to Round 2
+          </span>
+        );
+      case "third_round":
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+            Advanced to Round 3
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+            {decision}
+          </span>
+        );
+    }
+  };
+
   const getInterviewTypeIcon = (type) => {
     switch (type) {
       case "text":
@@ -333,6 +368,77 @@ export default function InterviewHistory() {
                         </p>
                       </div>
                     )}
+
+                    {/* Decision History */}
+                    {interview.decision_history &&
+                      interview.decision_history.length > 0 && (
+                        <div className="mt-4">
+                          <h4 className="text-sm font-medium text-gray-900 mb-2">
+                            Interview Progress
+                          </h4>
+                          <div className="space-y-2">
+                            {interview.decision_history
+                              .sort(
+                                (a, b) =>
+                                  new Date(a.decided_at) -
+                                  new Date(b.decided_at)
+                              )
+                              .map((decision, index) => (
+                                <div
+                                  key={decision.id}
+                                  className="flex items-start space-x-3 p-3 bg-blue-50 rounded-lg border-l-4 border-blue-400"
+                                >
+                                  <div className="flex-shrink-0">
+                                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                      <span className="text-sm font-medium text-blue-800">
+                                        {decision.round_number}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center justify-between">
+                                      <p className="text-sm font-medium text-gray-900">
+                                        Round {decision.round_number} Decision
+                                      </p>
+                                      <span className="text-xs text-gray-500">
+                                        {formatDateTimeTz(decision.decided_at)}
+                                      </span>
+                                    </div>
+                                    <div className="mt-1 flex items-center space-x-2">
+                                      {getDecisionBadge(decision.decision)}
+                                      {decision.rating && (
+                                        <div className="flex items-center">
+                                          <span className="text-xs text-gray-600 mr-1">
+                                            Rating:
+                                          </span>
+                                          <div className="flex">
+                                            {[1, 2, 3, 4, 5].map((star) => (
+                                              <span
+                                                key={star}
+                                                className={`text-xs ${
+                                                  star <= decision.rating
+                                                    ? "text-yellow-400"
+                                                    : "text-gray-300"
+                                                }`}
+                                              >
+                                                ★
+                                              </span>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                    {decision.feedback && (
+                                      <p className="text-xs text-gray-700 mt-1">
+                                        {decision.feedback}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                          </div>
+                        </div>
+                      )}
                   </div>
 
                   <div className="ml-4">

@@ -128,23 +128,32 @@ class InterviewAIService(AIService):
         custom_instructions = agent_data.get("custom_instructions", "")
         industry = agent_data.get("industry", "")
         round_number = interview_context.get("round_number", 1)
+        is_first_message = interview_context.get("is_first_message", False)
 
         system_prompt = f"""{base_prompt}
 
 You are conducting an interview for a {industry} position.
 
 ROUND {round_number} INSTRUCTIONS:
-- Ask relevant, technical questions appropriate for the {industry} field
+- This is ROUND {round_number} of the interview process
+- You have access to the full conversation history from previous rounds
+- Build upon previous discussions rather than repeating questions
+- Ask progressively more challenging questions appropriate for Round {round_number}
+- Reference previous answers when relevant to show continuity
 - Evaluate the candidate's response based on their skills, experience, and fit
 - Provide constructive feedback when appropriate
 - Ask follow-up questions to dive deeper into their responses
 - Maintain a professional and encouraging tone throughout
+- Keep the candidate focused and on-topic - don't let them waste time or go off on tangents
+- Be proactive in guiding the conversation toward productive areas
+
+{"IMPORTANT: This is the START of Round 1. Begin with a professional greeting and introduce yourself, then ask your first question to begin the interview." if is_first_message and round_number == 1 else f"This is the continuation of Round {round_number}. Acknowledge the round progression and continue the interview naturally."}
 
 {custom_instructions}
 
 RESPONSE FORMAT:
 Always structure your response to include:
-1. Acknowledgment of their previous answer
+1. Acknowledgment of their previous answer (if not first message)
 2. Brief feedback or evaluation
 3. Your next question or conclusion
 4. Any additional notes for the interviewer
