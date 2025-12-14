@@ -26,15 +26,6 @@ except ImportError:
     GROQ_AVAILABLE = False
     Groq = None
 
-try:
-    from sentence_transformers import SentenceTransformer
-    import numpy as np
-    SENTENCE_TRANSFORMERS_AVAILABLE = True
-except ImportError:
-    SENTENCE_TRANSFORMERS_AVAILABLE = False
-    SentenceTransformer = None
-    np = None
-
 # support running as a module (recommended) and as a script
 try:
     # when used as a package (python -m backend.ai_providers or via other modules)
@@ -276,28 +267,50 @@ class OpenAIEmbeddingProvider(EmbeddingProvider):
             raise
 
 
-class LocalEmbeddingProvider(EmbeddingProvider):
-    """Local SentenceTransformer embedding provider"""
+class HuggingFaceEmbeddingProvider(EmbeddingProvider):
+    """HuggingFace Spaces embedding provider"""
 
-    def __init__(self, model_name: str = "all-MiniLM-L6-v2", dimensions: int = 384):
-        if not SENTENCE_TRANSFORMERS_AVAILABLE:
-            raise ImportError("sentence-transformers package not installed")
-
-        self.model = SentenceTransformer(model_name)
+    def __init__(self, api_url: str, dimensions: int = 384):
+        if not api_url:
+            raise ValueError("HuggingFace Spaces API URL required")
+        self.api_url = api_url.rstrip('/')
         self._embedding_dimension = dimensions
-        self.executor = ThreadPoolExecutor(max_workers=4)
+        self._client = None
 
     @property
     def embedding_dimension(self) -> int:
         return self._embedding_dimension
 
+    def _get_client(self):
+        """Lazy initialization of gradio_client"""
+        if self._client is None:
+            try:
+                from gradio_client import Client
+                self._client = Client(self.api_url)
+            except ImportError:
+                raise ImportError("gradio_client is required for HuggingFace Spaces integration. Install with: pip install gradio_client")
+        return self._client
+
     def embed(self, text: str) -> List[float]:
-        embedding = self.model.encode(text, normalize_embeddings=True)
-        return embedding.tolist() if hasattr(embedding, 'tolist') else list(embedding)
+        return self.embed_batch([text])[0]
 
     def embed_batch(self, texts: List[str]) -> List[List[float]]:
-        embeddings = self.model.encode(texts, normalize_embeddings=True, batch_size=32)
-        return embeddings.tolist() if hasattr(embeddings, 'tolist') else embeddings.tolist()
+        try:
+            client = self._get_client()
+            result = client.predict(
+                texts=texts,
+                api_name="/predict"
+            )
+
+            # The API returns {'data': [embedding1, embedding2, ...]}
+            if isinstance(result, dict) and 'data' in result:
+                return result['data']
+            else:
+                raise ValueError(f"Unexpected response format from HuggingFace Spaces: {result}")
+
+        except Exception as e:
+            logger.error(f"HuggingFace Spaces embedding error: {str(e)}")
+            raise
 
 
 class AIProviderManager:
@@ -370,10 +383,11 @@ class AIProviderManager:
                 dimensions=self.config.EMBEDDING_DIMENSIONS
             )
 
-        elif provider == "local":
-            model = self.config.EMBEDDING_MODEL or self.config.LOCAL_EMBEDDING_MODEL
-            return LocalEmbeddingProvider(
-                model_name=model,
+        elif provider == "huggingface":
+            if not self.config.HUGGINGFACE_SPACES_URL:
+                raise ValueError("HUGGINGFACE_SPACES_URL required for HuggingFace embeddings")
+            return HuggingFaceEmbeddingProvider(
+                api_url=self.config.HUGGINGFACE_SPACES_URL,
                 dimensions=self.config.EMBEDDING_DIMENSIONS
             )
 

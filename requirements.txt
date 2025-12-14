@@ -14,5 +14,4 @@ pytz
 openai
 groq
 bcrypt>=4.0
-sentence-transformers
-torch
+gradio_client

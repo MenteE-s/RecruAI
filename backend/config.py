@@ -91,7 +91,7 @@ class Config:
 
     @property
     def EMBEDDING_PROVIDER(self):
-        return os.getenv("EMBEDDING_PROVIDER", "openai").lower()
+        return os.getenv("EMBEDDING_PROVIDER", "huggingface").lower()
 
     @property
     def RAG_ENABLED(self):
@@ -108,10 +108,6 @@ class Config:
     @property
     def EMBEDDING_DIMENSIONS(self):
         return int(os.getenv("EMBEDDING_DIMENSIONS", "1536"))
-
-    @property
-    def LOCAL_EMBEDDING_MODEL(self):
-        return os.getenv("LOCAL_EMBEDDING_MODEL", "all-MiniLM-L6-v2")
 
     @property
     def OPENAI_API_KEY(self):
@@ -134,8 +130,8 @@ class Config:
         return int(os.getenv("AI_TIMEOUT", "30"))
 
     @property
-    def EMBEDDING_BATCH_SIZE(self):
-        return int(os.getenv("EMBEDDING_BATCH_SIZE", "100"))
+    def HUGGINGFACE_SPACES_URL(self):
+        return os.getenv("HUGGINGFACE_SPACES_URL", "https://syedsyab-recruai.hf.space")
 
     @property
     def EMBEDDING_MAX_RETRIES(self):

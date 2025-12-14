@@ -25,7 +25,6 @@ class RAGConfig:
     AI_MODEL: Optional[str] = Config.AI_MODEL
     EMBEDDING_MODEL: Optional[str] = Config.EMBEDDING_MODEL
     EMBEDDING_DIMENSIONS: int = Config.EMBEDDING_DIMENSIONS
-    LOCAL_EMBEDDING_MODEL: str = Config.LOCAL_EMBEDDING_MODEL
 
     # Legacy OpenAI defaults (for backward compatibility)
     OPENAI_EMBEDDING_MODEL: str = EMBEDDING_MODEL or "text-embedding-ada-002"
