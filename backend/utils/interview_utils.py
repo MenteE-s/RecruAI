@@ -175,6 +175,16 @@ def update_interview_decision(interview_id, decision, feedback=None, rating=None
                 application.status = 'accepted'
                 db.session.commit()
 
+            # Update user's employment status
+            user = interview.user
+            if user:
+                user.employment_status = 'hired'
+                user.current_position = interview.post.title if interview.post else interview.title
+                user.current_company = interview.organization.name if interview.organization else None
+                user.current_company_id = interview.organization_id
+                user.hired_date = datetime.utcnow()
+                db.session.commit()
+
         # Build appropriate message
         if decision in ['second_round', 'third_round']:
             round_num = 2 if decision == 'second_round' else 3

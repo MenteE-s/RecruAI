@@ -24,7 +24,7 @@ class User(db.Model):
     interviews_count = db.Column(db.Integer, nullable=True, default=0)
     # optional organization FK
     organization_id = db.Column(db.Integer, db.ForeignKey("organizations.id"), nullable=True)
-    organization = db.relationship("Organization", back_populates="users")
+    organization = db.relationship("Organization", back_populates="users", foreign_keys=[organization_id])
     # profile picture URL/path
     profile_picture = db.Column(db.String(500), nullable=True)
     # banner image URL/path
@@ -36,6 +36,15 @@ class User(db.Model):
     location = db.Column(db.String(200), nullable=True)
     website = db.Column(db.String(500), nullable=True)
     linkedin = db.Column(db.String(500), nullable=True)
+
+    # Employment status fields
+    employment_status = db.Column(db.String(20), nullable=True, default="unemployed")  # 'unemployed', 'hired', 'working', 'onboarding'
+    current_position = db.Column(db.String(200), nullable=True)  # Job title
+    current_company = db.Column(db.String(200), nullable=True)  # Company name
+    current_company_id = db.Column(db.Integer, db.ForeignKey("organizations.id"), nullable=True)  # Company organization ID
+    current_company_org = db.relationship("Organization", foreign_keys=[current_company_id])
+    hired_date = db.Column(db.DateTime, nullable=True)  # When they were hired
+    onboarded_date = db.Column(db.DateTime, nullable=True)  # When they completed onboarding
 
     # Security fields
     failed_login_attempts = db.Column(db.Integer, default=0)
@@ -117,6 +126,13 @@ class User(db.Model):
             "subscription_status": self.get_subscription_status(),
             "last_login_at": self.last_login_at.isoformat() if self.last_login_at else None,
             "created_at": self.created_at.isoformat() if self.created_at else None,
+            # Employment status
+            "employment_status": self.employment_status,
+            "current_position": self.current_position,
+            "current_company": self.current_company,
+            "current_company_id": self.current_company_id,
+            "hired_date": self.hired_date.isoformat() if self.hired_date else None,
+            "onboarded_date": self.onboarded_date.isoformat() if self.onboarded_date else None,
         }
 
     def to_public_dict(self):

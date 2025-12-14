@@ -232,3 +232,37 @@ def is_favorite(user_id, target_user_id):
     return jsonify({
         "favorited": favorite is not None
     }), 200
+
+
+@api_bp.route("/users/<int:user_id>/join-position", methods=["POST"])
+def join_position(user_id):
+    """Allow a candidate to join/accept their hired position"""
+    from datetime import datetime
+    from ...models import Application
+
+    user = User.query.get_or_404(user_id)
+
+    # Check if user is hired
+    if user.employment_status != 'hired':
+        return jsonify({"error": "User is not in hired status"}), 400
+
+    # Update user's employment status to working
+    user.employment_status = 'working'
+    user.onboarded_date = datetime.utcnow()
+
+    # Find and update the application
+    application = Application.query.filter_by(
+        user_id=user_id,
+        pipeline_stage='hired'
+    ).first()
+
+    if application:
+        application.onboarded = True
+        application.pipeline_stage = 'hired'  # Keep as hired but mark as onboarded
+
+    db.session.commit()
+
+    return jsonify({
+        "message": "Successfully joined position",
+        "user": user.to_dict()
+    }), 200

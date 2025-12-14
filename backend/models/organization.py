@@ -31,7 +31,7 @@ class Organization(db.Model):
     tokens_used = db.Column(db.Integer, nullable=True, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    users = db.relationship("User", back_populates="organization")
+    users = db.relationship("User", back_populates="organization", foreign_keys="User.organization_id")
     posts = db.relationship("Post", back_populates="organization", cascade="all, delete-orphan")
     team_members = db.relationship("TeamMember", back_populates="organization", cascade="all, delete-orphan")
 

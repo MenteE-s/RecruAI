@@ -1758,7 +1758,33 @@ export default function Profile() {
     }
   };
 
-  const savePersonalInfo = async (personalData) => {
+  const handleJoinPosition = async () => {
+    if (!userData?.id) return;
+
+    try {
+      const response = await fetch(
+        `${getBackendUrl()}/api/users/${userData.id}/join-position`,
+        {
+          method: "POST",
+          headers: getAuthHeaders(),
+          credentials: "include",
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setUserData(data.user);
+        setError(null);
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        setError(errorData.error || "Failed to join position");
+      }
+    } catch (error) {
+      console.error("Error joining position:", error);
+      setError("Network error. Please try again.");
+    }
+  };
+  const handleSavePersonalInfo = async () => {
     setSaving(true);
     setError(null);
 
@@ -2085,6 +2111,52 @@ export default function Profile() {
                 <p className="mt-1 text-gray-600">
                   Welcome back! Manage your professional profile.
                 </p>
+
+                {/* Employment Status */}
+                {userData?.employment_status &&
+                  userData.employment_status !== "unemployed" && (
+                    <div className="mt-3 flex items-center gap-2">
+                      <div
+                        className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                          userData.employment_status === "hired"
+                            ? "bg-blue-100 text-blue-800"
+                            : userData.employment_status === "working"
+                            ? "bg-green-100 text-green-800"
+                            : "bg-gray-100 text-gray-800"
+                        }`}
+                      >
+                        {userData.employment_status === "hired" && "🎯 Hired"}
+                        {userData.employment_status === "working" &&
+                          "💼 Working"}
+                        {userData.employment_status === "onboarding" &&
+                          "📋 Onboarding"}
+                      </div>
+                      {userData.current_position &&
+                        userData.current_company && (
+                          <span className="text-sm text-gray-700">
+                            as {userData.current_position} at{" "}
+                            {userData.current_company}
+                          </span>
+                        )}
+                    </div>
+                  )}
+
+                {/* Join Button for Hired Candidates */}
+                {userData?.employment_status === "hired" && (
+                  <div className="mt-3">
+                    <button
+                      onClick={handleJoinPosition}
+                      className="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors"
+                    >
+                      <FiCheck className="mr-2" size={16} />
+                      Join Position
+                    </button>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Click to officially join your new position
+                    </p>
+                  </div>
+                )}
+
                 {uploadingProfilePicture && (
                   <p className="mt-2 text-sm text-gray-500">
                     Uploading profile picture...

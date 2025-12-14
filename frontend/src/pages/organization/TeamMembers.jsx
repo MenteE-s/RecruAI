@@ -16,6 +16,8 @@ import {
   FiEye,
   FiCheckCircle,
   FiXCircle,
+  FiBriefcase,
+  FiMail,
 } from "react-icons/fi";
 
 // Modal Component
@@ -315,41 +317,93 @@ export default function TeamMembers() {
     <DashboardLayout sidebarItems={sidebarItems}>
       <OrganizationNavbar />
       <div className="p-4 md:p-8">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4 md:mb-0">
-            Team Management
-          </h1>
-          <div className="flex space-x-2">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              Team Management
+            </h1>
+            <p className="text-gray-600">
+              Manage your team members and track hired candidates
+            </p>
+          </div>
+          <div className="flex space-x-2 mt-4 md:mt-0">
             <button
               onClick={() => setActiveTab("team")}
-              className={`px-4 py-2 rounded-md ${
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                 activeTab === "team"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                  ? "bg-blue-600 text-white shadow-md"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
               }`}
             >
-              Team Members
+              Team Members ({teamMembers.length})
             </button>
             <button
               onClick={() => setActiveTab("candidates")}
-              className={`px-4 py-2 rounded-md ${
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                 activeTab === "candidates"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                  ? "bg-blue-600 text-white shadow-md"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
               }`}
             >
-              Hired Candidates
+              Hired Candidates ({candidates.length})
             </button>
             {activeTab === "team" && (
               <button
                 onClick={() => setShowInviteModal(true)}
-                className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition"
+                className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-md"
               >
                 <FiPlus className="mr-2" />
                 Invite Member
               </button>
             )}
           </div>
+        </div>
+
+        {/* Statistics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+            <div className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-blue-100 text-sm font-medium">
+                    Team Members
+                  </p>
+                  <p className="text-2xl font-bold">{teamMembers.length}</p>
+                </div>
+                <FiUsers className="h-8 w-8 text-blue-200" />
+              </div>
+            </div>
+          </Card>
+
+          <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white">
+            <div className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-green-100 text-sm font-medium">
+                    Hired Candidates
+                  </p>
+                  <p className="text-2xl font-bold">{candidates.length}</p>
+                </div>
+                <FiCheckCircle className="h-8 w-8 text-green-200" />
+              </div>
+            </div>
+          </Card>
+
+          <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white">
+            <div className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-purple-100 text-sm font-medium">
+                    Onboarded
+                  </p>
+                  <p className="text-2xl font-bold">
+                    {candidates.filter((c) => c.onboarded).length}
+                  </p>
+                </div>
+                <FiBriefcase className="h-8 w-8 text-purple-200" />
+              </div>
+            </div>
+          </Card>
         </div>
 
         {error && (
@@ -371,61 +425,93 @@ export default function TeamMembers() {
         ) : activeTab === "team" ? (
           <>
             {teamMembers.length === 0 ? (
-              <Card className="text-center py-12">
-                <FiUsers className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-sm font-medium text-gray-900">
-                  No team members
+              <Card className="text-center py-16 border-2 border-dashed border-gray-300">
+                <FiUsers className="mx-auto h-16 w-16 text-gray-400 mb-4" />
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                  No team members yet
                 </h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  Get started by inviting a new team member.
+                <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                  Get started by inviting your first team member to collaborate
+                  on hiring and recruitment.
                 </p>
-                <div className="mt-6">
-                  <button
-                    onClick={() => setShowInviteModal(true)}
-                    className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none"
-                  >
-                    <FiPlus className="-ml-1 mr-2 h-5 w-5" />
-                    Invite Member
-                  </button>
-                </div>
+                <button
+                  onClick={() => setShowInviteModal(true)}
+                  className="inline-flex items-center px-6 py-3 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors shadow-md"
+                >
+                  <FiPlus className="-ml-1 mr-2 h-5 w-5" />
+                  Invite First Member
+                </button>
               </Card>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {teamMembers.map((member) => (
-                  <Card key={member.id} className="relative">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h3 className="text-lg font-medium text-gray-900">
-                          {member.user?.name || "Unnamed User"}
-                        </h3>
-                        <p className="text-sm text-gray-500">
-                          {member.role || "No role assigned"}
-                        </p>
-                        <p className="text-sm text-gray-500 mt-1">
-                          Joined: {formatDate(member.join_date)}
-                        </p>
+                  <Card
+                    key={member.id}
+                    className="relative hover:shadow-lg transition-shadow duration-200"
+                  >
+                    <div className="p-6">
+                      <div className="flex items-center space-x-4 mb-4">
+                        <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-lg">
+                          {member.user?.name
+                            ? member.user.name.charAt(0).toUpperCase()
+                            : "U"}
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-lg font-semibold text-gray-900">
+                            {member.user?.name || "Unnamed User"}
+                          </h3>
+                          <p className="text-sm text-gray-600">
+                            {member.role || "No role assigned"}
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex space-x-2">
+
+                      <div className="space-y-2 mb-4">
+                        <div className="flex items-center text-sm text-gray-500">
+                          <FiUsers className="mr-2" size={14} />
+                          Joined: {formatDate(member.join_date)}
+                        </div>
+                        {member.user?.email && (
+                          <div className="flex items-center text-sm text-gray-500">
+                            <FiMail className="mr-2" size={14} />
+                            {member.user.email}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex items-center justify-between pt-4 border-t border-gray-100">
                         <button
-                          onClick={() => {
-                            setEditingMember(member);
-                            setShowEditModal(true);
-                          }}
-                          className="text-gray-500 hover:text-gray-700"
-                          aria-label="Edit member"
+                          onClick={() =>
+                            navigate(`/organization/user/${member.user?.id}`)
+                          }
+                          className="inline-flex items-center px-3 py-2 text-sm font-medium text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-md transition-colors duration-200"
                         >
-                          <FiEdit2 />
+                          <FiEye className="mr-2" size={16} />
+                          View Profile
                         </button>
-                        <button
-                          onClick={() => {
-                            setEditingMember(member);
-                            setShowDeleteConfirm(true);
-                          }}
-                          className="text-gray-500 hover:text-red-700"
-                          aria-label="Remove member"
-                        >
-                          <FiTrash2 />
-                        </button>
+
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => {
+                              setEditingMember(member);
+                              setShowEditModal(true);
+                            }}
+                            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-md transition-colors duration-200"
+                            aria-label="Edit member"
+                          >
+                            <FiEdit2 size={16} />
+                          </button>
+                          <button
+                            onClick={() => {
+                              setEditingMember(member);
+                              setShowDeleteConfirm(true);
+                            }}
+                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors duration-200"
+                            aria-label="Remove member"
+                          >
+                            <FiTrash2 size={16} />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </Card>
@@ -437,50 +523,95 @@ export default function TeamMembers() {
           // Hired candidates tab
           <>
             {candidates.length === 0 ? (
-              <Card className="text-center py-12">
-                <FiUsers className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-sm font-medium text-gray-900">
-                  No hired candidates
+              <Card className="text-center py-16 border-2 border-dashed border-gray-300">
+                <FiCheckCircle className="mx-auto h-16 w-16 text-gray-400 mb-4" />
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                  No hired candidates yet
                 </h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  Candidates who pass their interviews will appear here.
+                <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                  Candidates who pass their interviews will appear here. Start
+                  conducting interviews to build your team.
                 </p>
+                <button
+                  onClick={() => navigate("/organization/candidates")}
+                  className="inline-flex items-center px-6 py-3 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors shadow-md"
+                >
+                  <FiBriefcase className="-ml-1 mr-2 h-5 w-5" />
+                  View Candidates
+                </button>
               </Card>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {candidates.map((candidate) => (
-                  <Card key={candidate.id} className="relative">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h3 className="text-lg font-medium text-gray-900">
-                          {candidate.user?.name || "Unnamed Candidate"}
-                        </h3>
-                        <p className="text-sm text-gray-500">
-                          Applied for:{" "}
-                          {candidate.post?.title || "Unknown Position"}
-                        </p>
-                        <p className="text-sm text-gray-500 mt-1">
+                  <Card
+                    key={candidate.id}
+                    className="relative hover:shadow-lg transition-shadow duration-200"
+                  >
+                    <div className="p-6">
+                      <div className="flex items-center space-x-4 mb-4">
+                        <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center text-white font-semibold text-lg">
+                          {candidate.user?.name
+                            ? candidate.user.name.charAt(0).toUpperCase()
+                            : "C"}
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-lg font-semibold text-gray-900">
+                            {candidate.user?.name || "Unnamed Candidate"}
+                          </h3>
+                          <p className="text-sm text-gray-600">
+                            Applied for:{" "}
+                            {candidate.post?.title || "Unknown Position"}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2 mb-4">
+                        <div className="flex items-center text-sm text-gray-500">
+                          <FiBriefcase className="mr-2" size={14} />
                           Applied: {formatDate(candidate.applied_at)}
-                        </p>
-                        <div className="mt-2 flex items-center">
+                        </div>
+                        {candidate.user?.email && (
+                          <div className="flex items-center text-sm text-gray-500">
+                            <FiMail className="mr-2" size={14} />
+                            {candidate.user.email}
+                          </div>
+                        )}
+                        <div className="flex items-center mt-2">
                           {candidate.onboarded ? (
                             <>
-                              <FiCheckCircle className="text-green-500 mr-2" />
-                              <span className="text-sm text-green-700">
+                              <FiCheckCircle
+                                className="text-green-500 mr-2"
+                                size={16}
+                              />
+                              <span className="text-sm text-green-700 font-medium">
                                 Onboarded
                               </span>
                             </>
                           ) : (
                             <>
-                              <FiXCircle className="text-yellow-500 mr-2" />
-                              <span className="text-sm text-yellow-700">
+                              <FiXCircle
+                                className="text-yellow-500 mr-2"
+                                size={16}
+                              />
+                              <span className="text-sm text-yellow-700 font-medium">
                                 Not Onboarded
                               </span>
                             </>
                           )}
                         </div>
                       </div>
-                      <div className="flex space-x-2">
+
+                      <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                        <button
+                          onClick={() =>
+                            navigate(`/organization/user/${candidate.user?.id}`)
+                          }
+                          className="inline-flex items-center px-3 py-2 text-sm font-medium text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-md transition-colors duration-200"
+                        >
+                          <FiEye className="mr-2" size={16} />
+                          View Profile
+                        </button>
+
                         <button
                           onClick={() =>
                             toggleOnboardingStatus(
@@ -489,14 +620,15 @@ export default function TeamMembers() {
                               candidate.user?.name || "Unnamed Candidate"
                             )
                           }
-                          className={`px-3 py-1 rounded text-xs ${
+                          className={`inline-flex items-center px-3 py-2 text-xs font-medium rounded-md transition-colors duration-200 ${
                             candidate.onboarded
                               ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-200"
                               : "bg-green-100 text-green-800 hover:bg-green-200"
                           }`}
                         >
-                          Mark{" "}
-                          {candidate.onboarded ? "Not Onboarded" : "Onboarded"}
+                          {candidate.onboarded
+                            ? "Mark Not Onboarded"
+                            : "Mark Onboarded"}
                         </button>
                       </div>
                     </div>
