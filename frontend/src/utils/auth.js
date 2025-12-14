@@ -37,7 +37,8 @@ export function getBackendUrl() {
 
 // Helper to get headers with Authorization if token exists
 export function getAuthHeaders(additionalHeaders = {}) {
-  const isProduction = process.env.IS_PRODUCTION === "1";
+  // Detect production the same way we detect backend URL
+  const isProduction = typeof window !== "undefined" && window.location.hostname !== "localhost";
 
   if (isProduction) {
     // Production: Return headers with Authorization
@@ -56,13 +57,13 @@ export function getAuthHeaders(additionalHeaders = {}) {
 // Override global fetch to automatically handle authentication
 const originalFetch = window.fetch;
 window.fetch = function (url, options = {}) {
-  const isProduction = process.env.IS_PRODUCTION === "1";
+  // Detect production the same way we detect backend URL
+  const isProduction = typeof window !== "undefined" && window.location.hostname !== "localhost";
 
   // Check if this is an API call that needs authentication
   if (
     typeof url === "string" &&
-    url.includes("/api/") &&
-    url.includes("localhost:5000")
+    url.includes("/api/")
   ) {
     if (isProduction) {
       // Production: Add Authorization header
