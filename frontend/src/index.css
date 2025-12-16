@@ -1,3 +1,30 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Notification bell animation */
+@keyframes bell-ring {
+  0% {
+    transform: rotate(0);
+  }
+  10%,
+  30%,
+  50%,
+  70%,
+  90% {
+    transform: rotate(-10deg);
+  }
+  20%,
+  40%,
+  60%,
+  80% {
+    transform: rotate(10deg);
+  }
+  100% {
+    transform: rotate(0);
+  }
+}
+
+.animate-bell-ring {
+  animation: bell-ring 1s ease-in-out;
+}

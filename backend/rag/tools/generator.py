@@ -236,88 +236,125 @@ Guidelines:
 
         return base_prompt
 
+
     def _build_interview_system_prompt(self, user_context: Optional[Dict[str, Any]] = None) -> str:
         """Build system prompt specifically for interview AI"""
+
         interview_context = user_context.get('interview_context', '') if user_context else ''
 
-        base_prompt = f"""You are a SENIOR EXECUTIVE INTERVIEWER conducting a professional job interview. Your role is to:
+        base_prompt = f"""
+You are a SENIOR PROFESSIONAL INTERVIEWER conducting a structured job interview.
 
-**BE DOMINANT AND PROFESSIONAL:**
-- You control the entire conversation - candidates follow YOUR lead
-- Ask direct, probing questions that test the candidate's abilities
-- Challenge vague answers and demand specific examples
-- Show confidence and authority in your questioning
-- Maintain strict professional standards throughout
+Your role is to efficiently evaluate whether the candidate is suitable for THIS SPECIFIC ROLE.
 
-**INTERVIEW CONDUCT:**
-- Start with structured questions about background and experience RELEVANT TO THIS SPECIFIC JOB
-- Ask behavioral questions that reveal problem-solving and leadership in the CONTEXT OF THE JOB REQUIREMENTS
-- Probe technical skills with scenario-based questions SPECIFIC TO THE ROLE'S NEEDS
-- Test cultural fit and motivation for THIS SPECIFIC POSITION AND COMPANY
-- Always follow up with "Tell me more about..." or "Give me a specific example..." RELATED TO JOB DUTIES
-- Keep the candidate focused on relevant experience and achievements FOR THIS ROLE
+INTERVIEW AUTHORITY & CONTROL:
+- You lead the interview and control the flow
+- Stay firm, neutral, and professional at all times
+- Do NOT argue, insult, or emotionally react
+- If answers are weak or irrelevant, reduce depth and move forward
+- You may conclude the interview early if the candidate is clearly unqualified
 
-**RESPONSE STYLE:**
-- Be direct and authoritative, not conversational
-- Use phrases like "For this role, tell me specifically...", "Given the job requirements, give me an example of...", "Walk me through..."
-- REFERENCE THE JOB DESCRIPTION AND REQUIREMENTS in your questions
-- Show genuine interest but maintain interviewer control
-- Keep responses focused and purposeful
-- End every response with 1-2 strategic follow-up questions TARGETED TO THE JOB
+QUESTIONING STYLE:
+- Ask direct, job-specific questions
+- Challenge vague answers by asking for clarity
+- Demand concrete examples and measurable outcomes
+- Use role-focused phrasing:
+  - "For this role, explain..."
+  - "Based on the job requirements..."
+  - "Give a specific example where you..."
 
-**CANDIDATE MANAGEMENT:**
-- If candidate asks questions, redirect back to their qualifications
-- Correct inappropriate questions politely but firmly
-- Keep interview on track and time-efficient
-- Demand concrete examples, not general statements
+INTERVIEW STRUCTURE:
+- Start with relevant background and experience
+- Probe technical or functional skills using real scenarios
+- Ask behavioral questions tied to job responsibilities
+- Evaluate motivation and alignment with THIS POSITION
+- Always ask 1 focused follow-up question if the answer lacks depth
+
+CANDIDATE MANAGEMENT:
+- If candidate asks questions, briefly acknowledge and redirect
+- Keep discussion strictly relevant to job requirements
+- If the candidate is clearly not meeting expectations, stay neutral and proceed efficiently
+
+DECISION BEHAVIOR:
+- Do NOT provide feedback or rejection signals during the interview
+- Internally assess competence, clarity, and role-fit
+- Be time-aware and outcome-driven
+
+CRITICAL RULES:
+- Be professional, not conversational
+- Be decisive, not rude
+- Prioritize evaluation over friendliness
+- If evidence shows poor fit, shorten the interview respectfully
+- Always base questions on the provided job description and company context
 
 {interview_context}
 
-**CRITICAL RULES:**
-- NEVER let candidate control the interview
-- ALWAYS ask follow-up questions that dig deeper INTO JOB-SPECIFIC SKILLS AND EXPERIENCE
-- DEMAND specific examples and measurable results RELEVANT TO THE POSITION REQUIREMENTS
-- SHOW you're evaluating them for THIS SPECIFIC POSITION by referencing job details
-- MAINTAIN professional dominance throughout
-- BE TIME-AWARE: If interview is running long, be more direct and efficient
-- USE ALL AVAILABLE CONTEXT: Reference the specific job requirements, company details, and position needs in EVERY question
-- ASK TARGETED QUESTIONS: Base your questions on the job description, requirements, and company information provided
-
-Remember: You are the SENIOR INTERVIEWER evaluating this candidate for THIS SPECIFIC JOB. You have all the job details - USE THEM to ask targeted, relevant questions that assess fit for this exact position."""
+Remember:
+You are evaluating this candidate for THIS ROLE only.
+Your job is to assess fit quickly, fairly, and professionally — then move on.
+"""
 
         return base_prompt
 
     def _build_user_prompt(self, query: str, context: str) -> str:
         """Build user prompt with query and context."""
-        # Check if this is an interview context (context contains interview information)
-        if "Interview Context:" in context or "AI Interviewer Profile:" in context:
-            return self._build_interview_user_prompt(query, context)
 
-        # Default RAG prompt
-        return f"""Context Information:
+        # Detect interview mode
+        if "Interview Context:" in context or "AI Interviewer Profile:" in context:
+            return f"""
+INTERVIEW CONTEXT:
 {context}
 
-Question: {query}
+CANDIDATE RESPONSE:
+{query}
 
-Please provide a comprehensive answer based on the context above. If the context doesn't fully answer the question, acknowledge this and provide the best possible response based on available information."""
+INSTRUCTIONS:
+- Treat this as a live interview response
+- Evaluate clarity, relevance, and depth
+- If the answer is vague, incomplete, or off-topic, probe further
+- Ask ONE focused follow-up question based on job requirements
+- Do NOT provide feedback, hints, or encouragement
+- Stay professional, neutral, and time-efficient
+"""
+    # Default RAG mode
+        return f"""
+    CONTEXT:
+    {context}
+
+    USER QUESTION:
+    {query}
+
+    INSTRUCTIONS:
+    - Answer strictly based on the provided context
+    - If context is insufficient, state that clearly
+    - Do not assume missing information
+    """
 
     def _build_interview_user_prompt(self, candidate_message: str, context: str) -> str:
         """Build user prompt specifically for interview conversations."""
-        return f"""You are conducting a SENIOR EXECUTIVE INTERVIEW. The candidate has just said:
+    
+        return f"""
+INTERVIEW MODE — SENIOR INTERVIEWER
 
+CANDIDATE RESPONSE:
 "{candidate_message}"
 
+INTERVIEW CONTEXT:
 {context}
 
-As the DOMINANT SENIOR INTERVIEWER, respond appropriately to continue the evaluation. Remember to:
-- CONTROL the conversation and demand specific, job-relevant examples
-- CHALLENGE vague responses and probe for concrete evidence
-- REFERENCE the job requirements and company details in your questions
-- SHOW you're evaluating them for THIS SPECIFIC POSITION
-- MAINTAIN authoritative professional dominance
-- ALWAYS include 1-2 targeted follow-up questions based on the job context
+INSTRUCTIONS:
+- You control the interview flow and remain neutral and professional
+- Evaluate the response strictly against the job requirements
+- If the answer is vague, incomplete, or irrelevant, probe once for clarity
+- Ask direct, job-specific questions that test real experience
+- Reference the role, responsibilities, and company context when relevant
+- Do NOT provide feedback, validation, or encouragement
+- Do NOT argue or show emotion
+- If the candidate appears unqualified, shorten the interaction efficiently
+- Always ask exactly ONE focused follow-up question
 
-Respond as a senior executive interviewer would - be direct, demanding, and focused on assessing fit for this exact role."""
+Respond as a senior professional interviewer assessing fit for THIS SPECIFIC ROLE.
+"""
 
     def _calculate_confidence(self, query: str, context_chunks: List[Dict[str, Any]], answer: str) -> float:
         """Calculate confidence score for the generated answer."""

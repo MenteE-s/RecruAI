@@ -7,6 +7,7 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy import desc
 import os
 from werkzeug.utils import secure_filename
+from ...api.notifications.routes import create_profile_notification
 @api_bp.route('/profile/user/<int:user_id>', methods=['GET'])
 @jwt_required()
 def get_user_profile(user_id):
@@ -104,6 +105,21 @@ def get_user_profile(user_id):
                 'join_date': tm.join_date.isoformat() if tm.join_date else None
             } for tm in hired_team_members
         ]
+
+        # Create notification if organization is viewing individual's profile
+        if (current_user.role == 'organization' and target_user.role == 'individual' and
+            current_user_id_int != user_id):  # Not viewing own profile
+            try:
+                create_profile_notification(
+                    user_id=target_user.id,
+                    notification_type="profile_viewed",
+                    title=f"Profile Viewed by {current_user.organization.name if current_user.organization else 'Organization'}",
+                    message=f"Your profile has been viewed by {current_user.organization.name if current_user.organization else 'an organization'}.",
+                    related_user_id=current_user.id,
+                    related_org_id=current_user.organization_id
+                )
+            except Exception as e:
+                print(f"Failed to create profile view notification: {e}")
 
         return jsonify(profile_data), 200
     except Exception as e:

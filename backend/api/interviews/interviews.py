@@ -10,6 +10,7 @@ from ...utils.security import log_security_event, sanitize_input, validate_reque
 from ...utils.subscription import require_interview_access
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from ...models import User
+from ...api.notifications.routes import create_interview_notification
 
 def update_pipeline_stage_for_interview(interview):
     """Update pipeline stage based on interview status"""
@@ -156,6 +157,18 @@ def create_interview():
     # Update pipeline stage
     update_pipeline_stage_for_interview(interview)
 
+    # Create notification for the interviewee
+    try:
+        create_interview_notification(
+            interview.id,
+            "interview_scheduled",
+            interview.user_id,
+            f"Interview Scheduled: {interview.title}",
+            f"Your interview '{interview.title}' has been scheduled for {interview.scheduled_at.strftime('%B %d, %Y at %I:%M %p')}."
+        )
+    except Exception as e:
+        print(f"Failed to create interview notification: {e}")
+
     log_security_event("interview_created", request.remote_addr, user_id,
                       details={"interview_id": interview.id, "title": title, "scheduled_at": scheduled_at.isoformat()})
 
@@ -173,6 +186,9 @@ def update_interview(interview_id):
 
     print(f"Updating interview {interview_id} with data: {data}")
     print(f"Current interview status: {interview.status}")
+
+    # Track status change for notifications
+    old_status = interview.status
 
     # Update allowed fields
     updatable_fields = [
@@ -222,6 +238,31 @@ def update_interview(interview_id):
     # Update pipeline stage based on new status
     update_pipeline_stage_for_interview(interview)
 
+    # Create notifications based on status changes
+    if 'status' in data and data['status'] != old_status:
+        new_status = data['status']
+        try:
+            if new_status == 'cancelled':
+                create_interview_notification(
+                    interview.id,
+                    "interview_cancelled",
+                    interview.user_id,
+                    f"Interview Cancelled: {interview.title}",
+                    f"Your interview '{interview.title}' scheduled for {interview.scheduled_at.strftime('%B %d, %Y at %I:%M %p')} has been cancelled."
+                )
+            elif new_status == 'completed':
+                # Check if there's a decision/rating to determine if passed
+                if hasattr(interview, 'rating') and interview.rating and interview.rating >= 3:  # Assuming 3+ is pass
+                    create_interview_notification(
+                        interview.id,
+                        "interview_passed",
+                        interview.user_id,
+                        f"Interview Passed: {interview.title}",
+                        f"Congratulations! You have passed your interview for '{interview.title}'."
+                    )
+        except Exception as e:
+            print(f"Failed to create status change notification: {e}")
+
     updated_interview = interview.to_dict()
     print(f"Interview updated successfully. New status: {updated_interview.get('status')}")
 
@@ -263,18 +304,37 @@ def get_upcoming_interviews():
     return jsonify({'interviews': [interview.to_dict() for interview in interviews]}), 200
 
 @api_bp.route('/interviews/history', methods=['GET'])
+@jwt_required()
 def get_interview_history():
-    """Get interviews with decision history (completed, cancelled, or advanced to next round)"""
+    """Get interviews with decision history (completed, cancelled, or advanced to next round).
+
+    Scoped to the authenticated user.
+    """
+    uid = get_jwt_identity()
+    try:
+        user_id = int(uid)
+    except (ValueError, TypeError):
+        return jsonify({"error": "invalid user identity"}), 400
+
     # Get interviews that have decision history (have been evaluated)
-    interviews_with_decisions = Interview.query.join(Interview.decision_history).distinct().all()
+    interviews_with_decisions = (
+        Interview.query.filter(Interview.user_id == user_id)
+        .join(Interview.decision_history)
+        .distinct()
+        .all()
+    )
 
     # Also include traditionally completed interviews (for backward compatibility)
     completed_interviews = Interview.query.filter(
+        Interview.user_id == user_id,
         Interview.status.in_(['completed', 'cancelled', 'no_show'])
     ).all()
 
-    # Combine and deduplicate
-    all_interviews = list(set(interviews_with_decisions + completed_interviews))
+    # Combine and deduplicate (stable by id)
+    unique = {}
+    for interview in interviews_with_decisions + completed_interviews:
+        unique[interview.id] = interview
+    all_interviews = list(unique.values())
 
     # Sort by most recent scheduled date
     all_interviews.sort(key=lambda x: x.scheduled_at or datetime.min, reverse=True)

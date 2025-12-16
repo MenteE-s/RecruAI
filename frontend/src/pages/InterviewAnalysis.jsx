@@ -17,6 +17,11 @@ const InterviewAnalysis = () => {
   const [error, setError] = useState(null);
   const [generatingAnalysis, setGeneratingAnalysis] = useState(false);
 
+  const hasValidAnalysis =
+    analysis &&
+    typeof analysis.overall_score === "number" &&
+    typeof analysis.communication_score === "number";
+
   // Get user role and determine navbar
   const userRole = localStorage.getItem("authRole");
   const userPlan = localStorage.getItem("authPlan");
@@ -59,7 +64,11 @@ const InterviewAnalysis = () => {
 
           if (analysisResponse.ok) {
             const analysisData = await analysisResponse.json();
-            setAnalysis(analysisData);
+            if (analysisData && !analysisData.error) {
+              setAnalysis(analysisData);
+            } else {
+              setAnalysis(null);
+            }
           }
         } catch (analysisError) {
           console.log("Analysis not available yet");
@@ -67,16 +76,25 @@ const InterviewAnalysis = () => {
       }
 
       // Fetch messages
-      const messagesResponse = await fetch(
-        `${getBackendUrl()}/api/interviews/${interviewId}/messages`,
+      const conversationResponse = await fetch(
+        `${getBackendUrl()}/api/interviews/${interviewId}/conversation`,
         {
           credentials: "include",
         }
       );
 
-      if (messagesResponse.ok) {
-        const messagesData = await messagesResponse.json();
-        setMessages(messagesData);
+      if (conversationResponse.ok) {
+        const conversationData = await conversationResponse.json();
+        const transcript = (conversationData?.conversation || []).map((m) => ({
+          id: m.id,
+          content: m.content,
+          message_type: m.sender_type === "agent" ? "ai_response" : "user",
+          created_at: m.created_at,
+          user: {
+            name: m.sender_name || (m.sender_type === "agent" ? "AI" : "User"),
+          },
+        }));
+        setMessages(transcript);
       }
     } catch (error) {
       console.error("Error fetching interview data:", error);
@@ -92,7 +110,7 @@ const InterviewAnalysis = () => {
     setGeneratingAnalysis(true);
     try {
       const response = await fetch(
-        `${getBackendUrl()}/api/interviews/${interviewId}/analyze`,
+        `${getBackendUrl()}/api/interviews/${interviewId}/analyze?force=true`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -239,9 +257,22 @@ const InterviewAnalysis = () => {
         </Card>
 
         {/* Analysis Section */}
-        {interview.status === "completed" && (
+        {interview.status !== "completed" ? (
+          <Card>
+            <div className="text-center py-8">
+              <div className="text-4xl mb-4">ℹ️</div>
+              <h3 className="text-lg font-semibold mb-2">
+                Analysis Not Available Yet
+              </h3>
+              <p className="text-gray-600">
+                This interview must be marked as <b>completed</b> before
+                analysis can be generated.
+              </p>
+            </div>
+          </Card>
+        ) : (
           <>
-            {!analysis ? (
+            {!hasValidAnalysis ? (
               <Card>
                 <div className="text-center py-8">
                   <div className="text-4xl mb-4">📊</div>
@@ -493,6 +524,12 @@ const InterviewAnalysis = () => {
 
         {/* Actions */}
         <div className="flex justify-center gap-4">
+          <button
+            onClick={() => navigate(`/interviews/${interviewId}`)}
+            className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+          >
+            Back to Details
+          </button>
           <button
             onClick={() => navigate("/dashboard")}
             className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"

@@ -86,6 +86,7 @@ def interview_chat(interview_id):
 
     return jsonify({
         'response': response,
+        'agent_id': agent.id,
         'agent_name': agent.name,
         'agent_persona': agent_persona,
         'interview_id': interview_id

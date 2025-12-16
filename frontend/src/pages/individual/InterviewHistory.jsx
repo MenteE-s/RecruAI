@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import IndividualNavbar from "../../components/layout/IndividualNavbar";
+import { useNavigate } from "react-router-dom";
 import Card from "../../components/ui/Card";
 import {
   getSidebarItems,
@@ -10,6 +11,7 @@ import {
 import { formatDateTime as formatDateTimeTz } from "../../utils/timezone";
 
 export default function InterviewHistory() {
+  const navigate = useNavigate();
   const role =
     typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
   const plan =
@@ -25,6 +27,31 @@ export default function InterviewHistory() {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        setLoading(true);
+        setError(null);
+
+        // Get current user (needed for analytics and for user-scoped endpoints)
+        const meResponse = await fetch(`${getBackendUrl()}/api/auth/me`, {
+          headers: getAuthHeaders(),
+          credentials: "include",
+        });
+
+        if (!meResponse.ok) {
+          setError("Please log in to view your interview history.");
+          setInterviews([]);
+          setAnalytics(null);
+          return;
+        }
+
+        const meData = await meResponse.json();
+        const userId = meData?.user?.id;
+        if (!userId) {
+          setError("Failed to determine current user.");
+          setInterviews([]);
+          setAnalytics(null);
+          return;
+        }
+
         // Fetch interview history
         const historyResponse = await fetch(
           `${getBackendUrl()}/api/interviews/history`,
@@ -36,13 +63,12 @@ export default function InterviewHistory() {
 
         if (historyResponse.ok) {
           const historyData = await historyResponse.json();
-          setInterviews(historyData.interviews);
+          setInterviews(historyData?.interviews || []);
         } else {
           setError("Failed to load interview history");
         }
 
         // Fetch user analytics
-        const userId = 1; // TODO: Get from user context
         const analyticsResponse = await fetch(
           `${getBackendUrl()}/api/users/${userId}/analytics`,
           {
@@ -442,7 +468,10 @@ export default function InterviewHistory() {
                   </div>
 
                   <div className="ml-4">
-                    <button className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50 text-sm">
+                    <button
+                      onClick={() => navigate(`/interviews/${interview.id}`)}
+                      className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50 text-sm"
+                    >
                       View Details
                     </button>
                   </div>

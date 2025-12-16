@@ -38,7 +38,8 @@ export function getBackendUrl() {
 // Helper to get headers with Authorization if token exists
 export function getAuthHeaders(additionalHeaders = {}) {
   // Detect production the same way we detect backend URL
-  const isProduction = typeof window !== "undefined" && window.location.hostname !== "localhost";
+  const isProduction =
+    typeof window !== "undefined" && window.location.hostname !== "localhost";
 
   if (isProduction) {
     // Production: Return headers with Authorization
@@ -58,13 +59,11 @@ export function getAuthHeaders(additionalHeaders = {}) {
 const originalFetch = window.fetch;
 window.fetch = function (url, options = {}) {
   // Detect production the same way we detect backend URL
-  const isProduction = typeof window !== "undefined" && window.location.hostname !== "localhost";
+  const isProduction =
+    typeof window !== "undefined" && window.location.hostname !== "localhost";
 
   // Check if this is an API call that needs authentication
-  if (
-    typeof url === "string" &&
-    url.includes("/api/")
-  ) {
+  if (typeof url === "string" && url.includes("/api/")) {
     if (isProduction) {
       // Production: Add Authorization header
       const token = localStorage.getItem("access_token");
@@ -168,6 +167,7 @@ export function getSidebarItems(role, plan) {
         },
         { name: "Saved Jobs", link: "/jobs/saved", icon: FiBookmark },
         { name: "Applied Jobs", link: "/jobs/applied", icon: FiCheckCircle },
+        { name: "Notifications", link: "/notifications", icon: FiBell },
         { name: "Analytics", link: "/analytics", icon: FiBarChart2 },
         { name: "Practice", link: "/practice", icon: FiClock },
         { name: "My AI Agents", link: "/ai-agents", icon: FiUsers },
@@ -176,7 +176,7 @@ export function getSidebarItems(role, plan) {
           link: "/shareable-profiles",
           icon: FiShare2,
         },
-        { name: "Settings", link: "/settings", icon: FiSettings },
+        { name: "Setting", link: "/settings", icon: FiSettings },
       ];
     } else {
       // pro
@@ -196,6 +196,7 @@ export function getSidebarItems(role, plan) {
         },
         { name: "Saved Jobs", link: "/jobs/saved", icon: FiBookmark },
         { name: "Applied Jobs", link: "/jobs/applied", icon: FiCheckCircle },
+        { name: "Notifications", link: "/notifications", icon: FiBell },
         { name: "Analytics", link: "/analytics", icon: FiBarChart2 },
         { name: "Resume Builder", link: "/resume/builder", icon: FiFileText },
         { name: "Job Alerts", link: "/jobs/alerts", icon: FiBell },
@@ -207,7 +208,7 @@ export function getSidebarItems(role, plan) {
           link: "/shareable-profiles",
           icon: FiShare2,
         },
-        { name: "Settings", link: "/settings", icon: FiSettings },
+        { name: "Setting", link: "/settings", icon: FiSettings },
       ];
     }
   } else if (role === "organization") {
@@ -234,13 +235,14 @@ export function getSidebarItems(role, plan) {
           link: "/organization/interviews",
           icon: FiCalendar,
         },
+        { name: "Notifications", link: "/notifications", icon: FiBell },
         { name: "Pipeline", link: "/organization/pipeline", icon: FiBarChart2 },
         {
           name: "Analytics",
           link: "/organization/analytics",
           icon: FiBarChart2,
         },
-        { name: "Settings", link: "/settings", icon: FiSettings },
+        { name: "Setting", link: "/settings", icon: FiSettings },
       ];
     } else {
       // pro
@@ -262,6 +264,7 @@ export function getSidebarItems(role, plan) {
           link: "/organization/interviews",
           icon: FiCalendar,
         },
+        { name: "Notifications", link: "/notifications", icon: FiBell },
         { name: "Pipeline", link: "/organization/pipeline", icon: FiBarChart2 },
         {
           name: "Analytics",
@@ -274,8 +277,12 @@ export function getSidebarItems(role, plan) {
           link: "/organization/integrations",
           icon: FiBell,
         },
-        { name: "AI Insights", link: "/organization/insights", icon: FiUsers },
-        { name: "Settings", link: "/settings", icon: FiSettings },
+        {
+          name: "AI Insights",
+          link: "/organization/insights",
+          icon: FiUsers,
+        },
+        { name: "Setting", link: "/settings", icon: FiSettings },
       ];
     }
   }

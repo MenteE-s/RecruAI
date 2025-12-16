@@ -4,8 +4,10 @@ import {
   BrowserRouter as Router,
   Routes,
   Route,
+  Navigate,
   useNavigate,
   useLocation,
+  useParams,
 } from "react-router-dom";
 import "./App.css";
 import { ToastProvider } from "./components/ui/ToastContext";
@@ -60,8 +62,15 @@ import Integrations from "./pages/organization/Integrations";
 import Insights from "./pages/organization/Insights";
 import AIAgents from "./pages/organization/AIAgents";
 import InterviewRoom from "./pages/InterviewRoom";
+import Notifications from "./pages/Notifications";
+import InterviewDetail from "./pages/individual/InterviewDetail";
 
 import { verifyTokenWithServer } from "./utils/auth";
+
+function InterviewAnalysisRedirect() {
+  const { interviewId } = useParams();
+  return <Navigate to={`/interviews/${interviewId}/analysis`} replace />;
+}
 
 function AuthVerifier() {
   const navigate = useNavigate();
@@ -124,6 +133,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <DashboardSwitcher />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/notifications"
+            element={
+              <ProtectedRoute>
+                <Notifications />
               </ProtectedRoute>
             }
           />
@@ -235,7 +252,7 @@ function App() {
             path="/interview/:interviewId/analysis"
             element={
               <ProtectedRoute>
-                <InterviewAnalysis />
+                <InterviewAnalysisRedirect />
               </ProtectedRoute>
             }
           />
@@ -404,6 +421,15 @@ function App() {
             element={
               <ProtectedRoute>
                 <InterviewAnalysis />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/interviews/:interviewId"
+            element={
+              <ProtectedRoute>
+                <InterviewDetail />
               </ProtectedRoute>
             }
           />

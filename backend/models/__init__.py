@@ -36,6 +36,7 @@ from .system_issue import SystemIssue
 from .shareable_profile import ShareableProfile, ProfileAnalytics
 from .favorite import Favorite
 from .token_usage import TokenUsage
+from .notification import Notification
 
 __all__ = [
     "User",
@@ -77,4 +78,5 @@ __all__ = [
     "ProfileAnalytics",
     "Favorite",
     "TokenUsage",
+    "Notification",
 ]

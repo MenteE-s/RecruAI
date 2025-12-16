@@ -151,101 +151,96 @@ export default function IndividualDashboard() {
       NavbarComponent={IndividualNavbar}
       sidebarItems={sidebarItems}
     >
-      <div className="mb-6">
-        <div className="rounded-2xl p-6 bg-gradient-to-br from-indigo-600/80 via-purple-600/60 to-cyan-500/60 text-white shadow-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold font-display">
-                Your Dashboard
-              </h1>
-              <p className="mt-1 text-white/90">
-                Personal activity and summaries just for you.
-              </p>
-            </div>
+      {/* Header */}
+      <div className="mb-8">
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-600 via-purple-600 to-cyan-500 p-6 md:p-8 text-white shadow-xl">
+          <div className="relative z-10">
+            <h1 className="text-2xl md:text-3xl font-bold">Welcome back 👋</h1>
+            <p className="mt-1 text-white/90 text-sm md:text-base">
+              Here’s a quick snapshot of your interview journey.
+            </p>
           </div>
+          <div className="absolute inset-0 bg-black/10" />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+      {/* Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 mb-10">
         <StatCard
           title="Total Interviews"
           value={stats.totalInterviews}
-          change=""
           icon={FiActivity}
-          trend="neutral"
         />
         <StatCard
           title="Completed"
           value={stats.completedInterviews}
-          change=""
           icon={FiCheckCircle}
-          trend="neutral"
         />
         <StatCard
           title="Passed"
           value={stats.passedInterviews}
-          change=""
           icon={FiTrendingUp}
-          trend="neutral"
         />
         <StatCard
           title="Upcoming"
           value={stats.upcomingInterviews}
-          change=""
           icon={FiCalendar}
-          trend="neutral"
         />
         <StatCard
           title="Applied Jobs"
           value={stats.appliedJobs}
-          change=""
           icon={FiUsers}
-          trend="neutral"
         />
         <StatCard
           title="Saved Jobs"
           value={stats.savedJobs}
-          change=""
           icon={FiDollarSign}
-          trend="neutral"
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Main Content */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        {/* Recent Interviews */}
         <Card>
-          <h3 className="font-semibold text-gray-800 mb-4">
-            Recent Interviews
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-gray-800">Recent Interviews</h3>
+            <span className="text-xs text-gray-500">Last 5 activities</span>
+          </div>
+
           {loading ? (
             <div className="flex justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
             </div>
           ) : interviews.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              No interviews yet. Start applying to jobs!
+            <div className="text-center py-12 text-gray-500">
+              No interviews yet.
+              <div className="text-sm mt-1">
+                Start applying to unlock insights 🚀
+              </div>
             </div>
           ) : (
             <div className="space-y-3">
               {interviews.map((interview) => (
                 <div
                   key={interview.id}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors"
                   onClick={() =>
                     navigate(`/interviews/${interview.id}/analysis`)
                   }
+                  className="group flex items-center justify-between rounded-xl border border-gray-100 p-4 hover:border-indigo-200 hover:bg-indigo-50/40 transition cursor-pointer"
                 >
-                  <div className="flex items-center space-x-3">
-                    {getStatusIcon(interview)}
+                  <div className="flex items-center gap-3">
+                    <div className="text-lg">{getStatusIcon(interview)}</div>
                     <div>
-                      <p className="font-medium text-gray-900">
+                      <p className="font-medium text-gray-900 group-hover:text-indigo-700">
                         {interview.title}
                       </p>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-xs text-gray-600">
                         Round {interview.current_round} •{" "}
                         {interview.organization}
                       </p>
                     </div>
                   </div>
+
                   <div className="text-right">
                     <p className="text-sm font-medium text-gray-900">
                       {getStatusText(interview)}
@@ -256,21 +251,28 @@ export default function IndividualDashboard() {
                   </div>
                 </div>
               ))}
+
               {interviews.length >= 5 && (
                 <button
                   onClick={() => navigate("/interviews/history")}
-                  className="w-full text-center py-2 text-indigo-600 hover:text-indigo-800 text-sm font-medium"
+                  className="w-full mt-2 rounded-lg py-2 text-sm font-medium text-indigo-600 hover:bg-indigo-50 transition"
                 >
-                  View All Interviews →
+                  View Full Interview History →
                 </button>
               )}
             </div>
           )}
         </Card>
+
+        {/* Saved Jobs */}
         <Card>
-          <h3 className="font-semibold text-secondary-800 mb-4">Saved Jobs</h3>
-          <div className="h-64 bg-secondary-50 rounded-lg flex items-center justify-center text-secondary-400">
-            Saved jobs placeholder
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-gray-800">Saved Jobs</h3>
+            <span className="text-xs text-gray-500">Quick access</span>
+          </div>
+
+          <div className="h-64 rounded-xl border border-dashed border-gray-200 flex items-center justify-center text-gray-400 text-sm">
+            Saved jobs will appear here
           </div>
         </Card>
       </div>

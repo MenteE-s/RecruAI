@@ -1,6 +1,7 @@
 import { useState } from "react";
 import Sidebar from "./Sidebar";
-import DashboardFooter from "./DashboardFooter";
+// import DashboardFooter from "./DashboardFooter";
+import DashboardFooter from "../../components/layout/DashboardFooter";
 
 export default function DashboardLayout({
   children,
@@ -26,7 +27,7 @@ export default function DashboardLayout({
 
       {/* Main Content */}
       <div className="ml-64 flex flex-col min-h-screen">
-        {NavbarComponent && <NavbarComponent isAuthenticated={signedIn} />}
+        {/* {NavbarComponent && <NavbarComponent isAuthenticated={signedIn} />} */}
 
         {/* Overlay for mobile */}
         {sidebarOpen && (

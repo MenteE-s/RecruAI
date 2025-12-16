@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "";
@@ -8,55 +8,92 @@ export default function IndividualNavbar({ isAuthenticated }) {
   const signedIn =
     isAuthenticated || localStorage.getItem("isAuthenticated") === "true";
 
-  function signOut() {
-    (async () => {
-      try {
-        await fetch(`${API_BASE_URL}/api/auth/logout`, {
-          method: "POST",
-          credentials: "include",
-        });
-      } catch (e) {
-        // ignore network errors
+  const [notificationCount, setNotificationCount] = useState(0);
+
+  useEffect(() => {
+    if (signedIn) fetchNotificationCount();
+  }, [signedIn]);
+
+  const fetchNotificationCount = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/notifications/stats`, {
+        credentials: "include",
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setNotificationCount(data.unread || 0);
       }
-      localStorage.removeItem("access_token");
-      localStorage.removeItem("isAuthenticated");
-      localStorage.removeItem("authRole");
-      navigate("/signin", { replace: true });
-    })();
-  }
+    } catch (err) {
+      console.error("Notification fetch failed", err);
+    }
+  };
+
+  const signOut = async () => {
+    try {
+      await fetch(`${API_BASE_URL}/api/auth/logout`, {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch (_) {}
+    localStorage.clear();
+    navigate("/signin", { replace: true });
+  };
 
   return (
-    <nav className="w-full bg-white border-b">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-14 items-center">
-          <div className="flex items-center">
-            {/* <Link to="/" className="font-bold text-lg text-primary-700">
-              RecruAI
-            </Link> */}
-            {/* Top nav intentionally minimal - main navigation lives in the left sidebar */}
-          </div>
+    <nav className="sticky top-0 z-40 bg-white border-b shadow-sm">
+      <div className="max-w-7xl mx-auto px-4">
+        <div className="flex h-14 items-center justify-between">
+          {/* Left */}
+          <Link
+            to="/"
+            className="text-lg font-semibold text-primary-700 tracking-tight"
+          >
+            RecruAI
+          </Link>
 
-          <div className="flex items-center gap-3">
+          {/* Right */}
+          <div className="flex items-center gap-4">
             {!signedIn ? (
               <>
-                <Link to="/signin" className="text-sm text-primary-700">
-                  <i className="fa-solid fa-user"></i> Sign in
+                <Link
+                  to="/signin"
+                  className="text-sm font-medium text-gray-600 hover:text-primary-700"
+                >
+                  Sign in
                 </Link>
                 <Link
                   to="/register"
-                  className="ml-2 px-3 py-1 bg-primary-700 text-white rounded text-sm"
+                  className="px-4 py-1.5 bg-primary-700 text-white text-sm rounded-md hover:bg-primary-800 transition"
                 >
-                  <i className="fa-solid fa-user-plus"></i>
                   Register
                 </Link>
               </>
             ) : (
               <>
-                <Link to="/profile" className="text-sm text-secondary-700">
-                  <i className="fa-solid fa-user"></i> Profile
+                <Link
+                  to="/notifications"
+                  className="relative text-gray-600 hover:text-primary-700"
+                >
+                  <i className="fa-solid fa-bell text-lg">Notifications</i>
+                  {notificationCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] h-5 w-5 rounded-full flex items-center justify-center">
+                      {notificationCount > 99 ? "99+" : notificationCount}
+                    </span>
+                  )}
                 </Link>
-                <button onClick={signOut} className="ml-2 text-sm text-red-600">
-                  <i className="fa-solid fa-right-from-bracket"></i> Sign out
+
+                <Link
+                  to="/profile"
+                  className="text-sm font-medium text-gray-600 hover:text-primary-700"
+                >
+                  Profile
+                </Link>
+
+                <button
+                  onClick={signOut}
+                  className="text-sm font-medium text-red-600 hover:text-red-700"
+                >
+                  Sign out
                 </button>
               </>
             )}

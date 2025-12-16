@@ -11,6 +11,7 @@ from ...models import (
 from ...utils.timezone_utils import get_timezone_list, is_valid_timezone, get_current_time_info
 from ...utils.security import log_security_event, sanitize_input, validate_email, validate_request_size
 from ...utils.pagination import Pagination, get_pagination_params, paginated_response, apply_filters_and_sorting, get_request_filters, get_sorting_params
+from ...api.notifications.routes import create_profile_notification
 
 
 @api_bp.route("/timezones", methods=["GET"])
@@ -192,6 +193,20 @@ def toggle_favorite(user_id, target_user_id):
         )
         db.session.add(favorite)
         db.session.commit()
+
+        # Create notification for the favorited user
+        try:
+            create_profile_notification(
+                user_id=target_user.id,
+                notification_type="profile_favorited",
+                title=f"Profile Favorited by {user.name}",
+                message=f"Your profile has been favorited by {user.name} from {user.organization.name if user.organization else 'an organization'}.",
+                related_user_id=user.id,
+                related_org_id=user.organization_id if user.organization else None
+            )
+        except Exception as e:
+            print(f"Failed to create favorite notification: {e}")
+
         return jsonify({
             "favorited": True,
             "message": "User favorited successfully"
