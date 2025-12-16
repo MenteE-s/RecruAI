@@ -1,6 +1,6 @@
 """
 RAG Embedder Tool
-Converts text chunks to vector embeddings using OpenAI API
+Converts text chunks to vector embeddings using provider-agnostic interface
 """
 
 import asyncio
@@ -11,14 +11,7 @@ from typing import List, Dict, Any, Optional, Tuple
 from concurrent.futures import ThreadPoolExecutor
 import threading
 
-try:
-    import openai
-    from openai import OpenAI
-    OPENAI_AVAILABLE = True
-except ImportError:
-    OPENAI_AVAILABLE = False
-    OpenAI = None
-
+from ...ai_providers import get_ai_provider_manager
 from ..config import RAGConfig
 
 
@@ -27,20 +20,14 @@ logger = logging.getLogger(__name__)
 
 class EmbedderTool:
     """
-    Tool for generating vector embeddings from text chunks using OpenAI API.
+    Tool for generating vector embeddings from text chunks using provider-agnostic interface.
     Handles batching, caching, rate limiting, and error recovery.
     """
 
     def __init__(self):
         self.config = RAGConfig()
-
-        if not OPENAI_AVAILABLE:
-            raise ImportError("OpenAI package not installed. Install with: pip install openai")
-
-        if not self.config.OPENAI_API_KEY:
-            raise ValueError("OPENAI_API_KEY environment variable not set")
-
-        self.client = OpenAI(api_key=self.config.OPENAI_API_KEY)
+        self.provider_manager = get_ai_provider_manager()
+        self.embedding_provider = self.provider_manager.embedding
 
         # Caching and rate limiting
         self._embedding_cache = {}
@@ -151,8 +138,12 @@ class EmbedderTool:
         if not chunks:
             return []
 
-        # OpenAI allows up to 2048 embeddings per request
-        batch_size = min(100, len(chunks))  # Conservative batch size
+        # Use provider-specific batch size limits
+        if self.config.EMBEDDING_PROVIDER == "openai":
+            batch_size = min(100, len(chunks))  # OpenAI limit
+        else:
+            batch_size = min(32, len(chunks))  # Local models batch size
+
         embedded_chunks = []
 
         for i in range(0, len(chunks), batch_size):
@@ -166,21 +157,16 @@ class EmbedderTool:
                     logger.info(f"Rate limited, waiting {wait_time:.1f} seconds")
                     time.sleep(wait_time)
 
-                # Make API call
-                response = self.client.embeddings.create(
-                    input=batch_texts,
-                    model=self.config.OPENAI_EMBEDDING_MODEL
-                )
+                # Use provider-agnostic embedding
+                embeddings = self.embedding_provider.embed_batch(batch_texts)
 
                 self._rate_limiter.record_call()
 
                 # Process response
                 for j, chunk in enumerate(batch):
-                    embedding_data = response.data[j]
                     chunk_copy = chunk.copy()
-                    chunk_copy['embedding'] = embedding_data.embedding
-                    chunk_copy['embedding_model'] = self.config.OPENAI_EMBEDDING_MODEL
-                    chunk_copy['embedding_tokens'] = embedding_data.usage.total_tokens if hasattr(embedding_data, 'usage') else None
+                    chunk_copy['embedding'] = embeddings[j]
+                    chunk_copy['embedding_model'] = self.config.EMBEDDING_PROVIDER
                     chunk_copy['embedding_generated_at'] = time.time()
                     embedded_chunks.append(chunk_copy)
 

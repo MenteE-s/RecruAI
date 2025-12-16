@@ -87,6 +87,17 @@ class RAGSupervisor:
         start_time = time.time()
         workflow_id = f"rag_{int(time.time())}_{hash(str(input_data)) % 10000}"
 
+        # Check if RAG is enabled
+        if not self.config.RAG_ENABLED:
+            logger.info("RAG is disabled, skipping workflow")
+            return {
+                'workflow_id': workflow_id,
+                'rag_disabled': True,
+                'input_type': input_type,
+                'message': 'RAG functionality is currently disabled',
+                'performance': {'total_time': time.time() - start_time}
+            }
+
         try:
             # Log workflow start
             self.log_activity(

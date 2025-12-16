@@ -8,6 +8,7 @@ try:
 	from .config import Config
 	from .extensions import db, migrate, jwt
 	from .api import api_bp
+	from .ai_providers import get_ai_provider_manager
 except Exception:
 	# when executed directly as a script (python app.py) the package-relative
 	# imports often fail. To support running the script from inside the
@@ -31,6 +32,9 @@ except Exception:
 	migrate = backend_extensions.migrate  # type: ignore
 	jwt = backend_extensions.jwt  # type: ignore
 	api_bp = backend_api.api_bp  # type: ignore
+
+	ai_providers_module = importlib.import_module("backend.ai_providers")
+	get_ai_provider_manager = ai_providers_module.get_ai_provider_manager
 
 
 def create_app(config_object: object | None = None):
@@ -64,6 +68,17 @@ def create_app(config_object: object | None = None):
 
 	jwt.init_app(app)
 
+	# Initialize AI providers
+	try:
+		ai_manager = get_ai_provider_manager()
+		ai_manager.initialize()
+		provider_info = ai_manager.get_provider_info()
+		print(f"AI Providers initialized - LLM: {provider_info['llm_provider']}, Embedding: {provider_info['embedding_provider']}, RAG: {provider_info['rag_enabled']}")
+	except Exception as e:
+		print(f"Warning: Could not initialize AI providers: {e}")
+		import traceback
+		traceback.print_exc()
+
 	# Security: Initialize rate limiter
 	try:
 		from flask_limiter import Limiter
@@ -89,7 +104,7 @@ def create_app(config_object: object | None = None):
 				'style-src': "'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net",
 				'font-src': "'self' https://fonts.gstatic.com",
 				'img-src': "'self' data: https:",
-				'connect-src': "'self' https://api.openai.com https://api.groq.com",
+				'connect-src': "'self' https://api.openai.com https://api.groq.com https://sentence-transformers.com",
 			},
 			content_security_policy_nonce_in=['script-src', 'style-src'],
 			force_https=app.config['IS_PRODUCTION'],
@@ -124,7 +139,16 @@ def create_app(config_object: object | None = None):
 		# Support comma-separated list of origins
 		origins_list = [o.strip().rstrip("/") for o in frontend_origin.split(",")]
 		print(f"Setting CORS origins to: {origins_list}", flush=True)
-		CORS(app, resources={r"/api/*": {"origins": origins_list}}, supports_credentials=True)
+		CORS(app, origins=origins_list, supports_credentials=True, allow_headers=["Content-Type", "Authorization"], methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"], expose_headers=["Content-Type", "Authorization"])
+
+		# Ensure CORS headers are added to all responses, including errors
+		@app.after_request
+		def add_cors_headers(response):
+			response.headers['Access-Control-Allow-Origin'] = origins_list[0] if origins_list else 'http://localhost:3000'
+			response.headers['Access-Control-Allow-Credentials'] = 'true'
+			response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+			response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+			return response
 	except Exception as e:
 		print(f"Failed to configure CORS: {e}", flush=True)
 		# flask-cors not installed or not needed in production
@@ -141,6 +165,17 @@ def create_app(config_object: object | None = None):
 
 	# register blueprints
 	app.register_blueprint(api_bp, url_prefix="/api")
+
+	# Register practice AI agents blueprint separately to avoid circular imports
+	try:
+		from .api.practice_ai_agents import practice_ai_bp
+		app.register_blueprint(practice_ai_bp, url_prefix="/api")
+	except ImportError:
+		try:
+			practice_ai_agents_module = importlib.import_module("backend.api.practice_ai_agents")
+			app.register_blueprint(practice_ai_agents_module.practice_ai_bp, url_prefix="/api")
+		except ImportError as e:
+			print(f"Warning: Could not register practice AI agents blueprint: {e}")
 
 	# Error handlers for API routes - return JSON instead of HTML
 	@app.errorhandler(400)
@@ -161,7 +196,17 @@ def create_app(config_object: object | None = None):
 
 	@app.errorhandler(500)
 	def internal_error(error):
-		return jsonify({"error": "Internal Server Error", "message": str(error)}), 500
+	    response = jsonify({
+	        "error": "Internal Server Error",
+	        "message": str(error)
+	    })
+	    response.headers.add(
+	        "Access-Control-Allow-Origin", "http://localhost:3000"
+	    )
+	    response.headers.add(
+	        "Access-Control-Allow-Credentials", "true"
+	    )
+	    return response, 500
 
 	# Serve uploaded files
 	@app.route('/uploads/<path:filename>')

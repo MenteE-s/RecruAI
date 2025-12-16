@@ -37,12 +37,55 @@ export function getBackendUrl() {
 
 // Helper to get headers with Authorization if token exists
 export function getAuthHeaders(additionalHeaders = {}) {
-  const headers = { ...additionalHeaders };
-  const token = localStorage.getItem("access_token");
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
+  // Detect production the same way we detect backend URL
+  const isProduction = typeof window !== "undefined" && window.location.hostname !== "localhost";
+
+  if (isProduction) {
+    // Production: Return headers with Authorization
+    const headers = { ...additionalHeaders };
+    const token = localStorage.getItem("access_token");
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+    return headers;
+  } else {
+    // Development: Return headers (cookies will be sent via credentials)
+    return { ...additionalHeaders };
   }
-  return headers;
+}
+
+// Override global fetch to automatically handle authentication
+const originalFetch = window.fetch;
+window.fetch = function (url, options = {}) {
+  // Detect production the same way we detect backend URL
+  const isProduction = typeof window !== "undefined" && window.location.hostname !== "localhost";
+
+  // Check if this is an API call that needs authentication
+  if (
+    typeof url === "string" &&
+    url.includes("/api/")
+  ) {
+    if (isProduction) {
+      // Production: Add Authorization header
+      const token = localStorage.getItem("access_token");
+      if (token) {
+        options.headers = {
+          ...options.headers,
+          Authorization: `Bearer ${token}`,
+        };
+      }
+    } else {
+      // Development: Add credentials for cookies
+      options.credentials = "include";
+    }
+  }
+
+  return originalFetch.call(this, url, options);
+};
+
+// Keep the original functions for manual use if needed
+export function getAuthenticatedFetch(url, options = {}) {
+  return fetch(url, options); // Now uses the overridden fetch
 }
 
 // Get full URL for uploaded files

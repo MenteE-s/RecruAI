@@ -1,12 +1,15 @@
 from flask import request, jsonify
 from .. import api_bp
 from ...extensions import db
-from ...models import Interview, Application, ConversationMemory, Message, InterviewAnalysis
+from ...models import Interview, Application, ConversationMemory, Message, InterviewAnalysis, ConversationMessage
 import json
 from datetime import datetime, timezone, timedelta
 from ...utils.security import log_security_event, sanitize_input, validate_request_size
 from ...utils.pagination import Pagination, get_pagination_params, paginated_response, apply_filters_and_sorting, get_request_filters, get_sorting_params
 from ...utils.security import log_security_event, sanitize_input, validate_request_size
+from ...utils.subscription import require_interview_access
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from ...models import User
 
 def update_pipeline_stage_for_interview(interview):
     """Update pipeline stage based on interview status"""
@@ -65,24 +68,33 @@ def get_interview(interview_id):
     return jsonify(interview.to_dict()), 200
 
 @api_bp.route('/interviews', methods=['POST'])
+@jwt_required()
+@require_interview_access()
 def create_interview():
     """Create a new interview"""
+    # Get authenticated user
+    user_id = get_jwt_identity()
+    user_id = int(user_id)  # Convert to int for database comparison
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
     try:
         data = request.get_json()
     except Exception:
-        log_security_event("invalid_json_request", request.remote_addr, None)
+        log_security_event("invalid_json_request", request.remote_addr, user_id)
         return jsonify({'error': 'Invalid JSON in request body'}), 400
 
     # Validate request size
     is_valid, error_msg = validate_request_size(data)
     if not is_valid:
-        log_security_event("request_size_exceeded", request.remote_addr, None, details={"error": error_msg})
+        log_security_event("request_size_exceeded", request.remote_addr, user_id, details={"error": error_msg})
         return jsonify({'error': error_msg}), 400
 
     required_fields = ['title', 'scheduled_at', 'user_id', 'organization_id']
     for field in required_fields:
         if field not in data:
-            log_security_event("missing_required_field", request.remote_addr, None, details={"field": field})
+            log_security_event("missing_required_field", request.remote_addr, user_id, details={"field": field})
             return jsonify({'error': f'Missing required field: {field}'}), 400
 
     # Sanitize input fields
@@ -101,7 +113,7 @@ def create_interview():
             datetime_str = datetime_str[:-1] + '+00:00'
         scheduled_at = datetime.fromisoformat(datetime_str)
     except ValueError:
-        log_security_event("invalid_datetime_format", request.remote_addr, None, details={"datetime_str": datetime_str})
+        log_security_event("invalid_datetime_format", request.remote_addr, user_id, details={"datetime_str": datetime_str})
         return jsonify({'error': 'Invalid datetime format. Use ISO 8601 with timezone (e.g., 2024-01-15T14:30Z)'}), 400
 
     # Ensure timezone-aware and normalize to UTC
@@ -116,7 +128,7 @@ def create_interview():
 
     # Validate scheduled_at is in the future
     if scheduled_at <= datetime.utcnow():
-        log_security_event("interview_scheduled_past", request.remote_addr, None, details={"scheduled_at": scheduled_at.isoformat()})
+        log_security_event("interview_scheduled_past", request.remote_addr, user_id, details={"scheduled_at": scheduled_at.isoformat()})
         return jsonify({'error': 'scheduled_at must be in the future.'}), 400
 
     interview = Interview(
@@ -136,10 +148,15 @@ def create_interview():
     db.session.add(interview)
     db.session.commit()
 
+    # Track interview usage for organizations
+    if user.organization:
+        from ...utils.subscription import SubscriptionManager
+        SubscriptionManager.track_interview_usage(user.organization)
+
     # Update pipeline stage
     update_pipeline_stage_for_interview(interview)
 
-    log_security_event("interview_created", request.remote_addr, data['user_id'],
+    log_security_event("interview_created", request.remote_addr, user_id,
                       details={"interview_id": interview.id, "title": title, "scheduled_at": scheduled_at.isoformat()})
 
     return jsonify({
@@ -182,9 +199,8 @@ def update_interview(interview_id):
 
                 value = value.replace(tzinfo=None)
 
-                # Validate scheduled_at is in the future
-                if value <= datetime.utcnow():
-                    return jsonify({'error': 'scheduled_at must be in the future.'}), 400
+                # Note: For updates, we allow past dates to enable rescheduling
+                # The future date validation only applies to new interview creation
 
                 setattr(interview, field, value)
             elif field == 'interviewers':
@@ -248,11 +264,22 @@ def get_upcoming_interviews():
 
 @api_bp.route('/interviews/history', methods=['GET'])
 def get_interview_history():
-    """Get completed/cancelled interviews"""
-    interviews = Interview.query.filter(
+    """Get interviews with decision history (completed, cancelled, or advanced to next round)"""
+    # Get interviews that have decision history (have been evaluated)
+    interviews_with_decisions = Interview.query.join(Interview.decision_history).distinct().all()
+
+    # Also include traditionally completed interviews (for backward compatibility)
+    completed_interviews = Interview.query.filter(
         Interview.status.in_(['completed', 'cancelled', 'no_show'])
-    ).order_by(Interview.scheduled_at.desc()).all()
-    return jsonify({'interviews': [interview.to_dict() for interview in interviews]}), 200
+    ).all()
+
+    # Combine and deduplicate
+    all_interviews = list(set(interviews_with_decisions + completed_interviews))
+
+    # Sort by most recent scheduled date
+    all_interviews.sort(key=lambda x: x.scheduled_at or datetime.min, reverse=True)
+
+    return jsonify({'interviews': [interview.to_dict() for interview in all_interviews]}), 200
 
 @api_bp.route('/interviews/<int:interview_id>/complete', methods=['POST'])
 def complete_interview(interview_id):
@@ -373,6 +400,80 @@ def update_organization_interview_decision(org_id, interview_id):
     return jsonify({
         "message": message,
         "interview": interview.to_dict()
+    }), 200
+
+@api_bp.route('/interviews/<int:interview_id>/conversation', methods=['GET'])
+@jwt_required()
+def get_interview_conversation(interview_id):
+    """Get conversation history for an interview"""
+    from ...models import ConversationMessage
+
+    # Get authenticated user
+    user_id = get_jwt_identity()
+    user_id = int(user_id)  # Convert to int for database comparison
+    print(f"JWT identity: {user_id}, type: {type(user_id)}")
+    user = User.query.get(user_id)
+    if not user:
+        print(f"User not found for id: {user_id}")
+        return jsonify({'error': 'User not found'}), 404
+
+    interview = Interview.query.get(interview_id)
+    if not interview:
+        print(f"Interview not found for id: {interview_id}")
+        return jsonify({'error': 'Interview not found'}), 404
+
+    # Debug logging
+    print(f"Conversation access check: user_id={user_id}, interview.user_id={interview.user_id}, interview.organization_id={interview.organization_id}, interview_type={interview.interview_type}")
+    print(f"User organization: {user.organization.id if user.organization else None}")
+
+    # Debug logging
+    print(f"Conversation access check: user_id={user_id}, interview.user_id={interview.user_id}, interview.organization_id={interview.organization_id}")
+    print(f"User organization: {user.organization.id if user.organization else None}")
+
+    # Check if user has access to this interview
+    # For practice interviews (organization_id is None), only the candidate can access
+    # For regular interviews, candidate or organization members can access
+    has_access = False
+    print(f"Checking access: interview.user_id={interview.user_id}, user_id={user_id}")
+    if interview.user_id == user_id:
+        # User is the candidate
+        print("User is the candidate - granting access")
+        has_access = True
+    elif interview.organization_id is not None and user.organization and user.organization.id == interview.organization_id:
+        # User is a member of the organization that owns the interview
+        print("User is organization member - granting access")
+        has_access = True
+    else:
+        print("No access conditions met")
+    
+    if not has_access:
+        print(f"Access denied for user {user_id} to interview {interview_id}")
+        return jsonify({'error': 'Access denied'}), 403
+
+    # Get conversation messages
+    messages = ConversationMessage.get_recent_conversation(interview_id, limit=50)
+    messages.reverse()  # Most recent last
+
+    conversation = []
+    for msg in messages:
+        conversation.append({
+            'id': msg.id,
+            'sender_type': msg.sender_type,
+            'sender_user_id': msg.sender_user_id,
+            'sender_agent_id': msg.sender_agent_id,
+            'content': msg.content,
+            'created_at': msg.created_at.isoformat() if msg.created_at else None,
+            # Include sender names for display
+            'sender_name': (
+                msg.sender_user.name if msg.sender_type == 'user' and msg.sender_user else
+                msg.sender_agent.name if msg.sender_type == 'agent' and msg.sender_agent else
+                'Unknown'
+            )
+        })
+
+    return jsonify({
+        'interview_id': interview_id,
+        'conversation': conversation
     }), 200
 
 @api_bp.route('/organizations/<int:org_id>/interviews/status-summary', methods=['GET'])

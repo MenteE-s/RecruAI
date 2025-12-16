@@ -1,6 +1,6 @@
-from datetime import datetime, timezone
 
 from backend.extensions import db
+from datetime import datetime, timezone
 
 
 class Interview(db.Model):
@@ -12,8 +12,14 @@ class Interview(db.Model):
     scheduled_at = db.Column(db.DateTime, nullable=False)
     duration_minutes = db.Column(db.Integer, default=60)  # Interview duration in minutes
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
-    organization_id = db.Column(db.Integer, db.ForeignKey("organizations.id"), nullable=False)
+    organization_id = db.Column(db.Integer, db.ForeignKey("organizations.id"), nullable=True)
     post_id = db.Column(db.Integer, db.ForeignKey("posts.id"), nullable=True)  # Associated job post
+
+    def __init__(self, candidate_id=None, **kwargs):
+        if candidate_id is not None:
+            kwargs['user_id'] = candidate_id
+        kwargs.pop('candidate_id', None)
+        super().__init__(**kwargs)
 
     # Interview details
     interview_type = db.Column(db.String(50), default="text")  # 'text', 'ai_video', 'human_video'
@@ -45,6 +51,10 @@ class Interview(db.Model):
     # AI Interview Agent (optional - for AI-powered interviews)
     ai_agent_id = db.Column(db.Integer, db.ForeignKey("ai_interview_agents.id"), nullable=True)
     ai_agent = db.relationship("AIInterviewAgent", backref="interviews")
+
+    # Practice AI Agent (optional - for practice interviews)
+    practice_ai_agent_id = db.Column(db.Integer, db.ForeignKey("practice_ai_agents.id"), nullable=True)
+    practice_ai_agent = db.relationship("PracticeAIAgent", backref="practice_interviews")
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -81,6 +91,8 @@ class Interview(db.Model):
             "interviewers": json.loads(self.interviewers) if self.interviewers else [],
             "ai_agent_id": self.ai_agent_id,
             "ai_agent": self.ai_agent.to_dict() if self.ai_agent else None,
+            "practice_ai_agent_id": self.practice_ai_agent_id,
+            "practice_ai_agent": self.practice_ai_agent.to_dict() if self.practice_ai_agent else None,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
             # Multi-round fields
@@ -89,6 +101,7 @@ class Interview(db.Model):
             "round_status": self.round_status,
             "final_decision": self.final_decision,
             "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+            "decision_history": [dh.to_dict() for dh in self.decision_history] if self.decision_history else [],
             "analysis_data": self.analysis_data,
             "strengths": json.loads(self.strengths) if self.strengths else [],
             "improvements": json.loads(self.improvements) if self.improvements else [],

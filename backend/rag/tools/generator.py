@@ -1,20 +1,13 @@
 """
 RAG Generator Tool
-Generates answers using LLM (GPT-4) based on retrieved context
+Generates answers using LLM based on retrieved context (provider-agnostic)
 """
 
 import logging
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 
-try:
-    import openai
-    from openai import OpenAI
-    OPENAI_AVAILABLE = True
-except ImportError:
-    OPENAI_AVAILABLE = False
-    OpenAI = None
-
+from ...ai_providers import get_ai_provider_manager
 from ..config import RAGConfig
 
 
@@ -24,21 +17,15 @@ logger = logging.getLogger(__name__)
 class GeneratorTool:
     """
     Tool for generating grounded answers using retrieved context and LLM.
-    Uses OpenAI GPT-4 for high-quality response generation.
+    Uses provider-agnostic interface for high-quality response generation.
     """
 
     def __init__(self):
-        if not OPENAI_AVAILABLE:
-            raise ImportError("OpenAI package not installed. Install with: pip install openai")
-
         self.config = RAGConfig()
+        self.provider_manager = get_ai_provider_manager()
+        self.llm_provider = self.provider_manager.llm
 
-        if not self.config.OPENAI_API_KEY:
-            raise ValueError("OPENAI_API_KEY environment variable not set")
-
-        self.client = OpenAI(api_key=self.config.OPENAI_API_KEY)
-
-        # Rate limiting (GPT-4 has different limits than embeddings)
+        # Rate limiting (provider-specific limits)
         self._request_count = 0
         self._last_reset = datetime.utcnow()
 
@@ -76,24 +63,28 @@ class GeneratorTool:
             # Check rate limits
             self._check_rate_limit()
 
-            # Make API call
-            response = self.client.chat.completions.create(
-                model=self.config.OPENAI_COMPLETION_MODEL,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt}
-                ],
-                max_tokens=max_tokens or self.config.OPENAI_MAX_TOKENS,
-                temperature=temperature or self.config.OPENAI_TEMPERATURE,
-                top_p=0.9,  # Slightly focused
-                frequency_penalty=0.1,  # Reduce repetition
-                presence_penalty=0.1    # Encourage diversity
-            )
+            # Use provider-agnostic LLM
+            messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ]
+
+            params = {
+                "max_tokens": max_tokens or self.config.OPENAI_MAX_TOKENS,
+                "temperature": temperature or self.config.OPENAI_TEMPERATURE,
+            }
+
+            # Add provider-specific parameters
+            if self.config.AI_PROVIDER in ["openai", "groq"]:
+                params.update({
+                    "top_p": 0.9,
+                    "frequency_penalty": 0.1,
+                    "presence_penalty": 0.1
+                })
+
+            answer = self.llm_provider.chat(messages, params)
 
             self._request_count += 1
-
-            # Extract answer
-            answer = response.choices[0].message.content.strip()
 
             # Calculate confidence based on context relevance
             confidence = self._calculate_confidence(query, context_chunks, answer)
@@ -105,9 +96,9 @@ class GeneratorTool:
                 'answer': answer,
                 'confidence': confidence,
                 'sources': sources,
-                'model': self.config.OPENAI_COMPLETION_MODEL,
-                'tokens_used': response.usage.total_tokens if response.usage else None,
-                'finish_reason': response.choices[0].finish_reason,
+                'model': self.config.AI_PROVIDER,
+                'tokens_used': None,  # Not available from all providers
+                'finish_reason': 'completed',
                 'generated_at': datetime.utcnow().isoformat(),
                 'context_chunks_used': len(context_chunks),
                 'query': query
@@ -155,19 +146,19 @@ class GeneratorTool:
 
             self._check_rate_limit()
 
-            response = self.client.chat.completions.create(
-                model=self.config.OPENAI_COMPLETION_MODEL,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt}
-                ],
-                max_tokens=min(max_length * 2 if max_length else 500, 1000),
-                temperature=0.3  # More focused for summaries
-            )
+            messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ]
+
+            params = {
+                "max_tokens": min(max_length * 2 if max_length else 500, 1000),
+                "temperature": 0.3  # More focused for summaries
+            }
+
+            summary = self.llm_provider.chat(messages, params)
 
             self._request_count += 1
-
-            summary = response.choices[0].message.content.strip()
 
             return {
                 'summary': summary,
@@ -175,8 +166,8 @@ class GeneratorTool:
                 'original_length': len(content),
                 'summary_length': len(summary),
                 'compression_ratio': len(summary) / len(content) if content else 0,
-                'model': self.config.OPENAI_COMPLETION_MODEL,
-                'tokens_used': response.usage.total_tokens if response.usage else None,
+                'model': self.config.AI_PROVIDER,
+                'tokens_used': None,  # Not available from all providers
                 'generated_at': datetime.utcnow().isoformat()
             }
 

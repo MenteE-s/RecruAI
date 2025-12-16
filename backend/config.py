@@ -83,3 +83,92 @@ class Config:
 
     # Security: Audit logging
     ENABLE_AUDIT_LOG = os.getenv("ENABLE_AUDIT_LOG", "1" if IS_PRODUCTION else "0") == "1"
+
+    # AI Provider Configuration (dynamic properties)
+    @property
+    def AI_PROVIDER(self):
+        return os.getenv("AI_PROVIDER", "groq").lower()
+
+    @property
+    def EMBEDDING_PROVIDER(self):
+        return os.getenv("EMBEDDING_PROVIDER", "huggingface").lower()
+
+    @property
+    def RAG_ENABLED(self):
+        return os.getenv("RAG_ENABLED", "1") == "1"
+
+    @property
+    def AI_MODEL(self):
+        return os.getenv("AI_MODEL")
+
+    @property
+    def EMBEDDING_MODEL(self):
+        return os.getenv("EMBEDDING_MODEL")
+
+    @property
+    def EMBEDDING_DIMENSIONS(self):
+        return int(os.getenv("EMBEDDING_DIMENSIONS", "1536"))
+
+    @property
+    def OPENAI_API_KEY(self):
+        return os.getenv("OPENAI_API_KEY")
+
+    @property
+    def GROQ_API_KEY(self):
+        return os.getenv("GROQ_API_KEY")
+
+    @property
+    def AI_MAX_TOKENS(self):
+        return int(os.getenv("AI_MAX_TOKENS", "4000"))
+
+    @property
+    def AI_TEMPERATURE(self):
+        return float(os.getenv("AI_TEMPERATURE", "0.7"))
+
+    @property
+    def AI_TIMEOUT(self):
+        return int(os.getenv("AI_TIMEOUT", "30"))
+
+    @property
+    def HUGGINGFACE_SPACES_URL(self):
+        return os.getenv("HUGGINGFACE_SPACES_URL", "https://syedsyab-recruai.hf.space")
+
+    @property
+    def EMBEDDING_MAX_RETRIES(self):
+        return int(os.getenv("EMBEDDING_MAX_RETRIES", "3"))
+
+    @property
+    def RAG_CHUNK_SIZE(self):
+        return int(os.getenv("RAG_CHUNK_SIZE", "1000"))
+
+    @property
+    def RAG_CHUNK_OVERLAP(self):
+        return int(os.getenv("RAG_CHUNK_OVERLAP", "200"))
+
+    @property
+    def RAG_TOP_K(self):
+        return int(os.getenv("RAG_TOP_K", "5"))
+
+    @property
+    def RAG_SIMILARITY_THRESHOLD(self):
+        return float(os.getenv("RAG_SIMILARITY_THRESHOLD", "0.7"))
+
+    @property
+    def RAG_MAX_CONTEXT_LENGTH(self):
+        return int(os.getenv("RAG_MAX_CONTEXT_LENGTH", "8000"))
+
+    @property
+    def AI_REQUESTS_PER_MINUTE(self):
+        return int(os.getenv("AI_REQUESTS_PER_MINUTE", "60"))
+
+    @property
+    def AI_REQUESTS_PER_HOUR(self):
+        return int(os.getenv("AI_REQUESTS_PER_HOUR", "1000"))
+
+    @property
+    def EMBEDDING_REQUESTS_PER_MINUTE(self):
+        return int(os.getenv("EMBEDDING_REQUESTS_PER_MINUTE", "60"))
+
+    @property
+    def EMBEDDING_REQUESTS_PER_HOUR(self):
+        return int(os.getenv("EMBEDDING_REQUESTS_PER_HOUR", "1000"))

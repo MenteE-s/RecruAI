@@ -21,6 +21,15 @@ def init_scheduler(app):
             except Exception as e:
                 print(f"Error in scheduled interview update: {e}")
 
+    def check_trial_expiration_with_context():
+        """Wrapper function to run trial expiration checks within app context"""
+        with app.app_context():
+            try:
+                from backend.utils.subscription import SubscriptionManager
+                SubscriptionManager.check_trial_expiration()
+            except Exception as e:
+                print(f"Error in scheduled trial expiration check: {e}")
+
     # Add job to check for expired interviews every 5 minutes
     scheduler.add_job(
         func=update_interviews_with_context,
@@ -30,13 +39,22 @@ def init_scheduler(app):
         replace_existing=True
     )
 
+    # Add job to check for expired trials every hour
+    scheduler.add_job(
+        func=check_trial_expiration_with_context,
+        trigger=IntervalTrigger(hours=1),
+        id='check_trial_expiration',
+        name='Check for expired subscription trials and update status',
+        replace_existing=True
+    )
+
     # Start the scheduler
     scheduler.start()
 
     # Shut down the scheduler when exiting the app
     atexit.register(lambda: scheduler.shutdown())
 
-    print("Background scheduler initialized with interview status update job")
+    print("Background scheduler initialized with interview status update and trial expiration check jobs")
 
 
 def shutdown_scheduler():

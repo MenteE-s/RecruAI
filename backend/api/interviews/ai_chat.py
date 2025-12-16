@@ -1,299 +1,289 @@
 from flask import request, jsonify
 from .. import api_bp
 from ...extensions import db
-from ...models import Interview, User, AIInterviewAgent, ConversationMemory
+from ...models import Interview, User, AIInterviewAgent, ConversationMessage
 from ...ai_service import get_ai_service
+from ...utils.subscription import require_subscription
+from flask_jwt_extended import jwt_required, get_jwt_identity
 import json
 
-@api_bp.route('/ai/chat', methods=['POST'])
-def ai_chat():
-    """AI chat endpoint with conversation memory and RAG capabilities"""
+@api_bp.route('/interviews/<int:interview_id>/chat', methods=['POST'])
+@jwt_required()
+@require_subscription('ai_chat')
+def interview_chat(interview_id):
+    """Unified AI chat endpoint for interviews with first-class agent attribution"""
     data = request.get_json()
 
     if not data or 'message' not in data:
         return jsonify({'error': 'Message required'}), 400
 
+    # Get authenticated user
+    user_id = get_jwt_identity()
+    user_id = int(user_id)  # Convert to int for database comparison
+    print(f"Chat JWT identity: {user_id}, type: {type(user_id)}")
+    user = User.query.get(user_id)
+    if not user:
+        print(f"Chat user not found for id: {user_id}")
+        return jsonify({'error': 'User not found'}), 404
+
     message = data['message']
-    interview_id = data.get('interview_id')
-    conversation_history = data.get('conversation_history', [])
+    interview = Interview.query.get(interview_id)
+    if not interview:
+        print(f"Chat interview not found for id: {interview_id}")
+        return jsonify({'error': 'Interview not found'}), 404
 
-    # Store user message in conversation memory
-    if interview_id:
-        try:
-            # Get AI user ID
-            ai_user = User.query.filter_by(email='ai@recruai.com').first()
-            ai_user_id = ai_user.id if ai_user else 1
+    # Debug logging
+    print(f"Chat access check: user_id={user_id}, interview.user_id={interview.user_id}, interview.organization_id={interview.organization_id}, interview_type={interview.interview_type}")
+    print(f"Chat user organization: {user.organization.id if user.organization else None}")
 
-            # Store user message
-            ConversationMemory.add_message(
-                interview_id=interview_id,
-                user_id=1,  # TODO: Get from auth context
-                message_type='user',
-                content=message
-            )
-        except Exception as e:
-            print(f"Error storing user message: {e}")
+    # Check if user has access to this interview
+    # For practice interviews (organization_id is None), only the candidate can access
+    # For regular interviews, candidate or organization members can access
+    has_access = False
+    print(f"Checking chat access: interview.user_id={interview.user_id}, user_id={user_id}")
+    if interview.user_id == user_id:
+        # User is the candidate
+        print("User is the candidate - granting chat access")
+        has_access = True
+    elif interview.organization_id is not None and user.organization and user.organization.id == interview.organization_id:
+        # User is a member of the organization that owns the interview
+        print("User is organization member - granting chat access")
+        has_access = True
+    else:
+        print("No chat access conditions met")
+    
+    if not has_access:
+        print(f"Chat access denied for user {user_id} to interview {interview_id}")
+        return jsonify({'error': 'Access denied'}), 403
 
-    # Generate contextual response using conversation history and RAG
-    agent_response = generate_contextual_response(message, interview_id, conversation_history)
+    # Resolve AI agent for this interview
+    agent = resolve_interview_agent(interview)
+    print(f"Resolved agent for interview {interview_id}: {agent}")
+    if not agent:
+        print(f"No AI agent available for interview {interview_id}")
+        return jsonify({'error': 'No AI agent available for this interview'}), 400
 
-    # Store AI response in conversation memory
-    if interview_id:
-        try:
-            ConversationMemory.add_message(
-                interview_id=interview_id,
-                user_id=ai_user_id,
-                message_type='ai',
-                content=agent_response
-            )
-        except Exception as e:
-            print(f"Error storing AI response: {e}")
+    # Store user message
+    ConversationMessage.add_user_message(interview_id, user_id, message)
+    db.session.commit()
 
-    # Get agent name for response
-    agent_name = 'AI Interview Assistant'
-    if interview_id:
-        try:
-            interview = Interview.query.get(interview_id)
-            if interview and interview.ai_agent:
-                agent_name = interview.ai_agent.name
-        except Exception as e:
-            print(f"Error getting agent name: {e}")
+    # Generate AI response
+    response = generate_agent_response(message, interview, agent, user)
+
+    # Store agent response
+    ConversationMessage.add_agent_message(interview_id, agent, response)
+    db.session.commit()
+
+    # Set agent_persona for response
+    from ...models.ai_interview_agent import AIInterviewAgent
+    from ...models.practice_ai_agent import PracticeAIAgent
+    if isinstance(agent, AIInterviewAgent):
+        agent_persona = agent.persona if hasattr(agent, 'persona') and agent.persona else 'AI Interviewer'
+    elif isinstance(agent, PracticeAIAgent):
+        agent_persona = agent.description if hasattr(agent, 'description') and agent.description else 'Practice AI Interviewer'
+    else:
+        agent_persona = 'AI Interviewer'
 
     return jsonify({
-        'response': agent_response,
-        'agent_name': agent_name,
+        'response': response,
+        'agent_name': agent.name,
+        'agent_persona': agent_persona,
         'interview_id': interview_id
     }), 200
 
-def generate_contextual_response(message, interview_id, conversation_history):
-    """Generate a contextual response using conversation memory and RAG"""
+
+def resolve_interview_agent(interview):
+    """Resolve which AI agent to use for an interview"""
+    print(f"Resolving agent for interview {interview.id}, type: {interview.interview_type}")
+    
+    # Priority 1: Explicitly assigned agent
+    if interview.ai_agent and interview.ai_agent.is_active:
+        print(f"Using explicitly assigned agent: {interview.ai_agent.name}")
+        return interview.ai_agent
+
+    # Priority 2: Practice AI agent (for practice interviews)
+    if interview.practice_ai_agent and interview.practice_ai_agent.is_active:
+        print(f"Using practice AI agent: {interview.practice_ai_agent.name}")
+        return interview.practice_ai_agent
+
+    # Priority 3: Organization default agent (first active agent)
+    if interview.organization:
+        default_agent = AIInterviewAgent.query.filter_by(
+            organization_id=interview.organization_id,
+            is_active=True
+        ).first()
+        if default_agent:
+            print(f"Using organization default agent: {default_agent.name}")
+            return default_agent
+
+    # Priority 4: System fallback (create a generic agent if needed)
+    # For now, return None - interviews must have agents assigned
+    print("No agent found")
+    return None
+
+
+def generate_agent_response(message, interview, agent, user):
+    """Generate a response from the AI agent"""
     try:
-        # Get conversation history from database if interview_id provided
-        if interview_id:
-            recent_messages = ConversationMemory.get_recent_conversation(interview_id, limit=10)
-            # Convert to conversation format
-            db_history = []
-            for msg in recent_messages:
-                db_history.append({
-                    'role': 'user' if msg.message_type == 'user' else 'assistant',
-                    'content': msg.content
-                })
-            # Reverse to get chronological order (oldest first)
-            db_history.reverse()
-            # Combine with provided history
-            conversation_history = db_history + conversation_history
+        ai_service = get_ai_service()
 
-        # Get interview context for RAG
-        interview_context = ""
-        if interview_id:
-            try:
-                interview = Interview.query.get(interview_id)
-                if interview:
-                    interview_context = build_interview_context(interview)
-            except Exception as e:
-                print(f"Error getting interview context: {e}")
+        # Build comprehensive system prompt
+        system_prompt = build_agent_system_prompt(agent, interview, is_first_message)
 
-        # Analyze conversation flow and generate contextual response
-        response = generate_smart_response(message, conversation_history, interview_context, interview)
+        # Get conversation history (last 10 messages)
+        recent_messages = ConversationMessage.get_recent_conversation(interview.id, limit=10)
+        recent_messages.reverse()  # Chronological order
 
+        # Check if this is the first message (no previous conversation)
+        is_first_message = len(recent_messages) == 0
+
+        # Format for AI service
+        conversation_history = []
+        for msg in recent_messages:
+            role = "user" if msg.sender_type == "user" else "assistant"
+            conversation_history.append({
+                "role": role,
+                "content": msg.content
+            })
+
+        # Use the interview AI service for better round handling
+        interview_context = {
+            "round_number": interview.current_round or 1,
+            "is_first_message": is_first_message
+        }
+
+        # Generate response using the specialized interview AI service
+        response = ai_service.generate_response(system_prompt, message, conversation_history, user, "interview_ai")
         return response
 
     except Exception as e:
-        print(f"Error generating contextual response: {e}")
-        return 'I need you to be more specific. Give me concrete examples from your experience that demonstrate your capabilities for this role.'
+        print(f"Error generating agent response: {e}")
+        return generate_fallback_response(message, interview, agent)
 
 
-def build_interview_context(interview):
-    """Build comprehensive context from interview data for RAG"""
+def build_agent_system_prompt(agent, interview, is_first_message=False):
+    """Build comprehensive system prompt for the AI agent"""
     from datetime import datetime
+    from ...models.ai_interview_agent import AIInterviewAgent
+    from ...models.practice_ai_agent import PracticeAIAgent  # Import to check type
 
+    prompt_parts = []
+
+    # Agent identity and persona/behavioral style
+    prompt_parts.append(f"You are {agent.name}")
+    
+    # Handle different agent types
+    if isinstance(agent, AIInterviewAgent):
+        if agent.persona:
+            prompt_parts.append(f"Your behavioral style is: {agent.persona}")
+    elif isinstance(agent, PracticeAIAgent):
+        # Practice agents use description and custom_instructions
+        if agent.description:
+            prompt_parts.append(f"Your role: {agent.description}")
+        if agent.custom_instructions:
+            prompt_parts.append(f"Additional instructions: {agent.custom_instructions}")
+    else:
+        # Fallback
+        prompt_parts.append("You are an AI interviewer.")
+    
+    prompt_parts.append(f"You specialize in {agent.industry} interviews.")
+
+    # System prompt
+    prompt_parts.append("\n" + agent.system_prompt)
+
+    # Interview context
     current_time = datetime.utcnow()
     time_until_interview = interview.scheduled_at - current_time
     minutes_remaining = int(time_until_interview.total_seconds() / 60)
 
-    context = f"""
-    Interview Context:
-    - Position: {interview.title}
-    - Description: {interview.description or 'Not specified'}
-    - Organization: {interview.organization.name if interview.organization else 'Unknown'}
-    - Interview Type: {interview.interview_type}
-    - Scheduled Time: {interview.scheduled_at.strftime('%Y-%m-%d %H:%M UTC')}
-    - Duration: {interview.duration_minutes} minutes
-    - Time Status: {'Interview in progress' if minutes_remaining < 0 else f'Starts in {abs(minutes_remaining)} minutes'}
-    - Current UTC Time: {current_time.strftime('%Y-%m-%d %H:%M UTC')}
-    """
+    round_number = interview.current_round or 1
 
+    prompt_parts.append(f"""
+INTERVIEW CONTEXT:
+- Position: {interview.title}
+- Description: {interview.description or 'Not specified'}
+- Organization: {interview.organization.name if interview.organization else 'Unknown'}
+- Current Round: {round_number}
+- Current Time: {current_time.strftime('%Y-%m-%d %H:%M UTC')}
+- Time Status: {'Interview in progress' if minutes_remaining < 0 else f'Starts in {abs(minutes_remaining)} minutes'}
+""")
+
+    # Job details
     if interview.post:
-        context += f"""
-    Job Details:
-    - Job Title: {interview.post.title}
-    - Description: {interview.post.description or 'Not specified'}
-    - Requirements: {interview.post.requirements or 'Not specified'}
-    - Employment Type: {interview.post.employment_type or 'Not specified'}
-    - Location: {interview.post.location or 'Not specified'}
-    - Salary: {interview.post.salary_min or 'Not specified'} - {interview.post.salary_max or 'Not specified'} {interview.post.salary_currency or 'USD'}
-    """
+        prompt_parts.append(f"""
+JOB REQUIREMENTS:
+- Title: {interview.post.title}
+- Description: {interview.post.description or 'Not specified'}
+- Requirements: {interview.post.requirements or 'Not specified'}
+- Employment Type: {interview.post.employment_type or 'Not specified'}
+- Location: {interview.post.location or 'Not specified'}
+""")
 
-    # Add AI agent context if available
-    if interview.ai_agent:
-        agent = interview.ai_agent
-        context += f"""
-    AI Interviewer Profile:
-    - Name: {agent.name}
-    - Industry Focus: {agent.industry or 'General'}
-    - System Prompt: {agent.system_prompt or 'Not specified'}
-    - Custom Instructions: {agent.custom_instructions or 'Not specified'}
-    """
+    # Custom instructions
+    if agent.custom_instructions:
+        prompt_parts.append(f"\nCUSTOM INSTRUCTIONS:\n{agent.custom_instructions}")
 
-    return context
+    # Round-specific instructions
+    if round_number > 1:
+        prompt_parts.append(f"""
+ROUND {round_number} INSTRUCTIONS:
+- This is Round {round_number} of the interview process
+- The candidate has successfully passed Round {round_number - 1}
+- Build upon previous conversations - ask more advanced questions
+- Reference their previous answers when appropriate
+- Focus on deeper technical skills and problem-solving abilities
+""")
 
+    # First message instructions
+    if is_first_message:
+        if round_number == 1:
+            prompt_parts.append("""
+FIRST MESSAGE INSTRUCTIONS:
+- Start with a professional greeting and introduce yourself
+- Briefly explain the interview process
+- Ask an opening question to begin the conversation
+- Set a positive, professional tone
+""")
+        else:
+            prompt_parts.append(f"""
+ROUND {round_number} START INSTRUCTIONS:
+- Acknowledge that the candidate has advanced to Round {round_number}
+- Reference that they successfully completed Round {round_number - 1}
+- Briefly welcome them to this round
+- Ask your first question for this round
+""")
 
-def build_interview_system_prompt(interview_context, interview=None):
-    """Build a comprehensive system prompt for the AI interviewer"""
-    # If there's an AI agent assigned to this interview, use its system prompt
-    if interview and interview.ai_agent:
-        agent = interview.ai_agent
-        base_prompt = f"""{agent.system_prompt}
-
-{interview_context}
-
-INSTRUCTIONS: {agent.custom_instructions or 'Be professional and thorough'}
-
-STYLE: Keep responses under 100 words. Start conversationally, ask ONE focused question. Reference job requirements naturally. Be authoritative but approachable.
-
-You are {agent.name} from {agent.organization.name if agent.organization else 'Unknown'}."""
-        return base_prompt
-
-    # Fallback to generic prompt if no agent assigned
-    base_prompt = f"""You are a professional interviewer evaluating candidates for specific job positions.
-
-CORE PRINCIPLES:
+    # Response guidelines
+    prompt_parts.append("""
+RESPONSE GUIDELINES:
 - Keep responses under 100 words
-- Start with brief greeting, ask ONE focused question
-- Reference job requirements naturally in questions
-- Demand specific examples with measurable outcomes
-- Be authoritative but conversational
-
-{interview_context}
-
-RULES:
-- No tables, lists, or detailed plans
-- One question per response
+- Start conversationally, ask ONE focused question per response
+- Reference job requirements naturally
+- Be authoritative but approachable
+- Focus on specific examples and measurable outcomes
 - Build conversation naturally
-- Always reference the specific job position
+- One question per response
+""")
 
-Remember: Evaluate for THIS SPECIFIC JOB using the provided context."""
-
-    return base_prompt
-
-
-def format_conversation_history(conversation_history):
-    """Format conversation history for AI consumption"""
-    formatted = []
-    for msg in conversation_history[-10:]:  # Keep last 10 messages for context
-        formatted.append({
-            "role": msg.get('role', 'user'),
-            "content": msg.get('content', '')
-        })
-    return formatted
+    return "\n".join(prompt_parts)
 
 
-def generate_fallback_response(message, conversation_history, interview_context):
-    """Generate a basic fallback response when AI generation fails"""
-    # Extract job details from context
-    job_title = "this position"
-    job_requirements = ""
-    company_name = "our organization"
+def generate_fallback_response(message, interview, agent):
+    """Generate a basic fallback response when AI fails"""
+    job_title = interview.title or "this position"
+    company_name = interview.organization.name if interview.organization else "our organization"
 
-    if interview_context:
-        # Parse context for job details
-        context_lines = interview_context.split('\n')
-        for line in context_lines:
-            if 'Job Title:' in line:
-                job_title = line.split('Job Title:')[1].strip()
-            elif 'Requirements:' in line and 'Not specified' not in line:
-                job_requirements = line.split('Requirements:')[1].strip()
-            elif 'Organization:' in line:
-                company_name = line.split('Organization:')[1].strip()
-
-    # Simple fallback logic
-    if len(conversation_history) <= 1:
-        return f"Hello. I'm evaluating your fit for the {job_title} position at {company_name}. Tell me about your experience with {job_title} roles - what specific products or projects have you managed?"
-
-    # Check for common patterns and provide dominant follow-ups
-    last_user_msg = None
-    for msg in reversed(conversation_history):
-        if msg.get('role') == 'user':
-            last_user_msg = msg.get('content', '').lower()
-            break
-
-    if last_user_msg:
-        if any(word in last_user_msg for word in ['experience', 'work', 'job']):
-            return f"Tell me about a specific project where you demonstrated the skills needed for this {job_title} role. What were your key responsibilities and the outcome?"
-        elif any(word in last_user_msg for word in ['skill', 'technology', 'tool']):
-            return f"Give me a concrete example of how you've applied this skill in a real project relevant to our {job_title} position."
-        elif any(word in last_user_msg for word in ['challenge', 'problem', 'difficult']):
-            return f"Walk me through how you solved that challenge. What was the measurable impact?"
-        elif 'position' in last_user_msg or 'open' in last_user_msg:
-            return f"I'm here to evaluate your qualifications for the {job_title} position at {company_name}. Tell me about your relevant experience."
-        elif 'software' in last_user_msg or 'engineer' in last_user_msg:
-            return f"For this {job_title} role, tell me about a product you've managed that involved technical components. What was your approach?"
-
-    return f"I need a specific example from your experience that shows your capabilities for this {job_title} role. What have you accomplished?"
+    return f"Hello! I'm {agent.name}, your AI interviewer for the {job_title} position at {company_name}. I'm excited to learn more about your background and experience. Let's start with you telling me a bit about yourself and why you're interested in this role."
 
 
-def generate_smart_response(message, conversation_history, interview_context, interview=None):
-    """Generate intelligent response using AI based on conversation analysis and context"""
-    try:
-        # Get the AI service (uses Groq by default)
-        ai_service = get_ai_service()
-
-        # Build comprehensive system prompt for interview AI
-        system_prompt = build_interview_system_prompt(interview_context, interview)
-
-        # Format conversation history for AI service
-        formatted_history = []
-        if conversation_history:
-            # Include recent conversation context
-            recent_messages = conversation_history[-6:]  # Last 3 exchanges
-            for msg in recent_messages:
-                formatted_history.append({
-                    "role": msg.get('role', 'user'),
-                    "content": msg.get('content', '')
-                })
-
-        # Generate response using AI service (Groq)
-        response = ai_service.generate_response(system_prompt, message, formatted_history)
-
-        return response
-
-    except Exception as e:
-        print(f"Error in AI response generation: {e}")
-        return generate_fallback_response(message, conversation_history, interview_context)
-
-
+# DEPRECATED: Remove these endpoints once frontend is updated
+@api_bp.route('/ai/chat', methods=['POST'])
+@jwt_required()
+def deprecated_ai_chat():
+    """Deprecated: Use /interviews/{id}/chat instead"""
+    return jsonify({'error': 'This endpoint is deprecated. Use /interviews/{id}/chat'}), 410
 
 @api_bp.route('/ai/user', methods=['GET'])
-def get_ai_user():
-    """Get or create AI system user for messages"""
-    from ...models import User
-
-    # Check if AI user exists
-    ai_user = User.query.filter_by(email='ai@recruai.com').first()
-    if not ai_user:
-        # Create AI user if it doesn't exist
-        ai_user = User(
-            email='ai@recruai.com',
-            name='AI Assistant',
-            role='system',
-            plan='pro'
-        )
-        ai_user.set_password('ai_password_not_used')  # Not used for login
-        db.session.add(ai_user)
-        db.session.commit()
-
-    return jsonify({
-        'id': ai_user.id,
-        'name': ai_user.name,
-        'email': ai_user.email
-    }), 200
+def deprecated_get_ai_user():
+    """Deprecated: AI agents are no longer users"""
+    return jsonify({'error': 'This endpoint is deprecated. AI agents are first-class entities'}), 410

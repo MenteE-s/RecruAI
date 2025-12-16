@@ -18,3 +18,4 @@ openai
 groq
 bcrypt>=4.0
 cryptography>=41.0
+gradio_client

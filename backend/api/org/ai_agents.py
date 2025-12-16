@@ -47,6 +47,7 @@ def create_ai_agent(org_id):
     agent = AIInterviewAgent(
         organization_id=org_id,
         name=name,
+        persona=payload.get("persona"),
         industry=industry,
         description=payload.get("description"),
         system_prompt=system_prompt,
@@ -71,6 +72,8 @@ def update_ai_agent(agent_id):
 
     if "name" in payload:
         agent.name = payload["name"]
+    if "persona" in payload:
+        agent.persona = payload["persona"]
     if "industry" in payload:
         agent.industry = payload["industry"]
     if "description" in payload:
