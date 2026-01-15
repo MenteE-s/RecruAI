@@ -8,6 +8,8 @@ from sqlalchemy import desc
 import os
 from werkzeug.utils import secure_filename
 from ...api.notifications.routes import create_profile_notification
+from ...utils.kafka_service import kafka_service as kafka
+from datetime import datetime
 @api_bp.route('/profile/user/<int:user_id>', methods=['GET'])
 @jwt_required()
 def get_user_profile(user_id):
@@ -118,6 +120,14 @@ def get_user_profile(user_id):
                     related_user_id=current_user.id,
                     related_org_id=current_user.organization_id
                 )
+                
+                # Emit Kafka event for profile view
+                kafka.emit_event('profile_viewed', {
+                    'viewer_id': current_user.id,
+                    'viewer_org_id': current_user.organization_id,
+                    'target_user_id': target_user.id,
+                    'timestamp': datetime.utcnow().isoformat()
+                })
             except Exception as e:
                 print(f"Failed to create profile view notification: {e}")
 
@@ -177,6 +187,14 @@ def upload_profile_picture():
     user.profile_picture = profile_picture_url
     try:
         db.session.commit()
+        
+        # Emit Kafka event for profile picture upload
+        kafka.emit_event('profile_picture_updated', {
+            'user_id': user_id_int,
+            'profile_picture_url': profile_picture_url,
+            'timestamp': datetime.utcnow().isoformat()
+        })
+        
         return jsonify({
             'message': 'Profile picture uploaded successfully',
             'profile_picture': profile_picture_url
@@ -240,6 +258,14 @@ def upload_banner():
     user.banner = banner_url
     try:
         db.session.commit()
+        
+        # Emit Kafka event for banner upload
+        kafka.emit_event('profile_banner_updated', {
+            'user_id': user_id_int,
+            'banner_url': banner_url,
+            'timestamp': datetime.utcnow().isoformat()
+        })
+        
         return jsonify({
             'message': 'Banner uploaded successfully',
             'banner': banner_url

@@ -207,10 +207,13 @@ class GeneratorTool:
         return "\n".join(context_parts)
 
     def _build_system_prompt(self, user_context: Optional[Dict[str, Any]] = None) -> str:
-        """Build system prompt based on user context."""
+        """Build system prompt based on user context and thinking insights."""
         # Check if this is an interview context
         if user_context and user_context.get('context') == 'job_interview':
             return self._build_interview_system_prompt(user_context)
+
+        # Check for agentic thinking insights
+        thinking_insights = user_context.get('thinking_insights') if user_context else None
 
         # Default RAG system prompt
         base_prompt = """You are an intelligent assistant helping with recruitment and career-related queries.
@@ -222,6 +225,19 @@ Guidelines:
 - If the context doesn't contain enough information, say so clearly
 - Maintain a professional, helpful tone
 - For recruitment questions, focus on fair and unbiased responses"""
+
+        # Add thinking-based enhancements
+        if thinking_insights:
+            strategy = thinking_insights.get('response_strategy', '')
+            tone = thinking_insights.get('tone_and_style', 'professional')
+            key_points = thinking_insights.get('key_points_to_cover', [])
+
+            if strategy:
+                base_prompt += f"\n- Response strategy: {strategy}"
+            if tone and tone != 'professional':
+                base_prompt += f"\n- Use a {tone} tone"
+            if key_points:
+                base_prompt += f"\n- Key points to cover: {', '.join(key_points[:3])}"
 
         if user_context:
             role = user_context.get('role', 'individual')

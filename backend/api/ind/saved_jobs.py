@@ -2,6 +2,7 @@ from flask import request, jsonify
 from .. import api_bp
 from ...extensions import db
 from ...models import SavedJob
+from ...utils.kafka_service import KafkaService
 
 # Saved jobs endpoints
 @api_bp.route("/saved-jobs", methods=["POST"])
@@ -20,13 +21,39 @@ def save_job():
     saved_job = SavedJob(user_id=user_id, post_id=post_id)
     db.session.add(saved_job)
     db.session.commit()
+    
+    # Emit Kafka event for job saved
+    try:
+        kafka = KafkaService()
+        kafka.emit_event('job_saved', {
+            'user_id': user_id,
+            'post_id': post_id,
+            'saved_at': saved_job.saved_at.isoformat() if saved_job.saved_at else None
+        })
+    except Exception as ke:
+        print(f"Failed to emit Kafka message for job save: {ke}")
+        
     return jsonify(saved_job.to_dict()), 201
 
 @api_bp.route("/saved-jobs/<int:saved_id>", methods=["DELETE"])
 def unsave_job(saved_id):
     saved_job = SavedJob.query.get_or_404(saved_id)
+    user_id = saved_job.user_id
+    post_id = saved_job.post_id
+    
     db.session.delete(saved_job)
     db.session.commit()
+    
+    # Emit Kafka event for job unsaved
+    try:
+        kafka = KafkaService()
+        kafka.emit_event('job_unsaved', {
+            'user_id': user_id,
+            'post_id': post_id
+        })
+    except Exception as ke:
+        print(f"Failed to emit Kafka message for job unsave: {ke}")
+        
     return jsonify({"message": "job unsaved"}), 200
 
 @api_bp.route("/saved-jobs/user/<int:user_id>", methods=["GET"])

@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import Card from "../ui/Card";
+import ThinkingDisplay from "./ThinkingDisplay";
 import { formatTime as formatTimeTz } from "../../utils/timezone";
 import { getBackendUrl } from "../../utils/auth";
 
@@ -12,6 +15,9 @@ const TextInterview = ({
   onInterviewerResponse,
   messages = [],
   isLoading = false,
+  currentThinking = null,
+  showThinking = false,
+  setShowThinking = () => {},
 }) => {
   const [newMessage, setNewMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
@@ -226,73 +232,91 @@ const TextInterview = ({
           </div>
         ) : (
           messages.map((message, index) => {
-            // Simple logic: if it's from AI or interviewer, show on left for candidates, right for interviewers
-            const isAI = message.type === "ai_response";
+            // Updated logic to match backend sender types: 'user' vs 'agent'
+            const isAI =
+              message.type === "agent" || message.type === "ai_response";
             const isInterviewerMessage =
-              message.type === "interviewer_response";
-            const isFromOtherParty = isAI || isInterviewerMessage;
+              message.type === "interviewer_response" ||
+              (isInterviewer &&
+                message.type === "user" &&
+                message.userId === interviewData?.interviewer_id);
 
-            // For candidates: messages from interviewer/AI appear on left (received)
-            // For interviewers: messages from interviewer/AI appear on right (sent), candidate messages on left
-            const shouldShowOnRight = isInterviewer
-              ? isFromOtherParty
-              : !isFromOtherParty;
+            const isFromOtherParty = isInterviewer
+              ? message.type === "user"
+              : isAI || message.type === "interviewer_response";
+
+            // Simplified: User's own messages on right, others on left
+            // For Candidates (isInterviewer=false): 'user' messages are MINE (Right), 'agent'/'interviewer' on LEFT
+            // For Interviewers (isInterviewer=true): 'interviewer' messages are MINE (Right), 'user' (candidate) on LEFT
+            let shouldShowOnRight = false;
+            if (isInterviewer) {
+              // I am the interviewer - show my manual responses or AI responses (if auto) on right
+              shouldShowOnRight =
+                message.type === "interviewer_response" ||
+                (interviewMode === "auto" && isAI);
+            } else {
+              // I am the candidate - show my 'user' messages on right
+              shouldShowOnRight = message.type === "user";
+            }
 
             return (
               <div
-                key={message.id}
-                className={`flex items-end space-x-2 ${
-                  shouldShowOnRight ? "justify-end" : "justify-start"
+                key={message.id || index}
+                className={`flex items-start mb-4 ${
+                  shouldShowOnRight ? "flex-row-reverse" : "flex-row"
                 }`}
               >
-                {/* Avatar for received messages */}
-                {!shouldShowOnRight && (
-                  <div className="w-8 h-8 bg-gray-400 rounded-full flex items-center justify-center text-white text-sm font-medium">
-                    {isAI ? "🤖" : "👤"}
-                  </div>
-                )}
+                {/* Avatar */}
+                <div
+                  className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-medium ${
+                    shouldShowOnRight ? "bg-blue-600 ml-2" : "bg-gray-400 mr-2"
+                  }`}
+                >
+                  {shouldShowOnRight
+                    ? isInterviewer
+                      ? "👤"
+                      : "👨"
+                    : isAI
+                    ? "🤖"
+                    : "👤"}
+                </div>
 
                 <div
-                  className={`max-w-xs lg:max-w-md ${
-                    shouldShowOnRight ? "order-1" : "order-2"
-                  }`}
+                  className={`flex flex-col ${
+                    shouldShowOnRight ? "items-end" : "items-start"
+                  } max-w-[75%]`}
                 >
                   {/* Sender name for received messages */}
                   {!shouldShowOnRight && (
                     <div className="text-xs text-gray-500 mb-1 px-1">
-                      {isAI ? "AI Assistant" : "Interviewer"}
+                      {isAI
+                        ? message.sender || "AI Assistant"
+                        : message.sender || "Interviewer"}
                     </div>
                   )}
 
                   <div
                     className={`px-4 py-2 rounded-2xl shadow-sm ${
                       shouldShowOnRight
-                        ? "bg-blue-500 text-white rounded-br-md"
-                        : "bg-white text-gray-900 border border-gray-200 rounded-bl-md"
+                        ? "bg-indigo-600 text-white rounded-tr-none"
+                        : "bg-white text-gray-800 border border-gray-200 rounded-tl-none"
                     }`}
                   >
-                    <p className="text-sm whitespace-pre-wrap break-words">
-                      {message.content}
-                    </p>
+                    <div
+                      className={`text-[15px] leading-relaxed markdown-content ${
+                        shouldShowOnRight ? "prose-invert" : ""
+                      }`}
+                    >
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {message.content}
+                      </ReactMarkdown>
+                    </div>
                   </div>
 
-                  <div
-                    className={`text-xs mt-1 px-1 ${
-                      shouldShowOnRight
-                        ? "text-right text-gray-400"
-                        : "text-left text-gray-500"
-                    }`}
-                  >
+                  <div className="text-[10px] text-gray-400 mt-1 px-1">
                     {formatTime(message.created_at || message.timestamp)}
                   </div>
                 </div>
-
-                {/* Avatar for sent messages */}
-                {shouldShowOnRight && (
-                  <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-medium order-2">
-                    {isInterviewer ? "👤" : "👨"}
-                  </div>
-                )}
               </div>
             );
           })
@@ -326,6 +350,17 @@ const TextInterview = ({
                 <span className="text-sm text-gray-600">AI is thinking...</span>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Thinking Process Display - Only visible to interviewers/organization */}
+        {isInterviewer && currentThinking && (
+          <div className="mt-4">
+            <ThinkingDisplay
+              thinkingStep={currentThinking}
+              isVisible={showThinking}
+              onToggle={() => setShowThinking(!showThinking)}
+            />
           </div>
         )}
 

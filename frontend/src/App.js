@@ -66,6 +66,7 @@ import Notifications from "./pages/Notifications";
 import InterviewDetail from "./pages/individual/InterviewDetail";
 
 import { verifyTokenWithServer } from "./utils/auth";
+import socketService from "./utils/socket";
 
 function InterviewAnalysisRedirect() {
   const { interviewId } = useParams();
@@ -83,6 +84,17 @@ function AuthVerifier() {
         const user = await verifyTokenWithServer();
         if (!mounted) return;
         if (user) {
+          // Initialize Socket.IO connection
+          const token = localStorage.getItem("access_token");
+          if (token) {
+            socketService.connect(token);
+
+            // Join organization room if available
+            if (user.organization_id) {
+              socketService.joinOrg(user.organization_id);
+            }
+          }
+
           // if user hits a public auth page (signin/register), redirect to dashboard
           // NOTE: we intentionally do NOT redirect from `/` so signed-in users can
           // still visit the landing page — the navbar will show Dashboard/Sign out.

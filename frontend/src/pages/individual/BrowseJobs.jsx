@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import IndividualNavbar from "../../components/layout/IndividualNavbar";
 import Card from "../../components/ui/Card";
+import RecommendationCard from "../../components/ui/RecommendationCard";
 import {
   getSidebarItems,
   getBackendUrl,
@@ -24,6 +25,7 @@ export default function BrowseJobs() {
     typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
   const sidebarItems = getSidebarItems(role, plan);
   const { showToast } = useToast();
+  const navigate = useNavigate();
 
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -44,8 +46,27 @@ export default function BrowseJobs() {
     employment_type: "",
   });
 
+  // Job recommendations
+  const [recommendedJobs, setRecommendedJobs] = useState([]);
+
   // Debounced search to reduce API calls
   const debouncedSearch = useDebounce(filters.search, 300);
+
+  const fetchRecommendedJobs = useCallback(async () => {
+    try {
+      const response = await fetch(`${getBackendUrl()}/api/recommendations/jobs`, {
+        headers: getAuthHeaders(),
+        credentials: "include",
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setRecommendedJobs(data.recommendations || []);
+      }
+    } catch (error) {
+      console.error("Error fetching recommended jobs:", error);
+    }
+  }, []);
 
   useEffect(() => {
     fetchJobs(true); // Reset to first page when filters change
@@ -57,6 +78,11 @@ export default function BrowseJobs() {
     filters.location,
     filters.employment_type,
   ]);
+
+  // Load recommendations on component mount
+  useEffect(() => {
+    fetchRecommendedJobs();
+  }, [fetchRecommendedJobs]);
 
   const fetchJobs = useCallback(
     async (reset = false) => {
@@ -517,6 +543,35 @@ export default function BrowseJobs() {
           </div>
         </div>
       </Card>
+
+      {/* Recommended Jobs */}
+      {recommendedJobs.length > 0 && (
+        <Card className="p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
+              <svg className="w-4 h-4 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+              </svg>
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900">Recommended for You</h2>
+          </div>
+          <div className="space-y-4">
+            {recommendedJobs.map((recommendation, index) => (
+              <RecommendationCard
+                key={`recommended-${recommendation.id}-${index}`}
+                item={{
+                  ...recommendation.job,
+                  explanation: recommendation.explanation,
+                  similarity_score: recommendation.similarity_score
+                }}
+                type="job"
+                isRecommended={true}
+                onClick={() => navigate(`/jobs/${recommendation.job.id}`)}
+              />
+            ))}
+          </div>
+        </Card>
+      )}
 
       {/* Job Listings */}
       <ListErrorBoundary>

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import IndividualNavbar from "../components/layout/IndividualNavbar";
 import Card from "../components/ui/Card";
+import socketService from "../utils/socket";
 import {
   getBackendUrl,
   verifyTokenWithServer,
@@ -54,6 +55,28 @@ export default function Notifications() {
   useEffect(() => {
     fetchNotifications();
     fetchStats();
+
+    // Listen for real-time notifications via Socket.IO
+    const handleNewNotification = (data) => {
+      console.log("Real-time notification received:", data);
+
+      // Add new notification to the top of the list if it matches filters
+      const newNotif = data.data; // Our Kafka bridge sends { event_type, data: { ... } }
+      if (newNotif) {
+        setNotifications((prev) => [newNotif, ...prev]);
+        setStats((prev) => ({
+          ...prev,
+          total: prev.total + 1,
+          unread: prev.unread + 1,
+        }));
+      }
+    };
+
+    socketService.on("notification_created", handleNewNotification);
+
+    return () => {
+      socketService.off("notification_created", handleNewNotification);
+    };
   }, [currentPage, filters]);
 
   const fetchNotifications = async () => {

@@ -5,6 +5,7 @@ from ...extensions import db
 from ...models import Experience, Project
 import json
 from datetime import datetime
+from ...utils.kafka_service import kafka_service as kafka
 
 # Experience endpoints
 @api_bp.route('/profile/experiences', methods=['GET'])
@@ -59,6 +60,15 @@ def create_experience():
     db.session.add(experience)
     db.session.commit()
 
+    # Emit Kafka event for experience creation
+    kafka.emit_event('profile_experience_created', {
+        'experience_id': experience.id,
+        'user_id': user_id,
+        'title': experience.title,
+        'company': experience.company,
+        'timestamp': datetime.utcnow().isoformat()
+    })
+
     return jsonify({'message': 'Experience created successfully', 'experience': experience.to_dict()}), 201
 
 @api_bp.route('/profile/experiences/<int:exp_id>', methods=['PUT'])
@@ -77,6 +87,16 @@ def update_experience(exp_id):
             setattr(experience, key, value)
 
     db.session.commit()
+
+    # Emit Kafka event for experience update
+    kafka.emit_event('profile_experience_updated', {
+        'experience_id': experience.id,
+        'user_id': user_id,
+        'title': experience.title,
+        'company': experience.company,
+        'timestamp': datetime.utcnow().isoformat()
+    })
+
     return jsonify({'message': 'Experience updated successfully', 'experience': experience.to_dict()}), 200
 
 @api_bp.route('/profile/experiences/<int:exp_id>', methods=['DELETE'])
@@ -89,8 +109,17 @@ def delete_experience(exp_id):
     if not experience:
         return jsonify({'error': 'Experience not found'}), 404
 
+    exp_id_val = experience.id
     db.session.delete(experience)
     db.session.commit()
+
+    # Emit Kafka event for experience deletion
+    kafka.emit_event('profile_experience_deleted', {
+        'experience_id': exp_id_val,
+        'user_id': user_id,
+        'timestamp': datetime.utcnow().isoformat()
+    })
+
     return jsonify({'message': 'Experience deleted successfully'}), 200
 
 # Projects endpoints

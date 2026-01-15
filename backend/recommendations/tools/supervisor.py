@@ -1,0 +1,363 @@
+"""
+Recommendation Supervisor
+Orchestrates the recommendation pipeline
+"""
+
+import logging
+from typing import List, Dict, Any, Optional
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.engine import Engine
+
+from .embedder import RecommendationEmbedder
+from .retriever import RecommendationRetriever
+from .generator import RecommendationGenerator
+from ...models import ProfileEmbedding, JobEmbedding, AgentEmbedding
+
+
+logger = logging.getLogger(__name__)
+
+
+class RecommendationSupervisor:
+    """
+    Main orchestrator for the recommendation system.
+    Handles embedding generation, storage, and retrieval for recommendations.
+    """
+
+    def __init__(self, db_engine: Optional[Engine] = None):
+        self.db_engine = db_engine
+        self._session_factory = sessionmaker(bind=db_engine) if db_engine else None
+
+        self.embedder = RecommendationEmbedder()
+        self.retriever = RecommendationRetriever(db_engine)
+        self.generator = RecommendationGenerator()
+
+    def _get_session(self):
+        """Get database session"""
+        if not self._session_factory:
+            raise ValueError("Database engine not provided")
+        return self._session_factory()
+
+    def recommend_candidates_for_job(
+        self,
+        job_id: str,
+        organization_id: Optional[str] = None,
+        top_k: Optional[int] = None,
+        include_explanations: bool = True
+    ) -> List[Dict[str, Any]]:
+        """
+        Recommend candidates for a job posting
+        """
+        session = self._get_session()
+        try:
+            # Get job embedding
+            job_embedding = session.query(JobEmbedding).filter_by(job_id=job_id).first()
+            if not job_embedding:
+                # Job not embedded yet, need to embed it first
+                raise ValueError(f"Job {job_id} not found in embeddings. Please embed the job first.")
+
+            # Get job data for explanations
+            job_data = {
+                'job_content': job_embedding.job_content,
+                'job_title': job_embedding.job_title,
+                'industry': job_embedding.industry,
+            }
+
+            # Find similar profiles
+            similar_profiles = self.retriever.find_similar_profiles(
+                query_embedding=job_embedding.embedding,
+                organization_id=organization_id,
+                top_k=top_k
+            )
+
+            # Generate explanations if requested
+            if include_explanations:
+                for profile in similar_profiles:
+                    profile_data = {
+                        'profile_content': profile['profile_content'],
+                    }
+                    explanation = self.generator.generate_profile_explanation_sync(
+                        profile_data, job_data, profile['similarity']
+                    )
+                    profile['explanation'] = explanation
+
+            return similar_profiles
+
+        finally:
+            session.close()
+
+    def recommend_jobs_for_profile(
+        self,
+        user_id: str,
+        organization_id: Optional[str] = None,
+        top_k: Optional[int] = None,
+        include_explanations: bool = True
+    ) -> List[Dict[str, Any]]:
+        """
+        Recommend jobs for a user profile
+        """
+        session = self._get_session()
+        try:
+            # Get profile embedding
+            profile_embedding = session.query(ProfileEmbedding).filter_by(user_id=user_id).first()
+            if not profile_embedding:
+                raise ValueError(f"Profile {user_id} not found in embeddings. Please embed the profile first.")
+
+            # Get profile data for explanations
+            profile_data = {
+                'profile_content': profile_embedding.profile_content,
+            }
+
+            # Find similar jobs
+            similar_jobs = self.retriever.find_similar_jobs(
+                query_embedding=profile_embedding.embedding,
+                organization_id=organization_id,
+                top_k=top_k
+            )
+
+            # Generate explanations if requested
+            if include_explanations:
+                for job in similar_jobs:
+                    job_data = {
+                        'job_content': f"Job Title: {job['job_title']}\nIndustry: {job['industry']}",
+                    }
+                    explanation = self.generator.generate_job_explanation_sync(
+                        job_data, profile_data, job['similarity']
+                    )
+                    job['explanation'] = explanation
+
+            return similar_jobs
+
+        finally:
+            session.close()
+
+    def recommend_agents_for_job(
+        self,
+        job_id: str,
+        organization_id: Optional[str] = None,
+        top_k: Optional[int] = None,
+        include_explanations: bool = True
+    ) -> List[Dict[str, Any]]:
+        """
+        Recommend AI agents for interviewing candidates for a job
+        """
+        session = self._get_session()
+        try:
+            # Get job embedding
+            job_embedding = session.query(JobEmbedding).filter_by(job_id=job_id).first()
+            if not job_embedding:
+                raise ValueError(f"Job {job_id} not found in embeddings. Please embed the job first.")
+
+            # Get job data for explanations
+            job_data = {
+                'job_content': job_embedding.job_content,
+                'job_title': job_embedding.job_title,
+                'industry': job_embedding.industry,
+            }
+
+            # Find similar agents
+            similar_agents = self.retriever.find_similar_agents(
+                query_embedding=job_embedding.embedding,
+                organization_id=organization_id,
+                top_k=top_k
+            )
+
+            # Generate explanations if requested
+            if include_explanations:
+                for agent in similar_agents:
+                    agent_data = {
+                        'agent_name': agent['agent_name'],
+                        'industry': agent['industry'],
+                        'agent_content': '',  # We don't store full content in results for brevity
+                    }
+                    explanation = self.generator.generate_agent_explanation_sync(
+                        agent_data, job_data, agent['similarity']
+                    )
+                    agent['explanation'] = explanation
+
+            return similar_agents
+
+        finally:
+            session.close()
+
+    def embed_and_store_profile(
+        self,
+        user_id: str,
+        profile_data: Dict[str, Any],
+        organization_id: Optional[str] = None
+    ) -> bool:
+        """
+        Embed a user profile and store it in the database
+        """
+        session = self._get_session()
+        try:
+            # Create embedding text
+            profile_text = self.embedder.embed_profile(profile_data)
+
+            # Generate embedding
+            embedding = self.embedder.embed_text(profile_text)
+
+            # Check if profile already exists
+            existing = session.query(ProfileEmbedding).filter_by(user_id=user_id).first()
+            if existing:
+                # Update existing
+                existing.profile_content = profile_text
+                existing.embedding = embedding
+                existing.organization_id = organization_id
+                existing.skills_count = len(profile_data.get('skills', []))
+                existing.experience_years = self._calculate_experience_years(profile_data.get('experiences', []))
+                existing.education_level = self._get_highest_education(profile_data.get('educations', []))
+            else:
+                # Create new
+                profile_embedding = ProfileEmbedding(
+                    user_id=user_id,
+                    organization_id=organization_id,
+                    profile_content=profile_text,
+                    embedding=embedding,
+                    skills_count=len(profile_data.get('skills', [])),
+                    experience_years=self._calculate_experience_years(profile_data.get('experiences', [])),
+                    education_level=self._get_highest_education(profile_data.get('educations', [])),
+                )
+                session.add(profile_embedding)
+
+            session.commit()
+            return True
+
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Failed to embed and store profile {user_id}: {e}")
+            return False
+        finally:
+            session.close()
+
+    def embed_and_store_job(
+        self,
+        job_id: str,
+        job_data: Dict[str, Any],
+        organization_id: Optional[str] = None
+    ) -> bool:
+        """
+        Embed a job posting and store it in the database
+        """
+        session = self._get_session()
+        try:
+            # Create embedding text
+            job_text = self.embedder.embed_job(job_data)
+
+            # Generate embedding
+            embedding = self.embedder.embed_text(job_text)
+
+            # Check if job already exists
+            existing = session.query(JobEmbedding).filter_by(job_id=job_id).first()
+            if existing:
+                # Update existing
+                existing.job_content = job_text
+                existing.embedding = embedding
+                existing.organization_id = organization_id
+                existing.job_title = job_data.get('title', '')
+                existing.industry = job_data.get('industry', '')
+                existing.experience_required = job_data.get('experience_required', 0)
+                existing.skills_required = ','.join(job_data.get('skills', []))
+            else:
+                # Create new
+                job_embedding = JobEmbedding(
+                    job_id=job_id,
+                    organization_id=organization_id,
+                    job_content=job_text,
+                    embedding=embedding,
+                    job_title=job_data.get('title', ''),
+                    industry=job_data.get('industry', ''),
+                    experience_required=job_data.get('experience_required', 0),
+                    skills_required=','.join(job_data.get('skills', [])),
+                )
+                session.add(job_embedding)
+
+            session.commit()
+            return True
+
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Failed to embed and store job {job_id}: {e}")
+            return False
+        finally:
+            session.close()
+
+    def embed_and_store_agent(
+        self,
+        agent_id: str,
+        agent_data: Dict[str, Any],
+        organization_id: Optional[str] = None
+    ) -> bool:
+        """
+        Embed an AI agent and store it in the database
+        """
+        session = self._get_session()
+        try:
+            # Create embedding text
+            agent_text = self.embedder.embed_agent(agent_data)
+
+            # Generate embedding
+            embedding = self.embedder.embed_text(agent_text)
+
+            # Check if agent already exists
+            existing = session.query(AgentEmbedding).filter_by(agent_id=agent_id).first()
+            if existing:
+                # Update existing
+                existing.agent_content = agent_text
+                existing.embedding = embedding
+                existing.organization_id = organization_id
+                existing.agent_name = agent_data.get('name', '')
+                existing.industry = agent_data.get('industry', '')
+                existing.interview_type = agent_data.get('interview_type', '')
+            else:
+                # Create new
+                agent_embedding = AgentEmbedding(
+                    agent_id=agent_id,
+                    organization_id=organization_id,
+                    agent_content=agent_text,
+                    embedding=embedding,
+                    agent_name=agent_data.get('name', ''),
+                    industry=agent_data.get('industry', ''),
+                    interview_type=agent_data.get('interview_type', ''),
+                )
+                session.add(agent_embedding)
+
+            session.commit()
+            return True
+
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Failed to embed and store agent {agent_id}: {e}")
+            return False
+        finally:
+            session.close()
+
+    def _calculate_experience_years(self, experiences: List[Dict[str, Any]]) -> float:
+        """Calculate total years of experience"""
+        total_years = 0
+        for exp in experiences:
+            start_date = exp.get('start_date')
+            end_date = exp.get('end_date')
+            if start_date and end_date:
+                # Simple calculation - in real implementation, parse dates properly
+                try:
+                    start_year = int(start_date.split('-')[0]) if isinstance(start_date, str) else start_date.year
+                    end_year = int(end_date.split('-')[0]) if isinstance(end_date, str) else end_date.year
+                    total_years += max(0, end_year - start_year)
+                except:
+                    pass
+        return total_years
+
+    def _get_highest_education(self, educations: List[Dict[str, Any]]) -> Optional[str]:
+        """Get the highest level of education"""
+        levels = {'high school': 1, 'associate': 2, 'bachelor': 3, 'master': 4, 'phd': 5, 'doctorate': 5}
+        highest_level = 0
+        highest_degree = None
+
+        for edu in educations:
+            degree = edu.get('degree', '').lower()
+            for level_name, level_num in levels.items():
+                if level_name in degree and level_num > highest_level:
+                    highest_level = level_num
+                    highest_degree = edu.get('degree')
+
+        return highest_degree

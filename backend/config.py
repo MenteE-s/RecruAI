@@ -47,6 +47,10 @@ class Config:
     from datetime import timedelta
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES_HOURS", "2")))  # 2 hours instead of 24
 
+    # Kafka configuration
+    KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
+    KAFKA_ENABLED = os.getenv("KAFKA_ENABLED", "0" if IS_PRODUCTION else "0") == "1"
+
     # Security: Request size limits
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max request size
 

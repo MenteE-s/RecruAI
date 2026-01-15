@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import socketService from "../../utils/socket";
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "";
 
@@ -11,7 +12,20 @@ export default function IndividualNavbar({ isAuthenticated }) {
   const [notificationCount, setNotificationCount] = useState(0);
 
   useEffect(() => {
-    if (signedIn) fetchNotificationCount();
+    if (signedIn) {
+      fetchNotificationCount();
+
+      // Listen for real-time notification count updates
+      const handleNewNotification = () => {
+        setNotificationCount((prev) => prev + 1);
+      };
+
+      socketService.on("notification_created", handleNewNotification);
+
+      return () => {
+        socketService.off("notification_created", handleNewNotification);
+      };
+    }
   }, [signedIn]);
 
   const fetchNotificationCount = async () => {
@@ -36,6 +50,7 @@ export default function IndividualNavbar({ isAuthenticated }) {
       });
     } catch (_) {}
     localStorage.clear();
+    socketService.disconnect();
     navigate("/signin", { replace: true });
   };
 

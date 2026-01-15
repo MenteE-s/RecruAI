@@ -6,6 +6,7 @@ import IndividualNavbar from "../../components/layout/IndividualNavbar";
 import Card from "../../components/ui/Card";
 import { getSidebarItems } from "../../utils/auth";
 import { formatDate } from "../../utils/timezone";
+import { socketService } from "../../utils/socket";
 
 export default function AppliedJobs() {
   const role =
@@ -21,6 +22,24 @@ export default function AppliedJobs() {
 
   useEffect(() => {
     fetchAppliedJobs();
+
+    // Listen for real-time application status updates
+    const handleStageChange = (data) => {
+      console.log("Application stage changed:", data);
+      setAppliedJobs((prev) =>
+        prev.map((app) =>
+          app.id === data.application_id
+            ? { ...app, pipeline_stage: data.new_stage }
+            : app
+        )
+      );
+    };
+
+    socketService.on("application_stage_changed", handleStageChange);
+
+    return () => {
+      socketService.off("application_stage_changed", handleStageChange);
+    };
   }, []);
 
   const fetchAppliedJobs = async () => {

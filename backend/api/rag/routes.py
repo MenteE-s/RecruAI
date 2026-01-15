@@ -13,6 +13,7 @@ from ...rag.tools.ingestor import IngestorTool
 from ...rag.tools.embedder import EmbedderTool
 from ...rag.tools.retriever import RetrieverTool
 from ...rag.tools.generator import GeneratorTool
+from ...utils.kafka_service import kafka_service
 
 
 logger = logging.getLogger(__name__)
@@ -59,6 +60,19 @@ def query_rag():
             user_context=user_context
         )
 
+        # Emit Kafka event
+        kafka_service.emit_event(
+            "rag_query_submitted",
+            {
+                "user_id": current_user_id,
+                "query": query,
+                "workflow_id": result.get('workflow_id'),
+                "success": not result.get('rag_disabled'),
+                "message": "RAG query processed"
+            },
+            user_id=current_user_id
+        )
+
         # Handle RAG disabled case
         if result.get('rag_disabled'):
             # Fallback to direct AI generation without RAG
@@ -99,6 +113,97 @@ def query_rag():
         return jsonify({'error': str(e)}), 500
 
 
+@rag_bp.route('/agentic-query', methods=['POST'])
+@jwt_required()
+def agentic_query_rag():
+    """Enhanced RAG query with think-before-speak functionality"""
+    try:
+        data = request.get_json()
+        if not data or 'query' not in data:
+            return jsonify({'error': 'Query is required'}), 400
+
+        query = data['query']
+        context = data.get('context', '')
+        user_context = data.get('user_context', {})
+        enable_thinking = data.get('enable_thinking', True)
+
+        # Add current user to context
+        current_user_id = get_jwt_identity()
+        user_context['user_id'] = current_user_id
+
+        # Import agentic supervisor
+        from ...rag.tools.agentic_supervisor import AgenticRAGSupervisor
+        agentic_supervisor = AgenticRAGSupervisor()
+
+        # Execute agentic workflow
+        result = agentic_supervisor.orchestrate_agentic_workflow(
+            query=query,
+            context=context,
+            user_context=user_context,
+            enable_thinking=enable_thinking
+        )
+
+        # Emit Kafka event
+        kafka_service.emit_event(
+            "rag_agentic_query_submitted",
+            {
+                "user_id": current_user_id,
+                "query": query,
+                "workflow_id": result.get('workflow_id'),
+                "thinking_step": result.get('thinking_step'),
+                "enhanced_by_thinking": result.get('final_response', {}).get('enhanced_by_thinking', False),
+                "message": "Agentic RAG query processed"
+            },
+            user_id=current_user_id
+        )
+
+        # Handle RAG disabled case
+        if result.get('retrieval', {}).get('error') == 'RAG disabled':
+            # Fallback to direct AI generation
+            try:
+                from ...ai_service import get_ai_service
+                ai_service = get_ai_service()
+
+                system_prompt = "You are a helpful AI assistant for recruitment and career guidance. Provide accurate, helpful responses based on your knowledge."
+                ai_response = ai_service.generate_response(system_prompt, query)
+
+                return jsonify({
+                    'success': True,
+                    'workflow_id': result.get('workflow_id'),
+                    'answer': ai_response,
+                    'confidence': 0.5,
+                    'sources': [],
+                    'rag_disabled': True,
+                    'thinking_step': None,
+                    'enhanced_by_thinking': False,
+                    'processing_time': result.get('performance', {}).get('total_time', 0)
+                })
+            except Exception as fallback_error:
+                logger.error(f"Agentic RAG fallback error: {fallback_error}")
+                return jsonify({
+                    'error': 'AI service unavailable',
+                    'rag_disabled': True
+                }), 503
+
+        # Return successful agentic response
+        return jsonify({
+            'success': True,
+            'workflow_id': result.get('workflow_id'),
+            'answer': result.get('final_response', {}).get('answer', ''),
+            'confidence': result.get('final_response', {}).get('confidence', 0),
+            'sources': result.get('final_response', {}).get('sources', []),
+            'thinking_step': result.get('thinking_step'),
+            'enhanced_by_thinking': result.get('final_response', {}).get('enhanced_by_thinking', False),
+            'processing_time': result.get('performance', {}).get('total_time', 0),
+            'thinking_time': result.get('performance', {}).get('thinking_time', 0),
+            'generation_time': result.get('performance', {}).get('generation_time', 0)
+        })
+
+    except Exception as e:
+        logger.error(f"Agentic RAG query error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 @rag_bp.route('/ingest/text', methods=['POST'])
 @jwt_required()
 def ingest_text():
@@ -129,6 +234,19 @@ def ingest_text():
 
         # Store in database (simplified - would need proper storage logic)
         stored_count = len(embedded_chunks)
+
+        # Emit Kafka event
+        kafka_service.emit_event(
+            "rag_content_ingested",
+            {
+                "user_id": current_user_id,
+                "chunks_created": len(chunks),
+                "chunks_embedded": stored_count,
+                "content_length": len(content),
+                "message": f"New content ingested into RAG system ({len(chunks)} chunks)"
+            },
+            user_id=current_user_id
+        )
 
         return jsonify({
             'success': True,

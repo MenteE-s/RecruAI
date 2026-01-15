@@ -6,6 +6,7 @@ from ...extensions import db
 from ...models import Notification, User, Organization, Interview, Application
 from ...utils.pagination import Pagination, get_pagination_params, paginated_response
 from ...utils.security import log_security_event, sanitize_input
+from ...utils.kafka_service import KafkaService
 
 notifications_bp = Blueprint("notifications", __name__, url_prefix="/notifications")
 
@@ -24,9 +25,8 @@ def get_notifications():
         user = User.query.get(user_id)
         if not user:
             return jsonify({"error": "user not found"}), 404
-        
         # Get pagination parameters
-        page, per_page = get_pagination_params()
+        page, per_page = get_pagination_params(max_per_page=50)
 
         # Get filter parameters
         show_archived = request.args.get("archived", "false").lower() == "true"
@@ -42,9 +42,7 @@ def get_notifications():
         )
 
         # Apply filters
-        if show_archived:
-            query = query.filter(Notification.is_archived == True)
-        else:
+        if not show_archived:
             query = query.filter(Notification.is_archived == False)
 
         if show_read == "unread":
@@ -58,16 +56,9 @@ def get_notifications():
         # Order by creation date (newest first)
         query = query.order_by(desc(Notification.created_at))
 
-        # Debug: Log the query
-        print(f"Debug: Query built successfully for user {user_id}")
-
         # Paginate
-        paginator = Pagination(query, page, per_page, max_per_page=50)
-        result = paginator.paginate()
-        notifications = result['items']
-
-        # Debug: Log pagination
-        print(f"Debug: Pagination successful, got {len(notifications)} notifications")
+        pagination = Pagination(query, page, per_page)
+        notifications = pagination.get_items()
 
         # Format response
         notification_data = []
@@ -90,15 +81,9 @@ def get_notifications():
                 }
             })
 
-        # Debug: Log response formatting
-        print(f"Debug: Response formatted successfully")
-
-        return paginated_response(notification_data, result['pagination']), 200
+        return paginated_response(notification_data, pagination), 200
 
     except Exception as e:
-        print(f"Debug: Exception in get_notifications: {str(e)}")
-        import traceback
-        traceback.print_exc()
         log_security_event("notification_fetch_error", user_id=str(user_id) if 'user_id' in locals() else None, ip_address=request.remote_addr, details={"error": str(e)})
         return jsonify({"error": "Failed to fetch notifications"}), 500
 
@@ -125,6 +110,17 @@ def mark_notification_read(notification_id):
 
         notification.mark_as_read()
         db.session.commit()
+
+        # Emit Kafka event for notification read
+        try:
+            kafka = KafkaService()
+            kafka.emit_event('notification_read', {
+                'notification_id': notification.id,
+                'user_id': user_id,
+                'type': notification.type
+            })
+        except Exception as ke:
+            print(f"Failed to emit Kafka message for notification read: {ke}")
 
         return jsonify({"message": "Notification marked as read"}), 200
 
@@ -161,36 +157,6 @@ def archive_notification(notification_id):
     except Exception as e:
         log_security_event("notification_archive_error", user_id=str(user_id), ip_address=request.remote_addr, details={"error": str(e), "notification_id": notification_id})
         return jsonify({"error": "Failed to archive notification"}), 500
-
-
-@notifications_bp.route("/<int:notification_id>/unarchive", methods=["PUT"])
-@jwt_required()
-def unarchive_notification(notification_id):
-    """Unarchive a notification"""
-    try:
-        # Get current user
-        uid = get_jwt_identity()
-        user_id = int(uid)
-        user = User.query.get(user_id)
-        if not user:
-            return jsonify({"error": "user not found"}), 404
-
-        notification = Notification.query.filter(
-            and_(
-                Notification.id == notification_id,
-                Notification.user_id == user_id,
-                Notification.is_deleted == False
-            )
-        ).first_or_404()
-
-        notification.unarchive()
-        db.session.commit()
-
-        return jsonify({"message": "Notification unarchived"}), 200
-
-    except Exception as e:
-        log_security_event("notification_unarchive_error", user_id=str(user_id), ip_address=request.remote_addr, details={"error": str(e), "notification_id": notification_id})
-        return jsonify({"error": "Failed to unarchive notification"}), 500
 
 
 @notifications_bp.route("/<int:notification_id>/favorite", methods=["PUT"])
@@ -245,6 +211,16 @@ def delete_notification(notification_id):
 
         notification.delete()
         db.session.commit()
+
+        # Emit Kafka event for notification deleted
+        try:
+            kafka = KafkaService()
+            kafka.emit_event('notification_deleted', {
+                'notification_id': notification_id,
+                'user_id': user_id
+            })
+        except Exception as ke:
+            print(f"Failed to emit Kafka message for notification deletion: {ke}")
 
         return jsonify({"message": "Notification deleted"}), 200
 
@@ -361,6 +337,20 @@ def create_interview_notification(interview_id, notification_type, user_id, titl
     )
     db.session.add(notification)
     db.session.commit()
+
+    # Emit Kafka event for notification created
+    try:
+        kafka = KafkaService()
+        kafka.emit_event('notification_created', {
+            'notification_id': notification.id,
+            'user_id': user_id,
+            'type': notification_type,
+            'title': title,
+            'related_interview_id': interview_id
+        })
+    except Exception as ke:
+        print(f"Failed to emit Kafka message for notification creation: {ke}")
+
     return notification
 
 
@@ -376,4 +366,19 @@ def create_profile_notification(user_id, notification_type, title, message, rela
     )
     db.session.add(notification)
     db.session.commit()
+
+    # Emit Kafka event for notification created
+    try:
+        kafka = KafkaService()
+        kafka.emit_event('notification_created', {
+            'notification_id': notification.id,
+            'user_id': user_id,
+            'type': notification_type,
+            'title': title,
+            'related_user_id': related_user_id,
+            'related_organization_id': related_org_id
+        })
+    except Exception as ke:
+        print(f"Failed to emit Kafka message for notification creation: {ke}")
+
     return notification

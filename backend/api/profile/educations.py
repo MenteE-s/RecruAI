@@ -4,6 +4,7 @@ from .. import api_bp
 from ...extensions import db
 from ...models import Education, Skill, Language
 from datetime import datetime
+from ...utils.kafka_service import kafka_service as kafka
 
 # Education endpoints
 @api_bp.route('/profile/educations', methods=['GET'])
@@ -58,6 +59,15 @@ def create_education():
     db.session.add(education)
     db.session.commit()
 
+    # Emit Kafka event for education creation
+    kafka.emit_event('profile_education_created', {
+        'education_id': education.id,
+        'user_id': user_id,
+        'degree': education.degree,
+        'school': education.school,
+        'timestamp': datetime.utcnow().isoformat()
+    })
+
     return jsonify({'message': 'Education record created successfully', 'education': education.to_dict()}), 201
 
 @api_bp.route('/profile/educations/<int:edu_id>', methods=['PUT'])
@@ -87,6 +97,16 @@ def update_education(edu_id):
                 setattr(education, key, value)
 
     db.session.commit()
+
+    # Emit Kafka event for education update
+    kafka.emit_event('profile_education_updated', {
+        'education_id': education.id,
+        'user_id': user_id,
+        'degree': education.degree,
+        'school': education.school,
+        'timestamp': datetime.utcnow().isoformat()
+    })
+
     return jsonify({'message': 'Education record updated successfully', 'education': education.to_dict()}), 200
 
 @api_bp.route('/profile/educations/<int:edu_id>', methods=['DELETE'])
@@ -99,8 +119,17 @@ def delete_education(edu_id):
     if not education:
         return jsonify({'error': 'Education record not found'}), 404
 
+    edu_id_val = education.id
     db.session.delete(education)
     db.session.commit()
+
+    # Emit Kafka event for education deletion
+    kafka.emit_event('profile_education_deleted', {
+        'education_id': edu_id_val,
+        'user_id': user_id,
+        'timestamp': datetime.utcnow().isoformat()
+    })
+
     return jsonify({'message': 'Education record deleted successfully'}), 200
 
 # Skills endpoints

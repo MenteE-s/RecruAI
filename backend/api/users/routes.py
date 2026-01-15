@@ -12,6 +12,7 @@ from ...utils.timezone_utils import get_timezone_list, is_valid_timezone, get_cu
 from ...utils.security import log_security_event, sanitize_input, validate_email, validate_request_size
 from ...utils.pagination import Pagination, get_pagination_params, paginated_response, apply_filters_and_sorting, get_request_filters, get_sorting_params
 from ...api.notifications.routes import create_profile_notification
+from ...utils.kafka_service import kafka_service
 
 
 @api_bp.route("/timezones", methods=["GET"])
@@ -51,6 +52,18 @@ def update_user_timezone(user_id):
     db.session.commit()
 
     log_security_event("timezone_updated", request.remote_addr, user_id, details={"timezone": tz})
+
+    # Emit Kafka event
+    kafka_service.emit_event(
+        "user_updated",
+        {
+            "user_id": user.id,
+            "field": "timezone",
+            "value": tz,
+            "message": f"User {user.name} updated their timezone to {tz}"
+        },
+        user_id=user.id
+    )
 
     return jsonify({
         "message": "Timezone updated",
@@ -132,6 +145,19 @@ def create_user():
     db.session.commit()
 
     log_security_event("user_created", request.remote_addr, user.id, email=email)
+
+    # Emit Kafka event
+    kafka_service.emit_event(
+        "user_created",
+        {
+            "user_id": user.id,
+            "email": email,
+            "name": name,
+            "message": f"New user created: {name} ({email})"
+        },
+        user_id=user.id
+    )
+
     return jsonify(user.to_dict()), 201
 
 
@@ -177,6 +203,19 @@ def toggle_favorite(user_id, target_user_id):
         # If favorite exists, remove it (unfavorite)
         db.session.delete(favorite)
         db.session.commit()
+
+        # Emit Kafka event
+        kafka_service.emit_event(
+            "favorite_toggled",
+            {
+                "user_id": user_id,
+                "target_user_id": target_user_id,
+                "favorited": False,
+                "message": "User removed from favorites"
+            },
+            user_id=user_id
+        )
+
         return jsonify({
             "favorited": False,
             "message": "User unfavorited successfully"
@@ -193,6 +232,18 @@ def toggle_favorite(user_id, target_user_id):
         )
         db.session.add(favorite)
         db.session.commit()
+
+        # Emit Kafka event
+        kafka_service.emit_event(
+            "favorite_toggled",
+            {
+                "user_id": user_id,
+                "target_user_id": target_user_id,
+                "favorited": True,
+                "message": f"User {target_user.name} added to favorites"
+            },
+            user_id=user_id
+        )
 
         # Create notification for the favorited user
         try:
@@ -276,6 +327,18 @@ def join_position(user_id):
         application.pipeline_stage = 'hired'  # Keep as hired but mark as onboarded
 
     db.session.commit()
+
+    # Emit Kafka event
+    kafka_service.emit_event(
+        "user_onboarded",
+        {
+            "user_id": user.id,
+            "name": user.name,
+            "onboarded_date": user.onboarded_date.isoformat() if user.onboarded_date else None,
+            "message": f"User {user.name} has successfully joined their new position"
+        },
+        user_id=user.id
+    )
 
     return jsonify({
         "message": "Successfully joined position",

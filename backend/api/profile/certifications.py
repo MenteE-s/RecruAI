@@ -4,6 +4,7 @@ from .. import api_bp
 from ...extensions import db
 from ...models import Certification
 from datetime import datetime
+from ...utils.kafka_service import kafka_service as kafka
 
 # Certification endpoints
 @api_bp.route('/profile/certifications', methods=['GET'])
@@ -52,6 +53,15 @@ def create_certification():
     db.session.add(certification)
     db.session.commit()
 
+    # Emit Kafka event for certification creation
+    kafka.emit_event('profile_certification_created', {
+        'certification_id': certification.id,
+        'user_id': user_id,
+        'name': certification.name,
+        'issuer': certification.issuer,
+        'timestamp': datetime.utcnow().isoformat()
+    })
+
     return jsonify({'message': 'Certification created successfully', 'certification': certification.to_dict()}), 201
 
 @api_bp.route('/profile/certifications/<int:cert_id>', methods=['PUT'])
@@ -91,6 +101,16 @@ def update_certification(cert_id):
             setattr(certification, key, value)
 
     db.session.commit()
+
+    # Emit Kafka event for certification update
+    kafka.emit_event('profile_certification_updated', {
+        'certification_id': certification.id,
+        'user_id': user_id,
+        'name': certification.name,
+        'issuer': certification.issuer,
+        'timestamp': datetime.utcnow().isoformat()
+    })
+
     return jsonify({'message': 'Certification updated successfully', 'certification': certification.to_dict()}), 200
 
 @api_bp.route('/profile/certifications/<int:cert_id>', methods=['DELETE'])
@@ -103,6 +123,15 @@ def delete_certification(cert_id):
     if not certification:
         return jsonify({'error': 'Certification not found'}), 404
 
+    cert_id_val = certification.id
     db.session.delete(certification)
     db.session.commit()
+
+    # Emit Kafka event for certification deletion
+    kafka.emit_event('profile_certification_deleted', {
+        'certification_id': cert_id_val,
+        'user_id': user_id,
+        'timestamp': datetime.utcnow().isoformat()
+    })
+
     return jsonify({'message': 'Certification deleted successfully'}), 200

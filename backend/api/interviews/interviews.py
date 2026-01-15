@@ -1,15 +1,14 @@
 from flask import request, jsonify
 from .. import api_bp
 from ...extensions import db
-from ...models import Interview, Application, ConversationMemory, Message, InterviewAnalysis, ConversationMessage
+from ...models import Interview, Application, ConversationMemory, Message, InterviewAnalysis, ConversationMessage, Organization, Post, User
+from ...utils.kafka_service import KafkaService
 import json
 from datetime import datetime, timezone, timedelta
 from ...utils.security import log_security_event, sanitize_input, validate_request_size
 from ...utils.pagination import Pagination, get_pagination_params, paginated_response, apply_filters_and_sorting, get_request_filters, get_sorting_params
-from ...utils.security import log_security_event, sanitize_input, validate_request_size
 from ...utils.subscription import require_interview_access
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from ...models import User
 from ...api.notifications.routes import create_interview_notification
 
 def update_pipeline_stage_for_interview(interview):
@@ -94,9 +93,9 @@ def create_interview():
 
     required_fields = ['title', 'scheduled_at', 'user_id', 'organization_id']
     for field in required_fields:
-        if field not in data:
+        if field not in data or data[field] is None or data[field] == '':
             log_security_event("missing_required_field", request.remote_addr, user_id, details={"field": field})
-            return jsonify({'error': f'Missing required field: {field}'}), 400
+            return jsonify({'error': f'Missing or empty required field: {field}'}), 400
 
     # Sanitize input fields
     title = sanitize_input(data.get('title', ''))
@@ -113,9 +112,9 @@ def create_interview():
             # Replace trailing Z with +00:00 so fromisoformat can parse it
             datetime_str = datetime_str[:-1] + '+00:00'
         scheduled_at = datetime.fromisoformat(datetime_str)
-    except ValueError:
-        log_security_event("invalid_datetime_format", request.remote_addr, user_id, details={"datetime_str": datetime_str})
-        return jsonify({'error': 'Invalid datetime format. Use ISO 8601 with timezone (e.g., 2024-01-15T14:30Z)'}), 400
+    except Exception as e:
+        log_security_event("invalid_datetime_format", request.remote_addr, user_id, details={"datetime_str": datetime_str, "error": str(e)})
+        return jsonify({'error': f'Invalid datetime format: {str(e)}'}), 400
 
     # Ensure timezone-aware and normalize to UTC
     if scheduled_at.tzinfo is None:
@@ -125,21 +124,44 @@ def create_interview():
         scheduled_at = scheduled_at.astimezone(timezone.utc)
 
     # Convert to naive UTC before storing (DB stores naive datetimes)
-    scheduled_at = scheduled_at.replace(tzinfo=None)
+    scheduled_at_naive = scheduled_at.replace(tzinfo=None)
 
-    # Validate scheduled_at is in the future
-    if scheduled_at <= datetime.utcnow():
-        log_security_event("interview_scheduled_past", request.remote_addr, user_id, details={"scheduled_at": scheduled_at.isoformat()})
-        return jsonify({'error': 'scheduled_at must be in the future.'}), 400
+    # Validate scheduled_at is in the future (allow 5-minute grace period for clock skew)
+    if scheduled_at_naive < datetime.utcnow() - timedelta(minutes=5):
+        log_security_event("interview_scheduled_past", request.remote_addr, user_id, details={"scheduled_at": scheduled_at_naive.isoformat()})
+        return jsonify({'error': 'Interview cannot be scheduled more than 5 minutes in the past.'}), 400
+
+    try:
+        candidate_id = int(data['user_id'])
+        org_id = int(data['organization_id'])
+        post_id = int(data['post_id']) if data.get('post_id') and str(data['post_id']).isdigit() else None
+        
+        # Validate that the candidate exists
+        candidate = User.query.get(candidate_id)
+        if not candidate:
+            return jsonify({'error': f'Candidate with ID {candidate_id} not found.'}), 404
+            
+        # Validate that the organization exists
+        org = Organization.query.get(org_id)
+        if not org:
+            return jsonify({'error': f'Organization with ID {org_id} not found.'}), 404
+
+        # If post_id is still None but was provided as a non-digit title (old bug), try to find it
+        if not post_id and data.get('post_id'):
+             post = Post.query.filter_by(title=data['post_id']).first()
+             if post:
+                 post_id = post.id
+    except (ValueError, TypeError) as e:
+        return jsonify({'error': f'Invalid ID format for user_id, organization_id, or post_id: {str(e)}'}), 400
 
     interview = Interview(
         title=title,
         description=description,
-        scheduled_at=scheduled_at,
+        scheduled_at=scheduled_at_naive,
         duration_minutes=data.get('duration_minutes', 60),
-        user_id=data['user_id'],
-        organization_id=data['organization_id'],
-        post_id=data.get('post_id'),
+        user_id=candidate_id,
+        organization_id=org_id,
+        post_id=post_id,
         interview_type=data.get('interview_type', 'text'),
         location=location,
         meeting_link=meeting_link,
@@ -156,6 +178,20 @@ def create_interview():
 
     # Update pipeline stage
     update_pipeline_stage_for_interview(interview)
+
+    # Emit Kafka event for interview scheduled
+    try:
+        from ...utils.kafka_service import KafkaService
+        kafka = KafkaService()
+        kafka.emit_event('interview_scheduled', {
+            'interview_id': interview.id,
+            'user_id': interview.user_id,
+            'organization_id': interview.organization_id,
+            'scheduled_at': interview.scheduled_at.isoformat(),
+            'title': interview.title
+        })
+    except Exception as e:
+        print(f"Failed to emit Kafka event: {e}")
 
     # Create notification for the interviewee
     try:
@@ -241,6 +277,20 @@ def update_interview(interview_id):
     # Create notifications based on status changes
     if 'status' in data and data['status'] != old_status:
         new_status = data['status']
+        
+        # Emit Kafka event for status change
+        try:
+            kafka = KafkaService()
+            kafka.emit_event('interview_status_changed', {
+                'interview_id': interview.id,
+                'old_status': old_status,
+                'new_status': new_status,
+                'user_id': interview.user_id,
+                'organization_id': interview.organization_id
+            })
+        except Exception as ke:
+            print(f"Failed to emit Kafka message for status change: {ke}")
+
         try:
             if new_status == 'cancelled':
                 create_interview_notification(
@@ -275,6 +325,8 @@ def update_interview(interview_id):
 def delete_interview(interview_id):
     """Delete an interview"""
     interview = Interview.query.get_or_404(interview_id)
+    user_id = interview.user_id
+    org_id = interview.organization_id
 
     # Delete related records first to avoid cascade issues
     ConversationMemory.query.filter_by(interview_id=interview_id).delete()
@@ -283,6 +335,18 @@ def delete_interview(interview_id):
 
     db.session.delete(interview)
     db.session.commit()
+
+    # Emit Kafka event for interview deleted
+    try:
+        kafka = KafkaService()
+        kafka.emit_event('interview_deleted', {
+            'interview_id': interview_id,
+            'user_id': user_id,
+            'organization_id': org_id
+        })
+    except Exception as ke:
+        print(f"Failed to emit Kafka message for interview deletion: {ke}")
+
     return jsonify({'message': 'Interview deleted successfully'}), 200
 
 @api_bp.route('/interviews/upcoming', methods=['GET'])
@@ -389,7 +453,6 @@ def update_interview_decision(interview_id):
     
     # If candidate passed the final interview, update the application status
     if decision == 'passed' and interview.post_id:
-        from ...models import Application
         # Find the application for this user and post
         application = Application.query.filter_by(
             user_id=interview.user_id,
@@ -466,8 +529,6 @@ def update_organization_interview_decision(org_id, interview_id):
 @jwt_required()
 def get_interview_conversation(interview_id):
     """Get conversation history for an interview"""
-    from ...models import ConversationMessage
-
     # Get authenticated user
     user_id = get_jwt_identity()
     user_id = int(user_id)  # Convert to int for database comparison

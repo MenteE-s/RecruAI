@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import socketService from "../../utils/socket";
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "";
 
@@ -46,6 +47,7 @@ const RecruAINavbar = () => {
         localStorage.removeItem("access_token");
         localStorage.removeItem("isAuthenticated");
         localStorage.removeItem("authRole");
+        socketService.disconnect();
       } catch (e) {}
       setSignedIn(false);
       navigate("/signin", { replace: true });

@@ -86,6 +86,22 @@ def update_interview_decision(interview_id, decision, feedback=None, rating=None
         )
         db.session.add(decision_history)
 
+        # Emit Kafka event for interview decision
+        try:
+            from .kafka_service import KafkaService
+            kafka = KafkaService()
+            kafka.emit_event('interview_decision', {
+                'interview_id': interview.id,
+                'decision': decision,
+                'round': interview.current_round or 1,
+                'user_id': interview.user_id,
+                'organization_id': interview.organization_id,
+                'feedback': feedback,
+                'rating': rating
+            })
+        except Exception as e:
+            print(f"Failed to emit Kafka message: {e}")
+
         # Initialize round fields if this is the first decision
         if interview.current_round is None:
             interview.current_round = 1
@@ -114,15 +130,30 @@ def update_interview_decision(interview_id, decision, feedback=None, rating=None
             interview.completed_at = None  # Clear so it can be scheduled again
 
             # Add round transition message to conversation
-            from ..models import ConversationMessage
-            round_transition = ConversationMessage(
-                interview_id=interview_id,
-                sender_type='agent',
-                sender_agent_id=interview.ai_agent_id,
-                content=f"--- ROUND 1 COMPLETED: Candidate advanced to Round 2 ---\n\nWelcome to Round 2! Based on your performance in Round 1, you've been selected to continue the interview process. Let's dive deeper into your experience and skills.",
-                created_at=datetime.utcnow()
-            )
-            db.session.add(round_transition)
+            from ..models import ConversationMessage, AIInterviewAgent
+            
+            # Resolve agent ID
+            agent_id = interview.ai_agent_id
+            if not agent_id and interview.organization_id:
+                # Try to get organization default agent
+                default_agent = AIInterviewAgent.query.filter_by(
+                    organization_id=interview.organization_id, 
+                    is_active=True
+                ).first()
+                if default_agent:
+                    agent_id = default_agent.id
+            
+            if agent_id:
+                round_transition = ConversationMessage(
+                    interview_id=interview_id,
+                    sender_type='agent',
+                    sender_agent_id=agent_id,
+                    content=f"--- ROUND 1 COMPLETED: Candidate advanced to Round 2 ---\n\nWelcome to Round 2! Based on your performance in Round 1, you've been selected to continue the interview process. Let's dive deeper into your experience and skills.",
+                    created_at=datetime.utcnow()
+                )
+                db.session.add(round_transition)
+            else:
+                print(f"Warning: Could not add transition message for interview {interview_id} - no agent found")
         elif decision == 'third_round':
             # Passed round 2, moving to round 3
             interview.round_status = 'passed'
@@ -132,15 +163,30 @@ def update_interview_decision(interview_id, decision, feedback=None, rating=None
             interview.completed_at = None  # Clear so it can be scheduled again
 
             # Add round transition message to conversation
-            from ..models import ConversationMessage
-            round_transition = ConversationMessage(
-                interview_id=interview_id,
-                sender_type='agent',
-                sender_agent_id=interview.ai_agent_id,
-                content=f"--- ROUND 2 COMPLETED: Candidate advanced to Round 3 ---\n\nCongratulations on advancing to Round 3! This is the final round of our interview process. Let's explore your technical expertise and problem-solving abilities in more detail.",
-                created_at=datetime.utcnow()
-            )
-            db.session.add(round_transition)
+            from ..models import ConversationMessage, AIInterviewAgent
+            
+            # Resolve agent ID
+            agent_id = interview.ai_agent_id
+            if not agent_id and interview.organization_id:
+                # Try to get organization default agent
+                default_agent = AIInterviewAgent.query.filter_by(
+                    organization_id=interview.organization_id, 
+                    is_active=True
+                ).first()
+                if default_agent:
+                    agent_id = default_agent.id
+            
+            if agent_id:
+                round_transition = ConversationMessage(
+                    interview_id=interview_id,
+                    sender_type='agent',
+                    sender_agent_id=agent_id,
+                    content=f"--- ROUND 2 COMPLETED: Candidate advanced to Round 3 ---\n\nCongratulations on advancing to Round 3! This is the final round of our interview process. Let's explore your technical expertise and problem-solving abilities in more detail.",
+                    created_at=datetime.utcnow()
+                )
+                db.session.add(round_transition)
+            else:
+                print(f"Warning: Could not add transition message for interview {interview_id} - no agent found")
 
         # Update feedback and rating if provided
         if feedback is not None:
@@ -186,13 +232,35 @@ def update_interview_decision(interview_id, decision, feedback=None, rating=None
                 db.session.commit()
 
         # Build appropriate message
+        success_msg = ""
         if decision in ['second_round', 'third_round']:
             round_num = 2 if decision == 'second_round' else 3
-            return True, f"Candidate advanced to round {round_num}. Please schedule the next interview."
+            success_msg = f"Candidate advanced to round {round_num}. Please schedule the next interview."
         elif decision == 'passed':
-            return True, "Candidate has passed! Ready for offer."
+            success_msg = "Candidate has passed! Ready for offer."
         else:
-            return True, "Interview decision recorded."
+            success_msg = "Interview decision recorded."
+
+        # Emit Kafka event for the decision
+        try:
+            from .kafka_service import emit_event
+            emit_event(
+                topic='interview_decisions',
+                event_type='decision_updated',
+                data={
+                    'interview_id': interview.id,
+                    'decision': decision,
+                    'candidate_id': interview.user_id,
+                    'organization_id': interview.organization_id,
+                    'round': interview.current_round,
+                    'status': interview.status
+                },
+                key=str(interview.id)
+            )
+        except Exception as kafka_err:
+            print(f"Non-critical: Failed to emit Kafka event: {kafka_err}")
+
+        return True, success_msg
 
     except Exception as e:
         db.session.rollback()

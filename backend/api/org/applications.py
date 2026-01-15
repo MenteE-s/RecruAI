@@ -4,6 +4,8 @@ from ...extensions import db
 from ...models import Application, Post, Interview, TeamMember
 from sqlalchemy import func
 from ...utils.pagination import Pagination, get_pagination_params, paginated_response, apply_filters_and_sorting, get_request_filters, get_sorting_params
+from ...utils.kafka_service import kafka_service as kafka
+from datetime import datetime
 
 # Application endpoints
 @api_bp.route("/applications", methods=["GET"])
@@ -58,6 +60,16 @@ def create_application():
     )
     db.session.add(application)
     db.session.commit()
+    
+    # Emit Kafka event for application creation
+    kafka.emit_event('application_created', {
+        'application_id': application.id,
+        'user_id': application.user_id,
+        'post_id': application.post_id,
+        'pipeline_stage': application.pipeline_stage,
+        'timestamp': datetime.utcnow().isoformat()
+    })
+    
     return jsonify(application.to_dict()), 201
 
 @api_bp.route("/applications/user/<int:user_id>", methods=["GET"])
@@ -122,6 +134,17 @@ def update_application_status(app_id):
     if "onboarded" in payload:
         application.onboarded = payload["onboarded"]
     db.session.commit()
+    
+    # Emit Kafka event for application status/stage update
+    kafka.emit_event('application_updated', {
+        'application_id': application.id,
+        'user_id': application.user_id,
+        'post_id': application.post_id,
+        'status': application.status,
+        'pipeline_stage': application.pipeline_stage,
+        'updated_at': datetime.utcnow().isoformat()
+    })
+    
     return jsonify(application.to_dict()), 200
 
 

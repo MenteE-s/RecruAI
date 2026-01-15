@@ -4,6 +4,7 @@ from .. import api_bp
 from ...extensions import db
 from ...models import User, Organization, TeamMember
 from ...utils.security import log_security_event, sanitize_input, validate_email
+from ...utils.kafka_service import kafka_service
 
 @api_bp.route("/auth/register", methods=["POST"])
 def register():
@@ -31,11 +32,13 @@ def register():
     # Check for existing user
     if User.query.filter_by(email=email).first():
         log_security_event("duplicate_registration_attempt", request.remote_addr, None, email=email)
+        kafka_service.emit_event("registration_failed", {"email": email, "reason": "email_exists", "ip": request.remote_addr})
         return jsonify({"error": "email already registered"}), 400
 
     # Validate role
     if role not in ["individual", "organization"]:
         log_security_event("invalid_role_registration", request.remote_addr, None, email=email, role=role)
+        kafka_service.emit_event("registration_failed", {"email": email, "reason": "invalid_role", "role": role, "ip": request.remote_addr})
         return jsonify({"error": "Invalid role specified"}), 400
 
     user = User(email=email, name=name, role=role, plan="free")
@@ -75,9 +78,17 @@ def register():
 
         db.session.commit()
         log_security_event("registration_success", user_id=user.id, ip_address=request.remote_addr, email=email, details={"role": role})
+        kafka_service.emit_event("user_registered", {
+            "user_id": user.id,
+            "email": email,
+            "role": role,
+            "organization_id": user.organization_id,
+            "ip": request.remote_addr
+        })
     except Exception as e:
         db.session.rollback()
         log_security_event("registration_failed", user_id=None, ip_address=request.remote_addr, email=email, details={"error": str(e)})
+        kafka_service.emit_event("registration_failed", {"email": email, "reason": "internal_error", "error": str(e), "ip": request.remote_addr})
         return jsonify({"error": f"Failed to register user: {str(e)}"}), 500
 
     # generate an access token on successful registration so frontend can auto-login

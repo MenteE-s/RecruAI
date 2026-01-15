@@ -28,3 +28,65 @@
 .animate-bell-ring {
   animation: bell-ring 1s ease-in-out;
 }
+
+/* Markdown Content Styles */
+.markdown-content p {
+  margin-bottom: 0.5rem;
+}
+
+.markdown-content p:last-child {
+  margin-bottom: 0;
+}
+
+.markdown-content strong {
+  font-weight: 700;
+}
+
+.markdown-content em {
+  font-style: italic;
+}
+
+.markdown-content ul {
+  list-style-type: disc;
+  margin-left: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.markdown-content ol {
+  list-style-type: decimal;
+  margin-left: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.markdown-content li {
+  margin-bottom: 0.25rem;
+}
+
+.markdown-content code {
+  background-color: rgba(0, 0, 0, 0.05);
+  padding: 0.1rem 0.3rem;
+  border-radius: 0.25rem;
+  font-family: monospace;
+}
+
+.prose-invert code {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3 {
+  font-weight: 700;
+  margin-top: 0.75rem;
+  margin-bottom: 0.25rem;
+}
+
+.markdown-content h1 {
+  font-size: 1.25rem;
+}
+.markdown-content h2 {
+  font-size: 1.125rem;
+}
+.markdown-content h3 {
+  font-size: 1rem;
+}

@@ -1,11 +1,15 @@
 from flask import request, jsonify
 from .. import api_bp
 from ...extensions import db
-from ...models import Interview, User, AIInterviewAgent, ConversationMessage
+from ...models import Interview, User, AIInterviewAgent, ConversationMessage, PracticeAIAgent
 from ...ai_service import get_ai_service
 from ...utils.subscription import require_subscription
+from ...rag.tools.thinking import ThinkingModule
+from ...utils.kafka_service import KafkaService
 from flask_jwt_extended import jwt_required, get_jwt_identity
 import json
+import time
+from datetime import datetime
 
 @api_bp.route('/interviews/<int:interview_id>/chat', methods=['POST'])
 @jwt_required()
@@ -17,66 +21,118 @@ def interview_chat(interview_id):
     if not data or 'message' not in data:
         return jsonify({'error': 'Message required'}), 400
 
+    enable_thinking = data.get('enable_thinking', True)
+
     # Get authenticated user
     user_id = get_jwt_identity()
     user_id = int(user_id)  # Convert to int for database comparison
-    print(f"Chat JWT identity: {user_id}, type: {type(user_id)}")
     user = User.query.get(user_id)
     if not user:
-        print(f"Chat user not found for id: {user_id}")
         return jsonify({'error': 'User not found'}), 404
 
     message = data['message']
     interview = Interview.query.get(interview_id)
     if not interview:
-        print(f"Chat interview not found for id: {interview_id}")
         return jsonify({'error': 'Interview not found'}), 404
 
-    # Debug logging
-    print(f"Chat access check: user_id={user_id}, interview.user_id={interview.user_id}, interview.organization_id={interview.organization_id}, interview_type={interview.interview_type}")
-    print(f"Chat user organization: {user.organization.id if user.organization else None}")
-
-    # Check if user has access to this interview
-    # For practice interviews (organization_id is None), only the candidate can access
-    # For regular interviews, candidate or organization members can access
+    # Check access (keeping original logic)
     has_access = False
-    print(f"Checking chat access: interview.user_id={interview.user_id}, user_id={user_id}")
     if interview.user_id == user_id:
-        # User is the candidate
-        print("User is the candidate - granting chat access")
         has_access = True
     elif interview.organization_id is not None and user.organization and user.organization.id == interview.organization_id:
-        # User is a member of the organization that owns the interview
-        print("User is organization member - granting chat access")
         has_access = True
-    else:
-        print("No chat access conditions met")
     
     if not has_access:
-        print(f"Chat access denied for user {user_id} to interview {interview_id}")
         return jsonify({'error': 'Access denied'}), 403
 
     # Resolve AI agent for this interview
     agent = resolve_interview_agent(interview)
-    print(f"Resolved agent for interview {interview_id}: {agent}")
     if not agent:
-        print(f"No AI agent available for interview {interview_id}")
         return jsonify({'error': 'No AI agent available for this interview'}), 400
 
     # Store user message
     ConversationMessage.add_user_message(interview_id, user_id, message)
     db.session.commit()
 
-    # Generate AI response
-    response = generate_agent_response(message, interview, agent, user)
+    # Emit Kafka event for candidate message received
+    try:
+        kafka = KafkaService()
+        kafka.emit_event('interview_candidate_message', {
+            'interview_id': interview_id,
+            'user_id': user_id,
+            'content': message,
+            'sender_name': user.name or user.email,
+            'sender_type': 'user',
+            'timestamp': datetime.utcnow().isoformat()
+        })
+    except Exception as ke:
+        print(f"Failed to emit Kafka message for candidate interaction: {ke}")
+
+    # Generate AI response with optional thinking
+    thinking_step = None
+    if enable_thinking:
+        thinking_module = ThinkingModule()
+        
+        # Prepare context chunks for thinking from interview details
+        context_chunks = [
+            {'content': f"Job Title: {interview.title}", 'source_type': 'interview_info', 'similarity_score': 1.0},
+            {'content': f"Job Description: {interview.description}", 'source_type': 'interview_info', 'similarity_score': 1.0},
+        ]
+        
+        if interview.post:
+            context_chunks.append({'content': f"Post Requirements: {interview.post.requirements}", 'source_type': 'job_post', 'similarity_score': 1.0})
+            
+        # System context to guide the thinking module
+        system_context = f"This is a formal job interview for the position: {interview.title}. Organization: {interview.organization.name if interview.organization else 'N/A'}. Round: {interview.current_round or 1}."
+
+        # Analyze and reason
+        analysis = thinking_module.analyze_context(message, context_chunks, system_context)
+        reasoning = thinking_module.generate_reasoning(message, context_chunks, analysis, system_context)
+        validation = thinking_module.validate_reasoning(reasoning)
+        
+        thinking_step = {
+            'analysis': analysis,
+            'reasoning': reasoning,
+            'validation': validation,
+            'thinking_successful': validation.get('is_acceptable', False)
+        }
+
+    # Generate final response
+    # If thinking was successful, we might want to inject thinking insights into the prompt
+    # But for now, we'll just return it to the frontend
+    response = generate_agent_response(message, interview, agent, user, thinking_step)
 
     # Store agent response
     ConversationMessage.add_agent_message(interview_id, agent, response)
     db.session.commit()
 
+    # Emit Kafka event for agent response generated
+    try:
+        kafka = KafkaService()
+        
+        # If thinking was used, emit thinking event first
+        if enable_thinking and thinking_step:
+            kafka.emit_event('interview_agent_thinking', {
+                'interview_id': interview_id,
+                'thinking_process': thinking_step,
+                'timestamp': datetime.utcnow().isoformat()
+            })
+            
+        kafka.emit_event('interview_agent_response', {
+            'id': ConversationMessage.query.filter_by(interview_id=interview_id, sender_type='agent').order_by(ConversationMessage.created_at.desc()).first().id,
+            'interview_id': interview_id,
+            'agent_id': agent.id if hasattr(agent, 'id') else None,
+            'agent_name': agent.name,
+            'content': response,
+            'sender_name': agent.name,
+            'sender_type': 'agent',
+            'thinking_used': enable_thinking,
+            'timestamp': datetime.utcnow().isoformat()
+        })
+    except Exception as ke:
+        print(f"Failed to emit Kafka message for agent response: {ke}")
+
     # Set agent_persona for response
-    from ...models.ai_interview_agent import AIInterviewAgent
-    from ...models.practice_ai_agent import PracticeAIAgent
     if isinstance(agent, AIInterviewAgent):
         agent_persona = agent.persona if hasattr(agent, 'persona') and agent.persona else 'AI Interviewer'
     elif isinstance(agent, PracticeAIAgent):
@@ -89,7 +145,8 @@ def interview_chat(interview_id):
         'agent_id': agent.id,
         'agent_name': agent.name,
         'agent_persona': agent_persona,
-        'interview_id': interview_id
+        'interview_id': interview_id,
+        'thinking_step': thinking_step
     }), 200
 
 
@@ -123,13 +180,10 @@ def resolve_interview_agent(interview):
     return None
 
 
-def generate_agent_response(message, interview, agent, user):
+def generate_agent_response(message, interview, agent, user, thinking_step=None):
     """Generate a response from the AI agent"""
     try:
         ai_service = get_ai_service()
-
-        # Build comprehensive system prompt
-        system_prompt = build_agent_system_prompt(agent, interview, is_first_message)
 
         # Get conversation history (last 10 messages)
         recent_messages = ConversationMessage.get_recent_conversation(interview.id, limit=10)
@@ -137,6 +191,9 @@ def generate_agent_response(message, interview, agent, user):
 
         # Check if this is the first message (no previous conversation)
         is_first_message = len(recent_messages) == 0
+
+        # Build comprehensive system prompt
+        system_prompt = build_agent_system_prompt(agent, interview, is_first_message, thinking_step)
 
         # Format for AI service
         conversation_history = []
@@ -162,16 +219,36 @@ def generate_agent_response(message, interview, agent, user):
         return generate_fallback_response(message, interview, agent)
 
 
-def build_agent_system_prompt(agent, interview, is_first_message=False):
+def build_agent_system_prompt(agent, interview, is_first_message=False, thinking_step=None):
     """Build comprehensive system prompt for the AI agent"""
     from datetime import datetime
-    from ...models.ai_interview_agent import AIInterviewAgent
-    from ...models.practice_ai_agent import PracticeAIAgent  # Import to check type
 
     prompt_parts = []
 
+    # CORE MISSION - ALWAYS AT THE TOP
+    prompt_parts.append(f"""
+# CORE MISSION
+You are an expert AI Interviewer conducting a formal job interview. 
+Your primary goal is to evaluate the candidate for the role of: {interview.title}.
+This is NOT a general chat. Every response you give must serve the purpose of the interview.
+""")
+
     # Agent identity and persona/behavioral style
     prompt_parts.append(f"You are {agent.name}")
+    
+    # Handle thinking insights if available
+    if thinking_step:
+        reasoning = thinking_step.get('reasoning', {})
+        strategy = reasoning.get('response_strategy', '')
+        tone = reasoning.get('tone_and_style', '')
+        key_points = reasoning.get('key_points_to_cover', [])
+        
+        if strategy:
+            prompt_parts.append(f"RESPONSE STRATEGY: {strategy}")
+        if tone:
+            prompt_parts.append(f"RECOMMENDED TONE: {tone}")
+        if key_points:
+            prompt_parts.append(f"KEY POINTS TO COVER: {', '.join(key_points)}")
     
     # Handle different agent types
     if isinstance(agent, AIInterviewAgent):

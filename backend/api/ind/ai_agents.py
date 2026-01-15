@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, request
 from ...extensions import db
 from ...models import AIInterviewAgent, User
+from ...utils.kafka_service import KafkaService
 
 api_bp = Blueprint('ind_ai_agents', __name__)
 
@@ -31,6 +32,19 @@ def create_user_ai_agent(user_id):
     )
     db.session.add(agent)
     db.session.commit()
+    
+    # Emit Kafka event for agent creation
+    try:
+        kafka = KafkaService()
+        kafka.emit_event('personal_agent_created', {
+            'agent_id': agent.id,
+            'user_id': user_id,
+            'name': name,
+            'industry': industry
+        })
+    except Exception as ke:
+        print(f"Failed to emit Kafka message for personal agent creation: {ke}")
+        
     return jsonify({'agent': agent.to_dict()}), 201
 
 
@@ -42,6 +56,18 @@ def update_user_ai_agent(user_id, agent_id):
         if field in payload:
             setattr(agent, field, payload[field])
     db.session.commit()
+    
+    # Emit Kafka event for agent update
+    try:
+        kafka = KafkaService()
+        kafka.emit_event('personal_agent_updated', {
+            'agent_id': agent_id,
+            'user_id': user_id,
+            'fields_updated': list(payload.keys())
+        })
+    except Exception as ke:
+        print(f"Failed to emit Kafka message for personal agent update: {ke}")
+        
     return jsonify({'agent': agent.to_dict()}), 200
 
 
@@ -50,4 +76,15 @@ def delete_user_ai_agent(user_id, agent_id):
     agent = AIInterviewAgent.query.filter_by(id=agent_id, owner_user_id=user_id).first_or_404()
     db.session.delete(agent)
     db.session.commit()
+    
+    # Emit Kafka event for agent deletion
+    try:
+        kafka = KafkaService()
+        kafka.emit_event('personal_agent_deleted', {
+            'agent_id': agent_id,
+            'user_id': user_id
+        })
+    except Exception as ke:
+        print(f"Failed to emit Kafka message for personal agent deletion: {ke}")
+        
     return jsonify({'message': 'deleted'}), 200

@@ -2,6 +2,7 @@ from flask import request, jsonify
 from .. import api_bp
 from ...extensions import db
 from ...models import Application
+from ...utils.kafka_service import kafka_service
 from datetime import datetime
 
 # Applied jobs endpoints
@@ -29,6 +30,18 @@ def cancel_application(application_id):
         application.pipeline_stage = "withdrawn"
         application.updated_at = datetime.utcnow()
         db.session.commit()
+        
+        # Emit Kafka event for application withdrawn
+        try:
+            kafka_service.emit_event('application_withdrawn', {
+                'application_id': application.id,
+                'user_id': application.user_id,
+                'post_id': application.post_id,
+                'withdrawn_at': application.updated_at.isoformat()
+            })
+        except Exception as ke:
+            print(f"Failed to emit Kafka message for application withdrawal: {ke}")
+            
         return jsonify({"message": "Application cancelled successfully"}), 200
     except Exception as e:
         db.session.rollback()

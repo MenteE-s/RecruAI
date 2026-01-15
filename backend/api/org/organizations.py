@@ -4,6 +4,9 @@ from .. import api_bp
 from ...extensions import db
 from ...models import Organization, TeamMember, User, AIInterviewAgent
 from ...utils.timezone_utils import is_valid_timezone, get_current_time_info
+from ...utils.kafka_service import kafka_service as kafka
+import json
+from datetime import datetime
 
 # Default AI agents to create for new organizations
 DEFAULT_AI_AGENTS = [
@@ -452,6 +455,13 @@ def create_organization():
     db.session.add(org)
     db.session.commit()
 
+    # Emit Kafka event for organization creation
+    kafka.emit_event('organization_created', {
+        'org_id': org.id,
+        'name': org.name,
+        'timestamp': datetime.utcnow().isoformat()
+    })
+
     # Create default AI agents for the new organization
     create_default_ai_agents_for_org(org.id)
 
@@ -523,6 +533,13 @@ def update_organization_timezone(org_id):
     
     org.timezone = tz
     db.session.commit()
+    
+    # Emit Kafka event for organization timezone update
+    kafka.emit_event('organization_timezone_updated', {
+        'org_id': org.id,
+        'timezone': tz,
+        'timestamp': datetime.utcnow().isoformat()
+    })
     
     return jsonify({
         "message": "Timezone updated",
@@ -598,6 +615,15 @@ def add_team_member(org_id):
     )
     db.session.add(tm)
     db.session.commit()
+    
+    # Emit Kafka event for team member added
+    kafka.emit_event('team_member_added', {
+        'org_id': org_id,
+        'user_id': user_id,
+        'role': role,
+        'timestamp': datetime.utcnow().isoformat()
+    })
+    
     return jsonify(tm.to_dict()), 201
 
 @api_bp.route("/organizations/<int:org_id>/team-members/<int:member_id>", methods=["PUT"])
@@ -620,6 +646,14 @@ def remove_team_member(org_id, member_id):
     tm = TeamMember.query.filter_by(id=member_id, organization_id=org_id).first_or_404()
     db.session.delete(tm)
     db.session.commit()
+    
+    # Emit Kafka event for team member removed
+    kafka.emit_event('team_member_removed', {
+        'org_id': org_id,
+        'member_id': member_id,
+        'timestamp': datetime.utcnow().isoformat()
+    })
+    
     return jsonify({"message": "team member removed"}), 200
 
 @api_bp.route("/organizations/<int:org_id>/users", methods=["GET"])

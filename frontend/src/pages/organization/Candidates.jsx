@@ -206,9 +206,9 @@ export default function Candidates() {
         organization_id: organizationId || 1,
         post_id: selectedApplication.post_id,
         interview_type: interviewForm.interview_type,
-        interviewers: JSON.stringify(
-          interviewForm.interviewers.split(",").map((i) => i.trim())
-        ),
+        interviewers: interviewForm.interviewers
+          ? interviewForm.interviewers.split(",").map((i) => i.trim())
+          : [],
       };
 
       const response = await fetch(`${getBackendUrl()}/api/interviews`, {

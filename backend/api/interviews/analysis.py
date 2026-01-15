@@ -3,6 +3,7 @@ from .. import api_bp
 from ...extensions import db
 from ...models import Interview, InterviewAnalysis, Message, ConversationMessage
 from ...ai_service import get_ai_service
+from ...utils.kafka_service import KafkaService
 import json
 from datetime import datetime
 
@@ -268,6 +269,19 @@ def generate_interview_analysis(interview_id):
 
     db.session.add(analysis)
     db.session.commit()
+
+    # Emit Kafka event for analysis generated
+    try:
+        kafka = KafkaService()
+        kafka.emit_event('interview_analysis_generated', {
+            'analysis_id': analysis.id,
+            'interview_id': interview.id,
+            'overall_score': analysis.overall_score,
+            'user_id': interview.user_id,
+            'organization_id': interview.organization_id
+        })
+    except Exception as ke:
+        print(f"Failed to emit Kafka message for analysis: {ke}")
 
     return jsonify({
         "message": "Interview analysis generated successfully",

@@ -45,20 +45,55 @@ const ScheduleInterviewModal = ({
     user_id: "",
     organization_id: organizationId || 1, // Use passed org id or default 1
     post_id: "",
-    interview_type: "video",
+    interview_type: "text",
     location: "",
     meeting_link: "",
     interviewers: [],
+    ai_agent_id: "",
   });
 
   const [posts, setPosts] = useState([]);
+  const [aiAgents, setAiAgents] = useState([]);
+  const [recommendedAgents, setRecommendedAgents] = useState([]);
+
+  const fetchRecommendedAgents = useCallback(async (jobId) => {
+    if (!jobId) {
+      setRecommendedAgents([]);
+      return;
+    }
+    try {
+      const response = await fetch(
+        `${getBackendUrl()}/api/recommendations/agents/${jobId}`,
+        {
+          credentials: "include",
+          headers: getAuthHeaders(),
+        }
+      );
+      if (response.ok) {
+        const data = await response.json();
+        setRecommendedAgents(data.recommendations || []);
+      }
+    } catch (error) {
+      console.error("Error fetching recommended agents:", error);
+    }
+  }, []);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (isOpen) {
       fetchPosts();
+      fetchAiAgents();
     }
   }, [isOpen, organizationId]);
+
+  // Fetch recommended agents when job is selected
+  useEffect(() => {
+    if (formData.post_id) {
+      fetchRecommendedAgents(formData.post_id);
+    } else {
+      setRecommendedAgents([]);
+    }
+  }, [formData.post_id, fetchRecommendedAgents]);
 
   useEffect(() => {
     // Normalize formData when org changes
@@ -84,6 +119,28 @@ const ScheduleInterviewModal = ({
       }
     } catch (error) {
       console.error("Error fetching posts:", error);
+    }
+  }, [organizationId]);
+
+  const fetchAiAgents = useCallback(async () => {
+    if (!organizationId) {
+      setAiAgents([]);
+      return;
+    }
+    try {
+      const response = await fetch(
+        `${getBackendUrl()}/api/organizations/${organizationId}/ai-agents`,
+        {
+          credentials: "include",
+          headers: getAuthHeaders(),
+        }
+      );
+      if (response.ok) {
+        const data = await response.json();
+        setAiAgents(data.agents || []);
+      }
+    } catch (error) {
+      console.error("Error fetching AI agents:", error);
     }
   }, [organizationId]);
 
@@ -113,7 +170,9 @@ const ScheduleInterviewModal = ({
       location: "",
       meeting_link: "",
       interviewers: [],
+      ai_agent_id: "",
     });
+    setRecommendedAgents([]);
     onClose();
   };
 
@@ -188,7 +247,7 @@ const ScheduleInterviewModal = ({
             >
               <option value="">Select Job Post (Optional)</option>
               {posts.map((post) => (
-                <option key={post.id} value={post.title}>
+                <option key={post.id} value={post.id}>
                   {post.title}
                 </option>
               ))}
@@ -245,6 +304,89 @@ const ScheduleInterviewModal = ({
               className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
               required
             />
+          </div>
+        </div>
+
+        {/* AI Agent Selection */}
+        <div className="mt-6">
+          <label className="block text-sm font-medium text-gray-700 mb-3">
+            AI Interview Agent (Optional)
+          </label>
+
+          {recommendedAgents.length > 0 && (
+            <div className="mb-4">
+              <h4 className="text-sm font-medium text-gray-700 mb-2">
+                ⭐ Recommended Agents
+              </h4>
+              <div className="grid grid-cols-1 gap-3 mb-4">
+                {recommendedAgents.slice(0, 3).map((agent) => (
+                  <div
+                    key={`rec-${agent.agent_id}`}
+                    className="border border-yellow-200 bg-yellow-50 rounded-lg p-3 cursor-pointer hover:bg-yellow-100 transition-colors"
+                    onClick={() =>
+                      setFormData({ ...formData, ai_agent_id: agent.agent_id })
+                    }
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-gray-900">
+                            {agent.agent_name}
+                          </span>
+                          <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">
+                            ⭐ Recommended
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-600">
+                          {agent.industry}
+                        </p>
+                        {agent.explanation && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            {agent.explanation}
+                          </p>
+                        )}
+                      </div>
+                      <input
+                        type="radio"
+                        name="ai_agent"
+                        value={agent.agent_id}
+                        checked={formData.ai_agent_id === agent.agent_id}
+                        onChange={() =>
+                          setFormData({
+                            ...formData,
+                            ai_agent_id: agent.agent_id,
+                          })
+                        }
+                        className="w-4 h-4 text-blue-600"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Select AI Agent
+            </label>
+            <select
+              value={formData.ai_agent_id}
+              onChange={(e) =>
+                setFormData({ ...formData, ai_agent_id: e.target.value })
+              }
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">No AI Agent (Human Interview)</option>
+              {aiAgents.map((agent) => (
+                <option key={agent.id} value={agent.id}>
+                  {agent.name} - {agent.industry}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-500 mt-1">
+              AI agents can conduct automated interviews for this position
+            </p>
           </div>
         </div>
 

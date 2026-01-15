@@ -6,7 +6,7 @@ from flask import Flask, jsonify, send_from_directory
 try:
 	# when used as a package (python -m backend.app or via flask)
 	from .config import Config
-	from .extensions import db, migrate, jwt
+	from .extensions import db, migrate, jwt, socketio
 	from .api import api_bp
 	from .ai_providers import get_ai_provider_manager
 except Exception:
@@ -31,6 +31,7 @@ except Exception:
 	db = backend_extensions.db  # type: ignore
 	migrate = backend_extensions.migrate  # type: ignore
 	jwt = backend_extensions.jwt  # type: ignore
+	socketio = backend_extensions.socketio # type: ignore
 	api_bp = backend_api.api_bp  # type: ignore
 
 	ai_providers_module = importlib.import_module("backend.ai_providers")
@@ -67,6 +68,29 @@ def create_app(config_object: object | None = None):
 		raise RuntimeError("JWT extension not available; check backend.extensions")
 
 	jwt.init_app(app)
+	socketio.init_app(app)
+
+	# Register socket events
+	with app.app_context():
+		from .api import sockets
+
+	# Initialize Kafka service
+	try:
+		from .utils.kafka_service import KafkaService
+		kafka = KafkaService()
+		print(f"Kafka initialized with servers: {kafka.bootstrap_servers}")
+
+		# Start background consumer for Socket.IO bridging
+		from .utils.kafka_consumer import KafkaConsumerService
+		consumer = KafkaConsumerService(
+			bootstrap_servers=kafka.bootstrap_servers,
+			group_id='recruai-broadcast-group',
+			topics=[kafka.default_topic]
+		)
+		consumer.start(app, callback_map={}) # Add specific handlers if needed
+		print(f"Kafka Consumer started for real-time broadcasts on topic: {kafka.default_topic}")
+	except Exception as e:
+		print(f"Warning: Could not initialize Kafka: {e}")
 
 	# Initialize AI providers
 	try:
@@ -176,6 +200,17 @@ def create_app(config_object: object | None = None):
 			app.register_blueprint(practice_ai_agents_module.practice_ai_bp, url_prefix="/api")
 		except ImportError as e:
 			print(f"Warning: Could not register practice AI agents blueprint: {e}")
+
+	# Register recommendations blueprint
+	try:
+		from .api.recommendations import recommendations_bp
+		app.register_blueprint(recommendations_bp, url_prefix="/api")
+	except ImportError:
+		try:
+			recommendations_module = importlib.import_module("backend.api.recommendations")
+			app.register_blueprint(recommendations_module.recommendations_bp, url_prefix="/api")
+		except ImportError as e:
+			print(f"Warning: Could not register recommendations blueprint: {e}")
 
 	# Error handlers for API routes - return JSON instead of HTML
 	@app.errorhandler(400)

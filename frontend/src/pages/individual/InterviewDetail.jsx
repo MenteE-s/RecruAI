@@ -779,7 +779,7 @@ export default function InterviewDetail() {
                     </div>
                   )}
 
-                  {interview.interviewers &&
+                  {Array.isArray(interview.interviewers) &&
                     interview.interviewers.length > 0 && (
                       <div>
                         <h3 className="text-sm font-medium text-gray-500">
@@ -790,8 +790,11 @@ export default function InterviewDetail() {
                         <ul className="mt-1 space-y-1">
                           {interview.interviewers.map((interviewer, index) => (
                             <li key={index} className="text-sm text-gray-900">
-                              {interviewer.name || `Interviewer ${index + 1}`}
-                              {interviewer.role && (
+                              {typeof interviewer === "string"
+                                ? interviewer
+                                : interviewer.name ||
+                                  `Interviewer ${index + 1}`}
+                              {interviewer && interviewer.role && (
                                 <span className="text-gray-500 ml-2">
                                   ({interviewer.role})
                                 </span>
@@ -799,6 +802,18 @@ export default function InterviewDetail() {
                             </li>
                           ))}
                         </ul>
+                      </div>
+                    )}
+
+                  {typeof interview.interviewers === "string" &&
+                    interview.interviewers.trim() !== "" && (
+                      <div>
+                        <h3 className="text-sm font-medium text-gray-500">
+                          Interviewer
+                        </h3>
+                        <p className="text-sm text-gray-900 mt-1">
+                          {interview.interviewers}
+                        </p>
                       </div>
                     )}
                 </div>

@@ -2,6 +2,7 @@ from flask import request, jsonify
 from .. import api_bp
 from ...extensions import db
 from ...models import Message
+from ...utils.kafka_service import KafkaService
 
 @api_bp.route('/interviews/<int:interview_id>/messages', methods=['GET'])
 def get_messages(interview_id):
@@ -27,5 +28,17 @@ def send_message(interview_id):
 
     db.session.add(message)
     db.session.commit()
+
+    # Emit Kafka event for message sent
+    try:
+        kafka = KafkaService()
+        kafka.emit_event('interview_message_sent', {
+            'message_id': message.id,
+            'interview_id': interview_id,
+            'user_id': message.user_id,
+            'message_type': message.message_type
+        })
+    except Exception as ke:
+        print(f"Failed to emit Kafka message for interview message: {ke}")
 
     return jsonify(message.to_dict()), 201

@@ -22,6 +22,7 @@ from .. import api_bp
 from ...extensions import db
 from ...models import User
 from ...utils.security import log_security_event, sanitize_input
+from ...utils.kafka_service import kafka_service
 
 @api_bp.route("/auth/login", methods=["POST"])
 def login():
@@ -43,20 +44,30 @@ def login():
     # Check if user exists and account is not locked
     if not user:
         log_security_event("login_attempt_unknown_user", request.remote_addr, None, email=email)
+        kafka_service.emit_event("user_login_failed", {"email": email, "reason": "unknown_user", "ip": request.remote_addr})
         return jsonify({"error": "invalid credentials"}), 401
 
     if user.is_account_locked():
         log_security_event("login_attempt_locked_account", request.remote_addr, user.id, email=email)
+        kafka_service.emit_event("user_login_failed", {"user_id": user.id, "email": email, "reason": "account_locked", "ip": request.remote_addr})
         return jsonify({"error": "Account is temporarily locked due to too many failed login attempts"}), 423
 
     # Check password with account lockout logic
     if not user.check_password(password):
         log_security_event("login_failed", request.remote_addr, user.id, email=email)
         db.session.commit()  # Save the failed attempt count
+        kafka_service.emit_event("user_login_failed", {"user_id": user.id, "email": email, "reason": "invalid_password", "ip": request.remote_addr})
         return jsonify({"error": "invalid credentials"}), 401
 
     # Successful login
     log_security_event("login_success", request.remote_addr, user.id, email=email)
+    kafka_service.emit_event("user_login_success", {
+        "user_id": user.id,
+        "email": email,
+        "role": user.role,
+        "organization_id": user.organization_id,
+        "ip": request.remote_addr
+    })
     db.session.commit()  # Save the login timestamp
 
     # Always issue tokens based on the server-side role and organization membership.
@@ -69,8 +80,16 @@ def login():
     return resp
 
 @api_bp.route("/auth/logout", methods=["POST"])
+@jwt_required(optional=True)
 def logout():
     # Unset JWT cookies on logout
+    uid = get_jwt_identity()
+    if uid:
+        try:
+            kafka_service.emit_event("user_logout", {"user_id": int(uid), "ip": request.remote_addr})
+        except:
+            pass
+            
     resp = make_response(jsonify({"msg": "logged out"}), 200)
     unset_jwt_cookies(resp)
     return resp

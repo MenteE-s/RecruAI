@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
 import Card from "../../components/ui/Card";
+import socketService from "../../utils/socket";
 import {
   getSidebarItems,
   getBackendUrl,
@@ -75,6 +76,20 @@ export default function Pipeline() {
 
   useEffect(() => {
     fetchPipelineData();
+
+    // Listen for real-time pipeline updates
+    const handleUpdate = (data) => {
+      console.log("Real-time pipeline update received:", data);
+      fetchPipelineData(); // For complex pipeline data, re-fetching is safer
+    };
+
+    socketService.on("application_stage_changed", handleUpdate);
+    socketService.on("application_created", handleUpdate);
+
+    return () => {
+      socketService.off("application_stage_changed", handleUpdate);
+      socketService.off("application_created", handleUpdate);
+    };
   }, [fetchPipelineData]);
 
   const updatePipelineStage = async (applicationId, newStage) => {

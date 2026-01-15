@@ -2,6 +2,7 @@ from datetime import timedelta, datetime
 from flask import Blueprint, jsonify, request
 from ...extensions import db
 from ...models import Interview, AIInterviewAgent, User
+from ...utils.kafka_service import KafkaService
 
 api_bp = Blueprint('ind_practice', __name__)
 
@@ -50,5 +51,18 @@ def create_practice_session():
     )
     db.session.add(interview)
     db.session.commit()
+
+    # Emit Kafka event for practice session created
+    try:
+        kafka = KafkaService()
+        kafka.emit_event('practice_session_created', {
+            'interview_id': interview.id,
+            'user_id': user_id,
+            'agent_id': agent.id,
+            'title': title,
+            'created_at': now_utc.isoformat()
+        })
+    except Exception as ke:
+        print(f"Failed to emit Kafka message for practice session: {ke}")
 
     return jsonify({'session': interview.to_dict(), 'agent': agent.to_dict()}), 201

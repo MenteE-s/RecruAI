@@ -5,6 +5,7 @@ from ...models import Post, Organization
 import json
 from datetime import datetime
 from ...utils.pagination import Pagination, get_pagination_params, paginated_response, apply_filters_and_sorting, get_request_filters, get_sorting_params
+from ...utils.kafka_service import kafka_service as kafka
 
 
 def _parse_salary(value):
@@ -92,6 +93,16 @@ def create_post():
         )
         db.session.add(post)
         db.session.commit()
+        
+        # Emit Kafka event for post creation
+        kafka.emit_event('job_post_created', {
+            'post_id': post.id,
+            'organization_id': post.organization_id,
+            'title': post.title,
+            'status': post.status,
+            'timestamp': datetime.utcnow().isoformat()
+        })
+        
         return jsonify(post.to_dict()), 201
     except Exception as e:
         db.session.rollback()
@@ -161,6 +172,16 @@ def update_post(post_id):
 
     try:
         db.session.commit()
+        
+        # Emit Kafka event for post update
+        kafka.emit_event('job_post_updated', {
+            'post_id': post.id,
+            'organization_id': post.organization_id,
+            'title': post.title,
+            'status': post.status,
+            'updated_at': datetime.utcnow().isoformat()
+        })
+        
         return jsonify(post.to_dict()), 200
     except Exception as e:
         db.session.rollback()
@@ -170,8 +191,18 @@ def update_post(post_id):
 def delete_post(post_id):
     post = Post.query.get_or_404(post_id)
     try:
+        post_id_val = post.id
+        org_id_val = post.organization_id
         db.session.delete(post)
         db.session.commit()
+        
+        # Emit Kafka event for post deletion
+        kafka.emit_event('job_post_deleted', {
+            'post_id': post_id_val,
+            'organization_id': org_id_val,
+            'timestamp': datetime.utcnow().isoformat()
+        })
+        
         return jsonify({"message": "post deleted"}), 200
     except Exception as e:
         db.session.rollback()
