@@ -6,7 +6,7 @@ import IndividualNavbar from "../../components/layout/IndividualNavbar";
 import Card from "../../components/ui/Card";
 import { getSidebarItems } from "../../utils/auth";
 import { formatDate } from "../../utils/timezone";
-import { socketService } from "../../utils/socket";
+import socketService from "../../utils/socket";
 
 export default function AppliedJobs() {
   const role =
