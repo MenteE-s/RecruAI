@@ -25,6 +25,7 @@ Instead of running multiple commands, you can use the provided script:
 
 - **Windows**:
   Double-click `run_app.bat` or run:
+
   ```powershell
   .\run_app.bat
   ```
@@ -36,6 +37,7 @@ Instead of running multiple commands, you can use the provided script:
   ```
 
 This script will:
+
 1. Build and start all Docker containers in the background.
 2. Wait for the database to initialize.
 3. Automatically run `flask db upgrade` to set up your tables.
