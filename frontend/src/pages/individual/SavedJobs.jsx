@@ -2,11 +2,7 @@ import React, { useState, useEffect } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import IndividualNavbar from "../../components/layout/IndividualNavbar";
 import Card from "../../components/ui/Card";
-import {
-  getSidebarItems,
-  getBackendUrl,
-  getAuthHeaders,
-} from "../../utils/auth";
+import { getSidebarItems, getAuthHeaders } from "../../utils/auth";
 import { formatDate } from "../../utils/timezone";
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "";
@@ -31,7 +27,7 @@ export default function SavedJobs() {
     try {
       const userId = 1; // TODO: Get from user context
       const response = await fetch(
-        `${getBackendUrl()}/api/saved-jobs/user/${userId}`,
+        `${API_BASE_URL}/api/saved-jobs/user/${userId}`,
         {
           headers: getAuthHeaders(),
         }
@@ -51,7 +47,7 @@ export default function SavedJobs() {
     try {
       const userId = 1; // TODO: Get from user context
       const response = await fetch(
-        `${getBackendUrl()}/api/applications/user/${userId}`,
+        `${API_BASE_URL}/api/applications/user/${userId}`,
         {
           headers: getAuthHeaders(),
         }
@@ -70,7 +66,7 @@ export default function SavedJobs() {
   const handleUnsaveJob = async (savedId) => {
     try {
       const response = await fetch(
-        `${getBackendUrl()}/api/saved-jobs/${savedId}`,
+        `${API_BASE_URL}/api/saved-jobs/${savedId}`,
         {
           method: "DELETE",
           headers: getAuthHeaders(),
@@ -89,7 +85,7 @@ export default function SavedJobs() {
   const handleApplyJob = async (postId) => {
     try {
       const userId = 1; // TODO: Get from user context
-      const response = await fetch(`${getBackendUrl()}/api/applications`, {
+      const response = await fetch(`${API_BASE_URL}/api/applications`, {
         method: "POST",
         headers: {
           ...getAuthHeaders(),

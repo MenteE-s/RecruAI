@@ -3,11 +3,7 @@ import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import IndividualNavbar from "../../components/layout/IndividualNavbar";
 import Card from "../../components/ui/Card";
-import {
-  getSidebarItems,
-  getBackendUrl,
-  getAuthHeaders,
-} from "../../utils/auth";
+import { getSidebarItems, getAuthHeaders } from "../../utils/auth";
 import { formatDateTime, getRelativeTime } from "../../utils/timezone";
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "";
@@ -29,7 +25,7 @@ export default function UpcomingInterviews() {
     const fetchUpcomingInterviews = async () => {
       try {
         const response = await fetch(
-          `${getBackendUrl()}/api/interviews/upcoming`,
+          `${API_BASE_URL}/api/interviews/upcoming`,
           {
             credentials: "include",
             headers: getAuthHeaders(),

@@ -290,6 +290,22 @@ def create_app(config_object: object | None = None):
 	def index():
 		return jsonify({"status": "ok", "message": "RecruAI backend running"})
 
+	@app.route("/api/health")
+	def health_check():
+		"""Health check endpoint for Docker container monitoring"""
+		try:
+			# Check database connection
+			db.session.execute("SELECT 1")
+			db_status = "healthy"
+		except Exception as e:
+			db_status = f"unhealthy: {str(e)}"
+		
+		return jsonify({
+			"status": "ok" if db_status == "healthy" else "degraded",
+			"timestamp": __import__("datetime").datetime.utcnow().isoformat(),
+			"database": db_status
+		}), 200 if db_status == "healthy" else 503
+
 	# helpful shell context for `flask shell`
 	try:
 		from .models import User  # noqa: WPS433, E402
