@@ -82,6 +82,10 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    volumes:
+      - ./backend:/app/backend
+      - /app/backend/__pycache__
+      - /app/backend/.venv
     depends_on:
       db:
         condition: service_healthy
@@ -115,6 +119,9 @@ services:
       args:
         - REACT_APP_API_BASE_URL=http://localhost:5000
         - REACT_APP_SOCKET_URL=http://localhost:5000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
     depends_on:
       - backend
     ports:

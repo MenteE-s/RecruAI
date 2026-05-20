@@ -1,6 +1,5 @@
 import { useState } from "react";
 import Sidebar from "./Sidebar";
-// import DashboardFooter from "./DashboardFooter";
 import DashboardFooter from "../../components/layout/DashboardFooter";
 
 export default function DashboardLayout({
@@ -15,29 +14,22 @@ export default function DashboardLayout({
     localStorage.getItem("isAuthenticated") === "true";
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      {/* Fixed Sidebar */}
-      <div className="fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg">
-        <Sidebar
-          open={sidebarOpen}
-          toggleSidebar={() => setSidebarOpen(!sidebarOpen)}
-          items={sidebarItems}
-        />
-      </div>
+    <div className="h-screen bg-slate-900 flex overflow-hidden">
+      <Sidebar
+        open={sidebarOpen}
+        toggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+        items={sidebarItems}
+      />
 
-      {/* Main Content */}
-      <div className="ml-64 flex flex-col min-h-screen">
-        {/* {NavbarComponent && <NavbarComponent isAuthenticated={signedIn} />} */}
-
-        {/* Overlay for mobile */}
+      <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
         {sidebarOpen && (
           <div
-            className="fixed inset-0 bg-black bg-opacity-40 z-40 md:hidden"
+            className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
             onClick={() => setSidebarOpen(false)}
           />
         )}
 
-        <main className="flex-1 p-4 md:p-6 overflow-y-auto">{children}</main>
+        <main className="flex-1 p-4 md:p-6 overflow-y-auto scroll-smooth">{children}</main>
 
         <DashboardFooter />
       </div>

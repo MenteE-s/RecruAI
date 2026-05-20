@@ -15,7 +15,6 @@ export default function IndividualNavbar({ isAuthenticated }) {
     if (signedIn) {
       fetchNotificationCount();
 
-      // Listen for real-time notification count updates
       const handleNewNotification = () => {
         setNotificationCount((prev) => prev + 1);
       };
@@ -55,30 +54,28 @@ export default function IndividualNavbar({ isAuthenticated }) {
   };
 
   return (
-    <nav className="sticky top-0 z-40 bg-white border-b shadow-sm">
+    <nav className="sticky top-0 z-40 bg-slate-800 border-b border-slate-700">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex h-14 items-center justify-between">
-          {/* Left */}
           <Link
             to="/"
-            className="text-lg font-semibold text-primary-700 tracking-tight"
+            className="text-lg font-semibold text-white tracking-tight"
           >
             RecruAI
           </Link>
 
-          {/* Right */}
           <div className="flex items-center gap-4">
             {!signedIn ? (
               <>
                 <Link
                   to="/signin"
-                  className="text-sm font-medium text-gray-600 hover:text-primary-700"
+                  className="text-sm font-medium text-slate-300 hover:text-white"
                 >
                   Sign in
                 </Link>
                 <Link
                   to="/register"
-                  className="px-4 py-1.5 bg-primary-700 text-white text-sm rounded-md hover:bg-primary-800 transition"
+                  className="px-4 py-1.5 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition"
                 >
                   Register
                 </Link>
@@ -87,7 +84,7 @@ export default function IndividualNavbar({ isAuthenticated }) {
               <>
                 <Link
                   to="/notifications"
-                  className="relative text-gray-600 hover:text-primary-700"
+                  className="relative text-slate-300 hover:text-white"
                 >
                   <i className="fa-solid fa-bell text-lg">Notifications</i>
                   {notificationCount > 0 && (
@@ -99,14 +96,14 @@ export default function IndividualNavbar({ isAuthenticated }) {
 
                 <Link
                   to="/profile"
-                  className="text-sm font-medium text-gray-600 hover:text-primary-700"
+                  className="text-sm font-medium text-slate-300 hover:text-white"
                 >
                   Profile
                 </Link>
 
                 <button
                   onClick={signOut}
-                  className="text-sm font-medium text-red-600 hover:text-red-700"
+                  className="text-sm font-medium text-red-400 hover:text-red-300"
                 >
                   Sign out
                 </button>

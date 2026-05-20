@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 # Config.SQLALCHEMY_DATABASE_URI) pick up the DATABASE_URL when CLI or
 # scripts import this module from repo root.
 here = os.path.dirname(os.path.abspath(__file__))
-load_dotenv(os.path.join(here, ".env"), override=True)
+load_dotenv(os.path.join(here, ".env"))
 
 
 class Config:

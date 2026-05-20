@@ -10,7 +10,7 @@ export default function StatCard({
 }) {
   if (variant === "gradient") {
     return (
-      <div className="flex items-center justify-between gap-4 bg-gradient-to-r from-rose-500 via-pink-500 to-amber-400 text-white rounded-xl p-4">
+      <div className="flex items-center justify-between gap-4 bg-slate-700 text-white rounded-xl p-4">
         <div>
           <div className="text-sm opacity-90">{title}</div>
           <div className="text-2xl font-bold mt-1">{value}</div>
@@ -31,7 +31,7 @@ export default function StatCard({
 
   if (variant === "cyan") {
     return (
-      <div className="flex items-center justify-between gap-4 bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-400 text-white rounded-xl p-4">
+      <div className="flex items-center justify-between gap-4 bg-blue-600 text-white rounded-xl p-4">
         <div>
           <div className="text-sm opacity-90">{title}</div>
           <div className="text-2xl font-bold mt-1">{value}</div>
@@ -53,16 +53,16 @@ export default function StatCard({
   return (
     <Card className="flex items-center justify-between gap-4">
       <div>
-        <p className="text-secondary-500 text-sm font-medium">{title}</p>
-        <p className="text-2xl md:text-3xl font-extrabold text-secondary-900 mt-1">
+        <p className="text-slate-400 text-sm font-medium">{title}</p>
+        <p className="text-2xl md:text-3xl font-extrabold text-white mt-1">
           {value}
         </p>
         {change && (
           <p
             className={`mt-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
               trend === "up"
-                ? "bg-success-50 text-success-600"
-                : "bg-red-50 text-red-600"
+                ? "bg-green-900/50 text-green-400"
+                : "bg-red-900/50 text-red-400"
             }`}
           >
             {trend === "up" ? "↑" : "↓"} &nbsp; {change}
@@ -70,10 +70,8 @@ export default function StatCard({
         )}
       </div>
 
-      <div className="flex items-center justify-center rounded-full w-14 h-14 bg-gradient-to-br from-primary-50 to-accent-50 shadow-inner">
-        <div className="rounded-full bg-white p-2 shadow">
-          <Icon className="h-6 w-6 text-primary-600" />
-        </div>
+      <div className="flex items-center justify-center rounded-full w-14 h-14 bg-slate-700">
+        <Icon className="h-6 w-6 text-slate-300" />
       </div>
     </Card>
   );

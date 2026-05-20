@@ -108,13 +108,13 @@ export default function OrganizationDashboard() {
       sidebarItems={sidebarItems}
     >
       <div className="mb-6">
-        <div className="rounded-2xl p-6 bg-gradient-to-br from-yellow-600/90 via-amber-600/80 to-purple-700/70 text-white shadow-xl">
+        <div className="rounded-2xl bg-slate-800 border border-slate-700 p-6 text-white shadow-lg">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl md:text-3xl font-bold font-display">
                 Welcome back{user?.name ? `, ${user.name}` : ""}!
               </h1>
-              <p className="mt-1 text-white/90">
+              <p className="mt-1 text-slate-400">
                 {user?.organization
                   ? `${user.organization} Dashboard`
                   : "Organization Dashboard"}{" "}
@@ -122,10 +122,10 @@ export default function OrganizationDashboard() {
               </p>
             </div>
             <div className="hidden md:flex items-center space-x-4">
-              <button className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded text-sm">
+              <button className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded text-sm transition">
                 Invite members
               </button>
-              <button className="px-4 py-2 bg-white text-amber-600 rounded font-semibold">
+              <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded text-sm font-semibold transition">
                 New Campaign
               </button>
             </div>
@@ -195,13 +195,13 @@ export default function OrganizationDashboard() {
         />
       </div>
 
-      <Card bgOpacity="95" shadow="lg" className="mb-8">
-        <h3 className="font-semibold text-secondary-800 mb-4">
+      <Card shadow="lg" className="mb-8">
+        <h3 className="font-semibold text-white mb-4">
           Applications by Status
         </h3>
         <div className="h-64 flex items-center justify-center">
           {loading ? (
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
           ) : (
             <Doughnut
               data={{
@@ -210,13 +210,13 @@ export default function OrganizationDashboard() {
                   {
                     data: Object.values(analytics.applications_by_status),
                     backgroundColor: [
-                      "#10B981", // green for accepted
-                      "#F59E0B", // yellow for pending
-                      "#EF4444", // red for rejected
-                      "#6B7280", // gray for reviewed
+                      "#10B981",
+                      "#F59E0B",
+                      "#EF4444",
+                      "#6B7280",
                     ],
                     borderWidth: 2,
-                    borderColor: "#ffffff",
+                    borderColor: "#1e293b",
                   },
                 ],
               }}
@@ -229,6 +229,7 @@ export default function OrganizationDashboard() {
                     labels: {
                       padding: 20,
                       usePointStyle: true,
+                      color: "#94a3b8",
                     },
                   },
                   tooltip: {

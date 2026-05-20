@@ -10,11 +10,9 @@ export default function Sidebar({ open, toggleSidebar, items = [] }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const settingsRef = useRef(null);
 
-  // Separate settings from other items if it exists
   const topItems = items.filter((i) => i.name !== "Setting");
   const settingsItem = items.find((i) => i.name === "Setting");
 
-  // Helper function to check if link is active
   const isActive = (link) => {
     return location.pathname === link;
   };
@@ -55,41 +53,39 @@ export default function Sidebar({ open, toggleSidebar, items = [] }) {
 
   return (
     <>
-      {/* Mobile toggle */}
       <button
         onClick={toggleSidebar}
-        className="md:hidden fixed top-4 left-4 z-20 p-2 rounded-lg bg-white shadow"
+        className="md:hidden fixed top-4 left-4 z-20 p-2 rounded-lg bg-slate-800 shadow-md"
       >
-        <FiMenu className="h-6 w-6 text-secondary-700" />
+        <FiMenu className="h-6 w-6 text-white" />
       </button>
 
-      {/* Sidebar - use flex-col so we can pin settings to the bottom */}
       <aside
-        className={`fixed md:static inset-y-0 left-0 z-10 w-64 bg-white border-r border-secondary-200 transform ${
+        className={`fixed md:relative inset-y-0 left-0 z-10 w-64 md:w-64 md:shrink-0 bg-slate-900 border-r border-slate-700 transform ${
           open ? "translate-x-0" : "-translate-x-full"
-        } md:translate-x-0 transition-transform duration-300 ease-in-out h-full md:h-screen flex flex-col`}
+        } md:translate-x-0 transition-transform duration-300 ease-in-out h-screen md:h-auto flex flex-col`}
         aria-label="Sidebar"
       >
-        <div className="p-6 border-b border-secondary-200">
-          <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-br from-primary-600 to-accent-500 font-display">
+        <div className="px-6 py-5 border-b border-slate-700">
+          <h1 className="text-lg font-semibold text-white tracking-wide">
             MenteE / RecruAI
           </h1>
+          <p className="text-xs text-slate-400 mt-0.5">Intelligent Hiring</p>
         </div>
 
-        {/* main nav grows */}
-        <nav className="p-4 flex-1 overflow-y-auto">
-          <ul className="space-y-2">
+        <nav className="px-3 py-4 flex-1 overflow-y-auto scroll-smooth">
+          <ul className="space-y-1">
             {topItems.map((item) => (
               <li key={item.name}>
                 <Link
                   to={item.link}
-                  className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition ${
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors duration-150 ${
                     isActive(item.link)
-                      ? "bg-primary-100 text-primary-700 border-r-2 border-primary-500"
-                      : "text-secondary-700 hover:bg-primary-50 hover:text-primary-700"
+                      ? "bg-blue-600 text-white"
+                      : "text-slate-300 hover:bg-slate-800 hover:text-white"
                   }`}
                 >
-                  <item.icon className="h-5 w-5" />
+                  <item.icon className="h-5 w-5 shrink-0" />
                   <span>{item.name}</span>
                 </Link>
               </li>
@@ -97,24 +93,23 @@ export default function Sidebar({ open, toggleSidebar, items = [] }) {
           </ul>
         </nav>
 
-        {/* pinned footer */}
         {settingsItem && (
-          <div className="p-4 border-t border-secondary-200 mt-auto">
+          <div className="px-3 py-3 border-t border-slate-700">
             <div className="relative" ref={settingsRef}>
               {settingsOpen && (
-                <div className="absolute bottom-full left-0 right-0 mb-2 bg-white border border-secondary-200 rounded-lg shadow-lg overflow-hidden">
+                <div className="absolute bottom-full left-0 right-0 mb-2 bg-slate-800 border border-slate-600 rounded-md shadow-xl overflow-hidden">
                   <button
                     onClick={() => {
                       setSettingsOpen(false);
                       navigate(settingsItem.link);
                     }}
-                    className="w-full text-left px-4 py-3 text-sm text-secondary-700 hover:bg-primary-50"
+                    className="w-full text-left px-4 py-2.5 text-sm text-slate-200 hover:bg-slate-700"
                   >
                     Settings
                   </button>
                   <button
                     onClick={signOut}
-                    className="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50"
+                    className="w-full text-left px-4 py-2.5 text-sm text-red-400 hover:bg-slate-700 hover:text-red-300"
                   >
                     Logout
                   </button>
@@ -124,17 +119,27 @@ export default function Sidebar({ open, toggleSidebar, items = [] }) {
               <button
                 type="button"
                 onClick={() => setSettingsOpen((v) => !v)}
-                className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition ${
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-md text-sm font-medium transition-colors duration-150 ${
                   isActive(settingsItem.link)
-                    ? "bg-primary-100 text-primary-700 border-r-2 border-primary-500"
-                    : "text-secondary-700 hover:bg-primary-50 hover:text-primary-700"
+                    ? "bg-blue-600 text-white"
+                    : "text-slate-300 hover:bg-slate-800 hover:text-white"
                 }`}
               >
-                <span className="flex items-center space-x-3">
-                  <settingsItem.icon className="h-5 w-5" />
+                <span className="flex items-center gap-3">
+                  <settingsItem.icon className="h-5 w-5 shrink-0" />
                   <span>{settingsItem.name}</span>
                 </span>
-                <span className="text-xs">{settingsOpen ? "▲" : "▼"}</span>
+                <svg
+                  className={`h-4 w-4 text-slate-400 transition-transform duration-200 ${
+                    settingsOpen ? "rotate-180" : ""
+                  }`}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
               </button>
             </div>
           </div>

@@ -17,7 +17,7 @@ const RecommendationCard = ({
           title: item.agent_name || item.name,
           subtitle: item.industry,
           description: item.interview_type ? `Specializes in ${item.interview_type} interviews` : 'AI Interview Agent',
-          badgeColor: 'bg-purple-100 text-purple-800'
+          badgeColor: 'bg-purple-900/50 text-purple-300'
         };
       case 'job':
         return {
@@ -25,7 +25,7 @@ const RecommendationCard = ({
           title: item.job_title || item.title,
           subtitle: item.industry || item.company_name,
           description: item.experience_required ? `${item.experience_required} years experience` : 'Job Opportunity',
-          badgeColor: 'bg-blue-100 text-blue-800'
+          badgeColor: 'bg-blue-900/50 text-blue-300'
         };
       case 'candidate':
         return {
@@ -33,7 +33,7 @@ const RecommendationCard = ({
           title: item.name || item.first_name + ' ' + item.last_name,
           subtitle: item.role || 'Professional',
           description: item.skills_count ? `${item.skills_count} skills listed` : 'Candidate Profile',
-          badgeColor: 'bg-green-100 text-green-800'
+          badgeColor: 'bg-green-900/50 text-green-300'
         };
       default:
         return {
@@ -41,7 +41,7 @@ const RecommendationCard = ({
           title: item.name || item.title,
           subtitle: '',
           description: '',
-          badgeColor: 'bg-gray-100 text-gray-800'
+          badgeColor: 'bg-slate-700 text-slate-300'
         };
     }
   };
@@ -59,17 +59,17 @@ const RecommendationCard = ({
             <div className="text-3xl mr-4">{config.icon}</div>
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
+                <h3 className="text-lg font-semibold text-white group-hover:text-blue-400 transition-colors">
                   {config.title}
                 </h3>
                 {isRecommended && (
-                  <span className="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full border border-yellow-200">
+                  <span className="px-2 py-1 text-xs font-medium bg-yellow-900/50 text-yellow-300 rounded-full border border-yellow-800">
                     ⭐ Recommended
                   </span>
                 )}
               </div>
-              <p className="text-sm text-gray-600">{config.subtitle}</p>
-              <p className="text-xs text-gray-500 mt-1">{config.description}</p>
+              <p className="text-sm text-slate-400">{config.subtitle}</p>
+              <p className="text-xs text-slate-500 mt-1">{config.description}</p>
             </div>
           </div>
           <div className={`px-3 py-1 text-xs rounded-full ${config.badgeColor}`}>
@@ -78,15 +78,15 @@ const RecommendationCard = ({
         </div>
 
         {item.explanation && (
-          <div className="bg-blue-50 border-l-4 border-blue-200 p-3 rounded mb-4">
-            <p className="text-sm text-blue-800">
+          <div className="bg-blue-900/30 border-l-4 border-blue-700 p-3 rounded mb-4">
+            <p className="text-sm text-blue-300">
               <strong>Why recommended:</strong> {item.explanation}
             </p>
           </div>
         )}
 
         {item.similarity_score && (
-          <div className="flex items-center justify-between text-xs text-gray-500 mb-4">
+          <div className="flex items-center justify-between text-xs text-slate-500 mb-4">
             <span>Match Score: {(item.similarity_score * 100).toFixed(1)}%</span>
           </div>
         )}
