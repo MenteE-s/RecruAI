@@ -4,6 +4,7 @@ data/*
 backups
 
 .env
+.env.*
 venv
 .venv
 
@@ -17,3 +18,25 @@ __pycache__/
 .github
 memory-bank
 %APPDATA%
+
+# Uploaded files (user-generated content)
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# Root-level package-lock (frontend has its own)
+package-lock.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker volumes
+pgdata/
+kafkadata/
+redisdata/

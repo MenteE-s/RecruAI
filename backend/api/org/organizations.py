@@ -5,6 +5,7 @@ from ...extensions import db
 from ...models import Organization, TeamMember, User, AIInterviewAgent
 from ...utils.timezone_utils import is_valid_timezone, get_current_time_info
 from ...utils.kafka_service import kafka_service as kafka
+from ...utils.cache import cached, invalidate_org_cache
 import json
 from datetime import datetime
 
@@ -419,6 +420,7 @@ def create_default_ai_agents_for_org(org_id: int):
     db.session.commit()
 
 @api_bp.route("/organizations", methods=["GET"])
+@cached("org_listings", ttl=600)
 def list_organizations():
     orgs = Organization.query.order_by(Organization.id.asc()).all()
     return jsonify([{
@@ -462,12 +464,16 @@ def create_organization():
         'timestamp': datetime.utcnow().isoformat()
     })
 
+    # Invalidate org caches
+    invalidate_org_cache()
+
     # Create default AI agents for the new organization
     create_default_ai_agents_for_org(org.id)
 
     return jsonify({"id": org.id, "name": org.name}), 201
 
 @api_bp.route("/organizations/<int:org_id>", methods=["GET"])
+@cached("org_details", ttl=300, key_func=lambda org_id: f"org_{org_id}")
 def get_organization(org_id):
     org = Organization.query.get_or_404(org_id)
     posts = [p.to_dict() for p in org.posts]
@@ -515,6 +521,10 @@ def update_organization(org_id):
         org.timezone = tz
 
     db.session.commit()
+
+    # Invalidate org caches
+    invalidate_org_cache(org_id)
+
     return jsonify(org.to_dict()), 200
 
 
@@ -576,6 +586,10 @@ def update_organization_profile(org_id):
         org.social_media_links = json.dumps(payload["social_media_links"]) if payload["social_media_links"] else None
 
     db.session.commit()
+
+    # Invalidate org caches
+    invalidate_org_cache(org_id)
+
     return jsonify(org.to_dict()), 200
 
 @api_bp.route("/organizations/<int:org_id>/team-members", methods=["GET"])

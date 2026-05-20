@@ -13,6 +13,7 @@ from ...utils.security import log_security_event, sanitize_input, validate_email
 from ...utils.pagination import Pagination, get_pagination_params, paginated_response, apply_filters_and_sorting, get_request_filters, get_sorting_params
 from ...api.notifications.routes import create_profile_notification
 from ...utils.kafka_service import kafka_service
+from ...utils.cache import cached, invalidate_user_cache
 
 
 @api_bp.route("/timezones", methods=["GET"])
@@ -162,6 +163,7 @@ def create_user():
 
 
 @api_bp.route("/users/<int:user_id>/full-profile", methods=["GET"])
+@cached("user_profile", ttl=300, key_func=lambda user_id: f"user_{user_id}")
 def get_user_full_profile(user_id):
     user = User.query.get_or_404(user_id)
 

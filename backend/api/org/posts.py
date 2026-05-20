@@ -6,6 +6,7 @@ import json
 from datetime import datetime
 from ...utils.pagination import Pagination, get_pagination_params, paginated_response, apply_filters_and_sorting, get_request_filters, get_sorting_params
 from ...utils.kafka_service import kafka_service as kafka
+from ...utils.cache import cached, invalidate_job_cache
 
 
 def _parse_salary(value):
@@ -94,6 +95,9 @@ def create_post():
         db.session.add(post)
         db.session.commit()
         
+        # Invalidate job caches
+        invalidate_job_cache()
+        
         # Emit Kafka event for post creation
         kafka.emit_event('job_post_created', {
             'post_id': post.id,
@@ -172,6 +176,9 @@ def update_post(post_id):
 
     try:
         db.session.commit()
+
+        # Invalidate job caches
+        invalidate_job_cache(post.id)
         
         # Emit Kafka event for post update
         kafka.emit_event('job_post_updated', {
@@ -195,6 +202,9 @@ def delete_post(post_id):
         org_id_val = post.organization_id
         db.session.delete(post)
         db.session.commit()
+
+        # Invalidate job caches
+        invalidate_job_cache(post_id_val)
         
         # Emit Kafka event for post deletion
         kafka.emit_event('job_post_deleted', {
@@ -209,6 +219,7 @@ def delete_post(post_id):
         return jsonify({"error": f"Failed to delete job: {str(e)}"}), 500
 
 @api_bp.route("/posts", methods=["GET"])
+@cached("job_listings", ttl=600)
 def list_posts():
     """List posts with pagination, filtering, and sorting support"""
     # Get pagination parameters
@@ -233,6 +244,7 @@ def list_posts():
     return jsonify(paginated_response(pagination_result['items'], pagination_result['pagination'])), 200
 
 @api_bp.route("/posts/<int:post_id>", methods=["GET"])
+@cached("job_details", ttl=300, key_func=lambda post_id: f"post_{post_id}")
 def get_post(post_id):
     post = Post.query.get_or_404(post_id)
     return jsonify(post.to_dict())

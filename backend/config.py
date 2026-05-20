@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 # Config.SQLALCHEMY_DATABASE_URI) pick up the DATABASE_URL when CLI or
 # scripts import this module from repo root.
 here = os.path.dirname(os.path.abspath(__file__))
-load_dotenv(os.path.join(here, ".env"))
+load_dotenv(os.path.join(here, ".env"), override=True)
 
 
 class Config:
@@ -50,6 +50,14 @@ class Config:
     # Kafka configuration
     KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
     KAFKA_ENABLED = os.getenv("KAFKA_ENABLED", "0" if IS_PRODUCTION else "0") == "1"
+
+    # Redis configuration
+    REDIS_URL = os.getenv(
+        "REDIS_URL",
+        "redis://127.0.0.1:6379/0"
+    )
+    REDIS_ENABLED = os.getenv("REDIS_ENABLED", "1") == "1"
+    REDIS_MAX_CONNECTIONS = int(os.getenv("REDIS_MAX_CONNECTIONS", "20"))
 
     # Security: Request size limits
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max request size

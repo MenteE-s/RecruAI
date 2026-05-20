@@ -6,6 +6,7 @@ from ...models import ProfileSection
 import json
 from datetime import datetime
 from ...utils.kafka_service import kafka_service as kafka
+from ...utils.cache import invalidate_user_cache
 
 @api_bp.route('/profile/sections', methods=['GET'])
 @jwt_required()
@@ -46,6 +47,9 @@ def save_profile_section():
         existing_section.order_index = order_index
         db.session.commit()
 
+        # Invalidate user profile cache
+        invalidate_user_cache(user_id)
+
         # Emit Kafka event for section update
         kafka.emit_event('profile_section_updated', {
             'section_id': existing_section.id,
@@ -65,6 +69,9 @@ def save_profile_section():
         )
         db.session.add(new_section)
         db.session.commit()
+
+        # Invalidate user profile cache
+        invalidate_user_cache(user_id)
 
         # Emit Kafka event for section creation
         kafka.emit_event('profile_section_created', {
@@ -90,6 +97,9 @@ def delete_profile_section(section_id):
     section_type_val = section.section_type
     db.session.delete(section)
     db.session.commit()
+
+    # Invalidate user profile cache
+    invalidate_user_cache(user_id)
 
     # Emit Kafka event for section deletion
     kafka.emit_event('profile_section_deleted', {

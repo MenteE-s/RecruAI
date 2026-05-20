@@ -49,7 +49,7 @@ def create_app(config_object: object | None = None):
 	# the repo root still pick up the correct DATABASE_URL.
 	here = os.path.dirname(os.path.abspath(__file__))
 	dotenv_path = os.path.join(here, ".env")
-	load_dotenv(dotenv_path)
+	load_dotenv(dotenv_path, override=True)
 
 	app = Flask(__name__)
 	app.config.from_object(config_object or Config)
@@ -69,6 +69,13 @@ def create_app(config_object: object | None = None):
 
 	jwt.init_app(app)
 	socketio.init_app(app)
+
+	# Initialize Redis cache
+	try:
+		from .extensions import init_redis
+		init_redis(app)
+	except Exception as e:
+		print(f"Warning: Could not initialize Redis: {e}")
 
 	# Register socket events
 	with app.app_context():
