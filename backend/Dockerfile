@@ -51,4 +51,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:5000/api/health || exit 1
 
 # Run the application with gunicorn using the package path
-CMD ["gunicorn", "--worker-class", "eventlet", "-w", "1", "--bind", "0.0.0.0:5000", "backend.app:create_app()"]
+CMD ["gunicorn", "-w", "2", "--threads", "4", "--bind", "0.0.0.0:5000", "backend.app:create_app()"]
