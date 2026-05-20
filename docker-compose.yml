@@ -142,6 +142,25 @@ services:
       timeout: 5s
       retries: 5
 
+  # ML Service (Embedding Generation via Gradio)
+  mlservices:
+    container_name: recruai_mlservices
+    build:
+      context: ./mlservices
+      dockerfile: Dockerfile
+    volumes:
+      - ./mlservices:/app
+    ports:
+      - "7860:7860"
+    networks:
+      - recruai_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:7860 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
 volumes:
   pgdata:
   redisdata:
