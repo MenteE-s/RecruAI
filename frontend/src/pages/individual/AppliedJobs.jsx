@@ -156,19 +156,19 @@ export default function AppliedJobs() {
       sidebarItems={sidebarItems}
     >
       <div className="mb-6">
-        <div className="rounded-2xl p-6 bg-gradient-to-br from-indigo-600/80 via-purple-600/60 to-cyan-500/60 text-white shadow-lg">
+        <div className="rounded-2xl p-6 bg-white border border-gray-200 text-gray-900 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl md:text-3xl font-bold font-display">
                 Applied Jobs
               </h1>
-              <p className="mt-1 text-white/90">
+              <p className="mt-1 text-gray-500">
                 Track your job applications and their status
               </p>
             </div>
-            <div className="text-white text-right">
-              <p className="text-2xl font-bold">{appliedJobs.length}</p>
-              <p className="text-sm text-white/80">Applied jobs</p>
+            <div className="text-right">
+              <p className="text-2xl font-bold text-blue-600">{appliedJobs.length}</p>
+              <p className="text-sm text-gray-500">Applied jobs</p>
             </div>
           </div>
         </div>

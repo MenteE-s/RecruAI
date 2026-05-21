@@ -14,14 +14,14 @@ export default function DashboardLayout({
     localStorage.getItem("isAuthenticated") === "true";
 
   return (
-    <div className="h-screen bg-slate-900 flex overflow-hidden">
+    <div className="h-screen bg-gray-50 flex overflow-hidden">
       <Sidebar
         open={sidebarOpen}
         toggleSidebar={() => setSidebarOpen(!sidebarOpen)}
         items={sidebarItems}
       />
 
-      <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+      <div className="flex flex-col flex-1 h-screen overflow-hidden">
         {sidebarOpen && (
           <div
             className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"

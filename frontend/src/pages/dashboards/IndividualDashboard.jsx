@@ -153,9 +153,9 @@ export default function IndividualDashboard() {
     >
       {/* Header */}
       <div className="mb-8">
-        <div className="rounded-2xl bg-slate-800 border border-slate-700 p-6 md:p-8 text-white shadow-lg">
-          <h1 className="text-2xl md:text-3xl font-bold">Welcome back</h1>
-          <p className="mt-1 text-slate-400 text-sm md:text-base">
+        <div className="rounded-2xl bg-white border border-gray-200 p-6 md:p-8 shadow-sm">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Welcome back</h1>
+          <p className="mt-1 text-gray-500 text-sm md:text-base">
             Here's a quick snapshot of your interview journey.
           </p>
         </div>
@@ -200,16 +200,16 @@ export default function IndividualDashboard() {
         {/* Recent Interviews */}
         <Card>
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-white">Recent Interviews</h3>
-            <span className="text-xs text-slate-400">Last 5 activities</span>
+            <h3 className="font-semibold text-gray-800">Recent Interviews</h3>
+            <span className="text-xs text-gray-500">Last 5 activities</span>
           </div>
 
           {loading ? (
             <div className="flex justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
             </div>
           ) : interviews.length === 0 ? (
-            <div className="text-center py-12 text-slate-400">
+            <div className="text-center py-12 text-gray-500">
               No interviews yet.
               <div className="text-sm mt-1">
                 Start applying to unlock insights
@@ -223,15 +223,15 @@ export default function IndividualDashboard() {
                   onClick={() =>
                     navigate(`/interviews/${interview.id}/analysis`)
                   }
-                  className="group flex items-center justify-between rounded-xl border border-slate-700 p-4 hover:border-blue-600 hover:bg-slate-700/50 transition cursor-pointer"
+                  className="group flex items-center justify-between rounded-xl border border-gray-200 p-4 hover:border-blue-300 hover:bg-blue-50/50 transition cursor-pointer"
                 >
                   <div className="flex items-center gap-3">
                     <div className="text-lg">{getStatusIcon(interview)}</div>
                     <div>
-                      <p className="font-medium text-white group-hover:text-blue-400">
+                      <p className="font-medium text-gray-900 group-hover:text-blue-700">
                         {interview.title}
                       </p>
-                      <p className="text-xs text-slate-400">
+                      <p className="text-xs text-gray-500">
                         Round {interview.current_round} •{" "}
                         {interview.organization}
                       </p>
@@ -239,10 +239,10 @@ export default function IndividualDashboard() {
                   </div>
 
                   <div className="text-right">
-                    <p className="text-sm font-medium text-white">
+                    <p className="text-sm font-medium text-gray-900">
                       {getStatusText(interview)}
                     </p>
-                    <p className="text-xs text-slate-400">
+                    <p className="text-xs text-gray-500">
                       {formatDate(interview.scheduled_at)}
                     </p>
                   </div>
@@ -252,7 +252,7 @@ export default function IndividualDashboard() {
               {interviews.length >= 5 && (
                 <button
                   onClick={() => navigate("/interviews/history")}
-                  className="w-full mt-2 rounded-lg py-2 text-sm font-medium text-blue-400 hover:bg-slate-700 transition"
+                  className="w-full mt-2 rounded-lg py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 transition"
                 >
                   View Full Interview History →
                 </button>
@@ -264,11 +264,11 @@ export default function IndividualDashboard() {
         {/* Saved Jobs */}
         <Card>
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-white">Saved Jobs</h3>
-            <span className="text-xs text-slate-400">Quick access</span>
+            <h3 className="font-semibold text-gray-800">Saved Jobs</h3>
+            <span className="text-xs text-gray-500">Quick access</span>
           </div>
 
-          <div className="h-64 rounded-xl border border-dashed border-slate-600 flex items-center justify-center text-slate-400 text-sm">
+          <div className="h-64 rounded-xl border border-dashed border-gray-300 flex items-center justify-center text-gray-400 text-sm">
             Saved jobs will appear here
           </div>
         </Card>

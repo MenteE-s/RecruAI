@@ -108,13 +108,13 @@ export default function OrganizationDashboard() {
       sidebarItems={sidebarItems}
     >
       <div className="mb-6">
-        <div className="rounded-2xl bg-slate-800 border border-slate-700 p-6 text-white shadow-lg">
+        <div className="rounded-2xl bg-white border border-gray-200 p-6 text-gray-900 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl md:text-3xl font-bold font-display">
                 Welcome back{user?.name ? `, ${user.name}` : ""}!
               </h1>
-              <p className="mt-1 text-slate-400">
+              <p className="mt-1 text-gray-500">
                 {user?.organization
                   ? `${user.organization} Dashboard`
                   : "Organization Dashboard"}{" "}
@@ -122,10 +122,10 @@ export default function OrganizationDashboard() {
               </p>
             </div>
             <div className="hidden md:flex items-center space-x-4">
-              <button className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded text-sm transition">
+              <button className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded text-sm transition text-gray-700">
                 Invite members
               </button>
-              <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded text-sm font-semibold transition">
+              <button className="px-4 py-2 bg-blue-700 hover:bg-blue-800 rounded text-sm font-semibold transition text-white">
                 New Campaign
               </button>
             </div>
@@ -196,12 +196,12 @@ export default function OrganizationDashboard() {
       </div>
 
       <Card shadow="lg" className="mb-8">
-        <h3 className="font-semibold text-white mb-4">
+        <h3 className="font-semibold text-gray-800 mb-4">
           Applications by Status
         </h3>
         <div className="h-64 flex items-center justify-center">
           {loading ? (
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
           ) : (
             <Doughnut
               data={{

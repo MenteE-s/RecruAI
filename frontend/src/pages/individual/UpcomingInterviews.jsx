@@ -187,7 +187,7 @@ export default function UpcomingInterviews() {
         >
           {/* Error Message */}
           {error && (
-            <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg">
               {error}
               <button
                 onClick={() => setError(null)}
@@ -199,12 +199,14 @@ export default function UpcomingInterviews() {
           )}
 
           <div className="mb-6">
-            <h1 className="text-2xl font-bold text-gray-900">
-              Upcoming Interviews
-            </h1>
-            <p className="text-gray-600 mt-1">
-              Your scheduled interviews and preparation materials.
-            </p>
+            <div className="rounded-2xl p-6 bg-white border border-gray-200 text-gray-900 shadow-sm">
+              <h1 className="text-2xl font-bold">
+                Upcoming Interviews
+              </h1>
+              <p className="text-gray-500 mt-1">
+                Your scheduled interviews and preparation materials.
+              </p>
+            </div>
           </div>
 
           {/* Filter Input */}
@@ -214,7 +216,7 @@ export default function UpcomingInterviews() {
               placeholder="Filter interviews by title or ID..."
               value={filterText}
               onChange={(e) => setFilterText(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
 
@@ -237,7 +239,7 @@ export default function UpcomingInterviews() {
               </Card>
             ) : (
               filteredInterviews.map((interview) => (
-                <Card key={interview.id}>
+                <Card key={interview.id} className="mb-4">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center mb-2">

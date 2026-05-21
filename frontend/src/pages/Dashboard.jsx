@@ -14,7 +14,7 @@ export default function Dashboard() {
     <DashboardLayout>
       {/* Top hero summary */}
       <div className="mb-6">
-        <div className="rounded-2xl p-6 bg-slate-800 text-white shadow-lg">
+        <div className="rounded-2xl p-6 bg-white text-gray-900 shadow-sm border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl md:text-3xl font-bold font-display">

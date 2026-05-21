@@ -46,16 +46,16 @@ const Modal = ({ isOpen, onClose, children }) => {
 
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50"
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title"
     >
-      <div className="bg-slate-800 rounded-lg p-6 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto border border-slate-700">
+      <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto border border-gray-200">
         {children}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-slate-400 hover:text-white"
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
           aria-label="Close modal"
         >
           <FiXIcon size={24} />
@@ -215,7 +215,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, title: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
               required
             />
             <input
@@ -225,7 +225,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, company: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
               required
             />
             <input
@@ -235,14 +235,14 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, location: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
             />
             <select
               value={formData.employment_type || ""}
               onChange={(e) =>
                 setFormData({ ...formData, employment_type: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Select Employment Type</option>
               <option value="full-time">Full-time</option>
@@ -278,7 +278,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, description: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded resize-none text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded resize-none text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
               rows={3}
             />
           </div>
@@ -294,7 +294,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, degree: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
               required
             />
             <input
@@ -304,7 +304,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, school: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
               required
             />
             <input
@@ -314,7 +314,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, field: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
             />
             <div className="grid grid-cols-2 gap-2">
               <input
@@ -343,7 +343,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, gpa: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
             />
             <textarea
               placeholder="Achievements/Awards (optional)"
@@ -351,7 +351,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, achievements: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded resize-none text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded resize-none text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
               rows={3}
             />
           </div>
@@ -367,7 +367,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, name: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
               required
             />
             <select
@@ -375,7 +375,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, level: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
             >
               <option value="beginner">Beginner</option>
               <option value="intermediate">Intermediate</option>
@@ -392,7 +392,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
                   years_experience: parseInt(e.target.value) || null,
                 })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
               min="0"
             />
           </div>
@@ -408,7 +408,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, name: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
               required
             />
             <textarea
@@ -417,7 +417,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, description: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded resize-none text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded resize-none text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
               rows={3}
             />
             <input
@@ -436,7 +436,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
                     : [],
                 })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
             />
             <div className="grid grid-cols-2 gap-2">
               <input
@@ -471,7 +471,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, title: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
               required
             />
             <input
@@ -481,7 +481,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, journal: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
             />
             <input
               type="text"
@@ -499,7 +499,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
                     : [],
                 })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
             />
             <input
               type="number"
@@ -508,7 +508,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, year: parseInt(e.target.value) })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
             />
             <input
               type="url"
@@ -517,7 +517,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, publication_url: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
             />
           </div>
         );
@@ -532,7 +532,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, title: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
               required
             />
             <input
@@ -542,7 +542,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, issuer: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
               required
             />
             <input
@@ -552,7 +552,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, date: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
             />
             <textarea
               placeholder="Description"
@@ -560,7 +560,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, description: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded resize-none text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded resize-none text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
               rows={3}
             />
           </div>
@@ -576,7 +576,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, name: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
               required
             />
             <input
@@ -586,7 +586,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, issuer: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
               required
             />
             <div className="grid grid-cols-2 gap-2">
@@ -616,7 +616,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, credential_id: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
             />
           </div>
         );
@@ -631,7 +631,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, name: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
               required
             />
             <select
@@ -639,7 +639,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, proficiency_level: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
             >
               <option value="beginner">Beginner</option>
               <option value="intermediate">Intermediate</option>
@@ -659,7 +659,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, title: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
               required
             />
             <input
@@ -669,7 +669,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, organization: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
               required
             />
             <input
@@ -679,7 +679,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, location: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
             />
             <div className="grid grid-cols-2 gap-2">
               <input
@@ -707,7 +707,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, description: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded resize-none text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded resize-none text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
               rows={3}
             />
           </div>
@@ -723,7 +723,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, name: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
               required
             />
             <input
@@ -733,7 +733,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, title: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
             />
             <input
               type="text"
@@ -742,7 +742,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, company: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
             />
             <input
               type="email"
@@ -751,7 +751,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, email: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
             />
             <input
               type="tel"
@@ -760,7 +760,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, phone: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
             />
             <input
               type="text"
@@ -769,7 +769,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, relationship: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
             />
           </div>
         );
@@ -784,7 +784,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, name: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
               required
             />
             <textarea
@@ -793,7 +793,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, description: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded resize-none text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded resize-none text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
               rows={3}
             />
           </div>
@@ -809,7 +809,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, organization: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
               required
             />
             <input
@@ -819,7 +819,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, membership_id: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
             />
             <div className="grid grid-cols-2 gap-2">
               <input
@@ -847,7 +847,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, description: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded resize-none text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded resize-none text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
               rows={3}
             />
           </div>
@@ -863,7 +863,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, title: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
               required
             />
             <input
@@ -873,7 +873,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, patent_number: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
             />
             <div className="grid grid-cols-2 gap-2">
               <input
@@ -911,7 +911,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
                     : [],
                 })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
             />
             <textarea
               placeholder="Description"
@@ -919,7 +919,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, description: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded resize-none text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded resize-none text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
               rows={3}
             />
           </div>
@@ -935,7 +935,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, name: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
               required
             />
             <input
@@ -945,7 +945,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, provider: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
             />
             <input
               type="date"
@@ -954,7 +954,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, completion_date: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
             />
             <input
               type="text"
@@ -963,7 +963,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, credential_id: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
             />
             <textarea
               placeholder="Description (optional)"
@@ -971,7 +971,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, description: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded resize-none text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded resize-none text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
               rows={3}
             />
           </div>
@@ -985,7 +985,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, platform: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
               required
             >
               <option value="">Select Platform</option>
@@ -1005,7 +1005,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, url: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
               required
             />
             <input
@@ -1015,7 +1015,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, username: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
             />
           </div>
         );
@@ -1030,7 +1030,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, title: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
               required
             />
             <select
@@ -1038,7 +1038,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, category: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Select Category</option>
               <option value="Professional">Professional</option>
@@ -1053,7 +1053,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, date: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
             />
             <textarea
               placeholder="Description"
@@ -1061,7 +1061,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, description: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded resize-none text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded resize-none text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
               rows={3}
             />
           </div>
@@ -1077,7 +1077,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, name: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
               required
             />
             <select
@@ -1085,7 +1085,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, role: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Select Role</option>
               <option value="Attendee">Attendee</option>
@@ -1101,7 +1101,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, location: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
             />
             <input
               type="date"
@@ -1110,7 +1110,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, date: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
             />
             <textarea
               placeholder="Description (optional)"
@@ -1118,7 +1118,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, description: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded resize-none text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded resize-none text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
               rows={3}
             />
           </div>
@@ -1134,7 +1134,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, title: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
               required
             />
             <input
@@ -1144,14 +1144,14 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, event_name: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
             />
             <select
               value={formData.event_type || ""}
               onChange={(e) =>
                 setFormData({ ...formData, event_type: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Select Event Type</option>
               <option value="Conference">Conference</option>
@@ -1168,7 +1168,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, location: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
             />
             <input
               type="date"
@@ -1177,7 +1177,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, date: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
             />
             <input
               type="number"
@@ -1189,7 +1189,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
                   audience_size: parseInt(e.target.value) || null,
                 })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
               min="0"
             />
             <textarea
@@ -1198,7 +1198,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, description: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded resize-none text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded resize-none text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
               rows={3}
             />
           </div>
@@ -1214,7 +1214,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, name: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
               required
             />
             <input
@@ -1224,7 +1224,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, issuing_authority: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
             />
             <input
               type="text"
@@ -1233,7 +1233,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, license_number: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
             />
             <div className="grid grid-cols-2 gap-2">
               <input
@@ -1272,7 +1272,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
               onChange={(e) =>
                 setFormData({ ...formData, description: e.target.value })
               }
-              className="w-full p-2 bg-slate-700 border border-slate-600 rounded resize-none text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-2 bg-white border border-gray-300 rounded resize-none text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
               rows={3}
             />
           </div>
@@ -1285,7 +1285,7 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
-      <h2 className="text-xl font-bold text-white mb-4" id="modal-title">
+      <h2 className="text-xl font-bold text-gray-900 mb-4" id="modal-title">
         {itemData ? "Edit" : "Add"} {itemType.slice(0, -1)}
       </h2>
       <form onSubmit={handleSubmit}>
@@ -1294,14 +1294,14 @@ const ItemModal = ({ isOpen, onClose, itemType, itemData, onSave, saving }) => {
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 border border-slate-600 rounded-lg text-slate-300 hover:bg-slate-700"
+            className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={saving}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {saving ? (
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
@@ -1962,9 +1962,9 @@ export default function Profile() {
       >
         <div className="flex justify-center items-center py-12">
           <div className="animate-pulse">
-            <div className="text-slate-400 mb-4">Loading profile...</div>
-            <div className="w-64 h-4 bg-slate-700 rounded mb-2"></div>
-            <div className="w-48 h-4 bg-slate-700 rounded"></div>
+            <div className="text-gray-500 mb-4">Loading profile...</div>
+            <div className="w-64 h-4 bg-gray-200 rounded mb-2"></div>
+            <div className="w-48 h-4 bg-gray-200 rounded"></div>
           </div>
         </div>
       </DashboardLayout>
@@ -1978,7 +1978,7 @@ export default function Profile() {
     >
       {/* Error Message */}
       {error && (
-        <div className="mb-6 p-4 bg-red-900/50 border border-red-700 text-red-300 rounded-lg">
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <FiX className="mr-2" size={20} />
@@ -1987,13 +1987,13 @@ export default function Profile() {
             <div className="flex gap-2">
               <button
                 onClick={() => window.location.reload()}
-                className="px-3 py-1 bg-red-700 text-white rounded hover:bg-red-600 text-sm"
+                className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
               >
                 Retry
               </button>
               <button
                 onClick={() => setError(null)}
-                className="text-red-300 hover:text-red-200"
+                className="text-red-700 hover:text-red-900"
               >
                 ×
               </button>
@@ -2013,7 +2013,7 @@ export default function Profile() {
               className="w-full h-full object-cover"
             />
           ) : (
-            <div className="w-full h-full bg-slate-700" />
+            <div className="w-full h-full bg-gradient-to-r from-blue-400 to-purple-500" />
           )}
 
           {/* Banner Edit Button */}
@@ -2041,7 +2041,7 @@ export default function Profile() {
         </div>
 
         {/* Profile Info Section */}
-        <div className="relative rounded-b-2xl bg-slate-800 border border-slate-700 p-6 shadow-lg -mt-16 pt-20">
+        <div className="relative rounded-b-2xl bg-white p-6 shadow-lg -mt-16 pt-20">
           <div className="flex items-start justify-between">
             <div className="flex items-start space-x-4">
               {/* Profile Picture */}
@@ -2050,7 +2050,7 @@ export default function Profile() {
                   className={`w-24 h-24 rounded-full flex items-center justify-center overflow-hidden border-4 shadow-lg ${
                     userData?.subscription_status?.is_paid_active
                       ? "border-transparent bg-gradient-to-r from-yellow-400 via-green-400 to-emerald-500 p-1"
-                      : "border-slate-800 bg-slate-800"
+                      : "border-white bg-white"
                   }`}
                 >
                   <div
@@ -2067,7 +2067,7 @@ export default function Profile() {
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <FiUser size={36} className="text-slate-400" />
+                      <FiUser size={36} className="text-gray-400" />
                     )}
                   </div>
                 </div>
@@ -2081,9 +2081,9 @@ export default function Profile() {
 
                 <label
                   htmlFor="profile-picture-upload"
-                  className="absolute bottom-0 right-0 bg-slate-700 rounded-full p-2 cursor-pointer hover:bg-slate-600 transition-colors shadow-lg border border-slate-600"
+                  className="absolute bottom-0 right-0 bg-white rounded-full p-2 cursor-pointer hover:bg-gray-50 transition-colors shadow-lg border border-gray-200"
                 >
-                  <FiCamera size={14} className="text-slate-300" />
+                  <FiCamera size={14} className="text-gray-600" />
                 </label>
 
                 <input
@@ -2098,7 +2098,7 @@ export default function Profile() {
 
               <div className="pt-4">
                 <div className="flex items-center gap-3">
-                  <h1 className="text-2xl md:text-3xl font-bold font-display text-white">
+                  <h1 className="text-2xl md:text-3xl font-bold font-display text-gray-900">
                     {userData?.name || "Guest"}
                   </h1>
                   {userData?.subscription_status?.is_paid_active && (
@@ -2108,7 +2108,7 @@ export default function Profile() {
                     </div>
                   )}
                 </div>
-                <p className="mt-1 text-slate-400">
+                <p className="mt-1 text-gray-600">
                   Welcome back! Manage your professional profile.
                 </p>
 
@@ -2119,10 +2119,10 @@ export default function Profile() {
                       <div
                         className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
                           userData.employment_status === "hired"
-                            ? "bg-blue-900/50 text-blue-300"
+                            ? "bg-blue-100 text-blue-800"
                             : userData.employment_status === "working"
-                            ? "bg-green-900/50 text-green-300"
-                            : "bg-slate-700 text-slate-300"
+                            ? "bg-green-100 text-green-800"
+                            : "bg-gray-100 text-gray-800"
                         }`}
                       >
                         {userData.employment_status === "hired" && "🎯 Hired"}
@@ -2133,7 +2133,7 @@ export default function Profile() {
                       </div>
                       {userData.current_position &&
                         userData.current_company && (
-                          <span className="text-sm text-slate-400">
+                          <span className="text-sm text-gray-700">
                             as {userData.current_position} at{" "}
                             {userData.current_company}
                           </span>
@@ -2151,14 +2151,14 @@ export default function Profile() {
                       <FiCheck className="mr-2" size={16} />
                       Join Position
                     </button>
-                    <p className="text-xs text-slate-400 mt-1">
-                      Click to officially join your new position
-                    </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Click to officially join your new position
+                  </p>
                   </div>
                 )}
 
                 {uploadingProfilePicture && (
-                  <p className="mt-2 text-sm text-slate-400">
+                  <p className="mt-2 text-sm text-gray-500">
                     Uploading profile picture...
                   </p>
                 )}
@@ -2171,7 +2171,7 @@ export default function Profile() {
       {/* Personal Information Section */}
       <Card shadow="lg" padding="8" className="lg:col-span-2 mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-white flex items-center">
+          <h3 className="font-semibold text-gray-800 flex items-center">
             <FiUser className="mr-2" />
             Personal Information
           </h3>
@@ -2189,70 +2189,70 @@ export default function Profile() {
                 },
               })
             }
-            className="text-slate-400 hover:text-white"
+            className="text-gray-400 hover:text-gray-600"
           >
             <FiEdit2 size={16} />
           </button>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-slate-400 mb-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Full Name
             </label>
-            <p className="text-white">{userData?.name || "Not provided"}</p>
+            <p className="text-gray-900">{userData?.name || "Not provided"}</p>
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-400 mb-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Email
             </label>
-            <p className="text-white">{userData?.email || "Not provided"}</p>
+            <p className="text-gray-900">{userData?.email || "Not provided"}</p>
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-400 mb-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Phone
             </label>
-            <p className="text-white">{userData?.phone || "Not provided"}</p>
+            <p className="text-gray-900">{userData?.phone || "Not provided"}</p>
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-400 mb-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Location
             </label>
-            <p className="text-white">
+            <p className="text-gray-900">
               {userData?.location || "Not provided"}
             </p>
           </div>
           {userData?.website && (
             <div>
-              <label className="block text-sm font-medium text-slate-400 mb-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Website
               </label>
-              <p className="text-white">
-                <a
-                  href={userData.website}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-400 hover:text-blue-300 underline"
-                >
-                  {userData.website}
-                </a>
-              </p>
+                <p className="text-gray-900">
+                  <a
+                    href={userData.website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:text-blue-800 underline"
+                  >
+                    {userData.website}
+                  </a>
+                </p>
             </div>
           )}
           {userData?.linkedin && (
             <div>
-              <label className="block text-sm font-medium text-slate-400 mb-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 LinkedIn
               </label>
-              <p className="text-white">
-                <a
-                  href={userData.linkedin}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-400 hover:text-blue-300 underline"
-                >
-                  {userData.linkedin}
-                </a>
-              </p>
+                <p className="text-gray-900">
+                  <a
+                    href={userData.linkedin}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:text-blue-800 underline"
+                  >
+                    {userData.linkedin}
+                  </a>
+                </p>
             </div>
           )}
         </div>
@@ -2261,7 +2261,7 @@ export default function Profile() {
       {/* About Section */}
       <Card className="mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-white flex items-center">
+          <h3 className="font-semibold text-gray-800 flex items-center">
             <FiUsers className="mr-2" />
             About
           </h3>
@@ -2269,19 +2269,19 @@ export default function Profile() {
             onClick={() =>
               setEditingItem({ type: "about", data: profileData.about })
             }
-            className="text-slate-400 hover:text-white"
+            className="text-gray-400 hover:text-gray-600"
           >
             <FiEdit2 size={16} />
           </button>
         </div>
-        <p className="text-slate-300 leading-relaxed">
+        <p className="text-gray-700 leading-relaxed">
           {profileData.about.summary || "Tell us about yourself..."}
         </p>
       </Card>
 
       <Card className="mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-white flex items-center">
+          <h3 className="font-semibold text-gray-800 flex items-center">
             <FiBriefcase className="mr-2" />
             Experience
           </h3>
@@ -2293,24 +2293,24 @@ export default function Profile() {
           </button>
         </div>
         {(profileData.experiences || []).length === 0 ? (
-          <p className="text-slate-400 text-sm">No experience added yet</p>
+          <p className="text-gray-500 text-sm">No experience added yet</p>
         ) : (
           <div className="space-y-3">
             {(profileData.experiences || []).map((exp, index) => (
               <div
                 key={exp.id || index}
-                className="border-l-2 border-blue-800 pl-3"
+                className="border-l-2 border-blue-200 pl-3"
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <h4 className="font-medium text-white">{exp.title}</h4>
-                    <p className="text-sm text-slate-400">{exp.company}</p>
-                    <p className="text-xs text-slate-500">{exp.location}</p>
+                    <h4 className="font-medium text-gray-900">{exp.title}</h4>
+                    <p className="text-sm text-gray-600">{exp.company}</p>
+                    <p className="text-xs text-gray-500">{exp.location}</p>
                   </div>
                   <div className="flex gap-2">
                     <button
                       onClick={() => editItem("experiences", exp, index)}
-                      className="text-slate-400 hover:text-white"
+                      className="text-gray-400 hover:text-gray-600"
                     >
                       <FiEdit2 size={14} />
                     </button>
@@ -2331,7 +2331,7 @@ export default function Profile() {
       {/* Education Section */}
       <Card className="mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-white flex items-center">
+          <h3 className="font-semibold text-gray-800 flex items-center">
             <FiBook className="mr-2" />
             Education
           </h3>
@@ -2343,24 +2343,24 @@ export default function Profile() {
           </button>
         </div>
         {(profileData.educations || []).length === 0 ? (
-          <p className="text-slate-400 text-sm">No education added yet</p>
+          <p className="text-gray-500 text-sm">No education added yet</p>
         ) : (
           <div className="space-y-3">
             {(profileData.educations || []).map((edu, index) => (
               <div
                 key={edu.id || index}
-                className="border-l-2 border-green-800 pl-3"
+                className="border-l-2 border-green-200 pl-3"
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <h4 className="font-medium text-white">{edu.degree}</h4>
-                    <p className="text-sm text-slate-400">{edu.school}</p>
-                    <p className="text-xs text-slate-500">{edu.field}</p>
+                    <h4 className="font-medium text-gray-900">{edu.degree}</h4>
+                    <p className="text-sm text-gray-600">{edu.school}</p>
+                    <p className="text-xs text-gray-500">{edu.field}</p>
                   </div>
                   <div className="flex gap-2">
                     <button
                       onClick={() => editItem("educations", edu, index)}
-                      className="text-slate-400 hover:text-white"
+                      className="text-gray-400 hover:text-gray-600"
                     >
                       <FiEdit2 size={14} />
                     </button>
@@ -2381,7 +2381,7 @@ export default function Profile() {
       {/* Skills Section */}
       <Card className="mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-white flex items-center">
+          <h3 className="font-semibold text-gray-800 flex items-center">
             <FiCode className="mr-2" />
             Skills
           </h3>
@@ -2393,13 +2393,13 @@ export default function Profile() {
           </button>
         </div>
         {(profileData.skills || []).length === 0 ? (
-          <p className="text-slate-400 text-sm">No skills added yet</p>
+          <p className="text-gray-500 text-sm">No skills added yet</p>
         ) : (
           <div className="flex flex-wrap gap-2">
             {(profileData.skills || []).map((skill, index) => (
               <span
                 key={skill.id || index}
-                className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-900/50 text-blue-300"
+                className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800"
               >
                 {skill.name}
                 <button
@@ -2417,7 +2417,7 @@ export default function Profile() {
       {/* Projects Section */}
       <Card className="mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-white flex items-center">
+          <h3 className="font-semibold text-gray-800 flex items-center">
             <FiFileText className="mr-2" />
             Projects
           </h3>
@@ -2429,24 +2429,24 @@ export default function Profile() {
           </button>
         </div>
         {(profileData.projects || []).length === 0 ? (
-          <p className="text-slate-400 text-sm">No projects added yet</p>
+          <p className="text-gray-500 text-sm">No projects added yet</p>
         ) : (
           <div className="space-y-3">
             {(profileData.projects || []).map((project, index) => (
-              <div key={project.id || index} className="border border-slate-700 rounded p-3">
+              <div key={project.id || index} className="border border-gray-200 rounded p-3">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <h4 className="font-medium text-white">
+                    <h4 className="font-medium text-gray-900">
                       {project.name}
                     </h4>
-                    <p className="text-sm text-slate-400">
+                    <p className="text-sm text-gray-600">
                       {project.description}
                     </p>
                   </div>
                   <div className="flex gap-2">
                     <button
                       onClick={() => editItem("projects", project, index)}
-                      className="text-slate-400 hover:text-white"
+                      className="text-gray-400 hover:text-gray-600"
                     >
                       <FiEdit2 size={14} />
                     </button>
@@ -2467,7 +2467,7 @@ export default function Profile() {
       {/* Publications Section */}
       <Card className="mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-white flex items-center">
+          <h3 className="font-semibold text-gray-800 flex items-center">
             <FiAward className="mr-2" />
             Publications
           </h3>
@@ -2479,22 +2479,22 @@ export default function Profile() {
           </button>
         </div>
         {(profileData.publications || []).length === 0 ? (
-          <p className="text-slate-400 text-sm">No publications added yet</p>
+          <p className="text-gray-500 text-sm">No publications added yet</p>
         ) : (
           <div className="space-y-3">
             {(profileData.publications || []).map((pub, index) => (
-              <div key={pub.id || index} className="border border-slate-700 rounded p-3">
+              <div key={pub.id || index} className="border border-gray-200 rounded p-3">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <h4 className="font-medium text-white">{pub.title}</h4>
-                    <p className="text-sm text-slate-400">
+                    <h4 className="font-medium text-gray-900">{pub.title}</h4>
+                    <p className="text-sm text-gray-600">
                       {pub.journal} ({pub.year})
                     </p>
                   </div>
                   <div className="flex gap-2">
                     <button
                       onClick={() => editItem("publications", pub, index)}
-                      className="text-slate-400 hover:text-white"
+                      className="text-gray-400 hover:text-gray-600"
                     >
                       <FiEdit2 size={14} />
                     </button>
@@ -2515,7 +2515,7 @@ export default function Profile() {
       {/* Awards Section */}
       <Card className="mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-white flex items-center">
+          <h3 className="font-semibold text-gray-800 flex items-center">
             <FiAward className="mr-2" />
             Awards
           </h3>
@@ -2527,17 +2527,17 @@ export default function Profile() {
           </button>
         </div>
         {(profileData.awards || []).length === 0 ? (
-          <p className="text-slate-400 text-sm">No awards added yet</p>
+          <p className="text-gray-500 text-sm">No awards added yet</p>
         ) : (
           <div className="space-y-3">
             {(profileData.awards || []).map((award, index) => (
-              <div key={award.id || index} className="border border-slate-700 rounded p-3">
+              <div key={award.id || index} className="border border-gray-200 rounded p-3">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <h4 className="font-medium text-white">{award.title}</h4>
-                    <p className="text-sm text-slate-400">{award.issuer}</p>
+                    <h4 className="font-medium text-gray-900">{award.title}</h4>
+                    <p className="text-sm text-gray-600">{award.issuer}</p>
                     {award.date && (
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-gray-500">
                         {formatDate(award.date)}
                       </p>
                     )}
@@ -2545,7 +2545,7 @@ export default function Profile() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => editItem("awards", award, index)}
-                      className="text-slate-400 hover:text-white"
+                      className="text-gray-400 hover:text-gray-600"
                     >
                       <FiEdit2 size={14} />
                     </button>
@@ -2566,7 +2566,7 @@ export default function Profile() {
       {/* Certifications Section */}
       <Card className="mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-white flex items-center">
+          <h3 className="font-semibold text-gray-800 flex items-center">
             <FiCheck className="mr-2" />
             Certifications
           </h3>
@@ -2578,17 +2578,17 @@ export default function Profile() {
           </button>
         </div>
         {(profileData.certifications || []).length === 0 ? (
-          <p className="text-slate-400 text-sm">No certifications added yet</p>
+          <p className="text-gray-500 text-sm">No certifications added yet</p>
         ) : (
           <div className="space-y-3">
             {(profileData.certifications || []).map((cert, index) => (
-              <div key={cert.id || index} className="border border-slate-700 rounded p-3">
+              <div key={cert.id || index} className="border border-gray-200 rounded p-3">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <h4 className="font-medium text-white">{cert.name}</h4>
-                    <p className="text-sm text-slate-400">{cert.issuer}</p>
+                    <h4 className="font-medium text-gray-900">{cert.name}</h4>
+                    <p className="text-sm text-gray-600">{cert.issuer}</p>
                     {cert.date_obtained && (
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-gray-500">
                         Obtained: {formatDate(cert.date_obtained)}
                         {cert.expiry_date &&
                           ` - Expires: ${formatDate(cert.expiry_date)}`}
@@ -2598,7 +2598,7 @@ export default function Profile() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => editItem("certifications", cert, index)}
-                      className="text-slate-400 hover:text-white"
+                      className="text-gray-400 hover:text-gray-600"
                     >
                       <FiEdit2 size={14} />
                     </button>
@@ -2619,7 +2619,7 @@ export default function Profile() {
       {/* Languages Section */}
       <Card className="mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-white flex items-center">
+          <h3 className="font-semibold text-gray-800 flex items-center">
             <FiCode className="mr-2" />
             Languages
           </h3>
@@ -2631,13 +2631,13 @@ export default function Profile() {
           </button>
         </div>
         {(profileData.languages || []).length === 0 ? (
-          <p className="text-slate-400 text-sm">No languages added yet</p>
+          <p className="text-gray-500 text-sm">No languages added yet</p>
         ) : (
           <div className="flex flex-wrap gap-2">
             {(profileData.languages || []).map((lang, index) => (
               <span
                 key={lang.id || index}
-                className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-green-900/50 text-green-300"
+                className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-green-100 text-green-800"
               >
                 {lang.name} - {lang.proficiency_level}
                 <button
@@ -2655,7 +2655,7 @@ export default function Profile() {
       {/* Volunteer Experience Section */}
       <Card className="mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-white flex items-center">
+          <h3 className="font-semibold text-gray-800 flex items-center">
             <FiUsers className="mr-2" />
             Volunteer Experience
           </h3>
@@ -2667,7 +2667,7 @@ export default function Profile() {
           </button>
         </div>
         {(profileData.volunteerExperiences || []).length === 0 ? (
-          <p className="text-slate-400 text-sm">
+          <p className="text-gray-500 text-sm">
             No volunteer experience added yet
           </p>
         ) : (
@@ -2675,20 +2675,20 @@ export default function Profile() {
             {(profileData.volunteerExperiences || []).map((vol, index) => (
               <div
                 key={vol.id || index}
-                className="border-l-2 border-purple-800 pl-3"
+                className="border-l-2 border-purple-200 pl-3"
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <h4 className="font-medium text-white">{vol.title}</h4>
-                    <p className="text-sm text-slate-400">{vol.organization}</p>
-                    <p className="text-xs text-slate-500">{vol.location}</p>
+                    <h4 className="font-medium text-gray-900">{vol.title}</h4>
+                    <p className="text-sm text-gray-600">{vol.organization}</p>
+                    <p className="text-xs text-gray-500">{vol.location}</p>
                   </div>
                   <div className="flex gap-2">
                     <button
                       onClick={() =>
                         editItem("volunteerExperiences", vol, index)
                       }
-                      className="text-slate-400 hover:text-white"
+                      className="text-gray-400 hover:text-gray-600"
                     >
                       <FiEdit2 size={14} />
                     </button>
@@ -2709,7 +2709,7 @@ export default function Profile() {
       {/* References Section */}
       <Card className="mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-white flex items-center">
+          <h3 className="font-semibold text-gray-800 flex items-center">
             <FiUsers className="mr-2" />
             References
           </h3>
@@ -2721,23 +2721,23 @@ export default function Profile() {
           </button>
         </div>
         {(profileData.references || []).length === 0 ? (
-          <p className="text-slate-400 text-sm">No references added yet</p>
+          <p className="text-gray-500 text-sm">No references added yet</p>
         ) : (
           <div className="space-y-3">
             {(profileData.references || []).map((ref, index) => (
-              <div key={ref.id || index} className="border border-slate-700 rounded p-3">
+              <div key={ref.id || index} className="border border-gray-200 rounded p-3">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <h4 className="font-medium text-white">{ref.name}</h4>
-                    <p className="text-sm text-slate-400">
+                    <h4 className="font-medium text-gray-900">{ref.name}</h4>
+                    <p className="text-sm text-gray-600">
                       {ref.title} at {ref.company}
                     </p>
-                    <p className="text-xs text-slate-500">{ref.relationship}</p>
+                    <p className="text-xs text-gray-500">{ref.relationship}</p>
                   </div>
                   <div className="flex gap-2">
                     <button
                       onClick={() => editItem("references", ref, index)}
-                      className="text-slate-400 hover:text-white"
+                      className="text-gray-400 hover:text-gray-600"
                     >
                       <FiEdit2 size={14} />
                     </button>
@@ -2758,7 +2758,7 @@ export default function Profile() {
       {/* Hobby Interests Section */}
       <Card className="mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-white flex items-center">
+          <h3 className="font-semibold text-gray-800 flex items-center">
             <FiCode className="mr-2" />
             Hobby Interests
           </h3>
@@ -2770,13 +2770,13 @@ export default function Profile() {
           </button>
         </div>
         {(profileData.hobbyInterests || []).length === 0 ? (
-          <p className="text-slate-400 text-sm">No hobby interests added yet</p>
+          <p className="text-gray-500 text-sm">No hobby interests added yet</p>
         ) : (
           <div className="flex flex-wrap gap-2">
             {(profileData.hobbyInterests || []).map((hobby, index) => (
               <span
                 key={hobby.id || index}
-                className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-pink-900/50 text-pink-300"
+                className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-pink-100 text-pink-800"
               >
                 {hobby.name}
                 <button
@@ -2794,7 +2794,7 @@ export default function Profile() {
       {/* Professional Memberships Section */}
       <Card className="mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-white flex items-center">
+          <h3 className="font-semibold text-gray-800 flex items-center">
             <FiBriefcase className="mr-2" />
             Professional Memberships
           </h3>
@@ -2806,7 +2806,7 @@ export default function Profile() {
           </button>
         </div>
         {(profileData.professionalMemberships || []).length === 0 ? (
-          <p className="text-slate-400 text-sm">
+          <p className="text-gray-500 text-sm">
             No professional memberships added yet
           </p>
         ) : (
@@ -2815,20 +2815,20 @@ export default function Profile() {
               (membership, index) => (
                 <div
                   key={membership.id || index}
-                  className="border border-slate-700 rounded p-3"
+                  className="border border-gray-200 rounded p-3"
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <h4 className="font-medium text-white">
+                      <h4 className="font-medium text-gray-900">
                         {membership.organization}
                       </h4>
                       {membership.membership_id && (
-                        <p className="text-sm text-slate-400">
+                        <p className="text-sm text-gray-600">
                           ID: {membership.membership_id}
                         </p>
                       )}
                       {(membership.start_date || membership.end_date) && (
-                        <p className="text-xs text-slate-500">
+                        <p className="text-xs text-gray-500">
                           {membership.start_date &&
                             `From: ${formatDate(membership.start_date)}`}
                           {membership.end_date &&
@@ -2841,7 +2841,7 @@ export default function Profile() {
                         onClick={() =>
                           editItem("professionalMemberships", membership, index)
                         }
-                        className="text-slate-400 hover:text-white"
+                        className="text-gray-400 hover:text-gray-600"
                       >
                         <FiEdit2 size={14} />
                       </button>
@@ -2865,7 +2865,7 @@ export default function Profile() {
       {/* Patents Section */}
       <Card className="mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-white flex items-center">
+          <h3 className="font-semibold text-gray-800 flex items-center">
             <FiFileText className="mr-2" />
             Patents
           </h3>
@@ -2877,23 +2877,23 @@ export default function Profile() {
           </button>
         </div>
         {(profileData.patents || []).length === 0 ? (
-          <p className="text-slate-400 text-sm">No patents added yet</p>
+          <p className="text-gray-500 text-sm">No patents added yet</p>
         ) : (
           <div className="space-y-3">
             {(profileData.patents || []).map((patent, index) => (
-              <div key={patent.id || index} className="border border-slate-700 rounded p-3">
+              <div key={patent.id || index} className="border border-gray-200 rounded p-3">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <h4 className="font-medium text-white">
+                    <h4 className="font-medium text-gray-900">
                       {patent.title}
                     </h4>
                     {patent.patent_number && (
-                      <p className="text-sm text-slate-400">
+                      <p className="text-sm text-gray-600">
                         Patent #: {patent.patent_number}
                       </p>
                     )}
                     {(patent.filing_date || patent.grant_date) && (
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-gray-500">
                         {patent.filing_date &&
                           `Filed: ${formatDate(patent.filing_date)}`}
                         {patent.grant_date &&
@@ -2904,7 +2904,7 @@ export default function Profile() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => editItem("patents", patent, index)}
-                      className="text-slate-400 hover:text-white"
+                      className="text-gray-400 hover:text-gray-600"
                     >
                       <FiEdit2 size={14} />
                     </button>
@@ -2925,7 +2925,7 @@ export default function Profile() {
       {/* Course Trainings Section */}
       <Card className="mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-white flex items-center">
+          <h3 className="font-semibold text-gray-800 flex items-center">
             <FiBook className="mr-2" />
             Course Trainings
           </h3>
@@ -2937,19 +2937,19 @@ export default function Profile() {
           </button>
         </div>
         {(profileData.courseTrainings || []).length === 0 ? (
-          <p className="text-slate-400 text-sm">No course trainings added yet</p>
+          <p className="text-gray-500 text-sm">No course trainings added yet</p>
         ) : (
           <div className="space-y-3">
             {(profileData.courseTrainings || []).map((course, index) => (
               <div key={course.id || index} className="border rounded p-3">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <h4 className="font-medium text-white">{course.name}</h4>
+                    <h4 className="font-medium text-gray-900">{course.name}</h4>
                     {course.provider && (
-                      <p className="text-sm text-slate-400">{course.provider}</p>
+                      <p className="text-sm text-gray-600">{course.provider}</p>
                     )}
                     {course.completion_date && (
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-gray-500">
                         Completed: {formatDate(course.completion_date, "full")}
                       </p>
                     )}
@@ -2957,7 +2957,7 @@ export default function Profile() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => editItem("courseTrainings", course, index)}
-                      className="text-slate-400 hover:text-white"
+                      className="text-gray-400 hover:text-gray-600"
                     >
                       <FiEdit2 size={14} />
                     </button>
@@ -2978,7 +2978,7 @@ export default function Profile() {
       {/* Social Media Links Section */}
       <Card className="mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-white flex items-center">
+          <h3 className="font-semibold text-gray-800 flex items-center">
             <FiCode className="mr-2" />
             Social Media Links
           </h3>
@@ -2990,7 +2990,7 @@ export default function Profile() {
           </button>
         </div>
         {(profileData.socialMediaLinks || []).length === 0 ? (
-          <p className="text-slate-400 text-sm">
+          <p className="text-gray-500 text-sm">
             No social media links added yet
           </p>
         ) : (
@@ -2999,25 +2999,25 @@ export default function Profile() {
               <div key={link.id || index} className="border rounded p-3">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <h4 className="font-medium text-white">
+                    <h4 className="font-medium text-gray-900">
                       {link.platform}
                     </h4>
                     <a
                       href={link.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-sm text-blue-400 hover:text-blue-300"
+                      className="text-sm text-blue-600 hover:text-blue-800"
                     >
                       {link.url}
                     </a>
                     {link.username && (
-                      <p className="text-xs text-slate-500">@{link.username}</p>
+                      <p className="text-xs text-gray-500">@{link.username}</p>
                     )}
                   </div>
                   <div className="flex gap-2">
                     <button
                       onClick={() => editItem("socialMediaLinks", link, index)}
-                      className="text-slate-400 hover:text-white"
+                      className="text-gray-400 hover:text-gray-600"
                     >
                       <FiEdit2 size={14} />
                     </button>
@@ -3038,7 +3038,7 @@ export default function Profile() {
       {/* Key Achievements Section */}
       <Card className="mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-white flex items-center">
+          <h3 className="font-semibold text-gray-800 flex items-center">
             <FiAward className="mr-2" />
             Key Achievements
           </h3>
@@ -3050,21 +3050,21 @@ export default function Profile() {
           </button>
         </div>
         {(profileData.keyAchievements || []).length === 0 ? (
-          <p className="text-slate-400 text-sm">No key achievements added yet</p>
+          <p className="text-gray-500 text-sm">No key achievements added yet</p>
         ) : (
           <div className="space-y-3">
             {(profileData.keyAchievements || []).map((achievement, index) => (
               <div key={achievement.id || index} className="border rounded p-3">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <h4 className="font-medium text-white">
+                    <h4 className="font-medium text-gray-900">
                       {achievement.title}
                     </h4>
-                    <p className="text-sm text-slate-400">
+                    <p className="text-sm text-gray-600">
                       {achievement.category}
                     </p>
                     {achievement.date && (
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-gray-500">
                         {formatDate(achievement.date)}
                       </p>
                     )}
@@ -3074,7 +3074,7 @@ export default function Profile() {
                       onClick={() =>
                         editItem("keyAchievements", achievement, index)
                       }
-                      className="text-slate-400 hover:text-white"
+                      className="text-gray-400 hover:text-gray-600"
                     >
                       <FiEdit2 size={14} />
                     </button>
@@ -3095,7 +3095,7 @@ export default function Profile() {
       {/* Conferences Section */}
       <Card className="mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-white flex items-center">
+          <h3 className="font-semibold text-gray-800 flex items-center">
             <FiUsers className="mr-2" />
             Conferences
           </h3>
@@ -3107,20 +3107,20 @@ export default function Profile() {
           </button>
         </div>
         {(profileData.conferences || []).length === 0 ? (
-          <p className="text-slate-400 text-sm">No conferences added yet</p>
+          <p className="text-gray-500 text-sm">No conferences added yet</p>
         ) : (
           <div className="space-y-3">
             {(profileData.conferences || []).map((conference, index) => (
               <div key={conference.id || index} className="border rounded p-3">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <h4 className="font-medium text-white">
+                    <h4 className="font-medium text-gray-900">
                       {conference.name}
                     </h4>
-                    <p className="text-sm text-slate-400">
+                    <p className="text-sm text-gray-600">
                       Role: {conference.role}
                     </p>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-gray-500">
                       {conference.location} -{" "}
                       {conference.date && formatDate(conference.date)}
                     </p>
@@ -3128,7 +3128,7 @@ export default function Profile() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => editItem("conferences", conference, index)}
-                      className="text-slate-400 hover:text-white"
+                      className="text-gray-400 hover:text-gray-600"
                     >
                       <FiEdit2 size={14} />
                     </button>
@@ -3149,7 +3149,7 @@ export default function Profile() {
       {/* Speaking Engagements Section */}
       <Card className="mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-white flex items-center">
+          <h3 className="font-semibold text-gray-800 flex items-center">
             <FiBriefcase className="mr-2" />
             Speaking Engagements
           </h3>
@@ -3161,7 +3161,7 @@ export default function Profile() {
           </button>
         </div>
         {(profileData.speakingEngagements || []).length === 0 ? (
-          <p className="text-slate-400 text-sm">
+          <p className="text-gray-500 text-sm">
             No speaking engagements added yet
           </p>
         ) : (
@@ -3170,17 +3170,17 @@ export default function Profile() {
               (engagement, index) => (
                 <div
                   key={engagement.id || index}
-                  className="border border-slate-700 rounded p-3"
+                  className="border border-gray-200 rounded p-3"
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <h4 className="font-medium text-white">
+                      <h4 className="font-medium text-gray-900">
                         {engagement.title}
                       </h4>
-                      <p className="text-sm text-slate-400">
+                      <p className="text-sm text-gray-600">
                         {engagement.event_name} ({engagement.event_type})
                       </p>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-gray-500">
                         {engagement.location} -{" "}
                         {engagement.date && formatDate(engagement.date, "full")}
                         {engagement.audience_size &&
@@ -3192,7 +3192,7 @@ export default function Profile() {
                         onClick={() =>
                           editItem("speakingEngagements", engagement, index)
                         }
-                        className="text-slate-400 hover:text-white"
+                        className="text-gray-400 hover:text-gray-600"
                       >
                         <FiEdit2 size={14} />
                       </button>
@@ -3214,7 +3214,7 @@ export default function Profile() {
       {/* Licenses Section */}
       <Card className="mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-white flex items-center">
+          <h3 className="font-semibold text-gray-800 flex items-center">
             <FiCheck className="mr-2" />
             Licenses
           </h3>
@@ -3226,26 +3226,26 @@ export default function Profile() {
           </button>
         </div>
         {(profileData.licenses || []).length === 0 ? (
-          <p className="text-slate-400 text-sm">No licenses added yet</p>
+          <p className="text-gray-500 text-sm">No licenses added yet</p>
         ) : (
           <div className="space-y-3">
             {(profileData.licenses || []).map((license, index) => (
               <div key={license.id || index} className="border rounded p-3">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <h4 className="font-medium text-white">
+                    <h4 className="font-medium text-gray-900">
                       {license.name}
                     </h4>
-                    <p className="text-sm text-slate-400">
+                    <p className="text-sm text-gray-600">
                       {license.issuing_authority}
                     </p>
                     {license.license_number && (
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-gray-500">
                         License #: {license.license_number}
                       </p>
                     )}
                     {(license.issue_date || license.expiry_date) && (
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-gray-500">
                         {license.issue_date &&
                           `Issued: ${formatDate(license.issue_date)}`}
                         {license.expiry_date &&
@@ -3257,7 +3257,7 @@ export default function Profile() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => editItem("licenses", license, index)}
-                      className="text-slate-400 hover:text-white"
+                      className="text-gray-400 hover:text-gray-600"
                     >
                       <FiEdit2 size={14} />
                     </button>
@@ -3292,7 +3292,7 @@ export default function Profile() {
       {/* Personal Information Modal */}
       {editingItem && editingItem.type === "personal" && (
         <Modal isOpen={true} onClose={() => setEditingItem(null)}>
-          <h2 className="text-xl font-bold text-white mb-4">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">
             Edit Personal Information
           </h2>
           <form
@@ -3311,71 +3311,71 @@ export default function Profile() {
           >
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-400 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Full Name *
                 </label>
                 <input
                   type="text"
                   name="name"
                   defaultValue={editingItem.data?.name || ""}
-                  className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-400 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Email Address *
                 </label>
                 <input
                   type="email"
                   name="email"
                   defaultValue={editingItem.data?.email || ""}
-                  className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-400 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Phone Number
                 </label>
                 <input
                   type="tel"
                   name="phone"
                   defaultValue={editingItem.data?.phone || ""}
-                  className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-400 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Location
                 </label>
                 <input
                   type="text"
                   name="location"
                   defaultValue={editingItem.data?.location || ""}
-                  className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-400 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Personal Website
                 </label>
                 <input
                   type="url"
                   name="website"
                   defaultValue={editingItem.data?.website || ""}
-                  className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-400 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   LinkedIn Profile
                 </label>
                 <input
                   type="url"
                   name="linkedin"
                   defaultValue={editingItem.data?.linkedin || ""}
-                  className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
                 />
               </div>
             </div>
@@ -3383,14 +3383,14 @@ export default function Profile() {
               <button
                 type="button"
                 onClick={() => setEditingItem(null)}
-                className="px-4 py-2 border border-slate-600 rounded-lg text-slate-300 hover:bg-slate-700"
+                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={saving}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {saving ? (
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
@@ -3406,7 +3406,7 @@ export default function Profile() {
       {/* About Modal */}
       {editingItem && editingItem.type === "about" && (
         <Modal isOpen={true} onClose={() => setEditingItem(null)}>
-          <h2 className="text-xl font-bold text-white mb-4">Edit About</h2>
+          <h2 className="text-xl font-bold text-gray-900 mb-4">Edit About</h2>
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -3418,7 +3418,7 @@ export default function Profile() {
               name="summary"
               defaultValue={editingItem.data?.summary || ""}
               placeholder="Tell us about yourself..."
-              className="w-full p-3 bg-slate-700 border border-slate-600 rounded-lg resize-none text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-3 bg-white border border-gray-300 rounded-lg resize-none text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
               rows={6}
               required
             />
@@ -3426,14 +3426,14 @@ export default function Profile() {
               <button
                 type="button"
                 onClick={() => setEditingItem(null)}
-                className="px-4 py-2 border border-slate-600 rounded-lg text-slate-300 hover:bg-slate-700"
+                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={saving}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {saving ? (
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
@@ -3452,19 +3452,19 @@ export default function Profile() {
         onClose={() => setShowDeleteConfirm(null)}
       >
         <h2
-          className="text-xl font-bold text-white mb-4"
+          className="text-xl font-bold text-gray-900 mb-4"
           id="delete-modal-title"
         >
           Delete Item
         </h2>
-        <p className="text-slate-400 mb-6">
+        <p className="text-gray-600 mb-6">
           Are you sure you want to delete this item? This action cannot be
           undone.
         </p>
         <div className="flex gap-3 justify-end">
           <button
             onClick={() => setShowDeleteConfirm(null)}
-            className="px-4 py-2 border border-slate-600 rounded-lg text-slate-300 hover:bg-slate-700"
+            className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
           >
             Cancel
           </button>

@@ -320,17 +320,17 @@ export default function BrowseJobs() {
             <div className="flex items-start gap-4">
               <div className="flex-1">
                 <Link to={`/jobs/${job.id}`}>
-                  <h3 className="text-xl font-semibold text-white mb-1 hover:text-blue-400 cursor-pointer">
+                  <h3 className="text-xl font-semibold text-gray-900 mb-1 hover:text-blue-600 cursor-pointer">
                     {sanitizeHtml(job.title)}
                   </h3>
                 </Link>
-                <p className="text-lg text-blue-400 font-medium mb-2">
+                <p className="text-lg text-blue-700 font-medium mb-2">
                   {job.organization?.name}
                 </p>
-                <p className="text-slate-400 mb-3 line-clamp-2">
+                <p className="text-gray-600 mb-3 line-clamp-2">
                   {truncateText(job.description, 200)}
                 </p>
-                <div className="flex flex-wrap gap-4 text-sm text-slate-500 mb-3">
+                <div className="flex flex-wrap gap-4 text-sm text-gray-500 mb-3">
                   {job.location && (
                     <span className="flex items-center gap-1">
                       📍 {job.location}
@@ -361,10 +361,10 @@ export default function BrowseJobs() {
                 </div>
                 {job.requirements && job.requirements.length > 0 && (
                   <div>
-                    <p className="text-sm font-medium text-slate-300 mb-1">
+                    <p className="text-sm font-medium text-gray-700 mb-1">
                       Key Requirements:
                     </p>
-                    <ul className="text-sm text-slate-400 list-disc list-inside line-clamp-2">
+                    <ul className="text-sm text-gray-600 list-disc list-inside line-clamp-2">
                       {job.requirements.slice(0, 3).map((req, index) => (
                         <li key={index}>{sanitizeHtml(req)}</li>
                       ))}
@@ -381,7 +381,7 @@ export default function BrowseJobs() {
             {appliedJobs.has(job.id) ? (
               <button
                 disabled
-                className="px-4 py-2 bg-green-900/50 text-green-300 rounded-md cursor-not-allowed"
+                className="px-4 py-2 bg-green-100 text-green-800 rounded-md cursor-not-allowed"
               >
                 Applied
               </button>
@@ -391,7 +391,7 @@ export default function BrowseJobs() {
                   setSelectedJob(job);
                   setShowApplyConfirm(true);
                 }}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                className="px-4 py-2 bg-blue-700 text-white rounded-md hover:bg-blue-800"
               >
                 Apply Now
               </button>
@@ -409,14 +409,14 @@ export default function BrowseJobs() {
                       if (data.saved_id) handleUnsaveJob(data.saved_id);
                     });
                 }}
-                className="px-4 py-2 border border-slate-600 rounded-md hover:bg-slate-700 text-slate-300"
+                className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 text-gray-700"
               >
                 Saved
               </button>
             ) : (
               <button
                 onClick={() => handleSaveJob(job.id)}
-                className="px-4 py-2 border border-slate-600 rounded-md hover:bg-slate-700 text-slate-300"
+                className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 text-gray-700"
               >
                 Save Job
               </button>
@@ -455,17 +455,17 @@ export default function BrowseJobs() {
       sidebarItems={sidebarItems}
     >
       <div className="mb-6">
-        <div className="rounded-2xl p-6 bg-slate-800 border border-slate-700 text-white shadow-lg">
+        <div className="rounded-2xl p-6 bg-white border border-gray-200 text-gray-900 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl md:text-3xl font-bold font-display">
                 Browse Jobs
               </h1>
-              <p className="mt-1 text-slate-400">Find your next opportunity</p>
+              <p className="mt-1 text-gray-500">Find your next opportunity</p>
             </div>
-            <div className="text-white text-right">
+            <div className="text-gray-900 text-right">
               <p className="text-2xl font-bold">{jobs.length}</p>
-              <p className="text-sm text-slate-400">Jobs found</p>
+              <p className="text-sm text-gray-500">Jobs found</p>
             </div>
           </div>
         </div>
@@ -475,7 +475,7 @@ export default function BrowseJobs() {
       <Card className="mb-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
-            <label className="block text-sm font-medium text-slate-400 mb-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Search
             </label>
             <input
@@ -485,11 +485,11 @@ export default function BrowseJobs() {
               onChange={(e) =>
                 setFilters((prev) => ({ ...prev, search: e.target.value }))
               }
-              className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-400 mb-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Category
             </label>
             <select
@@ -497,7 +497,7 @@ export default function BrowseJobs() {
               onChange={(e) =>
                 setFilters((prev) => ({ ...prev, category: e.target.value }))
               }
-              className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">All Categories</option>
               {getUniqueValues("category").map((cat) => (
@@ -508,7 +508,7 @@ export default function BrowseJobs() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-400 mb-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Location
             </label>
             <input
@@ -518,11 +518,11 @@ export default function BrowseJobs() {
               onChange={(e) =>
                 setFilters((prev) => ({ ...prev, location: e.target.value }))
               }
-              className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-400 mb-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Employment Type
             </label>
             <select
@@ -533,7 +533,7 @@ export default function BrowseJobs() {
                   employment_type: e.target.value,
                 }))
               }
-              className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">All Types</option>
               {getUniqueValues("employment_type").map((type) => (
@@ -550,16 +550,16 @@ export default function BrowseJobs() {
       {recommendedJobs.length > 0 && (
         <Card className="p-6 mb-6">
           <div className="flex items-center gap-2 mb-4">
-            <div className="w-8 h-8 bg-blue-900/50 rounded-full flex items-center justify-center">
+            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
               <svg
-                className="w-4 h-4 text-blue-400"
+                className="w-4 h-4 text-blue-600"
                 fill="currentColor"
                 viewBox="0 0 20 20"
               >
                 <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
               </svg>
             </div>
-            <h2 className="text-xl font-semibold text-white">
+            <h2 className="text-xl font-semibold text-gray-900">
               Recommended for You
             </h2>
           </div>
@@ -592,7 +592,7 @@ export default function BrowseJobs() {
               <button
                 onClick={() => fetchJobs(false)}
                 disabled={loading}
-                className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-slate-700 disabled:text-slate-500 disabled:cursor-not-allowed flex items-center gap-2"
+                className="px-6 py-3 bg-blue-700 text-white rounded-md hover:bg-blue-800 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {loading ? (
                   <>
@@ -607,7 +607,7 @@ export default function BrowseJobs() {
           )}
 
           {/* Results Summary */}
-          <div className="text-center text-sm text-slate-500 mt-4">
+          <div className="text-center text-sm text-gray-500 mt-4">
             Showing {jobs.length} of {pagination.total} jobs
           </div>
         </div>
@@ -615,18 +615,18 @@ export default function BrowseJobs() {
 
       {/* Apply Confirmation Modal */}
       {showApplyConfirm && selectedJob && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
-          <div className="bg-slate-800 rounded-lg p-6 max-w-md w-full mx-4 border border-slate-700">
-            <h3 className="text-lg font-semibold text-white mb-4">Confirm Application</h3>
-            <p className="text-slate-400 mb-6">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 border border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Confirm Application</h3>
+            <p className="text-gray-600 mb-6">
               Are you sure you want to apply for{" "}
-              <strong className="text-white">{selectedJob.title}</strong> at{" "}
-              <strong className="text-white">{selectedJob.organization?.name}</strong>?
+              <strong className="text-gray-900">{selectedJob.title}</strong> at{" "}
+              <strong className="text-gray-900">{selectedJob.organization?.name}</strong>?
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => handleApplyJob(selectedJob.id)}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                className="flex-1 px-4 py-2 bg-blue-700 text-white rounded-md hover:bg-blue-800"
               >
                 Yes, Apply
               </button>
@@ -635,7 +635,7 @@ export default function BrowseJobs() {
                   setShowApplyConfirm(false);
                   setSelectedJob(null);
                 }}
-                className="px-4 py-2 border border-slate-600 rounded-md hover:bg-slate-700 text-slate-300"
+                className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 text-gray-700"
               >
                 Cancel
               </button>

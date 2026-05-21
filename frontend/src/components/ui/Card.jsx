@@ -12,11 +12,11 @@ export default function Card({
     <div
       className={twMerge(
         clsx(
-          "bg-slate-800",
+          "bg-white",
           `shadow-${shadow}`,
           `rounded-${rounded}`,
           `p-${padding}`,
-          "border border-slate-700",
+          "border border-gray-200",
           className
         )
       )}

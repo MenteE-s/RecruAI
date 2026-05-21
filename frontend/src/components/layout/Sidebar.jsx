@@ -55,22 +55,22 @@ export default function Sidebar({ open, toggleSidebar, items = [] }) {
     <>
       <button
         onClick={toggleSidebar}
-        className="md:hidden fixed top-4 left-4 z-20 p-2 rounded-lg bg-slate-800 shadow-md"
+        className="md:hidden fixed top-4 left-4 z-20 p-2 rounded-lg bg-white shadow-md"
       >
-        <FiMenu className="h-6 w-6 text-white" />
+        <FiMenu className="h-6 w-6 text-gray-600" />
       </button>
 
       <aside
-        className={`fixed md:relative inset-y-0 left-0 z-10 w-64 md:w-64 md:shrink-0 bg-slate-900 border-r border-slate-700 transform ${
+        className={`fixed md:relative inset-y-0 left-0 z-10 w-64 md:w-64 md:shrink-0 bg-white border-r border-gray-200 transform ${
           open ? "translate-x-0" : "-translate-x-full"
-        } md:translate-x-0 transition-transform duration-300 ease-in-out h-screen md:h-auto flex flex-col`}
+        } md:translate-x-0 transition-transform duration-300 ease-in-out h-screen flex flex-col overflow-hidden`}
         aria-label="Sidebar"
       >
-        <div className="px-6 py-5 border-b border-slate-700">
-          <h1 className="text-lg font-semibold text-white tracking-wide">
+        <div className="px-6 py-5 border-b border-gray-200">
+          <h1 className="text-lg font-semibold text-gray-900 tracking-wide">
             MenteE / RecruAI
           </h1>
-          <p className="text-xs text-slate-400 mt-0.5">Intelligent Hiring</p>
+          <p className="text-xs text-gray-500 mt-0.5">Intelligent Hiring</p>
         </div>
 
         <nav className="px-3 py-4 flex-1 overflow-y-auto scroll-smooth">
@@ -81,8 +81,8 @@ export default function Sidebar({ open, toggleSidebar, items = [] }) {
                   to={item.link}
                   className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors duration-150 ${
                     isActive(item.link)
-                      ? "bg-blue-600 text-white"
-                      : "text-slate-300 hover:bg-slate-800 hover:text-white"
+                      ? "bg-blue-50 text-blue-700"
+                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                   }`}
                 >
                   <item.icon className="h-5 w-5 shrink-0" />
@@ -94,22 +94,22 @@ export default function Sidebar({ open, toggleSidebar, items = [] }) {
         </nav>
 
         {settingsItem && (
-          <div className="px-3 py-3 border-t border-slate-700">
+          <div className="px-3 py-3 border-t border-gray-200">
             <div className="relative" ref={settingsRef}>
               {settingsOpen && (
-                <div className="absolute bottom-full left-0 right-0 mb-2 bg-slate-800 border border-slate-600 rounded-md shadow-xl overflow-hidden">
+                <div className="absolute bottom-full left-0 right-0 mb-2 bg-white border border-gray-200 rounded-md shadow-lg overflow-hidden">
                   <button
                     onClick={() => {
                       setSettingsOpen(false);
                       navigate(settingsItem.link);
                     }}
-                    className="w-full text-left px-4 py-2.5 text-sm text-slate-200 hover:bg-slate-700"
+                    className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
                   >
                     Settings
                   </button>
                   <button
                     onClick={signOut}
-                    className="w-full text-left px-4 py-2.5 text-sm text-red-400 hover:bg-slate-700 hover:text-red-300"
+                    className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 hover:text-red-700"
                   >
                     Logout
                   </button>
@@ -121,8 +121,8 @@ export default function Sidebar({ open, toggleSidebar, items = [] }) {
                 onClick={() => setSettingsOpen((v) => !v)}
                 className={`w-full flex items-center justify-between px-3 py-2.5 rounded-md text-sm font-medium transition-colors duration-150 ${
                   isActive(settingsItem.link)
-                    ? "bg-blue-600 text-white"
-                    : "text-slate-300 hover:bg-slate-800 hover:text-white"
+                    ? "bg-blue-50 text-blue-700"
+                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                 }`}
               >
                 <span className="flex items-center gap-3">
@@ -130,7 +130,7 @@ export default function Sidebar({ open, toggleSidebar, items = [] }) {
                   <span>{settingsItem.name}</span>
                 </span>
                 <svg
-                  className={`h-4 w-4 text-slate-400 transition-transform duration-200 ${
+                  className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${
                     settingsOpen ? "rotate-180" : ""
                   }`}
                   fill="none"

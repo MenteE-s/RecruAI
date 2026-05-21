@@ -258,7 +258,7 @@ export default function InterviewHistory() {
     >
       {/* Error Message */}
       {error && (
-        <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg">
           {error}
           <button
             onClick={() => setError(null)}
@@ -270,12 +270,14 @@ export default function InterviewHistory() {
       )}
 
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">
-          Interview Performance
-        </h1>
-        <p className="text-gray-600 mt-1">
-          Review your interview history and performance analytics.
-        </p>
+        <div className="rounded-2xl p-6 bg-white border border-gray-200 text-gray-900 shadow-sm">
+          <h1 className="text-2xl font-bold">
+            Interview Performance
+          </h1>
+          <p className="text-gray-500 mt-1">
+            Review your interview history and performance analytics.
+          </p>
+        </div>
       </div>
 
       {/* Tab Navigation */}

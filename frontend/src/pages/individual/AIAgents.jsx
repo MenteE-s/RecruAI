@@ -156,7 +156,7 @@ export default function IndividualAIAgents() {
           <div>
             <label className="block text-sm mb-1">Name</label>
             <input
-              className="w-full border rounded p-2"
+              className="w-full border border-gray-300 rounded p-2 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               required
@@ -165,7 +165,7 @@ export default function IndividualAIAgents() {
           <div>
             <label className="block text-sm mb-1">Industry</label>
             <input
-              className="w-full border rounded p-2"
+              className="w-full border border-gray-300 rounded p-2 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               value={form.industry}
               onChange={(e) => setForm({ ...form, industry: e.target.value })}
             />
@@ -173,7 +173,7 @@ export default function IndividualAIAgents() {
           <div className="md:col-span-2">
             <label className="block text-sm mb-1">Description</label>
             <textarea
-              className="w-full border rounded p-2"
+              className="w-full border border-gray-300 rounded p-2 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               value={form.description}
               onChange={(e) =>
                 setForm({ ...form, description: e.target.value })
@@ -183,7 +183,7 @@ export default function IndividualAIAgents() {
           <div className="md:col-span-2">
             <label className="block text-sm mb-1">Custom Instructions</label>
             <textarea
-              className="w-full border rounded p-2"
+              className="w-full border border-gray-300 rounded p-2 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               value={form.custom_instructions}
               onChange={(e) =>
                 setForm({ ...form, custom_instructions: e.target.value })

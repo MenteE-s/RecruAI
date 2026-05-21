@@ -29,16 +29,16 @@ const Modal = ({ isOpen, onClose, children }) => {
 
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50"
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title"
     >
-      <div className="bg-slate-800 rounded-lg p-6 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto border border-slate-700">
+      <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto border border-gray-200">
         {children}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-slate-400 hover:text-white"
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
           aria-label="Close modal"
         >
           <FiX size={24} />
@@ -77,17 +77,17 @@ const SocialMediaModal = ({ isOpen, onClose, socialLinks, onSave, saving }) => {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
-      <h2 className="text-xl font-bold text-white mb-4" id="modal-title">
+      <h2 className="text-xl font-bold text-gray-900 mb-4" id="modal-title">
         Edit Social Media Links
       </h2>
       <form onSubmit={handleSubmit}>
         <div className="space-y-4">
           {links.map((link, index) => (
-            <div key={index} className="border border-slate-700 rounded p-3 space-y-2">
+            <div key={index} className="border border-gray-200 rounded p-3 space-y-2">
               <select
                 value={link.platform || ""}
                 onChange={(e) => updateLink(index, "platform", e.target.value)}
-                className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white focus:ring-2 focus:ring-blue-500"
+                className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">Select Platform</option>
                 <option value="LinkedIn">LinkedIn</option>
@@ -104,19 +104,19 @@ const SocialMediaModal = ({ isOpen, onClose, socialLinks, onSave, saving }) => {
                 placeholder="Profile URL"
                 value={link.url || ""}
                 onChange={(e) => updateLink(index, "url", e.target.value)}
-                className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500"
+                className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
               />
               <input
                 type="text"
                 placeholder="Username/Handle (optional)"
                 value={link.username || ""}
                 onChange={(e) => updateLink(index, "username", e.target.value)}
-                className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500"
+                className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
               />
               <button
                 type="button"
                 onClick={() => removeLink(index)}
-                className="text-red-400 hover:text-red-300 text-sm"
+                className="text-red-600 hover:text-red-800 text-sm"
               >
                 Remove
               </button>
@@ -125,7 +125,7 @@ const SocialMediaModal = ({ isOpen, onClose, socialLinks, onSave, saving }) => {
           <button
             type="button"
             onClick={addLink}
-            className="w-full p-2 border-2 border-dashed border-slate-600 rounded text-slate-400 hover:border-slate-500"
+            className="w-full p-2 border-2 border-dashed border-gray-300 rounded text-gray-600 hover:border-gray-400"
           >
             + Add Social Media Link
           </button>
@@ -134,14 +134,14 @@ const SocialMediaModal = ({ isOpen, onClose, socialLinks, onSave, saving }) => {
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 border border-slate-600 rounded-lg text-slate-300 hover:bg-slate-700"
+            className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={saving}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {saving ? (
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
@@ -534,9 +534,9 @@ export default function OrganizationProfile() {
       >
         <div className="flex justify-center items-center py-12">
           <div className="animate-pulse">
-            <div className="text-slate-400 mb-4">Loading profile...</div>
-            <div className="w-64 h-4 bg-slate-700 rounded mb-2"></div>
-            <div className="w-48 h-4 bg-slate-700 rounded"></div>
+            <div className="text-gray-500 mb-4">Loading profile...</div>
+            <div className="w-64 h-4 bg-gray-200 rounded mb-2"></div>
+            <div className="w-48 h-4 bg-gray-200 rounded"></div>
           </div>
         </div>
       </DashboardLayout>
@@ -550,7 +550,7 @@ export default function OrganizationProfile() {
     >
       {/* Error Message */}
       {error && (
-        <div className="mb-6 p-4 bg-red-900/50 border border-red-700 text-red-300 rounded-lg">
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <FiX className="mr-2" size={20} />
@@ -558,7 +558,7 @@ export default function OrganizationProfile() {
             </div>
             <button
               onClick={() => setError(null)}
-              className="text-red-300 hover:text-red-200"
+              className="text-red-700 hover:text-red-900"
             >
               ×
             </button>
@@ -570,7 +570,7 @@ export default function OrganizationProfile() {
       <div className="mb-6">
         <div className="relative">
           {/* Banner Image */}
-          <div className="relative h-48 md:h-64 bg-slate-700 rounded-2xl overflow-hidden shadow-lg">
+          <div className="relative h-48 md:h-64 bg-gradient-to-r from-blue-400 to-purple-500 rounded-2xl overflow-hidden shadow-lg">
             {profileData.banner_image ? (
               <img
                 src={getUploadUrl(profileData.banner_image)}
@@ -578,7 +578,7 @@ export default function OrganizationProfile() {
                 className="w-full h-full object-cover"
               />
             ) : (
-              <div className="w-full h-full bg-slate-700 flex items-center justify-center">
+              <div className="w-full h-full bg-gray-100 flex items-center justify-center">
                 <div className="text-white text-center">
                   <FiImage size={48} className="mx-auto mb-2 opacity-50" />
                   <p className="text-sm opacity-75">No banner image</p>
@@ -596,11 +596,11 @@ export default function OrganizationProfile() {
                     onChange={(e) => handleImageSelect(e, "banner")}
                     className="hidden"
                   />
-                  <div className="bg-slate-700/90 hover:bg-slate-600 rounded-full p-2 shadow-md transition-colors">
+                  <div className="bg-white/90 hover:bg-white rounded-full p-2 shadow-md transition-colors">
                     {profileData.banner_image ? (
-                      <FiEdit2 size={16} className="text-slate-200" />
+                      <FiEdit2 size={16} className="text-gray-700" />
                     ) : (
-                      <FiUpload size={16} className="text-slate-200" />
+                      <FiUpload size={16} className="text-gray-700" />
                     )}
                   </div>
                 </label>
@@ -621,7 +621,7 @@ export default function OrganizationProfile() {
           <div className="absolute -bottom-8 left-6 md:left-8">
             <div className="relative">
               <div
-                className={`w-24 h-24 md:w-32 md:h-32 bg-slate-800 rounded-full border-4 border-slate-800 shadow-lg overflow-hidden ${
+                className={`w-24 h-24 md:w-32 md:h-32 bg-white rounded-full border-4 border-white shadow-lg overflow-hidden ${
                   profileData.subscription_status?.is_paid_active
                     ? "ring-4 ring-gradient-to-r from-yellow-400 to-green-500"
                     : ""
@@ -634,8 +634,8 @@ export default function OrganizationProfile() {
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full bg-slate-700 flex items-center justify-center">
-                    <FiCamera size={32} className="text-slate-400" />
+                  <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                    <FiCamera size={32} className="text-gray-400" />
                   </div>
                 )}
               </div>
@@ -683,10 +683,10 @@ export default function OrganizationProfile() {
 
         {/* Loading overlay for image uploads */}
         {uploadingImage && (
-          <div className="absolute inset-0 bg-black bg-opacity-60 rounded-2xl flex items-center justify-center z-10">
-            <div className="bg-slate-800 rounded-lg p-4 flex items-center space-x-3 border border-slate-700">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
-              <span className="text-slate-300">Uploading image...</span>
+          <div className="absolute inset-0 bg-black bg-opacity-50 rounded-2xl flex items-center justify-center z-10">
+            <div className="bg-white rounded-lg p-4 flex items-center space-x-3">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+              <span className="text-gray-700">Uploading image...</span>
             </div>
           </div>
         )}
@@ -694,13 +694,13 @@ export default function OrganizationProfile() {
 
       {/* Profile Header */}
       <div className="mb-6">
-        <div className="rounded-2xl p-6 bg-slate-800 border border-slate-700 text-white shadow-lg">
+        <div className="rounded-2xl p-6 bg-white border border-gray-200 text-gray-900 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl md:text-3xl font-bold font-display">
                 Organization Profile
               </h1>
-              <p className="mt-1 text-slate-400">
+              <p className="mt-1 text-gray-500">
                 Manage your company information and profile
               </p>
             </div>
@@ -713,14 +713,14 @@ export default function OrganizationProfile() {
         {/* Basic Company Info */}
         <Card className="lg:col-span-2">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-white flex items-center">
+            <h3 className="font-semibold text-gray-800 flex items-center">
               <FiBriefcase className="mr-2" />
               Basic Company Information
             </h3>
             {canEdit && (
               <button
                 onClick={() => setEditingSection("basic")}
-                className="text-slate-400 hover:text-white"
+                className="text-gray-400 hover:text-gray-600"
               >
                 <FiEdit2 size={16} />
               </button>
@@ -728,11 +728,11 @@ export default function OrganizationProfile() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-400 mb-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Company Name
               </label>
               <div className="flex items-center gap-2">
-                <p className="text-white">{profileData.name || "Not set"}</p>
+                <p className="text-gray-900">{profileData.name || "Not set"}</p>
                 {profileData.subscription_status?.is_paid_active && (
                   <span className="bg-gradient-to-r from-yellow-400 to-green-500 text-white text-xs font-bold px-2 py-1 rounded-full animate-pulse">
                     PRO ORGANIZATION
@@ -741,16 +741,16 @@ export default function OrganizationProfile() {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-400 mb-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Website
               </label>
-                <p className="text-white">
+                <p className="text-gray-900">
                   {profileData.website ? (
                     <a
                       href={profileData.website}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-400 hover:text-blue-300"
+                      className="text-blue-600 hover:text-blue-800"
                     >
                       {profileData.website}
                     </a>
@@ -760,10 +760,10 @@ export default function OrganizationProfile() {
                 </p>
             </div>
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-slate-400 mb-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Description
               </label>
-              <p className="text-slate-300 leading-relaxed">
+              <p className="text-gray-900 leading-relaxed">
                 {profileData.description || "No description provided"}
               </p>
             </div>
@@ -773,14 +773,14 @@ export default function OrganizationProfile() {
         {/* Extended Profile */}
         <Card className="lg:col-span-2">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-white flex items-center">
+            <h3 className="font-semibold text-gray-800 flex items-center">
               <FiUsers className="mr-2" />
               Extended Profile
             </h3>
             {canEdit && (
               <button
                 onClick={() => setEditingSection("extended")}
-                className="text-slate-400 hover:text-white"
+                className="text-gray-400 hover:text-gray-600"
               >
                 <FiEdit2 size={16} />
               </button>
@@ -788,36 +788,36 @@ export default function OrganizationProfile() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-slate-400 mb-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Company Size
               </label>
-                <p className="text-white">
+                <p className="text-gray-900">
                   {profileData.company_size || "Not set"}
                 </p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-400 mb-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Industry
               </label>
-                <p className="text-white">
+                <p className="text-gray-900">
                   {profileData.industry || "Not set"}
                 </p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-400 mb-1 flex items-center">
+              <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
                 <FiTarget className="mr-1" />
                 Mission
               </label>
-              <p className="text-slate-300 leading-relaxed">
+              <p className="text-gray-900 leading-relaxed">
                 {profileData.mission || "Not set"}
               </p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-400 mb-1 flex items-center">
+              <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
                 <FiEye className="mr-1" />
                 Vision
               </label>
-              <p className="text-slate-300 leading-relaxed">
+              <p className="text-gray-900 leading-relaxed">
                 {profileData.vision || "Not set"}
               </p>
             </div>
@@ -827,14 +827,14 @@ export default function OrganizationProfile() {
         {/* Social Media Links */}
         <Card className="lg:col-span-2">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-white flex items-center">
+            <h3 className="font-semibold text-gray-800 flex items-center">
               <FiLink className="mr-2" />
               Social Media Links
             </h3>
             {canEdit && (
               <button
                 onClick={() => setEditingSection("social")}
-                className="text-slate-400 hover:text-white"
+                className="text-gray-400 hover:text-gray-600"
               >
                 <FiEdit2 size={16} />
               </button>
@@ -844,24 +844,24 @@ export default function OrganizationProfile() {
           profileData.social_media_links.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {profileData.social_media_links.map((link, index) => (
-                <div key={index} className="border border-slate-700 rounded p-3">
-                  <h4 className="font-medium text-white">{link.platform}</h4>
+                <div key={index} className="border border-gray-200 rounded p-3">
+                  <h4 className="font-medium text-gray-900">{link.platform}</h4>
                   <a
                     href={link.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-400 hover:text-blue-300 text-sm"
+                    className="text-blue-600 hover:text-blue-800 text-sm"
                   >
                     {link.url}
                   </a>
                   {link.username && (
-                    <p className="text-xs text-slate-500">@{link.username}</p>
+                    <p className="text-xs text-gray-500">@{link.username}</p>
                   )}
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-slate-400 text-sm">
+            <p className="text-gray-500 text-sm">
               No social media links added yet
             </p>
           )}
@@ -871,7 +871,7 @@ export default function OrganizationProfile() {
       {/* Basic Info Modal */}
       {editingSection === "basic" && (
         <Modal isOpen={true} onClose={() => setEditingSection(null)}>
-          <h2 className="text-xl font-bold text-white mb-4">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">
             Edit Basic Information
           </h2>
           <form
@@ -891,7 +891,7 @@ export default function OrganizationProfile() {
                 type="text"
                 placeholder="Company Name"
                 defaultValue={profileData.name}
-                className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500"
+                className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
                 required
               />
               <input
@@ -899,13 +899,13 @@ export default function OrganizationProfile() {
                 type="url"
                 placeholder="Website URL"
                 defaultValue={profileData.website}
-                className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500"
+                className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
               />
               <textarea
                 name="description"
                 placeholder="Company Description"
                 defaultValue={profileData.description}
-                className="w-full p-3 bg-slate-700 border border-slate-600 rounded resize-none text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500"
+                className="w-full p-3 bg-white border border-gray-300 rounded resize-none text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
                 rows={4}
               />
             </div>
@@ -913,14 +913,14 @@ export default function OrganizationProfile() {
               <button
                 type="button"
                 onClick={() => setEditingSection(null)}
-                className="px-4 py-2 border border-slate-600 rounded-lg text-slate-300 hover:bg-slate-700"
+                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={saving}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {saving ? (
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
@@ -936,7 +936,7 @@ export default function OrganizationProfile() {
       {/* Extended Profile Modal */}
       {editingSection === "extended" && (
         <Modal isOpen={true} onClose={() => setEditingSection(null)}>
-          <h2 className="text-xl font-bold text-white mb-4">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">
             Edit Extended Profile
           </h2>
           <form
@@ -955,7 +955,7 @@ export default function OrganizationProfile() {
               <select
                 name="company_size"
                 defaultValue={profileData.company_size}
-                className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500"
+                className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">Select Company Size</option>
                 <option value="1-10">1-10 employees</option>
@@ -970,20 +970,20 @@ export default function OrganizationProfile() {
                 type="text"
                 placeholder="Industry (e.g., Technology, Healthcare)"
                 defaultValue={profileData.industry}
-                className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500"
+                className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
               />
               <textarea
                 name="mission"
                 placeholder="Company Mission"
                 defaultValue={profileData.mission}
-                className="w-full p-3 bg-slate-700 border border-slate-600 rounded resize-none text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500"
+                className="w-full p-3 bg-white border border-gray-300 rounded resize-none text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
                 rows={3}
               />
               <textarea
                 name="vision"
                 placeholder="Company Vision"
                 defaultValue={profileData.vision}
-                className="w-full p-3 bg-slate-700 border border-slate-600 rounded resize-none text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500"
+                className="w-full p-3 bg-white border border-gray-300 rounded resize-none text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
                 rows={3}
               />
             </div>
@@ -991,14 +991,14 @@ export default function OrganizationProfile() {
               <button
                 type="button"
                 onClick={() => setEditingSection(null)}
-                className="px-4 py-2 border border-slate-600 rounded-lg text-slate-300 hover:bg-slate-700"
+                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={saving}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {saving ? (
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>

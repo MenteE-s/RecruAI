@@ -59,7 +59,7 @@ export default function PracticeDashboard() {
           <div>
             <label className="block text-sm mb-1">Title</label>
             <input
-              className="w-full border rounded p-2"
+              className="w-full border border-gray-300 rounded p-2 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
             />
@@ -69,7 +69,7 @@ export default function PracticeDashboard() {
             <input
               type="number"
               min={15}
-              className="w-full border rounded p-2"
+              className="w-full border border-gray-300 rounded p-2 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               value={duration}
               onChange={(e) =>
                 setDuration(Math.max(15, parseInt(e.target.value || "15", 10)))
@@ -79,7 +79,7 @@ export default function PracticeDashboard() {
           <div>
             <label className="block text-sm mb-1">Type</label>
             <select
-              className="w-full border rounded p-2"
+              className="w-full border border-gray-300 rounded p-2 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               value={type}
               onChange={(e) => setType(e.target.value)}
             >

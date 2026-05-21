@@ -26,11 +26,11 @@ export default function OrganizationNavbar({ isAuthenticated }) {
   }
 
   return (
-    <nav className="w-full bg-slate-800 border-b border-slate-700">
+    <nav className="w-full bg-white border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-14 items-center">
           <div className="flex items-center">
-            <Link to="/" className="font-bold text-lg text-white">
+            <Link to="/" className="font-bold text-lg text-blue-700">
               RecruAI
             </Link>
           </div>
@@ -38,22 +38,22 @@ export default function OrganizationNavbar({ isAuthenticated }) {
           <div className="flex items-center gap-3">
             {!signedIn ? (
               <>
-                <Link to="/signin" className="text-sm text-slate-300 hover:text-white">
+                <Link to="/signin" className="text-sm text-gray-600 hover:text-gray-900">
                   Sign in
                 </Link>
                 <Link
                   to="/register"
-                  className="ml-2 px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition"
+                  className="ml-2 px-3 py-1 bg-blue-700 text-white rounded text-sm hover:bg-blue-800 transition"
                 >
                   Register
                 </Link>
               </>
             ) : (
               <>
-                <Link to="/org/settings" className="text-sm text-slate-300 hover:text-white">
+                <Link to="/org/settings" className="text-sm text-gray-600 hover:text-gray-900">
                   Settings
                 </Link>
-                <button onClick={signOut} className="ml-2 text-sm text-red-400 hover:text-red-300">
+                <button onClick={signOut} className="ml-2 text-sm text-red-600 hover:text-red-700">
                   Sign out
                 </button>
               </>

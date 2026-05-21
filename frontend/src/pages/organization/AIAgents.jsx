@@ -290,19 +290,19 @@ export default function AIAgents() {
       sidebarItems={sidebarItems}
     >
       <div className="mb-6">
-        <div className="rounded-2xl p-6 bg-gradient-to-br from-yellow-600/90 via-amber-600/80 to-purple-700/70 text-white shadow-lg">
+        <div className="rounded-2xl p-6 bg-white border border-gray-200 text-gray-900 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl md:text-3xl font-bold font-display">
                 AI Interview Agents
               </h1>
-              <p className="mt-1 text-white/90">
+              <p className="mt-1 text-gray-500">
                 Train and customize AI agents for conducting interviews
               </p>
             </div>
             <button
               onClick={() => setShowCreateForm(!showCreateForm)}
-              className="px-4 py-2 bg-white text-purple-600 rounded-lg hover:bg-gray-50 font-medium"
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
             >
               {showCreateForm ? "Cancel" : "+ New AI Agent"}
             </button>
@@ -334,7 +334,7 @@ export default function AIAgents() {
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, name: e.target.value }))
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="e.g., Senior Software Engineer Interviewer"
                 />
               </div>
@@ -351,7 +351,7 @@ export default function AIAgents() {
                       industry: e.target.value,
                     }))
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Select Industry</option>
                   {industries.map((industry) => (
@@ -432,7 +432,7 @@ export default function AIAgents() {
                     is_active: e.target.checked,
                   }))
                 }
-                className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
               />
               <label htmlFor="is_active" className="ml-2 text-sm text-gray-700">
                 Agent is active and can conduct interviews
@@ -442,7 +442,7 @@ export default function AIAgents() {
             <div className="flex gap-4">
               <button
                 type="submit"
-                className="px-6 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"
+                className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
               >
                 {editingAgent ? "Update Agent" : "Create Agent"}
               </button>
@@ -507,8 +507,8 @@ export default function AIAgents() {
                       </span>
                     </div>
                     {agent.custom_instructions && (
-                      <div className="bg-purple-50 border-l-4 border-purple-200 p-3 rounded">
-                        <p className="text-sm text-purple-800">
+                      <div className="bg-blue-50 border-l-4 border-blue-200 p-3 rounded">
+                        <p className="text-sm text-blue-800">
                           <strong>Custom Instructions:</strong>{" "}
                           {agent.custom_instructions}
                         </p>
@@ -518,13 +518,13 @@ export default function AIAgents() {
                   <div className="flex flex-col gap-2 ml-4">
                     <button
                       onClick={() => handleEdit(agent)}
-                      className="px-3 py-1 text-purple-600 hover:bg-purple-50 rounded-md text-sm border border-purple-200"
+                      className="px-3 py-1 text-blue-600 hover:bg-blue-50 rounded-md text-sm border border-blue-200"
                     >
                       Edit
                     </button>
                     <button
                       onClick={() => setTestingAgent(agent)}
-                      className="px-3 py-1 text-blue-600 hover:bg-blue-50 rounded-md text-sm border border-blue-200"
+                      className="px-3 py-1 text-green-600 hover:bg-green-50 rounded-md text-sm border border-green-200"
                     >
                       Test
                     </button>
@@ -559,7 +559,7 @@ export default function AIAgents() {
                   rows={3}
                   value={testMessage}
                   onChange={(e) => setTestMessage(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Enter a test message to send to the AI agent..."
                 />
               </div>
@@ -567,7 +567,7 @@ export default function AIAgents() {
               <button
                 onClick={handleTestAgent}
                 disabled={!testMessage.trim()}
-                className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:bg-gray-400"
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400"
               >
                 Send Test Message
               </button>

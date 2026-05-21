@@ -54,12 +54,12 @@ export default function IndividualNavbar({ isAuthenticated }) {
   };
 
   return (
-    <nav className="sticky top-0 z-40 bg-slate-800 border-b border-slate-700">
+    <nav className="sticky top-0 z-40 bg-white border-b border-gray-200 shadow-sm">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex h-14 items-center justify-between">
           <Link
             to="/"
-            className="text-lg font-semibold text-white tracking-tight"
+            className="text-lg font-semibold text-blue-700 tracking-tight"
           >
             RecruAI
           </Link>
@@ -69,13 +69,13 @@ export default function IndividualNavbar({ isAuthenticated }) {
               <>
                 <Link
                   to="/signin"
-                  className="text-sm font-medium text-slate-300 hover:text-white"
+                  className="text-sm font-medium text-gray-600 hover:text-gray-900"
                 >
                   Sign in
                 </Link>
                 <Link
                   to="/register"
-                  className="px-4 py-1.5 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition"
+                  className="px-4 py-1.5 bg-blue-700 text-white text-sm rounded-md hover:bg-blue-800 transition"
                 >
                   Register
                 </Link>
@@ -84,7 +84,7 @@ export default function IndividualNavbar({ isAuthenticated }) {
               <>
                 <Link
                   to="/notifications"
-                  className="relative text-slate-300 hover:text-white"
+                  className="relative text-gray-600 hover:text-gray-900"
                 >
                   <i className="fa-solid fa-bell text-lg">Notifications</i>
                   {notificationCount > 0 && (
@@ -96,14 +96,14 @@ export default function IndividualNavbar({ isAuthenticated }) {
 
                 <Link
                   to="/profile"
-                  className="text-sm font-medium text-slate-300 hover:text-white"
+                  className="text-sm font-medium text-gray-600 hover:text-gray-900"
                 >
                   Profile
                 </Link>
 
                 <button
                   onClick={signOut}
-                  className="text-sm font-medium text-red-400 hover:text-red-300"
+                  className="text-sm font-medium text-red-600 hover:text-red-700"
                 >
                   Sign out
                 </button>
