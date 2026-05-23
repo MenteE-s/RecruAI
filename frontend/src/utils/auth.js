@@ -21,12 +21,13 @@ export function getBackendUrl() {
 
   // If no env var, try to detect based on current location
   if (!envUrl) {
-    // In production, assume we're on Vercel and backend is on Railway
+    // In production, backend is served from the same origin via nginx reverse proxy
     if (
       typeof window !== "undefined" &&
       window.location.hostname !== "localhost"
     ) {
-      return "https://recruai-production.up.railway.app";
+      // Same-origin: frontend and backend share the same domain (nginx routes /api/* to backend)
+      return window.location.origin;
     }
     // In local development
     return "http://localhost:5000";
