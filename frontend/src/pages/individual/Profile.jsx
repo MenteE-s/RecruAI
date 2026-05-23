@@ -2013,7 +2013,7 @@ export default function Profile() {
               className="w-full h-full object-cover"
             />
           ) : (
-            <div className="w-full h-full bg-gradient-to-r from-blue-400 to-purple-500" />
+            <div className="w-full h-full bg-green-700" />
           )}
 
           {/* Banner Edit Button */}
@@ -2049,7 +2049,7 @@ export default function Profile() {
                 <div
                   className={`w-24 h-24 rounded-full flex items-center justify-center overflow-hidden border-4 shadow-lg ${
                     userData?.subscription_status?.is_paid_active
-                      ? "border-transparent bg-gradient-to-r from-yellow-400 via-green-400 to-emerald-500 p-1"
+                      ? "border-green-700 bg-green-700 p-1"
                       : "border-white bg-white"
                   }`}
                 >
@@ -2074,7 +2074,7 @@ export default function Profile() {
 
                 {/* Paid User Badge */}
                 {userData?.subscription_status?.is_paid_active && (
-                  <div className="absolute -top-2 -right-2 bg-gradient-to-r from-yellow-400 to-green-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg border-2 border-white">
+                  <div className="absolute -top-2 -right-2 bg-green-700 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg border-2 border-white">
                     PRO
                   </div>
                 )}
@@ -2102,7 +2102,7 @@ export default function Profile() {
                     {userData?.name || "Guest"}
                   </h1>
                   {userData?.subscription_status?.is_paid_active && (
-                    <div className="flex items-center gap-1 bg-gradient-to-r from-yellow-400 to-green-500 text-white text-sm font-semibold px-3 py-1 rounded-full shadow-md">
+                    <div className="flex items-center gap-1 bg-green-700 text-white text-sm font-semibold px-3 py-1 rounded-full shadow-md">
                       <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
                       PRO USER
                     </div>
@@ -2171,7 +2171,7 @@ export default function Profile() {
       {/* Personal Information Section */}
       <Card shadow="lg" padding="8" className="lg:col-span-2 mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-gray-800 flex items-center">
+          <h3 className="font-semibold text-white flex items-center bg-green-700 px-3 py-2 rounded-md">
             <FiUser className="mr-2" />
             Personal Information
           </h3>
@@ -2261,7 +2261,7 @@ export default function Profile() {
       {/* About Section */}
       <Card className="mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-gray-800 flex items-center">
+          <h3 className="font-semibold text-white flex items-center bg-green-700 px-3 py-2 rounded-md">
             <FiUsers className="mr-2" />
             About
           </h3>
@@ -2281,7 +2281,7 @@ export default function Profile() {
 
       <Card className="mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-gray-800 flex items-center">
+          <h3 className="font-semibold text-white flex items-center bg-green-700 px-3 py-2 rounded-md">
             <FiBriefcase className="mr-2" />
             Experience
           </h3>
@@ -2331,7 +2331,7 @@ export default function Profile() {
       {/* Education Section */}
       <Card className="mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-gray-800 flex items-center">
+          <h3 className="font-semibold text-white flex items-center bg-green-700 px-3 py-2 rounded-md">
             <FiBook className="mr-2" />
             Education
           </h3>
@@ -2381,7 +2381,7 @@ export default function Profile() {
       {/* Skills Section */}
       <Card className="mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-gray-800 flex items-center">
+          <h3 className="font-semibold text-white flex items-center bg-green-700 px-3 py-2 rounded-md">
             <FiCode className="mr-2" />
             Skills
           </h3>
@@ -2417,7 +2417,7 @@ export default function Profile() {
       {/* Projects Section */}
       <Card className="mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-gray-800 flex items-center">
+          <h3 className="font-semibold text-white flex items-center bg-green-700 px-3 py-2 rounded-md">
             <FiFileText className="mr-2" />
             Projects
           </h3>
@@ -2467,7 +2467,7 @@ export default function Profile() {
       {/* Publications Section */}
       <Card className="mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-gray-800 flex items-center">
+          <h3 className="font-semibold text-white flex items-center bg-green-700 px-3 py-2 rounded-md">
             <FiAward className="mr-2" />
             Publications
           </h3>
@@ -2515,7 +2515,7 @@ export default function Profile() {
       {/* Awards Section */}
       <Card className="mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-gray-800 flex items-center">
+          <h3 className="font-semibold text-white flex items-center bg-green-700 px-3 py-2 rounded-md">
             <FiAward className="mr-2" />
             Awards
           </h3>
@@ -2566,7 +2566,7 @@ export default function Profile() {
       {/* Certifications Section */}
       <Card className="mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-gray-800 flex items-center">
+          <h3 className="font-semibold text-white flex items-center bg-green-700 px-3 py-2 rounded-md">
             <FiCheck className="mr-2" />
             Certifications
           </h3>
@@ -2619,7 +2619,7 @@ export default function Profile() {
       {/* Languages Section */}
       <Card className="mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-gray-800 flex items-center">
+          <h3 className="font-semibold text-white flex items-center bg-green-700 px-3 py-2 rounded-md">
             <FiCode className="mr-2" />
             Languages
           </h3>
@@ -2655,7 +2655,7 @@ export default function Profile() {
       {/* Volunteer Experience Section */}
       <Card className="mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-gray-800 flex items-center">
+          <h3 className="font-semibold text-white flex items-center bg-green-700 px-3 py-2 rounded-md">
             <FiUsers className="mr-2" />
             Volunteer Experience
           </h3>
@@ -2709,7 +2709,7 @@ export default function Profile() {
       {/* References Section */}
       <Card className="mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-gray-800 flex items-center">
+          <h3 className="font-semibold text-white flex items-center bg-green-700 px-3 py-2 rounded-md">
             <FiUsers className="mr-2" />
             References
           </h3>
@@ -2758,7 +2758,7 @@ export default function Profile() {
       {/* Hobby Interests Section */}
       <Card className="mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-gray-800 flex items-center">
+          <h3 className="font-semibold text-white flex items-center bg-green-700 px-3 py-2 rounded-md">
             <FiCode className="mr-2" />
             Hobby Interests
           </h3>
@@ -2794,7 +2794,7 @@ export default function Profile() {
       {/* Professional Memberships Section */}
       <Card className="mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-gray-800 flex items-center">
+          <h3 className="font-semibold text-white flex items-center bg-green-700 px-3 py-2 rounded-md">
             <FiBriefcase className="mr-2" />
             Professional Memberships
           </h3>
@@ -2865,7 +2865,7 @@ export default function Profile() {
       {/* Patents Section */}
       <Card className="mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-gray-800 flex items-center">
+          <h3 className="font-semibold text-white flex items-center bg-green-700 px-3 py-2 rounded-md">
             <FiFileText className="mr-2" />
             Patents
           </h3>
@@ -2925,7 +2925,7 @@ export default function Profile() {
       {/* Course Trainings Section */}
       <Card className="mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-gray-800 flex items-center">
+          <h3 className="font-semibold text-white flex items-center bg-green-700 px-3 py-2 rounded-md">
             <FiBook className="mr-2" />
             Course Trainings
           </h3>
@@ -2978,7 +2978,7 @@ export default function Profile() {
       {/* Social Media Links Section */}
       <Card className="mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-gray-800 flex items-center">
+          <h3 className="font-semibold text-white flex items-center bg-green-700 px-3 py-2 rounded-md">
             <FiCode className="mr-2" />
             Social Media Links
           </h3>
@@ -3038,7 +3038,7 @@ export default function Profile() {
       {/* Key Achievements Section */}
       <Card className="mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-gray-800 flex items-center">
+          <h3 className="font-semibold text-white flex items-center bg-green-700 px-3 py-2 rounded-md">
             <FiAward className="mr-2" />
             Key Achievements
           </h3>
@@ -3095,7 +3095,7 @@ export default function Profile() {
       {/* Conferences Section */}
       <Card className="mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-gray-800 flex items-center">
+          <h3 className="font-semibold text-white flex items-center bg-green-700 px-3 py-2 rounded-md">
             <FiUsers className="mr-2" />
             Conferences
           </h3>
@@ -3149,7 +3149,7 @@ export default function Profile() {
       {/* Speaking Engagements Section */}
       <Card className="mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-gray-800 flex items-center">
+          <h3 className="font-semibold text-white flex items-center bg-green-700 px-3 py-2 rounded-md">
             <FiBriefcase className="mr-2" />
             Speaking Engagements
           </h3>
@@ -3214,7 +3214,7 @@ export default function Profile() {
       {/* Licenses Section */}
       <Card className="mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-gray-800 flex items-center">
+          <h3 className="font-semibold text-white flex items-center bg-green-700 px-3 py-2 rounded-md">
             <FiCheck className="mr-2" />
             Licenses
           </h3>

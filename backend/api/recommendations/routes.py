@@ -165,6 +165,43 @@ def recommend_agents(job_id):
         return jsonify({'error': 'Internal server error'}), 500
 
 
+@recommendations_bp.route('/search', methods=['POST'])
+@jwt_required()
+def search_profiles():
+    """Search profiles by natural language text query using vector + AI"""
+    try:
+        current_user_id = get_jwt_identity()
+        user = User.query.get(current_user_id)
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+
+        data = request.get_json()
+        if not data or not data.get('query'):
+            return jsonify({'error': 'Search query is required'}), 400
+
+        top_k = data.get('top_k', 20)
+        generate_ai = data.get('ai_explanations', True)
+
+        supervisor = get_supervisor()
+
+        results = supervisor.search_profiles_by_text(
+            query=data['query'],
+            organization_id=str(user.organization_id) if user.organization_id else None,
+            top_k=top_k,
+            generate_ai_explanations=generate_ai
+        )
+
+        return jsonify({
+            'query': data['query'],
+            'results': results,
+            'total': len(results)
+        })
+
+    except Exception as e:
+        logger.error(f"Error searching profiles: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
 @recommendations_bp.route('/embed/profile', methods=['POST'])
 @jwt_required()
 def embed_profile():

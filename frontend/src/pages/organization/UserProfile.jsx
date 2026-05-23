@@ -265,7 +265,7 @@ export default function UserProfile() {
         </div>
 
         {/* Hero Header */}
-        <div className="bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 text-white">
+        <div className="bg-white border-b border-gray-200">
           {/* Banner Section */}
           {user.banner && (
             <div className="w-full h-48 overflow-hidden">
@@ -283,20 +283,20 @@ export default function UserProfile() {
                 <img
                   src={getUploadUrl(user.profile_picture)}
                   alt={`${user.name || user.email} profile`}
-                  className="w-24 h-24 rounded-full object-cover border-4 border-white/30 shadow-lg"
+                  className="w-24 h-24 rounded-full object-cover border-4 border-gray-200 shadow-lg"
                 />
               ) : (
-                <div className="w-24 h-24 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-3xl font-bold border-4 border-white/30 shadow-lg">
+                <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center text-3xl font-bold text-gray-400 border-4 border-gray-200 shadow-lg">
                   {(user.name || user.email).charAt(0).toUpperCase()}
                 </div>
               )}
               <div className="flex-1">
                 <div className="flex items-start justify-between">
                   <div>
-                    <h1 className="text-4xl md:text-5xl font-bold mb-2">
+                    <h1 className="text-4xl md:text-5xl font-bold mb-2 text-gray-900">
                       {user.name || user.email}
                     </h1>
-                    <div className="flex flex-wrap gap-4 text-white/90">
+                    <div className="flex flex-wrap gap-4 text-gray-500">
                       {/* Team Membership Status */}
                       <span
                         className={`px-4 py-2 rounded-full text-sm font-medium ${
@@ -310,10 +310,10 @@ export default function UserProfile() {
 
                       {team_member_info && (
                         <>
-                          <span className="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full text-sm font-medium">
+                          <span className="bg-gray-100 text-gray-700 px-4 py-2 rounded-full text-sm font-medium">
                             {team_member_info.role}
                           </span>
-                          <span className="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full text-sm">
+                          <span className="bg-gray-100 text-gray-700 px-4 py-2 rounded-full text-sm">
                             Joined {formatDate(team_member_info.join_date)}
                           </span>
                         </>
@@ -343,8 +343,7 @@ export default function UserProfile() {
                         onClick={() => toggleLike(parseInt(userId))}
                         className={`p-3 rounded-full ${
                           likedProfiles.has(userId)
-                            ? "bg-red-500 text-white"
-                            : "bg-white/20 text-white hover:bg-white/30"
+                            ? "bg-red-500 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                         } transition-colors`}
                         title={
                           likedProfiles.has(userId)
@@ -363,7 +362,7 @@ export default function UserProfile() {
                         onClick={() =>
                           window.open(`/profile/${userId}`, "_blank")
                         }
-                        className="p-3 rounded-full bg-white/20 text-white hover:bg-white/30 transition-colors"
+                        className="p-3 rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
                         title="View Public Profile"
                       >
                         <FiGlobe size={24} />
@@ -373,12 +372,12 @@ export default function UserProfile() {
                 </div>
                 <div className="flex items-center gap-4 mt-4">
                   <div className="flex items-center gap-2">
-                    <FiMail className="text-white/80" />
-                    <span className="text-white/90">{user.email}</span>
+                    <FiMail className="text-gray-400" />
+                    <span className="text-gray-500">{user.email}</span>
                   </div>
                   {social_media_links && social_media_links.length > 0 && (
                     <div className="flex items-center gap-2">
-                      <FiGlobe className="text-white/80" />
+                      <FiGlobe className="text-gray-400" />
                       <div className="flex gap-2">
                         {social_media_links.slice(0, 3).map((link) => (
                           <a
@@ -386,7 +385,7 @@ export default function UserProfile() {
                             href={link.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="bg-white/20 backdrop-blur-sm hover:bg-white/30 px-3 py-1 rounded-full text-sm transition-colors"
+                            className="bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded-full text-sm text-gray-700 transition-colors"
                           >
                             {link.platform}
                           </a>

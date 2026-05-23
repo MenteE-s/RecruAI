@@ -268,48 +268,35 @@ class OpenAIEmbeddingProvider(EmbeddingProvider):
 
 
 class HuggingFaceEmbeddingProvider(EmbeddingProvider):
-    """HuggingFace Spaces embedding provider"""
+    """HuggingFace Spaces / local ML service embedding provider"""
 
     def __init__(self, api_url: str, dimensions: int = 384):
         if not api_url:
             raise ValueError("HuggingFace Spaces API URL required")
         self.api_url = api_url.rstrip('/')
         self._embedding_dimension = dimensions
-        self._client = None
 
     @property
     def embedding_dimension(self) -> int:
         return self._embedding_dimension
-
-    def _get_client(self):
-        """Lazy initialization of gradio_client"""
-        if self._client is None:
-            try:
-                from gradio_client import Client
-                self._client = Client(self.api_url)
-            except ImportError:
-                raise ImportError("gradio_client is required for HuggingFace Spaces integration. Install with: pip install gradio_client")
-        return self._client
 
     def embed(self, text: str) -> List[float]:
         return self.embed_batch([text])[0]
 
     def embed_batch(self, texts: List[str]) -> List[List[float]]:
         try:
-            client = self._get_client()
+            from gradio_client import Client
+            client = Client(self.api_url)
             result = client.predict(
                 texts=texts,
                 api_name="/predict"
             )
-
-            # The API returns {'data': [embedding1, embedding2, ...]}
             if isinstance(result, dict) and 'data' in result:
                 return result['data']
             else:
-                raise ValueError(f"Unexpected response format from HuggingFace Spaces: {result}")
-
+                raise ValueError(f"Unexpected response format: {result}")
         except Exception as e:
-            logger.error(f"HuggingFace Spaces embedding error: {str(e)}")
+            logger.error(f"Embedding error: {str(e)}")
             raise
 
 

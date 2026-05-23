@@ -5,10 +5,11 @@ Performs similarity search on vector embeddings using pgvector
 
 import logging
 from typing import List, Dict, Any, Optional, Tuple
-from sqlalchemy import text, func
+from sqlalchemy import text, func, cast
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.engine import Engine
 
+from pgvector.sqlalchemy import Vector
 from ..config import RAGConfig
 from ..models import EmbeddingStore
 
@@ -55,9 +56,10 @@ class RetrieverTool:
         try:
             with self._session_factory() as session:
                 # Build the query with pgvector similarity search
+                _qe = cast(query_embedding, Vector(384)) if isinstance(query_embedding, list) else query_embedding
                 query = session.query(
                     EmbeddingStore,
-                    func.cosine_similarity(EmbeddingStore.embedding, query_embedding).label('similarity')
+                    func.cosine_similarity(EmbeddingStore.embedding, _qe).label('similarity')
                 )
 
                 # Apply filters

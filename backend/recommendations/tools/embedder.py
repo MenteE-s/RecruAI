@@ -98,8 +98,11 @@ class RecommendationEmbedder:
             raise Exception("Rate limit exceeded")
 
         try:
-            # Generate embedding
-            embedding = await self.embedding_provider.embed_text(text)
+            # Generate embedding (provider uses sync embed(), run in thread)
+            import asyncio
+            embedding = await asyncio.get_event_loop().run_in_executor(
+                self._executor, self.embedding_provider.embed, text
+            )
             self._rate_limiter.record_call()
 
             # Cache the result
@@ -143,27 +146,48 @@ class RecommendationEmbedder:
         return results
 
     def embed_profile(self, profile_data: Dict[str, Any]) -> str:
-        """Create embedding-ready text from profile data"""
+        """Create embedding-ready text from complete profile data"""
         parts = []
 
         # Basic info
         if profile_data.get('first_name') or profile_data.get('last_name'):
             parts.append(f"Name: {profile_data.get('first_name', '')} {profile_data.get('last_name', '')}".strip())
 
+        # About / Summary (from profile sections)
+        about = profile_data.get('about', '')
+        if about:
+            parts.append(f"About: {about}")
+        summary = profile_data.get('summary', '')
+        if summary:
+            parts.append(f"Summary: {summary}")
+
         # Skills
         skills = profile_data.get('skills', [])
         if skills:
-            parts.append(f"Skills: {', '.join(skills)}")
+            skills_str = []
+            for s in skills:
+                if isinstance(s, dict):
+                    name = s.get('name', s.get('skill', ''))
+                    level = s.get('level', s.get('proficiency', ''))
+                    skills_str.append(f"{name} ({level})" if level else name)
+                elif isinstance(s, str):
+                    skills_str.append(s)
+            if skills_str:
+                parts.append(f"Skills: {', '.join(skills_str)}")
 
         # Experience
         experiences = profile_data.get('experiences', [])
         if experiences:
             exp_text = []
             for exp in experiences:
-                title = exp.get('job_title', '')
-                company = exp.get('company_name', '')
-                if title or company:
-                    exp_text.append(f"{title} at {company}")
+                title = exp.get('job_title') or exp.get('title', '')
+                company = exp.get('company_name') or exp.get('company', '')
+                desc = exp.get('description', '')
+                entry = f"{title} at {company}" if title or company else ""
+                if desc:
+                    entry = f"{entry}: {desc}" if entry else desc
+                if entry:
+                    exp_text.append(entry)
             if exp_text:
                 parts.append(f"Experience: {'; '.join(exp_text)}")
 
@@ -173,10 +197,12 @@ class RecommendationEmbedder:
             edu_text = []
             for edu in educations:
                 degree = edu.get('degree', '')
-                field = edu.get('field_of_study', '')
-                school = edu.get('school_name', '')
-                if degree or field or school:
-                    edu_text.append(f"{degree} in {field} from {school}")
+                field = edu.get('field_of_study') or edu.get('field', '')
+                school = edu.get('school_name') or edu.get('school', '')
+                year = edu.get('year', '')
+                entry_parts = [p for p in [degree, field, school, year] if p]
+                if entry_parts:
+                    edu_text.append(" in ".join(entry_parts))
             if edu_text:
                 parts.append(f"Education: {'; '.join(edu_text)}")
 
@@ -186,11 +212,148 @@ class RecommendationEmbedder:
             proj_text = []
             for proj in projects:
                 name = proj.get('name', '')
-                description = proj.get('description', '')
-                if name or description:
-                    proj_text.append(f"{name}: {description}")
+                desc = proj.get('description', '')
+                tech = proj.get('technologies', '')
+                if isinstance(tech, list):
+                    tech = ', '.join(tech)
+                entry = name
+                if desc:
+                    entry += f": {desc}"
+                if tech:
+                    entry += f" [{tech}]"
+                proj_text.append(entry)
             if proj_text:
                 parts.append(f"Projects: {'; '.join(proj_text)}")
+
+        # Certifications
+        certifications = profile_data.get('certifications', [])
+        if certifications:
+            cert_text = []
+            for cert in certifications:
+                name = cert.get('name', '')
+                issuer = cert.get('issuer', '')
+                entry = f"{name} from {issuer}" if name and issuer else (name or issuer)
+                if entry:
+                    cert_text.append(entry)
+            if cert_text:
+                parts.append(f"Certifications: {'; '.join(cert_text)}")
+
+        # Publications
+        publications = profile_data.get('publications', [])
+        if publications:
+            pub_text = []
+            for pub in publications:
+                title = pub.get('title', '')
+                journal = pub.get('journal', '')
+                abstract = pub.get('abstract', '')
+                entry = title
+                if journal:
+                    entry += f" ({journal})"
+                if abstract:
+                    entry += f": {abstract}"
+                pub_text.append(entry)
+            if pub_text:
+                parts.append(f"Publications: {'; '.join(pub_text)}")
+
+        # Awards
+        awards = profile_data.get('awards', [])
+        if awards:
+            award_text = []
+            for award in awards:
+                title = award.get('title', '')
+                issuer = award.get('issuer', '')
+                desc = award.get('description', '')
+                entry = f"{title} from {issuer}" if title and issuer else (title or issuer)
+                if desc:
+                    entry += f": {desc}"
+                award_text.append(entry)
+            if award_text:
+                parts.append(f"Awards: {'; '.join(award_text)}")
+
+        # Languages
+        languages = profile_data.get('languages', [])
+        if languages:
+            lang_text = []
+            for lang in languages:
+                name = lang.get('name', '')
+                level = lang.get('proficiency_level', lang.get('level', ''))
+                entry = f"{name} ({level})" if name and level else name
+                if entry:
+                    lang_text.append(entry)
+            if lang_text:
+                parts.append(f"Languages: {', '.join(lang_text)}")
+
+        # Volunteer Experience
+        volunteer = profile_data.get('volunteer_experiences', [])
+        if volunteer:
+            vol_text = []
+            for vol in volunteer:
+                title = vol.get('title', '')
+                org = vol.get('organization', '')
+                desc = vol.get('description', '')
+                entry = f"{title} at {org}" if title and org else (title or org)
+                if desc:
+                    entry += f": {desc}"
+                vol_text.append(entry)
+            if vol_text:
+                parts.append(f"Volunteer Experience: {'; '.join(vol_text)}")
+
+        # Courses & Training
+        courses = profile_data.get('course_trainings', [])
+        if courses:
+            course_text = []
+            for course in courses:
+                name = course.get('name', '')
+                provider = course.get('provider', '')
+                desc = course.get('description', '')
+                entry = f"{name} from {provider}" if name and provider else (name or provider)
+                if desc:
+                    entry += f": {desc}"
+                course_text.append(entry)
+            if course_text:
+                parts.append(f"Courses: {'; '.join(course_text)}")
+
+        # Key Achievements
+        achievements = profile_data.get('key_achievements', [])
+        if achievements:
+            ach_text = []
+            for ach in achievements:
+                title = ach.get('title', '')
+                desc = ach.get('description', '')
+                entry = title
+                if desc:
+                    entry += f": {desc}"
+                ach_text.append(entry)
+            if ach_text:
+                parts.append(f"Achievements: {'; '.join(ach_text)}")
+
+        # Professional Memberships
+        memberships = profile_data.get('professional_memberships', [])
+        if memberships:
+            mem_text = []
+            for mem in memberships:
+                org = mem.get('organization', '')
+                desc = mem.get('description', '')
+                entry = org
+                if desc:
+                    entry += f": {desc}"
+                mem_text.append(entry)
+            if mem_text:
+                parts.append(f"Memberships: {'; '.join(mem_text)}")
+
+        # Patents
+        patents = profile_data.get('patents', [])
+        if patents:
+            pat_text = []
+            for pat in patents:
+                title = pat.get('title', '')
+                desc = pat.get('description', '')
+                entry = title
+                if desc:
+                    entry += f": {desc}"
+                pat_text.append(entry)
+            if pat_text:
+                parts.append(f"Patents: {'; '.join(pat_text)}")
 
         return '\n'.join(parts)
 

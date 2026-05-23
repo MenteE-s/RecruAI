@@ -221,7 +221,7 @@ export default function OrganizationSettings() {
                   : "Free"}{" "}
                 Plan
                 {organization?.subscription_status?.is_paid_active && (
-                  <span className="bg-gradient-to-r from-yellow-400 to-green-500 text-white text-xs font-bold px-2 py-1 rounded-full animate-pulse">
+                  <span className="bg-green-700 text-white text-xs font-bold px-2 py-1 rounded-full animate-pulse">
                     ACTIVE
                   </span>
                 )}
@@ -255,7 +255,7 @@ export default function OrganizationSettings() {
                 )}
             </div>
             {!organization?.subscription_status?.is_paid_active && (
-              <button className="px-6 py-2 bg-gradient-to-r from-yellow-400 to-green-500 text-white rounded hover:from-yellow-500 hover:to-green-600 font-medium transition-all duration-200">
+              <button className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-medium transition-all duration-200">
                 Upgrade to Pro
               </button>
             )}
@@ -299,7 +299,7 @@ export default function OrganizationSettings() {
               <h4 className="font-medium text-gray-900 flex items-center gap-2">
                 Pro Plan
                 {organization?.subscription_status?.is_paid_active && (
-                  <span className="bg-gradient-to-r from-yellow-400 to-green-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                  <span className="bg-green-700 text-white text-xs font-bold px-2 py-1 rounded-full">
                     ACTIVE
                   </span>
                 )}
@@ -321,7 +321,7 @@ export default function OrganizationSettings() {
                   Current Plan
                 </span>
               ) : (
-                <button className="mt-3 px-4 py-2 bg-gradient-to-r from-yellow-400 to-green-500 text-white text-sm rounded hover:from-yellow-500 hover:to-green-600 font-medium transition-all duration-200">
+                <button className="mt-3 px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 font-medium transition-all duration-200">
                   Upgrade Now
                 </button>
               )}

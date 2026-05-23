@@ -7,13 +7,13 @@ from typing import Optional
 
 from backend.extensions import db
 
-# Try to import VECTOR for pgvector support, fallback to Text if not available
+# Try to import Vector for pgvector support, fallback to Text if not available
 try:
-    from sqlalchemy.dialects.postgresql import VECTOR
+    from pgvector.sqlalchemy import Vector
     HAS_VECTOR = True
 except ImportError:
     HAS_VECTOR = False
-    VECTOR = None
+    Vector = None
 
 from backend.config import Config
 
@@ -33,7 +33,7 @@ class AgentEmbedding(db.Model):
 
     # Vector embedding
     if HAS_VECTOR:
-        embedding = db.Column(VECTOR(Config.EMBEDDING_DIMENSIONS), nullable=False)
+        embedding = db.Column(Vector(Config().EMBEDDING_DIMENSIONS), nullable=False)
     else:
         embedding = db.Column(db.Text, nullable=False)  # Store as JSON string
 

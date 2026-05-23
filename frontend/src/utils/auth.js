@@ -37,22 +37,12 @@ export function getBackendUrl() {
 
 // Helper to get headers with Authorization if token exists
 export function getAuthHeaders(additionalHeaders = {}) {
-  // Detect production the same way we detect backend URL
-  const isProduction =
-    typeof window !== "undefined" && window.location.hostname !== "localhost";
-
-  if (isProduction) {
-    // Production: Return headers with Authorization
-    const headers = { ...additionalHeaders };
-    const token = localStorage.getItem("access_token");
-    if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
-    }
-    return headers;
-  } else {
-    // Development: Return headers (cookies will be sent via credentials)
-    return { ...additionalHeaders };
+  const headers = { ...additionalHeaders };
+  const token = localStorage.getItem("access_token");
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
   }
+  return headers;
 }
 
 // Override global fetch to automatically handle authentication

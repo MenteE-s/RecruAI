@@ -1,7 +1,7 @@
 services:
-  # PostgreSQL Database
+  # PostgreSQL Database with pgvector
   db:
-    image: postgres:15
+    image: pgvector/pgvector:0.7.0-pg15
     container_name: recruai_db
     environment:
       POSTGRES_USER: recruai
@@ -84,6 +84,7 @@ services:
       dockerfile: Dockerfile
     volumes:
       - ./backend:/app/backend
+      - ./scripts:/app/scripts
       - /app/backend/__pycache__
       - /app/backend/.venv
     depends_on:

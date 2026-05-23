@@ -350,7 +350,7 @@ export default function TeamMembers() {
             {activeTab === "team" && (
               <button
                 onClick={() => setShowInviteModal(true)}
-                className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-md"
+                className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-md"
               >
                 <FiPlus className="mr-2" />
                 Invite Member
@@ -361,46 +361,46 @@ export default function TeamMembers() {
 
         {/* Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+          <Card className="bg-white border border-gray-200 shadow-sm">
             <div className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-blue-100 text-sm font-medium">
+                  <p className="text-gray-500 text-sm font-medium">
                     Team Members
                   </p>
-                  <p className="text-2xl font-bold">{teamMembers.length}</p>
+                  <p className="text-2xl font-bold text-gray-900">{teamMembers.length}</p>
                 </div>
-                <FiUsers className="h-8 w-8 text-blue-200" />
+                <FiUsers className="h-8 w-8 text-blue-500" />
               </div>
             </div>
           </Card>
 
-          <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white">
+          <Card className="bg-white border border-gray-200 shadow-sm">
             <div className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-green-100 text-sm font-medium">
+                  <p className="text-gray-500 text-sm font-medium">
                     Hired Candidates
                   </p>
-                  <p className="text-2xl font-bold">{candidates.length}</p>
+                  <p className="text-2xl font-bold text-gray-900">{candidates.length}</p>
                 </div>
-                <FiCheckCircle className="h-8 w-8 text-green-200" />
+                <FiCheckCircle className="h-8 w-8 text-green-500" />
               </div>
             </div>
           </Card>
 
-          <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white">
+          <Card className="bg-white border border-gray-200 shadow-sm">
             <div className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-purple-100 text-sm font-medium">
+                  <p className="text-gray-500 text-sm font-medium">
                     Onboarded
                   </p>
-                  <p className="text-2xl font-bold">
+                  <p className="text-2xl font-bold text-gray-900">
                     {candidates.filter((c) => c.onboarded).length}
                   </p>
                 </div>
-                <FiBriefcase className="h-8 w-8 text-purple-200" />
+                <FiBriefcase className="h-8 w-8 text-purple-500" />
               </div>
             </div>
           </Card>
@@ -436,7 +436,7 @@ export default function TeamMembers() {
                 </p>
                 <button
                   onClick={() => setShowInviteModal(true)}
-                  className="inline-flex items-center px-6 py-3 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors shadow-md"
+                  className="inline-flex items-center px-6 py-3 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-md"
                 >
                   <FiPlus className="-ml-1 mr-2 h-5 w-5" />
                   Invite First Member
@@ -451,7 +451,7 @@ export default function TeamMembers() {
                   >
                     <div className="p-6">
                       <div className="flex items-center space-x-4 mb-4">
-                        <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-lg">
+                        <div className="w-12 h-12 bg-green-700 rounded-full flex items-center justify-center text-white font-semibold text-lg">
                           {member.user?.name
                             ? member.user.name.charAt(0).toUpperCase()
                             : "U"}
@@ -549,7 +549,7 @@ export default function TeamMembers() {
                   >
                     <div className="p-6">
                       <div className="flex items-center space-x-4 mb-4">
-                        <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center text-white font-semibold text-lg">
+                        <div className="w-12 h-12 bg-green-700 rounded-full flex items-center justify-center text-white font-semibold text-lg">
                           {candidate.user?.name
                             ? candidate.user.name.charAt(0).toUpperCase()
                             : "C"}
@@ -668,7 +668,7 @@ export default function TeamMembers() {
                 id="email"
                 name="email"
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
             <div className="mb-4">
@@ -682,7 +682,7 @@ export default function TeamMembers() {
                 id="role"
                 name="role"
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">Select a role</option>
                 <option value="Admin">Admin</option>
@@ -702,7 +702,7 @@ export default function TeamMembers() {
               <button
                 type="submit"
                 disabled={saving}
-                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none disabled:opacity-50"
+                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none disabled:opacity-50"
               >
                 {saving ? "Inviting..." : "Invite"}
               </button>
@@ -744,7 +744,7 @@ export default function TeamMembers() {
                 id="edit-role"
                 name="role"
                 defaultValue={editingMember.role}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="Admin">Admin</option>
                 <option value="HR">HR</option>
@@ -770,7 +770,7 @@ export default function TeamMembers() {
                         .split("T")[0]
                     : ""
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
             <div className="flex justify-end space-x-3">
@@ -784,7 +784,7 @@ export default function TeamMembers() {
               <button
                 type="submit"
                 disabled={saving}
-                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none disabled:opacity-50"
+                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none disabled:opacity-50"
               >
                 {saving ? "Saving..." : "Save"}
               </button>

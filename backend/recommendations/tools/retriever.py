@@ -4,8 +4,8 @@ Performs similarity search for recommendations
 """
 
 import logging
-from typing import List, Dict, Any, Optional, Tuple
-from sqlalchemy import text, func
+from typing import List, Dict, Any, Optional
+from sqlalchemy import cast, or_, func
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.engine import Engine
 
@@ -44,8 +44,8 @@ class RecommendationRetriever:
         """
         session = self._get_session()
         try:
-            top_k = top_k or self.config.TOP_K_RECOMMENDATIONS
-            threshold = similarity_threshold or self.config.SIMILARITY_THRESHOLD
+            top_k = top_k if top_k is not None else self.config.TOP_K_RECOMMENDATIONS
+            threshold = similarity_threshold if similarity_threshold is not None else self.config.SIMILARITY_THRESHOLD
 
             # Build query
             query = session.query(
@@ -54,7 +54,12 @@ class RecommendationRetriever:
             )
 
             if organization_id:
-                query = query.filter(ProfileEmbedding.organization_id == organization_id)
+                query = query.filter(
+                    or_(
+                        ProfileEmbedding.organization_id == organization_id,
+                        ProfileEmbedding.organization_id.is_(None)
+                    )
+                )
 
             query = query.filter(
                 self._cosine_similarity(ProfileEmbedding.embedding, query_embedding) >= threshold
@@ -91,8 +96,8 @@ class RecommendationRetriever:
         """
         session = self._get_session()
         try:
-            top_k = top_k or self.config.TOP_K_RECOMMENDATIONS
-            threshold = similarity_threshold or self.config.SIMILARITY_THRESHOLD
+            top_k = top_k if top_k is not None else self.config.TOP_K_RECOMMENDATIONS
+            threshold = similarity_threshold if similarity_threshold is not None else self.config.SIMILARITY_THRESHOLD
 
             query = session.query(
                 JobEmbedding,
@@ -137,8 +142,8 @@ class RecommendationRetriever:
         """
         session = self._get_session()
         try:
-            top_k = top_k or self.config.TOP_K_RECOMMENDATIONS
-            threshold = similarity_threshold or self.config.SIMILARITY_THRESHOLD
+            top_k = top_k if top_k is not None else self.config.TOP_K_RECOMMENDATIONS
+            threshold = similarity_threshold if similarity_threshold is not None else self.config.SIMILARITY_THRESHOLD
 
             query = session.query(
                 AgentEmbedding,
@@ -172,6 +177,10 @@ class RecommendationRetriever:
 
     def _cosine_similarity(self, vec1, vec2):
         """Calculate cosine similarity between two vectors"""
-        # For pgvector, use the <=> operator for cosine distance
-        # Cosine similarity = 1 - cosine distance
+        # Cast list parameters to vector type so pgvector binds them correctly
+        if isinstance(vec2, list):
+            from pgvector.sqlalchemy import Vector
+            vec2 = cast(vec2, Vector(384))
+        # Use cosine_distance function from pgvector SQL extension
+        # Cosine similarity = 1 - cosine_distance (higher values = more similar)
         return 1 - func.cosine_distance(vec1, vec2)

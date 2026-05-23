@@ -246,19 +246,19 @@ export default function JobPosts() {
       sidebarItems={sidebarItems}
     >
       <div className="mb-6">
-        <div className="rounded-2xl p-6 bg-gradient-to-br from-yellow-600/90 via-amber-600/80 to-purple-700/70 text-white shadow-lg">
+        <div className="rounded-2xl p-6 bg-white border border-gray-200 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold font-display">
+              <h1 className="text-2xl md:text-3xl font-bold font-display text-gray-900">
                 Job Posts
               </h1>
-              <p className="mt-1 text-white/90">
+              <p className="mt-1 text-gray-500">
                 Manage and publish job opportunities
               </p>
             </div>
             <button
               onClick={() => setShowCreateForm(!showCreateForm)}
-              className="px-4 py-2 bg-white text-indigo-600 rounded-lg hover:bg-gray-50 font-medium"
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
             >
               {showCreateForm ? "Cancel" : "+ New Job Post"}
             </button>

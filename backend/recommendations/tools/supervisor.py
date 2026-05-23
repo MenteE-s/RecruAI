@@ -331,6 +331,103 @@ class RecommendationSupervisor:
         finally:
             session.close()
 
+    def search_profiles_by_text(
+        self,
+        query: str,
+        organization_id: Optional[str] = None,
+        top_k: int = 20,
+        generate_ai_explanations: bool = True
+    ) -> List[Dict[str, Any]]:
+        """
+        Search profiles using a natural language query.
+        Embeds the query, finds similar profiles via vector similarity,
+        then optionally generates AI explanations with PII stripped.
+        Returns enriched profile data suitable for the Hire page.
+        """
+        session = self._get_session()
+        try:
+            logger.info(f"Searching profiles for query: '{query}' (org_id={organization_id})")
+
+            # 1. Embed the query
+            query_embedding = self.embedder.embed_text(query)
+            logger.info(f"Query embedding generated: {len(query_embedding)} dims")
+
+            # 2. Find similar profiles from the current organization
+            similar_profiles = self.retriever.find_similar_profiles(
+                query_embedding=query_embedding,
+                organization_id=organization_id,
+                top_k=top_k,
+                similarity_threshold=0.0  # Allow all results, sorted by similarity
+            )
+
+            logger.info(f"Found {len(similar_profiles)} similar profiles")
+
+            if not similar_profiles:
+                return []
+
+            # 3. Enrich with user data and generate AI explanations
+            from ...models import User, Skill
+            results = []
+
+            for profile in similar_profiles:
+                user = session.query(User).filter_by(
+                    id=profile['user_id']
+                ).first()
+                if not user:
+                    continue
+
+                # Fetch skill names from DB
+                skill_names = [s.name for s in session.query(Skill).filter_by(user_id=user.id).all() if s.name]
+
+                # Build user display data (safe PII for org internal use)
+                user_data = {
+                    'user_id': user.id,
+                    'name': user.name,
+                    'email': user.email,
+                    'profile_picture': user.profile_picture,
+                    'location': user.location,
+                    'employment_status': user.employment_status,
+                    'current_position': user.current_position,
+                    'current_company': user.current_company,
+                    'plan': user.plan,
+                }
+
+                result = {
+                    **user_data,
+                    'similarity': profile['similarity'],
+                    'skills': skill_names,
+                    'skills_count': len(skill_names),
+                    'experience_years': profile['experience_years'],
+                    'education_level': profile['education_level'],
+                    'match_level': self.generator._classify_match_level(profile['similarity']),
+                    'explanation': None,
+                    'matching_skills': [],
+                }
+
+                if generate_ai_explanations and profile['similarity'] >= 0.30:
+                    ai_result = self.generator.generate_search_explanation_sync(
+                        query=query,
+                        profile_content=profile['profile_content'],
+                        similarity_score=profile['similarity'],
+                        skills_count=profile['skills_count'],
+                        experience_years=profile['experience_years'],
+                        education_level=profile['education_level'],
+                    )
+                    result['explanation'] = ai_result['explanation']
+                    result['match_level'] = ai_result['match_level']
+                    result['matching_skills'] = ai_result['matching_skills']
+
+                results.append(result)
+
+            # 4. Sort: excellent first, then good, then possible, then poor
+            level_order = {'excellent': 0, 'good': 1, 'possible': 2, 'poor': 3}
+            results.sort(key=lambda r: level_order.get(r['match_level'], 99))
+
+            return results
+
+        finally:
+            session.close()
+
     def _calculate_experience_years(self, experiences: List[Dict[str, Any]]) -> float:
         """Calculate total years of experience"""
         total_years = 0

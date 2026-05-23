@@ -570,7 +570,7 @@ export default function OrganizationProfile() {
       <div className="mb-6">
         <div className="relative">
           {/* Banner Image */}
-          <div className="relative h-48 md:h-64 bg-gradient-to-r from-blue-400 to-purple-500 rounded-2xl overflow-hidden shadow-lg">
+          <div className="relative h-48 md:h-64 bg-green-700 rounded-2xl overflow-hidden shadow-lg">
             {profileData.banner_image ? (
               <img
                 src={getUploadUrl(profileData.banner_image)}
@@ -623,7 +623,7 @@ export default function OrganizationProfile() {
               <div
                 className={`w-24 h-24 md:w-32 md:h-32 bg-white rounded-full border-4 border-white shadow-lg overflow-hidden ${
                   profileData.subscription_status?.is_paid_active
-                    ? "ring-4 ring-gradient-to-r from-yellow-400 to-green-500"
+                    ? "ring-4 ring-green-700"
                     : ""
                 }`}
               >
@@ -676,7 +676,7 @@ export default function OrganizationProfile() {
 
         {/* PRO Badge for paid organizations */}
         {profileData.subscription_status?.is_paid_active && (
-          <div className="absolute top-4 right-4 bg-gradient-to-r from-yellow-400 to-green-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg animate-pulse">
+          <div className="absolute top-4 right-4 bg-green-700 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg animate-pulse">
             PRO ORGANIZATION
           </div>
         )}
@@ -713,7 +713,7 @@ export default function OrganizationProfile() {
         {/* Basic Company Info */}
         <Card className="lg:col-span-2">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-800 flex items-center">
+            <h3 className="font-semibold text-white flex items-center bg-green-700 px-3 py-2 rounded-md">
               <FiBriefcase className="mr-2" />
               Basic Company Information
             </h3>
@@ -734,7 +734,7 @@ export default function OrganizationProfile() {
               <div className="flex items-center gap-2">
                 <p className="text-gray-900">{profileData.name || "Not set"}</p>
                 {profileData.subscription_status?.is_paid_active && (
-                  <span className="bg-gradient-to-r from-yellow-400 to-green-500 text-white text-xs font-bold px-2 py-1 rounded-full animate-pulse">
+                  <span className="bg-green-700 text-white text-xs font-bold px-2 py-1 rounded-full animate-pulse">
                     PRO ORGANIZATION
                   </span>
                 )}
@@ -773,7 +773,7 @@ export default function OrganizationProfile() {
         {/* Extended Profile */}
         <Card className="lg:col-span-2">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-800 flex items-center">
+            <h3 className="font-semibold text-white flex items-center bg-green-700 px-3 py-2 rounded-md">
               <FiUsers className="mr-2" />
               Extended Profile
             </h3>
@@ -827,7 +827,7 @@ export default function OrganizationProfile() {
         {/* Social Media Links */}
         <Card className="lg:col-span-2">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-800 flex items-center">
+            <h3 className="font-semibold text-white flex items-center bg-green-700 px-3 py-2 rounded-md">
               <FiLink className="mr-2" />
               Social Media Links
             </h3>

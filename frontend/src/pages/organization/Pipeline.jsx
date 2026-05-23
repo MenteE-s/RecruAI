@@ -181,14 +181,14 @@ export default function Pipeline() {
       sidebarItems={sidebarItems}
     >
       <div className="mb-6">
-        <div className="rounded-2xl p-6 bg-gradient-to-br from-yellow-600/90 via-amber-600/80 to-purple-700/70 text-white shadow-lg">
+        <div className="rounded-2xl p-6 bg-white border border-gray-200 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold font-display">
-                Recruitment Pipeline
+              <h1 className="text-2xl md:text-3xl font-bold font-display text-gray-900">
+                Pipeline
               </h1>
-              <p className="mt-1 text-white/90">
-                Track candidates through the hiring process
+              <p className="mt-1 text-gray-500">
+                Manage your hiring pipeline and track candidate progress
               </p>
             </div>
           </div>

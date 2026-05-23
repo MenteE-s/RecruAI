@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-from flask import Flask, jsonify, send_from_directory
+from flask import Flask, jsonify, send_from_directory, request
 
 # support running as a module (recommended) and as a script
 try:
@@ -60,6 +60,14 @@ def create_app(config_object: object | None = None):
 	# initialize extensions
 	db.init_app(app)
 	migrate.init_app(app, db)
+
+	# Register pgvector psycopg2 adapter so lists are sent as vector type in queries
+	from sqlalchemy import event
+	from pgvector.psycopg2 import register_vector
+	with app.app_context():
+		@event.listens_for(db.engine, 'connect')
+		def register_pgvector(dbapi_connection, connection_record):
+			register_vector(dbapi_connection)
 	# init JWT (raise if missing so we catch misconfiguration early)
 	# `jwt` is provided by the module-level import/fallback above so avoid
 	# package-relative imports here which break when the module is executed
@@ -180,6 +188,17 @@ def create_app(config_object: object | None = None):
 			response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
 			response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
 			return response
+
+		# Handle CORS preflight before JWT authentication
+		@app.before_request
+		def handle_options_preflight():
+			if request.method == 'OPTIONS':
+				response = app.make_default_options_response()
+				response.headers['Access-Control-Allow-Origin'] = origins_list[0] if origins_list else 'http://localhost:3000'
+				response.headers['Access-Control-Allow-Credentials'] = 'true'
+				response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+				response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+				return response
 	except Exception as e:
 		print(f"Failed to configure CORS: {e}", flush=True)
 		# flask-cors not installed or not needed in production
@@ -208,14 +227,14 @@ def create_app(config_object: object | None = None):
 		except ImportError as e:
 			print(f"Warning: Could not register practice AI agents blueprint: {e}")
 
-	# Register recommendations blueprint
+	# Register recommendations blueprint (blueprint has own url_prefix='/api/recommendations')
 	try:
 		from .api.recommendations import recommendations_bp
-		app.register_blueprint(recommendations_bp, url_prefix="/api")
+		app.register_blueprint(recommendations_bp)
 	except ImportError:
 		try:
 			recommendations_module = importlib.import_module("backend.api.recommendations")
-			app.register_blueprint(recommendations_module.recommendations_bp, url_prefix="/api")
+			app.register_blueprint(recommendations_module.recommendations_bp)
 		except ImportError as e:
 			print(f"Warning: Could not register recommendations blueprint: {e}")
 

@@ -118,13 +118,13 @@ export default function BrowseOrganizations() {
       )}
 
       <div className="mb-6">
-        <div className="rounded-2xl p-6 bg-gradient-to-br from-yellow-600/90 via-amber-600/80 to-purple-700/70 text-white shadow-lg">
+        <div className="rounded-2xl p-6 bg-white border border-gray-200 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold font-display">
+              <h1 className="text-2xl md:text-3xl font-bold font-display text-gray-900">
                 Browse Organizations
               </h1>
-              <p className="mt-1 text-white/90">
+              <p className="mt-1 text-gray-500">
                 Discover companies and explore opportunities
               </p>
             </div>
@@ -174,7 +174,7 @@ export default function BrowseOrganizations() {
                           className="h-12 w-12 rounded-lg object-cover border-2 border-gray-200"
                         />
                       ) : (
-                        <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                        <div className="h-12 w-12 rounded-lg bg-green-700 flex items-center justify-center">
                           <FiBriefcase size={20} className="text-white" />
                         </div>
                       )}

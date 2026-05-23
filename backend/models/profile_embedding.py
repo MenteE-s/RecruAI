@@ -8,13 +8,13 @@ import json
 
 from backend.extensions import db
 
-# Try to import VECTOR for pgvector support, fallback to Text if not available
+# Try to import Vector for pgvector support, fallback to Text if not available
 try:
-    from sqlalchemy.dialects.postgresql import VECTOR
+    from pgvector.sqlalchemy import Vector
     HAS_VECTOR = True
 except ImportError:
     HAS_VECTOR = False
-    VECTOR = None
+    Vector = None
 
 from backend.config import Config
 
@@ -32,9 +32,9 @@ class ProfileEmbedding(db.Model):
     # Profile content used for embedding
     profile_content = db.Column(db.Text, nullable=False)  # Concatenated profile text
 
-    # Vector embedding
+        # Vector embedding
     if HAS_VECTOR:
-        embedding = db.Column(VECTOR(Config.EMBEDDING_DIMENSIONS), nullable=False)
+        embedding = db.Column(Vector(Config().EMBEDDING_DIMENSIONS), nullable=False)
     else:
         embedding = db.Column(db.Text, nullable=False)  # Store as JSON string
 

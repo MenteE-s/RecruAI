@@ -624,147 +624,155 @@ const ShareableProfiles = () => {
         {/* Profiles Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {profiles.map((profile) => (
-            <Card key={profile.id} className="p-6">
-              <div className="flex items-start space-x-4 mb-4">
-                {/* Profile Image */}
-                <div className="flex-shrink-0">
-                  {profile.user?.profile_picture ? (
-                    <img
-                      src={getUploadUrl(profile.user.profile_picture)}
-                      alt={profile.user.name}
-                      className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
-                    />
-                  ) : (
-                    <div className="w-12 h-12 rounded-full bg-gray-300 flex items-center justify-center">
-                      <span className="text-sm font-bold text-gray-600">
-                        {profile.user?.name?.charAt(0)?.toUpperCase() || "?"}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Profile Info */}
-                <div className="flex-1">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900">
-                        {profile.slug}
-                      </h3>
-                      <p className="text-sm text-gray-500">
-                        {profile.view_count} views
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        {profile.user?.name}
-                      </p>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      {profile.is_public ? (
-                        <FiGlobe className="text-green-500" title="Public" />
-                      ) : (
-                        <FiLock className="text-gray-400" title="Private" />
-                      )}
-                      {profile.is_active ? (
-                        <FiEye className="text-green-500" title="Active" />
-                      ) : (
-                        <FiEyeOff className="text-red-500" title="Inactive" />
-                      )}
-                    </div>
+            <Card key={profile.id} className="p-0 overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+              {/* Card Header */}
+              <div className="bg-green-700 px-6 py-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-bold text-white truncate">
+                    {profile.slug}
+                  </h3>
+                  <div className="flex items-center space-x-2 ml-2">
+                    {profile.is_public ? (
+                      <FiGlobe className="text-white" title="Public" />
+                    ) : (
+                      <FiLock className="text-green-200" title="Private" />
+                    )}
+                    {profile.is_active ? (
+                      <FiEye className="text-white" title="Active" />
+                    ) : (
+                      <FiEyeOff className="text-green-200" title="Inactive" />
+                    )}
                   </div>
                 </div>
               </div>
 
-              <div className="space-y-2 mb-4">
-                <div className="text-sm text-gray-600">
-                  <strong>Expires:</strong> {formatDate(profile.expires_at)}
+              <div className="p-6">
+                {/* Profile Info */}
+                <div className="flex items-start space-x-4 mb-4">
+                  <div className="flex-shrink-0">
+                    {profile.user?.profile_picture ? (
+                      <img
+                        src={getUploadUrl(profile.user.profile_picture)}
+                        alt={profile.user.name}
+                        className="w-14 h-14 rounded-full object-cover border-2 border-gray-200"
+                      />
+                    ) : (
+                      <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center">
+                        <span className="text-lg font-bold text-gray-600">
+                          {profile.user?.name?.charAt(0)?.toUpperCase() || "?"}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-gray-900 truncate">
+                      {profile.user?.name}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      {profile.view_count} views
+                    </p>
+                  </div>
                 </div>
-                <div className="text-sm text-gray-600">
-                  <strong>Created:</strong> {formatDate(profile.created_at)}
+
+                {/* Meta Info */}
+                <div className="space-y-2 mb-4 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Expires:</span>
+                    <span className="text-gray-900 font-medium">{formatDate(profile.expires_at)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Created:</span>
+                    <span className="text-gray-900 font-medium">{formatDate(profile.created_at)}</span>
+                  </div>
                 </div>
-              </div>
 
-              <div className="flex flex-wrap gap-2 mb-4">
-                {profile.show_contact_info && (
-                  <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
-                    Contact Info
-                  </span>
-                )}
-                {profile.show_experience && (
-                  <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">
-                    Experience
-                  </span>
-                )}
-                {profile.show_education && (
-                  <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded">
-                    Education
-                  </span>
-                )}
-                {profile.show_skills && (
-                  <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded">
-                    Skills
-                  </span>
-                )}
-                {profile.show_projects && (
-                  <span className="px-2 py-1 bg-indigo-100 text-indigo-800 text-xs rounded">
-                    Projects
-                  </span>
-                )}
-              </div>
+                {/* Feature Tags */}
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {profile.show_contact_info && (
+                    <span className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-md font-medium">
+                      Contact
+                    </span>
+                  )}
+                  {profile.show_experience && (
+                    <span className="px-2 py-1 bg-green-50 text-green-700 text-xs rounded-md font-medium">
+                      Experience
+                    </span>
+                  )}
+                  {profile.show_education && (
+                    <span className="px-2 py-1 bg-purple-50 text-purple-700 text-xs rounded-md font-medium">
+                      Education
+                    </span>
+                  )}
+                  {profile.show_skills && (
+                    <span className="px-2 py-1 bg-yellow-50 text-yellow-700 text-xs rounded-md font-medium">
+                      Skills
+                    </span>
+                  )}
+                  {profile.show_projects && (
+                    <span className="px-2 py-1 bg-indigo-50 text-indigo-700 text-xs rounded-md font-medium">
+                      Projects
+                    </span>
+                  )}
+                </div>
 
-              <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={() => copyProfileLink(profile.slug)}
-                  className="flex items-center px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
-                  title="Copy profile link"
-                >
-                  <FiCopy className="mr-1" />
-                  Copy Link
-                </button>
+                {/* Action Buttons */}
+                <div className="flex flex-wrap gap-2 pt-4 border-t border-gray-100">
+                  <button
+                    onClick={() => copyProfileLink(profile.slug)}
+                    className="flex items-center px-3 py-1.5 text-sm bg-gray-50 text-gray-700 rounded-md hover:bg-gray-100 border border-gray-200"
+                    title="Copy profile link"
+                  >
+                    <FiCopy className="mr-1" />
+                    Copy
+                  </button>
 
-                <button
-                  onClick={() => {
-                    setAnalyticsProfile(profile);
-                    setShowAnalyticsModal(true);
-                  }}
-                  className="flex items-center px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
-                  title="View analytics"
-                >
-                  <FiBarChart2 className="mr-1" />
-                  Analytics
-                </button>
+                  <button
+                    onClick={() => {
+                      setAnalyticsProfile(profile);
+                      setShowAnalyticsModal(true);
+                    }}
+                    className="flex items-center px-3 py-1.5 text-sm bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 border border-blue-200"
+                    title="View analytics"
+                  >
+                    <FiBarChart2 className="mr-1" />
+                    Stats
+                  </button>
 
-                <button
-                  onClick={() => setEditingProfile(profile)}
-                  className="flex items-center px-3 py-1 text-sm bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200"
-                  title="Edit profile"
-                >
-                  <FiEdit2 className="mr-1" />
-                  Edit
-                </button>
+                  <button
+                    onClick={() => setEditingProfile(profile)}
+                    className="flex items-center px-3 py-1.5 text-sm bg-yellow-50 text-yellow-700 rounded-md hover:bg-yellow-100 border border-yellow-200"
+                    title="Edit profile"
+                  >
+                    <FiEdit2 className="mr-1" />
+                    Edit
+                  </button>
 
-                <button
-                  onClick={() => toggleProfileStatus(profile)}
-                  className={`flex items-center px-3 py-1 text-sm rounded ${
-                    profile.is_active
-                      ? "bg-red-100 text-red-700 hover:bg-red-200"
-                      : "bg-green-100 text-green-700 hover:bg-green-200"
-                  }`}
-                  title={
-                    profile.is_active
-                      ? "Deactivate profile"
-                      : "Activate profile"
-                  }
-                >
-                  {profile.is_active ? "Deactivate" : "Activate"}
-                </button>
+                  <button
+                    onClick={() => toggleProfileStatus(profile)}
+                    className={`flex items-center px-3 py-1.5 text-sm rounded-md border ${
+                      profile.is_active
+                        ? "bg-red-50 text-red-700 hover:bg-red-100 border-red-200"
+                        : "bg-green-50 text-green-700 hover:bg-green-100 border-green-200"
+                    }`}
+                    title={
+                      profile.is_active
+                        ? "Deactivate profile"
+                        : "Activate profile"
+                    }
+                  >
+                    {profile.is_active ? "Deactivate" : "Activate"}
+                  </button>
 
-                <button
-                  onClick={() => handleDeleteProfile(profile)}
-                  className="flex items-center px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200"
-                  title="Delete profile"
-                >
-                  <FiTrash2 className="mr-1" />
-                  Delete
-                </button>
+                  <button
+                    onClick={() => handleDeleteProfile(profile)}
+                    className="flex items-center px-3 py-1.5 text-sm bg-red-50 text-red-700 rounded-md hover:bg-red-100 border border-red-200"
+                    title="Delete profile"
+                  >
+                    <FiTrash2 className="mr-1" />
+                    Delete
+                  </button>
+                </div>
               </div>
             </Card>
           ))}

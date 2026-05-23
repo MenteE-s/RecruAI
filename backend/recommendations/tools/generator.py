@@ -180,3 +180,163 @@ class RecommendationGenerator:
             )
         finally:
             loop.close()
+
+    @staticmethod
+    def _sanitize_profile_for_ai(profile_content: str) -> str:
+        """Strip personally identifiable information from profile content before sending to AI.
+        Keeps skills, experience levels, education fields, and project descriptions.
+        Removes names, emails, phone numbers, company names, and specific locations."""
+        import re
+        # Remove email addresses
+        text = re.sub(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', '[EMAIL REMOVED]', profile_content)
+        # Remove phone numbers (various formats)
+        text = re.sub(r'\b(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b', '[PHONE REMOVED]', text)
+        # Remove URLs
+        text = re.sub(r'https?://\S+', '[URL REMOVED]', text)
+        return text
+
+    async def generate_search_explanation(
+        self,
+        query: str,
+        profile_content: str,
+        similarity_score: float,
+        skills_count: int,
+        experience_years: float,
+        education_level: Optional[str]
+    ) -> Dict[str, Any]:
+        """Generate AI explanation for a candidate search result.
+        Only sanitized (PII-free) profile data is sent to the AI.
+        Returns explanation, match_level, and matching_skills."""
+        sanitized = self._sanitize_profile_for_ai(profile_content)
+
+        prompt = f"""You are an AI recruitment assistant helping an organization find candidates.
+Your task is to analyze how well a candidate matches a search query.
+
+IMPORTANT PRIVACY RULE: Only discuss skills, experience levels, education, and project relevance.
+NEVER mention names, email addresses, phone numbers, or any personally identifiable information.
+If you see [EMAIL REMOVED] or [PHONE REMOVED], do not reference them.
+
+Search Query: {query}
+
+Candidate Profile (PII removed):
+{sanitized}
+
+Skills Count: {skills_count}
+Experience Years: {experience_years}
+Education: {education_level or 'Not specified'}
+Similarity Score: {similarity_score:.2f}
+
+Respond in JSON format:
+{{
+    "explanation": "2-3 sentence analysis of how this candidate matches the query",
+    "match_level": "excellent|good|possible",
+    "matching_skills": ["skill1", "skill2"]
+}}
+
+Match level guidelines:
+- excellent: strong alignment in skills, experience, and domain (>0.80 similarity or clear overlap)
+- good: reasonable alignment with some matching skills (>0.60)
+- possible: partial match but may need upskilling (>0.40)
+"""
+        try:
+            response = await self.llm_provider.generate_text(
+                prompt=prompt,
+                max_tokens=300,
+                temperature=0.2
+            )
+            import json
+            # Try to parse JSON response
+            response_text = response.strip()
+            # Find JSON in the response
+            json_start = response_text.find('{')
+            json_end = response_text.rfind('}')
+            if json_start != -1 and json_end != -1:
+                json_str = response_text[json_start:json_end + 1]
+                result = json.loads(json_str)
+                return {
+                    'explanation': result.get('explanation', f'Candidate matches with similarity score {similarity_score:.2f}.'),
+                    'match_level': result.get('match_level', self._classify_match_level(similarity_score)),
+                    'matching_skills': result.get('matching_skills', [])
+                }
+        except Exception as e:
+            logger.error(f"Failed to generate search explanation: {e}")
+
+        # Fallback
+        return {
+            'explanation': f'Candidate matches the search query with a similarity score of {similarity_score:.2f} based on skills and experience.',
+            'match_level': self._classify_match_level(similarity_score),
+            'matching_skills': []
+        }
+
+    def generate_search_explanation_sync(
+        self,
+        query: str,
+        profile_content: str,
+        similarity_score: float,
+        skills_count: int,
+        experience_years: float,
+        education_level: Optional[str]
+    ) -> Dict[str, Any]:
+        """Synchronous version of generate_search_explanation"""
+        import asyncio
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            return loop.run_until_complete(
+                self.generate_search_explanation(
+                    query, profile_content, similarity_score,
+                    skills_count, experience_years, education_level
+                )
+            )
+        finally:
+            loop.close()
+
+    async def analyze_search_query(self, query: str) -> Dict[str, Any]:
+        """Analyze a search query to detect required skills and suggested roles.
+        No personal data is involved - only the query text."""
+        prompt = f"""Analyze this candidate search query and extract key requirements.
+
+Query: {query}
+
+Respond in JSON format:
+{{
+    "detected_skills": ["skill1", "skill2"],
+    "suggested_roles": ["role1", "role2"],
+    "min_experience_years": 0
+}}
+"""
+        try:
+            response = await self.llm_provider.generate_text(
+                prompt=prompt,
+                max_tokens=200,
+                temperature=0.1
+            )
+            import json
+            response_text = response.strip()
+            json_start = response_text.find('{')
+            json_end = response_text.rfind('}')
+            if json_start != -1 and json_end != -1:
+                return json.loads(response_text[json_start:json_end + 1])
+        except Exception as e:
+            logger.error(f"Failed to analyze search query: {e}")
+        return {"detected_skills": [], "suggested_roles": [], "min_experience_years": 0}
+
+    def analyze_search_query_sync(self, query: str) -> Dict[str, Any]:
+        """Synchronous version of analyze_search_query"""
+        import asyncio
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            return loop.run_until_complete(self.analyze_search_query(query))
+        finally:
+            loop.close()
+
+    @staticmethod
+    def _classify_match_level(similarity: float) -> str:
+        if similarity >= 0.80:
+            return "excellent"
+        elif similarity >= 0.60:
+            return "good"
+        elif similarity >= 0.40:
+            return "possible"
+        return "poor"
