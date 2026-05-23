@@ -221,6 +221,11 @@ export function getSidebarItems(role, plan) {
         { name: "AI Agents", link: "/organization/ai-agents", icon: FiUsers },
         { name: "Candidates", link: "/organization/candidates", icon: FiUser },
         {
+          name: "Candidate Analysis",
+          link: "/organization/candidate-analysis",
+          icon: FiUser,
+        },
+        {
           name: "Interviews",
           link: "/organization/interviews",
           icon: FiCalendar,
@@ -249,6 +254,11 @@ export function getSidebarItems(role, plan) {
         { name: "Job Posts", link: "/organization/jobs", icon: FiFileText },
         { name: "AI Agents", link: "/organization/ai-agents", icon: FiUsers },
         { name: "Candidates", link: "/organization/candidates", icon: FiUser },
+        {
+          name: "Candidate Analysis",
+          link: "/organization/candidate-analysis",
+          icon: FiUser,
+        },
         {
           name: "Interviews",
           link: "/organization/interviews",

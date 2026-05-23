@@ -23,7 +23,7 @@ class RecommendationGenerator:
         self.provider_manager = get_ai_provider_manager()
         self.llm_provider = self.provider_manager.llm
 
-    async def generate_profile_explanation(
+    def generate_profile_explanation(
         self,
         profile_data: Dict[str, Any],
         job_data: Dict[str, Any],
@@ -48,17 +48,16 @@ class RecommendationGenerator:
         """
 
         try:
-            response = await self.llm_provider.generate_text(
+            response = self.llm_provider.generate(
                 prompt=prompt,
-                max_tokens=200,
-                temperature=0.3
+                params={"max_tokens": 200, "temperature": 0.3}
             )
             return response.strip()
         except Exception as e:
             logger.error(f"Failed to generate profile explanation: {e}")
             return f"This profile matches the job with a similarity score of {similarity_score:.2f}."
 
-    async def generate_job_explanation(
+    def generate_job_explanation(
         self,
         job_data: Dict[str, Any],
         profile_data: Dict[str, Any],
@@ -83,17 +82,16 @@ class RecommendationGenerator:
         """
 
         try:
-            response = await self.llm_provider.generate_text(
+            response = self.llm_provider.generate(
                 prompt=prompt,
-                max_tokens=200,
-                temperature=0.3
+                params={"max_tokens": 200, "temperature": 0.3}
             )
             return response.strip()
         except Exception as e:
             logger.error(f"Failed to generate job explanation: {e}")
             return f"This job matches your profile with a similarity score of {similarity_score:.2f}."
 
-    async def generate_agent_explanation(
+    def generate_agent_explanation(
         self,
         agent_data: Dict[str, Any],
         job_data: Dict[str, Any],
@@ -120,10 +118,9 @@ class RecommendationGenerator:
         """
 
         try:
-            response = await self.llm_provider.generate_text(
+            response = self.llm_provider.generate(
                 prompt=prompt,
-                max_tokens=200,
-                temperature=0.3
+                params={"max_tokens": 200, "temperature": 0.3}
             )
             return response.strip()
         except Exception as e:
@@ -136,16 +133,7 @@ class RecommendationGenerator:
         job_data: Dict[str, Any],
         similarity_score: float
     ) -> str:
-        """Synchronous version of generate_profile_explanation"""
-        import asyncio
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            return loop.run_until_complete(
-                self.generate_profile_explanation(profile_data, job_data, similarity_score)
-            )
-        finally:
-            loop.close()
+        return self.generate_profile_explanation(profile_data, job_data, similarity_score)
 
     def generate_job_explanation_sync(
         self,
@@ -153,16 +141,7 @@ class RecommendationGenerator:
         profile_data: Dict[str, Any],
         similarity_score: float
     ) -> str:
-        """Synchronous version of generate_job_explanation"""
-        import asyncio
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            return loop.run_until_complete(
-                self.generate_job_explanation(job_data, profile_data, similarity_score)
-            )
-        finally:
-            loop.close()
+        return self.generate_job_explanation(job_data, profile_data, similarity_score)
 
     def generate_agent_explanation_sync(
         self,
@@ -170,16 +149,7 @@ class RecommendationGenerator:
         job_data: Dict[str, Any],
         similarity_score: float
     ) -> str:
-        """Synchronous version of generate_agent_explanation"""
-        import asyncio
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            return loop.run_until_complete(
-                self.generate_agent_explanation(agent_data, job_data, similarity_score)
-            )
-        finally:
-            loop.close()
+        return self.generate_agent_explanation(agent_data, job_data, similarity_score)
 
     @staticmethod
     def _sanitize_profile_for_ai(profile_content: str) -> str:
@@ -195,7 +165,7 @@ class RecommendationGenerator:
         text = re.sub(r'https?://\S+', '[URL REMOVED]', text)
         return text
 
-    async def generate_search_explanation(
+    def generate_search_explanation(
         self,
         query: str,
         profile_content: str,
@@ -208,13 +178,17 @@ class RecommendationGenerator:
         Only sanitized (PII-free) profile data is sent to the AI.
         Returns explanation, match_level, and matching_skills."""
         sanitized = self._sanitize_profile_for_ai(profile_content)
+        # Truncate to avoid 413 Request Entity Too Large from Groq
+        max_chars = 3000
+        if len(sanitized) > max_chars:
+            sanitized = sanitized[:max_chars] + "\n...[truncated]"
 
         prompt = f"""You are an AI recruitment assistant helping an organization find candidates.
 Your task is to analyze how well a candidate matches a search query.
 
-IMPORTANT PRIVACY RULE: Only discuss skills, experience levels, education, and project relevance.
-NEVER mention names, email addresses, phone numbers, or any personally identifiable information.
-If you see [EMAIL REMOVED] or [PHONE REMOVED], do not reference them.
+IMPORTANT: Only mention skills that are explicitly present in the candidate profile. Do NOT make up skills.
+
+PRIVACY RULE: Never mention names, emails, phone numbers, or any PII. If you see [EMAIL REMOVED] or [PHONE REMOVED], do not reference them.
 
 Search Query: {query}
 
@@ -224,25 +198,24 @@ Candidate Profile (PII removed):
 Skills Count: {skills_count}
 Experience Years: {experience_years}
 Education: {education_level or 'Not specified'}
-Similarity Score: {similarity_score:.2f}
 
 Respond in JSON format:
 {{
-    "explanation": "2-3 sentence analysis of how this candidate matches the query",
-    "match_level": "excellent|good|possible",
+    "explanation": "2-3 sentence analysis of what in the profile matches the query — mention specific skills, roles, experience, or projects that are relevant",
+    "match_level": "excellent|good|possible|poor",
     "matching_skills": ["skill1", "skill2"]
 }}
 
-Match level guidelines:
-- excellent: strong alignment in skills, experience, and domain (>0.80 similarity or clear overlap)
-- good: reasonable alignment with some matching skills (>0.60)
-- possible: partial match but may need upskilling (>0.40)
+Match level guidelines (judge by profile content, not external rules):
+- excellent: profile clearly matches the core requirements of the query
+- good: profile partially matches with some relevant skills/experience
+- possible: profile has some tangential relevance
+- poor: profile does not match the query
 """
         try:
-            response = await self.llm_provider.generate_text(
+            response = self.llm_provider.generate(
                 prompt=prompt,
-                max_tokens=300,
-                temperature=0.2
+                params={"max_tokens": 300, "temperature": 0.2}
             )
             import json
             # Try to parse JSON response
@@ -277,21 +250,32 @@ Match level guidelines:
         experience_years: float,
         education_level: Optional[str]
     ) -> Dict[str, Any]:
-        """Synchronous version of generate_search_explanation"""
-        import asyncio
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            return loop.run_until_complete(
-                self.generate_search_explanation(
-                    query, profile_content, similarity_score,
-                    skills_count, experience_years, education_level
-                )
-            )
-        finally:
-            loop.close()
+        return self.generate_search_explanation(
+            query, profile_content, similarity_score,
+            skills_count, experience_years, education_level
+        )
 
-    async def analyze_search_query(self, query: str) -> Dict[str, Any]:
+    def expand_search_query(self, query: str) -> str:
+        """Expand a short search query into a profile-like description for better embedding matching."""
+        prompt = f"""Rewrite this candidate search query into a detailed candidate requirements description.
+Expand abbreviations and infer related skills. Output only the description.
+
+Query: {query}
+
+Description:"""
+        try:
+            response = self.llm_provider.generate(
+                prompt=prompt,
+                params={"max_tokens": 150, "temperature": 0.1}
+            )
+            expanded = response.strip()
+            if expanded:
+                return expanded
+        except Exception as e:
+            logger.error(f"Failed to expand query: {e}")
+        return query
+
+    def analyze_search_query(self, query: str) -> Dict[str, Any]:
         """Analyze a search query to detect required skills and suggested roles.
         No personal data is involved - only the query text."""
         prompt = f"""Analyze this candidate search query and extract key requirements.
@@ -306,10 +290,9 @@ Respond in JSON format:
 }}
 """
         try:
-            response = await self.llm_provider.generate_text(
+            response = self.llm_provider.generate(
                 prompt=prompt,
-                max_tokens=200,
-                temperature=0.1
+                params={"max_tokens": 200, "temperature": 0.1}
             )
             import json
             response_text = response.strip()
@@ -322,14 +305,7 @@ Respond in JSON format:
         return {"detected_skills": [], "suggested_roles": [], "min_experience_years": 0}
 
     def analyze_search_query_sync(self, query: str) -> Dict[str, Any]:
-        """Synchronous version of analyze_search_query"""
-        import asyncio
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            return loop.run_until_complete(self.analyze_search_query(query))
-        finally:
-            loop.close()
+        return self.analyze_search_query(query)
 
     @staticmethod
     def _classify_match_level(similarity: float) -> str:

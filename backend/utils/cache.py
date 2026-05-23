@@ -106,7 +106,9 @@ def cache_delete_pattern(pattern: str) -> bool:
     if not client:
         return False
     try:
-        keys = client.keys(f"{CACHE_PREFIX}{pattern}")
+        # Must sanitize the same way _build_key does (replaces : with _)
+        search_key = _sanitize_key(f"{CACHE_PREFIX}{pattern}")
+        keys = client.keys(search_key)
         if keys:
             client.delete(*keys)
             logger.info(f"Cache invalidated {len(keys)} keys matching {pattern}")

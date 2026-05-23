@@ -61,6 +61,7 @@ import Reports from "./pages/organization/Reports";
 import Integrations from "./pages/organization/Integrations";
 import Insights from "./pages/organization/Insights";
 import AIAgents from "./pages/organization/AIAgents";
+import CandidateAnalysis from "./pages/organization/CandidateAnalysis";
 import InterviewRoom from "./pages/InterviewRoom";
 import Notifications from "./pages/Notifications";
 import InterviewDetail from "./pages/individual/InterviewDetail";
@@ -353,6 +354,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <UserProfile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/organization/candidate-analysis/:userId"
+            element={
+              <ProtectedRoute>
+                <CandidateAnalysis />
               </ProtectedRoute>
             }
           />
