@@ -14,6 +14,7 @@ from .retriever import RecommendationRetriever
 from .generator import RecommendationGenerator
 from ...models import ProfileEmbedding, JobEmbedding, AgentEmbedding
 from ...utils.cache import cache_get, cache_set
+from ...utils.subscription import SubscriptionManager
 
 
 logger = logging.getLogger(__name__)
@@ -338,7 +339,8 @@ class RecommendationSupervisor:
         query: str,
         organization_id: Optional[str] = None,
         top_k: int = 20,
-        generate_ai_explanations: bool = False
+        generate_ai_explanations: bool = False,
+        user_id: Optional[str] = None
     ) -> List[Dict[str, Any]]:
         """
         Search profiles using a natural language query.
@@ -355,6 +357,21 @@ class RecommendationSupervisor:
             query_analysis = cache_get(analysis_cache_key)
             if not query_analysis:
                 query_analysis = self.generator.analyze_search_query(query)
+                # Track token usage for query analysis
+                if user_id and hasattr(self.generator.llm_provider, 'get_last_token_usage'):
+                    tokens_used = self.generator.llm_provider.get_last_token_usage()
+                    if tokens_used:
+                        from ...models import User, Organization
+                        user = session.query(User).filter_by(id=int(user_id)).first()
+                        org = session.query(Organization).filter_by(id=organization_id).first() if organization_id else None
+                        SubscriptionManager.track_token_usage(
+                            user=user,
+                            org=org,
+                            provider=self.generator.provider_manager.config.AI_PROVIDER,
+                            model=self.generator.provider_manager.config.AI_MODEL,
+                            tokens=tokens_used,
+                            operation_type="search_query_analysis"
+                        )
                 cache_set(analysis_cache_key, query_analysis, ttl=3600)
             required_skills = set(s.lower().strip() for s in query_analysis.get('detected_skills', []))
 
@@ -364,6 +381,21 @@ class RecommendationSupervisor:
             expanded_query = cache_get(cache_key)
             if not expanded_query:
                 expanded_query = self.generator.expand_search_query(query)
+                # Track token usage for query expansion
+                if user_id and hasattr(self.generator.llm_provider, 'get_last_token_usage'):
+                    tokens_used = self.generator.llm_provider.get_last_token_usage()
+                    if tokens_used:
+                        from ...models import User, Organization
+                        user = session.query(User).filter_by(id=int(user_id)).first()
+                        org = session.query(Organization).filter_by(id=organization_id).first() if organization_id else None
+                        SubscriptionManager.track_token_usage(
+                            user=user,
+                            org=org,
+                            provider=self.generator.provider_manager.config.AI_PROVIDER,
+                            model=self.generator.provider_manager.config.AI_MODEL,
+                            tokens=tokens_used,
+                            operation_type="search_query_expansion"
+                        )
                 cache_set(cache_key, expanded_query, ttl=3600)
             logger.info(f"Expanded query: '{expanded_query[:100]}...'")
             query_embedding = self.embedder.embed_text(expanded_query)
@@ -465,6 +497,20 @@ class RecommendationSupervisor:
                     result['explanation'] = ai_result['explanation']
                     result['match_level'] = ai_result['match_level']
                     result['matching_skills'] = ai_result['matching_skills']
+                    # Track token usage for search explanation
+                    if user_id and 'tokens_used' in ai_result and ai_result['tokens_used']:
+                        tokens_used = ai_result['tokens_used']
+                        from ...models import User, Organization
+                        user = session.query(User).filter_by(id=int(user_id)).first()
+                        org = session.query(Organization).filter_by(id=organization_id).first() if organization_id else None
+                        SubscriptionManager.track_token_usage(
+                            user=user,
+                            org=org,
+                            provider=self.generator.provider_manager.config.AI_PROVIDER,
+                            model=self.generator.provider_manager.config.AI_MODEL,
+                            tokens=tokens_used,
+                            operation_type="search_explanation"
+                        )
 
                 results.append(result)
 
@@ -517,6 +563,19 @@ class RecommendationSupervisor:
                 experience_years=exp_years,
                 education_level=profile.education_level,
             )
+            # Track token usage for on-demand explanation
+            if 'tokens_used' in ai_result and ai_result['tokens_used']:
+                tokens_used = ai_result['tokens_used']
+                user_obj = session.query(User).filter_by(id=user_id).first()
+                org = session.query(Organization).filter_by(id=organization_id).first() if organization_id else None
+                SubscriptionManager.track_token_usage(
+                    user=user_obj,
+                    org=org,
+                    provider=self.generator.provider_manager.config.AI_PROVIDER,
+                    model=self.generator.provider_manager.config.AI_MODEL,
+                    tokens=tokens_used,
+                    operation_type="on_demand_explanation"
+                )
             return ai_result
         finally:
             session.close()
@@ -529,6 +588,7 @@ class RecommendationSupervisor:
                 User, Skill, Experience, ProfileEmbedding,
                 Project, Certification, Language, Education as Edu
             )
+            from ...utils.subscription import SubscriptionManager
             from datetime import date
 
             user = session.query(User).filter_by(id=user_id).first()

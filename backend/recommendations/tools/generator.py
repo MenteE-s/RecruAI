@@ -217,6 +217,7 @@ Match level guidelines (judge by profile content, not external rules):
                 prompt=prompt,
                 params={"max_tokens": 300, "temperature": 0.2}
             )
+            tokens_used = self.llm_provider.get_last_token_usage()
             import json
             # Try to parse JSON response
             response_text = response.strip()
@@ -229,7 +230,8 @@ Match level guidelines (judge by profile content, not external rules):
                 return {
                     'explanation': result.get('explanation', f'Candidate matches with similarity score {similarity_score:.2f}.'),
                     'match_level': result.get('match_level', self._classify_match_level(similarity_score)),
-                    'matching_skills': result.get('matching_skills', [])
+                    'matching_skills': result.get('matching_skills', []),
+                    'tokens_used': tokens_used
                 }
         except Exception as e:
             logger.error(f"Failed to generate search explanation: {e}")

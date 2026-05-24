@@ -188,7 +188,8 @@ def search_profiles():
             query=data['query'],
             organization_id=str(user.organization_id) if user.organization_id else None,
             top_k=top_k,
-            generate_ai_explanations=generate_ai
+            generate_ai_explanations=generate_ai,
+            user_id=str(user.id)
         )
 
         return jsonify({

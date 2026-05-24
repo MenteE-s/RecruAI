@@ -47,6 +47,7 @@ import IndividualAIAgents from "./pages/individual/AIAgents";
 import ShareableProfiles from "./pages/individual/ShareableProfiles";
 // Organization Pages
 import OrganizationProfile from "./pages/organization/Profile";
+import Billing from "./pages/organization/Billing";
 import BrowseOrganizations from "./pages/organization/BrowseOrganizations";
 import HirePeople from "./pages/organization/HirePeople";
 import TeamMembers from "./pages/organization/TeamMembers";
@@ -221,38 +222,46 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/resume/builder"
-            element={
-              <ProtectedRoute>
-                <ResumeBuilder />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/jobs/alerts"
-            element={
-              <ProtectedRoute>
-                <JobAlerts />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/coaching"
-            element={
-              <ProtectedRoute>
-                <CareerCoaching />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/analytics"
-            element={
-              <ProtectedRoute>
-                <Analytics />
-              </ProtectedRoute>
-            }
-          />
+           <Route
+             path="/resume/builder"
+             element={
+               <ProtectedRoute>
+                 <ResumeBuilder />
+               </ProtectedRoute>
+             }
+           />
+           <Route
+             path="/jobs/alerts"
+             element={
+               <ProtectedRoute>
+                 <JobAlerts />
+               </ProtectedRoute>
+             }
+           />
+           <Route
+             path="/coaching"
+             element={
+               <ProtectedRoute>
+                 <CareerCoaching />
+               </ProtectedRoute>
+             }
+           />
+           <Route
+             path="/billing"
+             element={
+               <ProtectedRoute>
+                 <Billing />
+               </ProtectedRoute>
+             }
+           />
+           <Route
+             path="/analytics"
+             element={
+               <ProtectedRoute>
+                 <Analytics />
+               </ProtectedRoute>
+             }
+           />
           <Route
             path="/resume/builder"
             element={
@@ -381,14 +390,38 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/organization/candidates"
-            element={
-              <ProtectedRoute>
-                <Candidates />
-              </ProtectedRoute>
-            }
-          />
+           <Route
+             path="/organization/candidates"
+             element={
+               <ProtectedRoute>
+                 <Candidates />
+               </ProtectedRoute>
+             }
+           />
+           <Route
+             path="/organization/pipeline"
+             element={
+               <ProtectedRoute>
+                 <Pipeline />
+               </ProtectedRoute>
+             }
+           />
+           <Route
+             path="/organization/billing"
+             element={
+               <ProtectedRoute>
+                 <Billing />
+               </ProtectedRoute>
+             }
+           />
+           <Route
+             path="/organization/reports"
+             element={
+               <ProtectedRoute>
+                 <Reports />
+               </ProtectedRoute>
+             }
+           />
           <Route
             path="/organization/pipeline"
             element={

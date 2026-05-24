@@ -9,6 +9,7 @@ import {
   getAuthHeaders,
 } from "../../utils/auth";
 import TimezoneSelector from "../../components/ui/TimezoneSelector";
+import Chip from "../../components/ui/Chip";
 
 export default function OrganizationSettings() {
   const role =
@@ -254,6 +255,13 @@ export default function OrganizationSettings() {
                   </p>
                 )}
             </div>
+            {/* Tokens Used */}
+            <p className="mt-2 text-xs text-gray-500 flex items-center gap-1">
+              <Chip className="bg-blue-50 text-blue-800 text-[10px] px-2 py-0.5 rounded">
+                🪙
+              </Chip>
+              <span>Tokens Used: {organization?.subscription_status?.tokens_used?.toLocaleString() || '0'}</span>
+            </p>
             {!organization?.subscription_status?.is_paid_active && (
               <button className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-medium transition-all duration-200">
                 Upgrade to Pro

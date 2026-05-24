@@ -8,6 +8,7 @@ import {
   getAuthHeaders,
 } from "../../utils/auth";
 import TimezoneSelector from "../../components/ui/TimezoneSelector";
+import Chip from "../../components/ui/Chip";
 
 export default function Settings() {
   const role =
@@ -77,36 +78,43 @@ export default function Settings() {
                     <span className="w-2 h-2 bg-white rounded-full"></span>
                     PREMIUM
                   </div>
-                )}
-              </div>
-              <p className="text-gray-600 text-sm mt-1">
-                {userData?.subscription_status?.is_paid_active
-                  ? "Full access to all premium features and analytics"
-                  : userData?.subscription_status?.is_trial_active
-                  ? `Trial active - ${
-                      userData?.subscription_status?.features_accessible?.includes(
-                        "all"
-                      )
-                        ? "Full features"
-                        : "Limited features"
-                    }`
-                  : "Limited features with basic interview tools"}
-              </p>
-              {userData?.subscription_status?.status === "trial" &&
-                userData?.subscription_status?.is_trial_active && (
-                  <p className="text-amber-600 text-sm mt-2">
-                    Trial expires:{" "}
-                    {userData?.subscription_status?.trial_start_date
-                      ? new Date(
-                          new Date(
-                            userData.subscription_status.trial_start_date
-                          ).getTime() +
-                            7 * 24 * 60 * 60 * 1000
-                        ).toLocaleDateString()
-                      : "Unknown"}
-                  </p>
-                )}
-            </div>
+                 )}
+               </div>
+               {/* Tokens Used */}
+               <p className="mt-1 text-xs text-gray-500 flex items-center gap-1">
+                 <Chip className="bg-blue-50 text-blue-800 text-[10px] px-2 py-0.5 rounded">
+                   🪙
+                 </Chip>
+                 <span>Tokens Used: {userData?.subscription_status?.tokens_used?.toLocaleString() || '0'}</span>
+               </p>
+               <p className="text-gray-600 text-sm mt-1">
+                 {userData?.subscription_status?.is_paid_active
+                   ? "Full access to all premium features and analytics"
+                   : userData?.subscription_status?.is_trial_active
+                   ? `Trial active - ${
+                       userData?.subscription_status?.features_accessible?.includes(
+                         "all"
+                       )
+                       ? "Full features"
+                       : "Limited features"
+                     }`
+                   : "Limited features with basic interview tools"}
+               </p>
+               {userData?.subscription_status?.status === "trial" &&
+                 userData?.subscription_status?.is_trial_active && (
+                   <p className="text-amber-600 text-sm mt-2">
+                     Trial expires:{" "}
+                     {userData?.subscription_status?.trial_start_date
+                       ? new Date(
+                           new Date(
+                             userData.subscription_status.trial_start_date
+                           ).getTime() +
+                           7 * 24 * 60 * 60 * 1000
+                         ).toLocaleDateString()
+                       : "Unknown"}
+                   </p>
+                 )}
+             </div>
             {!userData?.subscription_status?.is_paid_active && (
               <button className="px-6 py-2 bg-gradient-to-r from-yellow-400 to-green-500 text-white rounded-lg hover:from-yellow-500 hover:to-green-600 font-semibold shadow-md transition-all duration-200">
                 Upgrade to Pro
