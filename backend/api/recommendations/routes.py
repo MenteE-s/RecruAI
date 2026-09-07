@@ -180,7 +180,7 @@ def search_profiles():
             return jsonify({'error': 'Search query is required'}), 400
 
         top_k = data.get('top_k', 20)
-        generate_ai = data.get('ai_explanations', True)
+        generate_ai = data.get('ai_explanations', False)
 
         supervisor = get_supervisor()
 
@@ -188,7 +188,8 @@ def search_profiles():
             query=data['query'],
             organization_id=str(user.organization_id) if user.organization_id else None,
             top_k=top_k,
-            generate_ai_explanations=generate_ai
+            generate_ai_explanations=generate_ai,
+            user_id=str(user.id)
         )
 
         return jsonify({
@@ -199,6 +200,81 @@ def search_profiles():
 
     except Exception as e:
         logger.error(f"Error searching profiles: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@recommendations_bp.route('/explain', methods=['POST'])
+@jwt_required()
+def explain_candidate():
+    """Generate AI explanation for a specific candidate (on-demand, not during search)"""
+    try:
+        current_user_id = get_jwt_identity()
+        user = User.query.get(current_user_id)
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+
+        data = request.get_json()
+        if not data or not data.get('user_id') or not data.get('query'):
+            return jsonify({'error': 'user_id and query are required'}), 400
+
+        supervisor = get_supervisor()
+        result = supervisor.explain_candidate(
+            user_id=str(data['user_id']),
+            query=data['query'],
+            organization_id=str(user.organization_id) if user.organization_id else None,
+        )
+
+        if result:
+            return jsonify(result)
+        return jsonify({'error': 'Candidate not found'}), 404
+
+    except Exception as e:
+        logger.error(f"Error explaining candidate: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@recommendations_bp.route('/candidate/<user_id>', methods=['GET'])
+@jwt_required()
+def get_candidate_profile(user_id):
+    """Get enriched candidate profile with skills, experience, education."""
+    try:
+        supervisor = get_supervisor()
+        result = supervisor.get_candidate_profile(user_id=user_id)
+        if result:
+            return jsonify(result)
+        return jsonify({'error': 'Candidate not found'}), 404
+    except Exception as e:
+        logger.error(f"Error fetching candidate profile: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@recommendations_bp.route('/compare', methods=['POST'])
+@jwt_required()
+def compare_candidate_job():
+    """Compare a candidate's profile against a job posting."""
+    try:
+        current_user_id = get_jwt_identity()
+        user = User.query.get(current_user_id)
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+
+        data = request.get_json()
+        if not data or not data.get('candidate_id') or not data.get('job_id'):
+            return jsonify({'error': 'candidate_id and job_id are required'}), 400
+
+        supervisor = get_supervisor()
+        result = supervisor.compare_candidate_with_job(
+            candidate_user_id=str(data['candidate_id']),
+            job_id=str(data['job_id']),
+            organization_id=str(user.organization_id) if user.organization_id else None,
+        )
+
+        if result:
+            return jsonify(result)
+        return jsonify({'error': 'Candidate or job not found'}), 404
+
+    except Exception as e:
+        logger.error(f"Error comparing candidate with job: {e}")
         return jsonify({'error': 'Internal server error'}), 500
 
 

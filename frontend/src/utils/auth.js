@@ -12,6 +12,14 @@ import {
   FiSettings,
   FiCheckCircle,
   FiShare2,
+  FiCreditCard,
+  FiHome,
+  FiBriefcase,
+  FiTarget,
+  FiCpu,
+  FiLink,
+  FiPlus,
+  FiLogOut,
 } from "react-icons/fi";
 
 // Get the backend URL for API calls and uploaded files
@@ -49,27 +57,18 @@ export function getAuthHeaders(additionalHeaders = {}) {
 // Override global fetch to automatically handle authentication
 const originalFetch = window.fetch;
 window.fetch = function (url, options = {}) {
-  // Detect production the same way we detect backend URL
-  const isProduction =
-    typeof window !== "undefined" && window.location.hostname !== "localhost";
-
-  // Check if this is an API call that needs authentication
   if (typeof url === "string" && url.includes("/api/")) {
-    if (isProduction) {
-      // Production: Add Authorization header
-      const token = localStorage.getItem("access_token");
-      if (token) {
-        options.headers = {
-          ...options.headers,
-          Authorization: `Bearer ${token}`,
-        };
-      }
-    } else {
-      // Development: Add credentials for cookies
-      options.credentials = "include";
+    // Always include credentials for cookie-based auth
+    options.credentials = "include";
+    // Always add Authorization header if token exists
+    const token = localStorage.getItem("access_token");
+    if (token) {
+      options.headers = {
+        ...options.headers,
+        Authorization: `Bearer ${token}`,
+      };
     }
   }
-
   return originalFetch.call(this, url, options);
 };
 
@@ -143,139 +142,135 @@ export function getSidebarItems(role, plan) {
   if (role === "individual") {
     if (plan === "trial") {
       return [
-        { name: "Dashboard", link: "/dashboard", icon: FiBarChart2 },
-        { name: "Profile", link: "/profile", icon: FiUser },
-        { name: "Jobs", link: "/jobs", icon: FiFileText },
+        { name: "Dashboard", link: "/dashboard", icon: FiHome, section: "main" },
+        { name: "Profile", link: "/profile", icon: FiUser, section: "main" },
+        { name: "Jobs", link: "/jobs", icon: FiBriefcase, section: "main" },
         {
           name: "Upcoming Interviews",
           link: "/interviews/upcoming",
           icon: FiCalendar,
+          section: "interviews",
         },
         {
           name: "Interview History",
           link: "/interviews/history",
           icon: FiClock,
+          section: "interviews",
         },
-        { name: "Saved Jobs", link: "/jobs/saved", icon: FiBookmark },
-        { name: "Applied Jobs", link: "/jobs/applied", icon: FiCheckCircle },
-        { name: "Notifications", link: "/notifications", icon: FiBell },
-        { name: "Analytics", link: "/analytics", icon: FiBarChart2 },
-        { name: "Practice", link: "/practice", icon: FiClock },
-        { name: "My AI Agents", link: "/ai-agents", icon: FiUsers },
+        { name: "Saved Jobs", link: "/jobs/saved", icon: FiBookmark, section: "jobs" },
+        { name: "Applied Jobs", link: "/jobs/applied", icon: FiCheckCircle, section: "jobs" },
+        { name: "Notifications", link: "/notifications", icon: FiBell, section: "activity" },
+        { name: "Analytics", link: "/analytics", icon: FiBarChart2, section: "activity" },
+        { name: "Practice", link: "/practice", icon: FiTarget, section: "ai" },
+        { name: "My AI Agents", link: "/ai-agents", icon: FiCpu, section: "ai" },
         {
           name: "Shareable Profiles",
           link: "/shareable-profiles",
-          icon: FiShare2,
+          icon: FiLink,
+          section: "ai",
         },
-        { name: "Setting", link: "/settings", icon: FiSettings },
-      ];
-    } else {
-      // pro
-      return [
-        { name: "Dashboard", link: "/dashboard", icon: FiBarChart2 },
-        { name: "Profile", link: "/profile", icon: FiUser },
-        { name: "Jobs", link: "/jobs", icon: FiFileText },
-        {
-          name: "Upcoming Interviews",
-          link: "/interviews/upcoming",
-          icon: FiCalendar,
-        },
-        {
-          name: "Interview History",
-          link: "/interviews/history",
-          icon: FiClock,
-        },
-        { name: "Saved Jobs", link: "/jobs/saved", icon: FiBookmark },
-        { name: "Applied Jobs", link: "/jobs/applied", icon: FiCheckCircle },
-        { name: "Notifications", link: "/notifications", icon: FiBell },
-        { name: "Analytics", link: "/analytics", icon: FiBarChart2 },
-        { name: "Resume Builder", link: "/resume/builder", icon: FiFileText },
-        { name: "Job Alerts", link: "/jobs/alerts", icon: FiBell },
-        { name: "Career Coaching", link: "/coaching", icon: FiUsers },
-        { name: "Practice", link: "/practice", icon: FiClock },
-        { name: "My AI Agents", link: "/ai-agents", icon: FiUsers },
-        {
-          name: "Shareable Profiles",
-          link: "/shareable-profiles",
-          icon: FiShare2,
-        },
-        { name: "Setting", link: "/settings", icon: FiSettings },
-      ];
-    }
+        { name: "Settings", link: "/settings", icon: FiSettings, section: "bottom" },
+        { name: "Sign Out", link: "/signin", icon: FiLogOut, section: "bottom" },
+       ];
+     } else {
+       // pro
+       return [
+         { name: "Dashboard", link: "/dashboard", icon: FiHome, section: "main" },
+         { name: "Profile", link: "/profile", icon: FiUser, section: "main" },
+         { name: "Jobs", link: "/jobs", icon: FiBriefcase, section: "main" },
+         {
+           name: "Upcoming Interviews",
+           link: "/interviews/upcoming",
+           icon: FiCalendar,
+           section: "interviews",
+         },
+         {
+           name: "Interview History",
+           link: "/interviews/history",
+           icon: FiClock,
+           section: "interviews",
+         },
+         { name: "Saved Jobs", link: "/jobs/saved", icon: FiBookmark, section: "jobs" },
+         { name: "Applied Jobs", link: "/jobs/applied", icon: FiCheckCircle, section: "jobs" },
+         { name: "Notifications", link: "/notifications", icon: FiBell, section: "activity" },
+         { name: "Analytics", link: "/analytics", icon: FiBarChart2, section: "activity" },
+         { name: "Resume Builder", link: "/resume/builder", icon: FiFileText, section: "pro" },
+         { name: "Job Alerts", link: "/jobs/alerts", icon: FiBell, section: "pro" },
+         { name: "Career Coaching", link: "/coaching", icon: FiUsers, section: "pro" },
+         { name: "Practice", link: "/practice", icon: FiTarget, section: "ai" },
+         { name: "My AI Agents", link: "/ai-agents", icon: FiCpu, section: "ai" },
+         {
+           name: "Shareable Profiles",
+           link: "/shareable-profiles",
+           icon: FiLink,
+           section: "ai",
+         },
+         { name: "Billing", link: "/billing", icon: FiCreditCard, section: "pro" },
+         { name: "Settings", link: "/settings", icon: FiSettings, section: "bottom" },
+         { name: "Sign Out", link: "/signin", icon: FiLogOut, section: "bottom" },
+       ];
+     }
   } else if (role === "organization") {
     if (plan === "trial") {
       return [
+        { name: "Dashboard", link: "/dashboard", icon: FiHome, section: "main" },
+        { name: "Profile", link: "/organization/profile", icon: FiUser, section: "main" },
+        { name: "Team Members", link: "/organization/team", icon: FiUsers, section: "main" },
+        { name: "Job Posts", link: "/organization/jobs", icon: FiFileText, section: "main" },
+        { name: "Hire People", link: "/organization/hire", icon: FiUsers, section: "main" },
+        { name: "Candidates", link: "/organization/candidates", icon: FiUser, section: "candidates" },
         {
-          name: "Dashboard",
-          link: "/dashboard",
+          name: "Candidate Analysis",
+          link: "/organization/candidate-analysis",
           icon: FiBarChart2,
+          section: "candidates",
         },
-        { name: "Profile", link: "/organization/profile", icon: FiUser },
-        {
-          name: "Browse Organizations",
-          link: "/organization/browse",
-          icon: FiUser,
-        },
-        { name: "Hire People", link: "/organization/hire", icon: FiUsers },
-        { name: "Team Members", link: "/organization/team", icon: FiUsers },
-        { name: "Job Posts", link: "/organization/jobs", icon: FiFileText },
-        { name: "AI Agents", link: "/organization/ai-agents", icon: FiUsers },
-        { name: "Candidates", link: "/organization/candidates", icon: FiUser },
         {
           name: "Interviews",
           link: "/organization/interviews",
           icon: FiCalendar,
+          section: "interviews",
         },
-        { name: "Notifications", link: "/notifications", icon: FiBell },
-        { name: "Pipeline", link: "/organization/pipeline", icon: FiBarChart2 },
-        {
-          name: "Analytics",
-          link: "/organization/analytics",
-          icon: FiBarChart2,
-        },
-        { name: "Setting", link: "/settings", icon: FiSettings },
-      ];
-    } else {
-      // pro
-      return [
-        { name: "Dashboard", link: "/dashboard", icon: FiBarChart2 },
-        { name: "Profile", link: "/organization/profile", icon: FiUser },
-        {
-          name: "Browse Organizations",
-          link: "/organization/browse",
-          icon: FiUser,
-        },
-        { name: "Hire People", link: "/organization/hire", icon: FiUsers },
-        { name: "Team Members", link: "/organization/team", icon: FiUsers },
-        { name: "Job Posts", link: "/organization/jobs", icon: FiFileText },
-        { name: "AI Agents", link: "/organization/ai-agents", icon: FiUsers },
-        { name: "Candidates", link: "/organization/candidates", icon: FiUser },
-        {
-          name: "Interviews",
-          link: "/organization/interviews",
-          icon: FiCalendar,
-        },
-        { name: "Notifications", link: "/notifications", icon: FiBell },
-        { name: "Pipeline", link: "/organization/pipeline", icon: FiBarChart2 },
-        {
-          name: "Analytics",
-          link: "/organization/analytics",
-          icon: FiBarChart2,
-        },
-        { name: "Reports", link: "/organization/reports", icon: FiFileText },
-        {
-          name: "Integrations",
-          link: "/organization/integrations",
-          icon: FiBell,
-        },
-        {
-          name: "AI Insights",
-          link: "/organization/insights",
-          icon: FiUsers,
-        },
-        { name: "Setting", link: "/settings", icon: FiSettings },
-      ];
-    }
+        { name: "AI Agents", link: "/organization/ai-agents", icon: FiCpu, section: "ai" },
+        { name: "Notifications", link: "/notifications", icon: FiBell, section: "activity" },
+        { name: "Pipeline", link: "/organization/pipeline", icon: FiBarChart2, section: "activity" },
+        { name: "Analytics", link: "/organization/analytics", icon: FiBarChart2, section: "activity" },
+        { name: "Settings", link: "/settings", icon: FiSettings, section: "bottom" },
+        { name: "Sign Out", link: "/signin", icon: FiLogOut, section: "bottom" },
+       ];
+     } else {
+       // pro
+       return [
+         { name: "Dashboard", link: "/dashboard", icon: FiHome, section: "main" },
+         { name: "Profile", link: "/organization/profile", icon: FiUser, section: "main" },
+         { name: "Team Members", link: "/organization/team", icon: FiUsers, section: "main" },
+         { name: "Job Posts", link: "/organization/jobs", icon: FiFileText, section: "main" },
+         { name: "Hire People", link: "/organization/hire", icon: FiUsers, section: "main" },
+         { name: "Candidates", link: "/organization/candidates", icon: FiUser, section: "candidates" },
+         {
+           name: "Candidate Analysis",
+           link: "/organization/candidate-analysis",
+           icon: FiBarChart2,
+           section: "candidates",
+         },
+         {
+           name: "Interviews",
+           link: "/organization/interviews",
+           icon: FiCalendar,
+           section: "interviews",
+         },
+         { name: "AI Agents", link: "/organization/ai-agents", icon: FiCpu, section: "ai" },
+         { name: "Notifications", link: "/notifications", icon: FiBell, section: "activity" },
+         { name: "Pipeline", link: "/organization/pipeline", icon: FiBarChart2, section: "activity" },
+         { name: "Analytics", link: "/organization/analytics", icon: FiBarChart2, section: "activity" },
+         { name: "Reports", link: "/organization/reports", icon: FiFileText, section: "pro" },
+         { name: "Integrations", link: "/organization/integrations", icon: FiLink, section: "pro" },
+         { name: "AI Insights", link: "/organization/insights", icon: FiCpu, section: "pro" },
+         { name: "Billing", link: "/organization/billing", icon: FiCreditCard, section: "pro" },
+         { name: "Settings", link: "/settings", icon: FiSettings, section: "bottom" },
+         { name: "Sign Out", link: "/signin", icon: FiLogOut, section: "bottom" },
+       ];
+     }
   }
   return [];
 }

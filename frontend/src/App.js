@@ -47,6 +47,7 @@ import IndividualAIAgents from "./pages/individual/AIAgents";
 import ShareableProfiles from "./pages/individual/ShareableProfiles";
 // Organization Pages
 import OrganizationProfile from "./pages/organization/Profile";
+import Billing from "./pages/organization/Billing";
 import BrowseOrganizations from "./pages/organization/BrowseOrganizations";
 import HirePeople from "./pages/organization/HirePeople";
 import TeamMembers from "./pages/organization/TeamMembers";
@@ -61,6 +62,7 @@ import Reports from "./pages/organization/Reports";
 import Integrations from "./pages/organization/Integrations";
 import Insights from "./pages/organization/Insights";
 import AIAgents from "./pages/organization/AIAgents";
+import CandidateAnalysis from "./pages/organization/CandidateAnalysis";
 import InterviewRoom from "./pages/InterviewRoom";
 import Notifications from "./pages/Notifications";
 import InterviewDetail from "./pages/individual/InterviewDetail";
@@ -220,38 +222,46 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/resume/builder"
-            element={
-              <ProtectedRoute>
-                <ResumeBuilder />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/jobs/alerts"
-            element={
-              <ProtectedRoute>
-                <JobAlerts />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/coaching"
-            element={
-              <ProtectedRoute>
-                <CareerCoaching />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/analytics"
-            element={
-              <ProtectedRoute>
-                <Analytics />
-              </ProtectedRoute>
-            }
-          />
+           <Route
+             path="/resume/builder"
+             element={
+               <ProtectedRoute>
+                 <ResumeBuilder />
+               </ProtectedRoute>
+             }
+           />
+           <Route
+             path="/jobs/alerts"
+             element={
+               <ProtectedRoute>
+                 <JobAlerts />
+               </ProtectedRoute>
+             }
+           />
+           <Route
+             path="/coaching"
+             element={
+               <ProtectedRoute>
+                 <CareerCoaching />
+               </ProtectedRoute>
+             }
+           />
+           <Route
+             path="/billing"
+             element={
+               <ProtectedRoute>
+                 <Billing />
+               </ProtectedRoute>
+             }
+           />
+           <Route
+             path="/analytics"
+             element={
+               <ProtectedRoute>
+                 <Analytics />
+               </ProtectedRoute>
+             }
+           />
           <Route
             path="/resume/builder"
             element={
@@ -357,6 +367,14 @@ function App() {
             }
           />
           <Route
+            path="/organization/candidate-analysis/:userId"
+            element={
+              <ProtectedRoute>
+                <CandidateAnalysis />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/organization/jobs"
             element={
               <ProtectedRoute>
@@ -372,14 +390,38 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/organization/candidates"
-            element={
-              <ProtectedRoute>
-                <Candidates />
-              </ProtectedRoute>
-            }
-          />
+           <Route
+             path="/organization/candidates"
+             element={
+               <ProtectedRoute>
+                 <Candidates />
+               </ProtectedRoute>
+             }
+           />
+           <Route
+             path="/organization/pipeline"
+             element={
+               <ProtectedRoute>
+                 <Pipeline />
+               </ProtectedRoute>
+             }
+           />
+           <Route
+             path="/organization/billing"
+             element={
+               <ProtectedRoute>
+                 <Billing />
+               </ProtectedRoute>
+             }
+           />
+           <Route
+             path="/organization/reports"
+             element={
+               <ProtectedRoute>
+                 <Reports />
+               </ProtectedRoute>
+             }
+           />
           <Route
             path="/organization/pipeline"
             element={

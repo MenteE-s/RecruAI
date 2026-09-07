@@ -21,7 +21,7 @@ class Config:
     SQLALCHEMY_DATABASE_URI = os.getenv(
         "DATABASE_URL",
         # Local dev default: prefer Postgres at default creds per developer request.
-        "postgresql://postgres:mentee@localhost:5432/recruia",
+        "postgresql://recruai:recruai_pass@localhost:5432/recruai",
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
@@ -36,8 +36,7 @@ class Config:
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", SECRET_KEY)
 
     # Security: Enhanced JWT settings
-    jwt_location = "headers" if IS_PRODUCTION else "cookies"
-    JWT_TOKEN_LOCATION = os.getenv("JWT_TOKEN_LOCATION", jwt_location).split(",")
+    JWT_TOKEN_LOCATION = ["headers", "cookies"]
     JWT_COOKIE_SECURE = os.getenv("JWT_COOKIE_SECURE", "1" if IS_PRODUCTION else "0") == "1"
     JWT_COOKIE_SAMESITE = os.getenv("JWT_COOKIE_SAMESITE", "None" if IS_PRODUCTION else "Lax")
     # Enable CSRF protection in production for additional security

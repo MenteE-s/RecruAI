@@ -19,6 +19,7 @@ import {
   FiChevronUp,
   FiX,
   FiLoader,
+  FiBriefcase,
 } from "react-icons/fi";
 
 const MATCH_COLORS = {
@@ -59,12 +60,13 @@ export default function HirePeople() {
   const [error, setError] = useState(null);
 
   const [query, setQuery] = useState("");
-  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [aiResults, setAiResults] = useState(null);
   const [searchMode, setSearchMode] = useState(false);
 
   const [expandedRow, setExpandedRow] = useState(null);
+  const [explanations, setExplanations] = useState({});
+  const [explainingUser, setExplainingUser] = useState(null);
 
   const [empStatusFilter, setEmpStatusFilter] = useState("");
   const [expFilter, setExpFilter] = useState("");
@@ -73,8 +75,6 @@ export default function HirePeople() {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
 
-  const searchRef = useRef(null);
-  const debounceRef = useRef(null);
   const lastSearchedQuery = useRef("");
 
   const loadUsers = useCallback(async () => {
@@ -108,16 +108,6 @@ export default function HirePeople() {
     loadUsers();
   }, [loadUsers]);
 
-  useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      setDebouncedQuery(query);
-    }, 400);
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, [query]);
-
   const triggerSearch = useCallback(async (searchQuery) => {
     if (!searchQuery || !searchQuery.trim()) {
       setSearchMode(false);
@@ -126,6 +116,8 @@ export default function HirePeople() {
     }
     if (searchQuery === lastSearchedQuery.current) return;
     lastSearchedQuery.current = searchQuery;
+    setExplanations({});
+    setExpandedRow(null);
     setIsSearching(true);
     setSearchMode(true);
     setCurrentPage(1);
@@ -160,16 +152,37 @@ export default function HirePeople() {
     }
   }, []);
 
-  const performSearch = useCallback((q) => triggerSearch(q), [triggerSearch]);
-
-  useEffect(() => {
-    if (debouncedQuery) {
-      triggerSearch(debouncedQuery);
-    } else {
-      setSearchMode(false);
-      setAiResults(null);
+  const loadExplanation = useCallback(async (userId, searchQuery) => {
+    if (explainingUser) return;
+    setExplainingUser(userId);
+    try {
+      const response = await fetch(
+        `${getBackendUrl()}/api/recommendations/explain`,
+        {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+            ...getAuthHeaders(),
+          },
+          body: JSON.stringify({ user_id: userId, query: searchQuery }),
+        }
+      );
+      if (response.ok) {
+        const data = await response.json();
+        setExplanations((prev) => ({
+          ...prev,
+          [userId]: data,
+        }));
+      } else {
+        showToast("Failed to load AI analysis", "error");
+      }
+    } catch (err) {
+      showToast("Network error. Try again.", "error");
+    } finally {
+      setExplainingUser(null);
     }
-  }, [debouncedQuery, triggerSearch]);
+  }, []);
 
   useEffect(() => {
     if (searchMode && aiResults) {
@@ -221,10 +234,10 @@ export default function HirePeople() {
 
   const clearSearch = () => {
     setQuery("");
-    setDebouncedQuery("");
     setSearchMode(false);
     setAiResults(null);
     setExpandedRow(null);
+    setExplanations({});
     lastSearchedQuery.current = "";
   };
 
@@ -322,7 +335,6 @@ export default function HirePeople() {
             <div className="flex-1 relative">
               <FiSearch className="absolute left-3 top-3.5 h-5 w-5 text-gray-400" />
               <input
-                ref={searchRef}
                 type="text"
                 placeholder='Try "Senior React developer with Node.js experience"...'
                 value={query}
@@ -564,23 +576,33 @@ export default function HirePeople() {
                             >
                               <FiEye size={16} />
                             </button>
-                            {candidate.explanation && (
-                              <button
-                                onClick={() =>
-                                  setExpandedRow(
-                                    isExpanded ? null : cid
-                                  )
-                                }
+                            <button
+                              onClick={() => navigate(`/organization/candidate-analysis/${cid}`)}
+                              className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                              title="Full Candidate Analysis"
+                            >
+                              <FiBriefcase size={16} />
+                            </button>
+                            <button
+                                onClick={() => {
+                                  if (isExpanded) {
+                                    setExpandedRow(null);
+                                  } else {
+                                    setExpandedRow(cid);
+                                    loadExplanation(cid, query);
+                                  }
+                                }}
                                 className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
                                 title="AI Explanation"
                               >
-                                {isExpanded ? (
+                                {explainingUser === cid ? (
+                                  <FiLoader className="animate-spin" size={16} />
+                                ) : isExpanded ? (
                                   <FiChevronUp size={16} />
                                 ) : (
                                   <FiChevronDown size={16} />
                                 )}
                               </button>
-                            )}
                           </div>
                         </td>
                       </tr>
@@ -596,10 +618,10 @@ export default function HirePeople() {
                   const candidate = filteredUsers.find(
                     (u) => getUserId(u) === expandedRow
                   );
-                  if (!candidate || !candidate.explanation) return null;
-                  const colors =
-                    MATCH_COLORS[candidate.match_level] ||
-                    MATCH_COLORS.poor;
+                  const explanation = explanations[expandedRow];
+                  if (!candidate) return null;
+                  const level = explanation?.match_level || candidate.match_level || "possible";
+                  const colors = MATCH_COLORS[level] || MATCH_COLORS.poor;
                   return (
                     <div className="flex items-start gap-3">
                       <div
@@ -609,23 +631,31 @@ export default function HirePeople() {
                         <div className="text-xs font-semibold text-gray-700 mb-1 uppercase tracking-wider">
                           AI Match Analysis
                         </div>
-                        <p className="text-sm text-gray-600 leading-relaxed">
-                          {candidate.explanation}
-                        </p>
-                        {candidate.matching_skills && candidate.matching_skills.length > 0 && (
-                          <div className="mt-2 flex flex-wrap">
-                            {candidate.matching_skills.map((skill, i) => (
-                              <SkillTag key={i} skill={skill} />
-                            ))}
-                          </div>
-                        )}
-                        {(!candidate.matching_skills || candidate.matching_skills.length === 0) &&
-                         candidate.skills && candidate.skills.length > 0 && (
-                          <div className="mt-2 flex flex-wrap">
-                            {candidate.skills.map((skill, i) => (
-                              <SkillTag key={i} skill={skill} />
-                            ))}
-                          </div>
+                        {explanation ? (
+                          <>
+                            <p className="text-sm text-gray-600 leading-relaxed">
+                              {explanation.explanation}
+                            </p>
+                            {explanation.matching_skills?.length > 0 && (
+                              <div className="mt-2 flex flex-wrap">
+                                {explanation.matching_skills.map((skill, i) => (
+                                  <SkillTag key={i} skill={skill} />
+                                ))}
+                              </div>
+                            )}
+                            {(!explanation.matching_skills || explanation.matching_skills.length === 0) &&
+                             candidate.skills?.length > 0 && (
+                              <div className="mt-2 flex flex-wrap">
+                                {candidate.skills.map((skill, i) => (
+                                  <SkillTag key={i} skill={skill} />
+                                ))}
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <p className="text-sm text-gray-500 italic">
+                            Loading AI analysis...
+                          </p>
                         )}
                       </div>
                     </div>

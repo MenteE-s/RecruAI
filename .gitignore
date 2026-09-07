@@ -15,9 +15,9 @@ instance/*.db
 __pycache__/
 *.pyc
 
-.github
 memory-bank
 %APPDATA%
+*.tar
 
 # Uploaded files (user-generated content)
 backend/uploads/*
@@ -40,3 +40,4 @@ Thumbs.db
 pgdata/
 kafkadata/
 redisdata/
+.aider*

@@ -83,6 +83,7 @@ class GeneratorTool:
                 })
 
             answer = self.llm_provider.chat(messages, params)
+            tokens_used = self.llm_provider.get_last_token_usage()
 
             self._request_count += 1
 
@@ -97,7 +98,7 @@ class GeneratorTool:
                 'confidence': confidence,
                 'sources': sources,
                 'model': self.config.AI_PROVIDER,
-                'tokens_used': None,  # Not available from all providers
+                'tokens_used': tokens_used,
                 'finish_reason': 'completed',
                 'generated_at': datetime.utcnow().isoformat(),
                 'context_chunks_used': len(context_chunks),
@@ -157,6 +158,7 @@ class GeneratorTool:
             }
 
             summary = self.llm_provider.chat(messages, params)
+            tokens_used = self.llm_provider.get_last_token_usage()
 
             self._request_count += 1
 
@@ -167,7 +169,7 @@ class GeneratorTool:
                 'summary_length': len(summary),
                 'compression_ratio': len(summary) / len(content) if content else 0,
                 'model': self.config.AI_PROVIDER,
-                'tokens_used': None,  # Not available from all providers
+                'tokens_used': tokens_used,
                 'generated_at': datetime.utcnow().isoformat()
             }
 

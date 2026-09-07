@@ -6,7 +6,7 @@ const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "";
 
 const RecruAINavbar = () => {
   const [isOpen, setIsOpen] = useState(false);
-
+  const [scrolled, setScrolled] = useState(false);
   const navigate = useNavigate();
   const [signedIn, setSignedIn] = useState(false);
 
@@ -14,11 +14,11 @@ const RecruAINavbar = () => {
     let mounted = true;
     async function verify() {
       try {
-        // quick local flag check then server verify for accuracy
-        const cached =
-          typeof window !== "undefined" &&
-          localStorage.getItem("isAuthenticated") === "true";
-        if (cached && mounted) setSignedIn(true);
+        const token = localStorage.getItem("access_token");
+        if (!token) {
+          if (mounted) setSignedIn(false);
+          return;
+        }
         const { verifyTokenWithServer } = await import("../../utils/auth");
         const user = await verifyTokenWithServer();
         if (!mounted) return;
@@ -28,9 +28,13 @@ const RecruAINavbar = () => {
       }
     }
     verify();
-    return () => {
-      mounted = false;
-    };
+    return () => { mounted = false; };
+  }, []);
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 10);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   function handleSignOut() {
@@ -40,9 +44,7 @@ const RecruAINavbar = () => {
           method: "POST",
           credentials: "include",
         });
-      } catch (e) {
-        // ignore
-      }
+      } catch (e) {}
       try {
         localStorage.removeItem("access_token");
         localStorage.removeItem("isAuthenticated");
@@ -55,190 +57,104 @@ const RecruAINavbar = () => {
   }
 
   return (
-    <nav className="bg-white shadow-lg fixed w-full z-50">
+    <nav className={`bg-white fixed w-full z-50 transition-all duration-300 ${scrolled ? "shadow-md" : "shadow-sm"}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <div className="flex items-center space-x-3">
-                {/* Breadcrumb Style Branding */}
-                <Link
-                  to="/"
-                  className="text-lg font-display font-bold text-accent-600 hover:text-secondary-500 transition-colors"
-                >
-                  MenteE
+          {/* Logo */}
+          <Link to="/" className="flex items-center gap-2">
+            <img src="/mentee-logo.png" alt="MenteE" className="h-8 w-8" />
+            <span className="text-xl font-bold text-gray-900">RecruAI</span>
+          </Link>
+
+          {/* Desktop Nav Links */}
+          <div className="hidden md:flex items-center gap-8">
+            <a href="#features" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors">
+              Features
+            </a>
+            <a href="#how-it-works" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors">
+              How it Works
+            </a>
+            <a href="#pricing" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors">
+              Pricing
+            </a>
+            <a href="#testimonials" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors">
+              Testimonials
+            </a>
+          </div>
+
+          {/* Desktop Auth Buttons */}
+          <div className="hidden md:flex items-center gap-3">
+            {!signedIn ? (
+              <>
+                <Link to="/signin" className="text-sm font-medium text-gray-700 hover:text-gray-900 px-4 py-2 transition-colors">
+                  Sign In
                 </Link>
-                <span className="text-secondary-400">/</span>
-                <div className="text-2xl font-display font-bold text-primary-600">
-                  RecruAI
-                </div>
-              </div>
-            </div>
+                <Link to="/register" className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded text-sm font-medium transition-colors">
+                  Get Started
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link to="/dashboard" className="text-sm font-medium text-gray-700 hover:text-gray-900 px-4 py-2 transition-colors">
+                  Dashboard
+                </Link>
+                <button onClick={handleSignOut} className="text-sm font-medium text-gray-500 hover:text-gray-700 px-4 py-2 transition-colors">
+                  Sign Out
+                </button>
+              </>
+            )}
           </div>
 
-          <div className="hidden md:block">
-            <div className="ml-10 flex items-baseline space-x-4">
-              <a
-                href="#features"
-                className="text-secondary-700 hover:text-primary-600 px-3 py-2 text-sm font-medium transition-colors"
-              >
-                Features
-              </a>
-              <a
-                href="#how-it-works"
-                className="text-secondary-700 hover:text-primary-600 px-3 py-2 text-sm font-medium transition-colors"
-              >
-                How it Works
-              </a>
-              <a
-                href="#pricing"
-                className="text-secondary-700 hover:text-primary-600 px-3 py-2 text-sm font-medium transition-colors"
-              >
-                Pricing
-              </a>
-              <a
-                href="#testimonials"
-                className="text-secondary-700 hover:text-primary-600 px-3 py-2 text-sm font-medium transition-colors"
-              >
-                Testimonials
-              </a>
-            </div>
-          </div>
-
-          <div className="hidden md:block">
-            <div className="ml-4 flex items-center md:ml-6 space-x-4">
-              {!signedIn ? (
-                <>
-                  <Link
-                    to="/signin"
-                    className="text-secondary-700 hover:text-primary-600 px-4 py-2 text-sm font-medium transition-colors"
-                  >
-                    Sign In
-                  </Link>
-                  <Link
-                    to="/register"
-                    className="bg-primary-600 hover:bg-primary-700 text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors"
-                  >
-                    Start Free Trial
-                  </Link>
-                </>
+          {/* Mobile Menu Button */}
+          <button onClick={() => setIsOpen(!isOpen)} className="md:hidden p-2 text-gray-600 hover:text-gray-900">
+            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              {isOpen ? (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               ) : (
-                <>
-                  <Link
-                    to="/dashboard"
-                    className="text-secondary-700 hover:text-primary-600 px-4 py-2 text-sm font-medium transition-colors"
-                  >
-                    Dashboard
-                  </Link>
-                  <button
-                    onClick={handleSignOut}
-                    className="text-secondary-700 hover:text-primary-600 px-4 py-2 text-sm font-medium"
-                  >
-                    Sign out
-                  </button>
-                </>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               )}
-            </div>
-          </div>
-
-          <div className="md:hidden">
-            <button
-              onClick={() => setIsOpen(!isOpen)}
-              className="text-secondary-700 hover:text-primary-600 p-2"
-            >
-              <svg
-                className="h-6 w-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 6h16M4 12h16M4 18h16"
-                />
-              </svg>
-            </button>
-          </div>
+            </svg>
+          </button>
         </div>
       </div>
 
+      {/* Mobile Menu */}
       {isOpen && (
-        <div className="md:hidden">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <div className="flex items-center space-x-3">
-                {/* Breadcrumb Style Branding */}
-                <Link
-                  to="/"
-                  className="text-lg font-display font-bold text-secondary-500 hover:text-primary-600 transition-colors"
-                ></Link>
-                <span className="text-secondary-400">/</span>
-                <div className="text-2xl font-display font-bold text-primary-600">
-                  RecruAI
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white shadow-lg">
-            <a
-              href="#features"
-              className="text-secondary-700 hover:text-primary-600 block px-3 py-2 text-base font-medium"
-            >
+        <div className="md:hidden bg-white border-t border-gray-100 shadow-lg">
+          <div className="px-4 py-3 space-y-1">
+            <a href="#features" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded">
               Features
             </a>
-            <a
-              href="#how-it-works"
-              className="text-secondary-700 hover:text-primary-600 block px-3 py-2 text-base font-medium"
-            >
+            <a href="#how-it-works" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded">
               How it Works
             </a>
-            <a
-              href="#pricing"
-              className="text-secondary-700 hover:text-primary-600 block px-3 py-2 text-base font-medium"
-            >
+            <a href="#pricing" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded">
               Pricing
             </a>
-            <a
-              href="#testimonials"
-              className="text-secondary-700 hover:text-primary-600 block px-3 py-2 text-base font-medium"
-            >
+            <a href="#testimonials" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded">
               Testimonials
             </a>
-            <div className="pt-4 pb-3 border-t border-secondary-200">
-              {!signedIn ? (
-                <>
-                  <Link
-                    to="/signin"
-                    className="text-secondary-700 hover:text-primary-600 block px-3 py-2 text-base font-medium"
-                  >
-                    Sign In
-                  </Link>
-                  <Link
-                    to="/register"
-                    className="bg-primary-600 hover:bg-primary-700 text-white block px-3 py-2 rounded-lg text-base font-medium mt-2 w-full"
-                  >
-                    Start Free Trial
-                  </Link>
-                </>
-              ) : (
-                <>
-                  <Link
-                    to="/dashboard"
-                    className="text-secondary-700 hover:text-primary-600 block px-3 py-2 text-base font-medium"
-                  >
-                    Dashboard
-                  </Link>
-                  <button
-                    onClick={handleSignOut}
-                    className="text-secondary-700 hover:text-primary-600 block px-3 py-2 text-base font-medium"
-                  >
-                    Sign out
-                  </button>
-                </>
-              )}
-            </div>
+          </div>
+          <div className="px-4 py-3 border-t border-gray-100">
+            {!signedIn ? (
+              <div className="space-y-2">
+                <Link to="/signin" className="block w-full text-center px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded transition-colors">
+                  Sign In
+                </Link>
+                <Link to="/register" className="block w-full text-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded transition-colors">
+                  Get Started
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Link to="/dashboard" className="block w-full text-center px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded transition-colors">
+                  Dashboard
+                </Link>
+                <button onClick={handleSignOut} className="block w-full text-center px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors">
+                  Sign Out
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

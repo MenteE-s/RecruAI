@@ -1,0 +1,187 @@
+name: Deploy to AWS EC2
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  DOCKER_COMPOSE_FILE: docker-compose.aws.yml
+  EC2_USER: ec2-user
+  EC2_HOST: ${{ secrets.EC2_HOST }}
+  DEPLOY_DIR: /opt/recruai
+
+jobs:
+  # ===========================================================================
+  # PR jobs — validate every PR that targets main
+  # ===========================================================================
+  validate:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate backend dependencies
+        working-directory: backend
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          python -c "import flask; print('Flask', flask.__version__)"
+
+      - name: Validate frontend build
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+  migrations:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:0.7.0-pg15
+        env:
+          POSTGRES_USER: recruai
+          POSTGRES_PASSWORD: recruai_pass
+          POSTGRES_DB: recruai_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready -U recruai
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        working-directory: backend
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Check migrations apply cleanly
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql://recruai:recruai_pass@localhost:5432/recruai_ci
+          FLASK_APP: backend.app
+        run: |
+          flask db upgrade
+          flask db heads
+
+  # ===========================================================================
+  # Deploy job — runs on push to main
+  # ===========================================================================
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    concurrency: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up SSH
+        run: |
+          install -m 600 -D /dev/null ~/.ssh/id_ed25519
+          echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          ssh-keyscan -H ${{ env.EC2_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Verify SSH connection
+        run: ssh ${{ env.EC2_USER }}@${{ env.EC2_HOST }} "echo 'Connected to \$(hostname)'"
+
+      - name: Create deploy directory
+        run: |
+          ssh ${{ env.EC2_USER }}@${{ env.EC2_HOST }} "mkdir -p ${{ env.DEPLOY_DIR }}"
+
+      - name: Sync code to EC2 (rsync)
+        run: |
+          rsync -avz --delete \
+            --exclude '.git' \
+            --exclude 'node_modules' \
+            --exclude '__pycache__' \
+            --exclude '.venv' \
+            --exclude '*.pyc' \
+            --exclude 'backend/.env' \
+            --exclude 'frontend/.env' \
+            --exclude 'frontend/build' \
+            ./ ${{ env.EC2_USER }}@${{ env.EC2_HOST }}:${{ env.DEPLOY_DIR }}/
+
+      - name: Inject production environment
+        run: |
+          ssh ${{ env.EC2_USER }}@${{ env.EC2_HOST }} "cat > ${{ env.DEPLOY_DIR }}/backend/.env.production" << 'ENVEOF'
+          IS_PRODUCTION=1
+          DATABASE_URL=${{ secrets.RDS_DATABASE_URL }}
+          SECRET_KEY=${{ secrets.SECRET_KEY }}
+          JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }}
+          GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}
+          OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+          REDIS_URL=redis://127.0.0.1:6379/0
+          KAFKA_BOOTSTRAP_SERVERS=localhost:9092
+          KAFKA_ENABLED=1
+          REDIS_ENABLED=1
+          RAG_ENABLED=1
+          HUGGINGFACE_SPACES_URL=https://syedsyab-recruai.hf.space
+          EMBEDDING_PROVIDER=huggingface
+          EMBEDDING_DIMENSIONS=384
+          AI_PROVIDER=groq
+          AI_MODEL=groq/compound
+          GROQ_MODEL=groq/compound
+          FLASK_ENV=production
+          FLASK_DEBUG=0
+          KAFKA_DEFAULT_TOPIC=recruai_events
+          JWT_TOKEN_LOCATION=headers
+          JWT_COOKIE_SECURE=1
+          JWT_COOKIE_SAMESITE=None
+          JWT_COOKIE_CSRF_PROTECT=1
+          JWT_ACCESS_TOKEN_EXPIRES_HOURS=2
+          FRONTEND_ORIGIN=${{ secrets.FRONTEND_ORIGIN }}
+          ENABLE_HSTS=1
+          ENABLE_AUDIT_LOG=1
+          RATELIMIT_STORAGE_URL=redis://127.0.0.1:6379/0
+ENVEOF
+
+      - name: Deploy with Docker Compose
+        run: |
+          ssh ${{ env.EC2_USER }}@${{ env.EC2_HOST }} "
+            cd ${{ env.DEPLOY_DIR }} && \
+            docker compose -f ${{ env.DOCKER_COMPOSE_FILE }} pull && \
+            docker compose -f ${{ env.DOCKER_COMPOSE_FILE }} up -d --build --remove-orphans
+          "
+
+      - name: Wait for backend health
+        run: |
+          sleep 15
+          for i in {1..30}; do
+            STATUS=\$(ssh ${{ env.EC2_USER }}@${{ env.EC2_HOST }} \
+              "curl -s -o /dev/null -w '%{http_code}' http://localhost:5000/api/health" 2>/dev/null || echo "000")
+            if [ "\$STATUS" = "200" ]; then
+              echo "Backend is healthy!"
+              break
+            fi
+            echo "Waiting for backend... (attempt \$i, status \$STATUS)"
+            sleep 5
+          done
+
+      - name: Run DB migrations
+        run: |
+          ssh ${{ env.EC2_USER }}@${{ env.EC2_HOST }} "
+            cd ${{ env.DEPLOY_DIR }} && \
+            docker compose -f ${{ env.DOCKER_COMPOSE_FILE }} exec -T backend flask db upgrade
+          "
+
+      - name: Clean up old Docker images
+        run: |
+          ssh ${{ env.EC2_USER }}@${{ env.EC2_HOST }} "docker image prune -af --filter 'until=168h'"
+
+      - name: Deployment success notification
+        if: success()
+        run: |
+          DEPLOY_TIME=\$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          echo "✅ Deployed successfully at \$DEPLOY_TIME"
+          echo "   Host: \${{ env.EC2_HOST }}"
+          echo "   Commit: \${{ github.sha }}"

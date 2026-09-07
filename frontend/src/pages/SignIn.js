@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useToast } from "../components/ui/ToastContext";
-
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "";
+import { getBackendUrl } from "../utils/auth";
 
 export default function SignIn() {
   const [email, setEmail] = useState("");
@@ -47,7 +46,7 @@ export default function SignIn() {
     setError(null);
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
+      const res = await fetch(`${getBackendUrl()}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
