@@ -63,7 +63,7 @@ const RecruAINavbar = () => {
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2">
             <img src="/mentee-logo.png" alt="MenteE" className="h-8 w-8" />
-            <span className="text-xl font-bold text-gray-900">MenteE</span>
+            <span className="text-xl font-bold text-gray-900">RecruAI</span>
           </Link>
 
           {/* Desktop Nav Links */}
