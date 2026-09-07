@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/.well-known/agentic-verify.txt", "destination": "/agentic-verify.txt" }
+  ]
+}

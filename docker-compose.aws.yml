@@ -1,0 +1,154 @@
+version: "3.8"
+
+services:
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: recruai_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./frontend/build:/var/www/frontend:ro
+      - certbot_data:/etc/letsencrypt
+      - certbot_www:/var/www/certbot
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: always
+    networks:
+      - recruai_network
+
+  certbot:
+    image: certbot/certbot:latest
+    container_name: recruai_certbot
+    volumes:
+      - certbot_data:/etc/letsencrypt
+      - certbot_www:/var/www/certbot
+    entrypoint: >
+      sh -c "trap exit TERM; while :; do
+        certbot renew --webroot -w /var/www/certbot --quiet;
+        sleep 12h & wait $${!};
+      done;"
+    restart: always
+    networks:
+      - recruai_network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: recruai_backend
+    env_file:
+      - ./backend/.env.production
+    environment:
+      FLASK_ENV: production
+      IS_PRODUCTION: "1"
+    depends_on:
+      kafka:
+        condition: service_healthy
+    restart: always
+    healthcheck:
+      test: curl -f http://localhost:5000/api/health || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - recruai_network
+
+  frontend-builder:
+    image: node:18-alpine
+    container_name: recruai_frontend_builder
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+      - ./frontend/build:/app/build
+    environment:
+      REACT_APP_API_BASE_URL: "${API_BASE_URL:-https://recruai.example.com}"
+      REACT_APP_SOCKET_URL: "${API_BASE_URL:-https://recruai.example.com}"
+      IS_PRODUCTION: "1"
+      GENERATE_SOURCEMAP: "false"
+    command: >
+      sh -c "npm install && npm run build"
+    networks:
+      - recruai_network
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: recruai_kafka
+    depends_on:
+      zookeeper:
+        condition: service_started
+    ports:
+      - "9092:9092"
+    volumes:
+      - kafkadata:/var/lib/kafka/data
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+    healthcheck:
+      test: kafka-broker-api-versions --bootstrap-server localhost:9092
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: always
+    networks:
+      - recruai_network
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    container_name: recruai_zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    restart: always
+    networks:
+      - recruai_network
+
+  kafka-init:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: recruai_kafka_init
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint: >
+      sh -c "kafka-topics --create --topic recruai_events
+      --bootstrap-server kafka:9092 --if-not-exists
+      --partitions 1 --replication-factor 1"
+    networks:
+      - recruai_network
+
+  redis:
+    image: redis:7-alpine
+    container_name: recruai_redis
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: redis-cli ping
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: always
+    networks:
+      - recruai_network
+
+networks:
+  recruai_network:
+    driver: bridge
+
+volumes:
+  kafkadata:
+  redisdata:
+  certbot_data:
+  certbot_www:
