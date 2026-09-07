@@ -89,7 +89,7 @@ const RecruAINavbar = () => {
                 <Link to="/signin" className="text-sm font-medium text-gray-700 hover:text-gray-900 px-4 py-2 transition-colors">
                   Sign In
                 </Link>
-                <Link to="/register" className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors">
+                <Link to="/register" className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded text-sm font-medium transition-colors">
                   Get Started
                 </Link>
               </>
@@ -122,32 +122,32 @@ const RecruAINavbar = () => {
       {isOpen && (
         <div className="md:hidden bg-white border-t border-gray-100 shadow-lg">
           <div className="px-4 py-3 space-y-1">
-            <a href="#features" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg">
+            <a href="#features" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded">
               Features
             </a>
-            <a href="#how-it-works" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg">
+            <a href="#how-it-works" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded">
               How it Works
             </a>
-            <a href="#pricing" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg">
+            <a href="#pricing" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded">
               Pricing
             </a>
-            <a href="#testimonials" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg">
+            <a href="#testimonials" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded">
               Testimonials
             </a>
           </div>
           <div className="px-4 py-3 border-t border-gray-100">
             {!signedIn ? (
               <div className="space-y-2">
-                <Link to="/signin" className="block w-full text-center px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
+                <Link to="/signin" className="block w-full text-center px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded transition-colors">
                   Sign In
                 </Link>
-                <Link to="/register" className="block w-full text-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
+                <Link to="/register" className="block w-full text-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded transition-colors">
                   Get Started
                 </Link>
               </div>
             ) : (
               <div className="space-y-2">
-                <Link to="/dashboard" className="block w-full text-center px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
+                <Link to="/dashboard" className="block w-full text-center px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded transition-colors">
                   Dashboard
                 </Link>
                 <button onClick={handleSignOut} className="block w-full text-center px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors">

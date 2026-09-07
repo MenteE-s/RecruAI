@@ -4,7 +4,7 @@ const Hero = () => {
   return (
     <section className="relative bg-white pt-32 pb-32 lg:pt-40 lg:pb-40 overflow-hidden">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 border border-blue-100 rounded-full text-sm font-medium text-blue-700 mb-8">
+        <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 border border-blue-100 rounded text-sm font-medium text-blue-700 mb-8">
           <span className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></span>
           AI-Powered Interview Platform
         </div>
@@ -26,7 +26,7 @@ const Hero = () => {
         <div className="mt-12 flex flex-col sm:flex-row gap-4 justify-center">
           <a
             href="/register"
-            className="inline-flex items-center justify-center px-10 py-4 bg-blue-600 hover:bg-blue-700 text-white text-lg font-semibold rounded-lg transition-colors duration-200 shadow-lg shadow-blue-600/25"
+            className="inline-flex items-center justify-center px-10 py-4 bg-blue-600 hover:bg-blue-700 text-white text-lg font-semibold rounded transition-colors duration-200 shadow-lg shadow-blue-600/25"
           >
             Start Free Forever
             <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -35,7 +35,7 @@ const Hero = () => {
           </a>
           <a
             href="#how-it-works"
-            className="inline-flex items-center justify-center px-10 py-4 bg-white hover:bg-gray-50 text-gray-700 text-lg font-semibold rounded-lg border border-gray-300 transition-colors duration-200"
+            className="inline-flex items-center justify-center px-10 py-4 bg-white hover:bg-gray-50 text-gray-700 text-lg font-semibold rounded border border-gray-300 transition-colors duration-200"
           >
             See How It Works
           </a>
