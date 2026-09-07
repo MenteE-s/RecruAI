@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 
 const CustomerSegments = () => {
   const segments = [
@@ -6,95 +6,143 @@ const CustomerSegments = () => {
       title: "Job Seekers",
       subtitle: "Students, Fresh Graduates & Professionals",
       icon: (
-        <svg className="w-12 h-12" fill="currentColor" viewBox="0 0 20 20">
-          <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
         </svg>
       ),
       benefits: [
-        "Realistic interview practice",
-        "Instant AI feedback",
-        "Confidence building",
-        "Industry-specific preparation"
+        "Unlimited AI mock interviews",
+        "Real-time feedback & scoring",
+        "Job matching & one-click apply",
+        "Track interview history & results",
+        "Hired status tracking",
+        "Invitations from organizations",
       ],
-      currentAlternatives: [
-        "YouTube videos and blogs",
-        "Friends or mentors",
-        "Expensive coaching services"
-      ]
+      painPoints: [
+        "Expensive coaching services",
+        "No structured practice",
+        "Unclear interview performance",
+      ],
+      color: "blue",
     },
     {
       title: "Organizations",
       subtitle: "Startups, SMEs & Enterprises",
       icon: (
-        <svg className="w-12 h-12" fill="currentColor" viewBox="0 0 20 20">
-          <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 3a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
         </svg>
       ),
       benefits: [
-        "Automated candidate screening",
-        "Unbiased AI assessment",
-        "Time-saving recruitment",
-        "Better hiring decisions"
+        "Post unlimited job listings",
+        "Search & filter candidates",
+        "Send interview invitations",
+        "AI-powered initial screening",
+        "Candidate pipeline management",
+        "Hire & onboard tracking",
       ],
-      currentAlternatives: [
-        "Manual interviews",
-        "Traditional ATS systems",
-        "External recruitment agencies"
-      ]
-    }
+      painPoints: [
+        "Manual resume screening",
+        "Time-consuming interviews",
+        "Hiring bias",
+      ],
+      color: "gray",
+    },
   ];
 
   return (
-    <section className="py-16 bg-gradient-to-r from-primary-50 to-accent-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section className="py-24 bg-white">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
-          <h2 className="text-3xl font-display font-bold text-secondary-900 sm:text-4xl">
-            Built for <span className="text-primary-600">Everyone</span> in the Interview Process
+          <div className="inline-flex items-center px-3 py-1 bg-blue-50 border border-blue-100 text-sm font-medium text-blue-700 mb-4">
+            Who It's For
+          </div>
+          <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+            Built for{" "}
+            <span className="text-blue-600">Everyone</span>{" "}
+            in the Hiring Process
           </h2>
-          <p className="mt-4 max-w-2xl mx-auto text-xl text-secondary-600">
-            Our dual-purpose platform serves both sides of the interview table
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            A complete ecosystem that serves both sides of the interview table
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {segments.map((segment, index) => (
-            <div key={index} className="bg-white rounded-2xl shadow-xl p-8">
-              <div className="text-center mb-8">
-                <div className="inline-flex items-center justify-center w-20 h-20 bg-primary-100 text-primary-600 rounded-full mb-4">
+            <div
+              key={index}
+              className={`border ${
+                segment.color === "blue" ? "border-blue-200" : "border-gray-200"
+              } p-8`}
+            >
+              <div className="flex items-center gap-4 mb-6">
+                <div
+                  className={`w-12 h-12 flex items-center justify-center ${
+                    segment.color === "blue"
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-900 text-white"
+                  }`}
+                >
                   {segment.icon}
                 </div>
-                <h3 className="text-2xl font-bold text-secondary-900">{segment.title}</h3>
-                <p className="text-lg text-secondary-600">{segment.subtitle}</p>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">
+                    {segment.title}
+                  </h3>
+                  <p className="text-sm text-gray-600">{segment.subtitle}</p>
+                </div>
               </div>
 
-              <div className="space-y-6">
-                <div>
-                  <h4 className="text-lg font-semibold text-secondary-900 mb-3">What You Get:</h4>
-                  <ul className="space-y-2">
-                    {segment.benefits.map((benefit, idx) => (
-                      <li key={idx} className="flex items-start">
-                        <svg className="w-5 h-5 text-success-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                        </svg>
-                        <span className="text-secondary-700">{benefit}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+              <div className="mb-6">
+                <h4 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wide">
+                  What You Get
+                </h4>
+                <ul className="space-y-2">
+                  {segment.benefits.map((benefit, idx) => (
+                    <li key={idx} className="flex items-center gap-2">
+                      <svg
+                        className="w-4 h-4 text-green-600 flex-shrink-0"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M5 13l4 4L19 7"
+                        />
+                      </svg>
+                      <span className="text-gray-700 text-sm">{benefit}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
 
-                <div>
-                  <h4 className="text-lg font-semibold text-secondary-900 mb-3">Current Alternatives:</h4>
-                  <ul className="space-y-2">
-                    {segment.currentAlternatives.map((alternative, idx) => (
-                      <li key={idx} className="flex items-start">
-                        <svg className="w-5 h-5 text-red-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                        </svg>
-                        <span className="text-secondary-600">{alternative}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+              <div className="pt-4 border-t border-gray-100">
+                <h4 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wide">
+                  Problems We Solve
+                </h4>
+                <ul className="space-y-2">
+                  {segment.painPoints.map((pain, idx) => (
+                    <li key={idx} className="flex items-center gap-2">
+                      <svg
+                        className="w-4 h-4 text-red-500 flex-shrink-0"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
+                      <span className="text-gray-600 text-sm">{pain}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
             </div>
           ))}
