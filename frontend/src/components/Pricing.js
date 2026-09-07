@@ -89,7 +89,7 @@ const Pricing = () => {
         "Custom training & support",
       ],
       popular: false,
-      cta: "Contact Sales",
+      cta: "Custom — Talk to Us",
     },
   ];
 
