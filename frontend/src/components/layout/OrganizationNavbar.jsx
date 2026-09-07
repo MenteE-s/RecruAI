@@ -1,7 +1,6 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
-
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "";
+import { getBackendUrl } from "../../utils/auth";
 
 export default function OrganizationNavbar({ isAuthenticated }) {
   const navigate = useNavigate();
@@ -11,7 +10,7 @@ export default function OrganizationNavbar({ isAuthenticated }) {
   function signOut() {
     (async () => {
       try {
-        await fetch(`${API_BASE_URL}/api/auth/logout`, {
+        await fetch(`${getBackendUrl()}/api/auth/logout`, {
           method: "POST",
           credentials: "include",
         });

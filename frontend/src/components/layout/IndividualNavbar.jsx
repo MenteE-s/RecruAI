@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import socketService from "../../utils/socket";
-
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "";
+import { getBackendUrl } from "../../utils/auth";
 
 export default function IndividualNavbar({ isAuthenticated }) {
   const navigate = useNavigate();
@@ -29,7 +28,7 @@ export default function IndividualNavbar({ isAuthenticated }) {
 
   const fetchNotificationCount = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/notifications/stats`, {
+      const res = await fetch(`${getBackendUrl()}/api/notifications/stats`, {
         credentials: "include",
       });
       if (res.ok) {
@@ -43,12 +42,14 @@ export default function IndividualNavbar({ isAuthenticated }) {
 
   const signOut = async () => {
     try {
-      await fetch(`${API_BASE_URL}/api/auth/logout`, {
+      await fetch(`${getBackendUrl()}/api/auth/logout`, {
         method: "POST",
         credentials: "include",
       });
     } catch (_) {}
-    localStorage.clear();
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("isAuthenticated");
+    localStorage.removeItem("authRole");
     socketService.disconnect();
     navigate("/signin", { replace: true });
   };

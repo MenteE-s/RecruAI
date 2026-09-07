@@ -11,7 +11,7 @@ def register():
     try:
         data = request.get_json()
     except Exception:
-        log_security_event("invalid_json_request", request.remote_addr, None)
+        log_security_event("invalid_json_request", ip_address=request.remote_addr)
         return jsonify({"error": "Invalid JSON in request body"}), 400
 
     email = sanitize_input(data.get("email", ""))
@@ -21,38 +21,34 @@ def register():
     organization_name = sanitize_input(data.get("organization_name", ""))
 
     if not email or not password:
-        log_security_event("missing_credentials", request.remote_addr, None)
+        log_security_event("missing_credentials", ip_address=request.remote_addr)
         return jsonify({"error": "email and password are required"}), 400
 
-    # Validate email format
     if not validate_email(email):
-        log_security_event("invalid_email_format", request.remote_addr, None, email=email)
+        log_security_event("invalid_email_format", ip_address=request.remote_addr, email=email)
         return jsonify({"error": "Invalid email format"}), 400
 
-    # Check for existing user
     if User.query.filter_by(email=email).first():
-        log_security_event("duplicate_registration_attempt", request.remote_addr, None, email=email)
+        log_security_event("duplicate_registration_attempt", ip_address=request.remote_addr, email=email)
         kafka_service.emit_event("registration_failed", {"email": email, "reason": "email_exists", "ip": request.remote_addr})
         return jsonify({"error": "email already registered"}), 400
 
-    # Validate role
     if role not in ["individual", "organization"]:
-        log_security_event("invalid_role_registration", request.remote_addr, None, email=email, role=role)
+        log_security_event("invalid_role_registration", ip_address=request.remote_addr, email=email)
         kafka_service.emit_event("registration_failed", {"email": email, "reason": "invalid_role", "role": role, "ip": request.remote_addr})
         return jsonify({"error": "Invalid role specified"}), 400
 
-    user = User(email=email, name=name, role=role, plan="free")
+    user = User(email=email, name=name, role=role, plan="trial")
 
     try:
-        user.set_password(password)  # This will validate password strength
+        user.set_password(password)
     except ValueError as e:
-        log_security_event("weak_password_registration", request.remote_addr, None, email=email)
+        log_security_event("weak_password_registration", ip_address=request.remote_addr, email=email)
         return jsonify({"error": str(e)}), 400
 
-    # if this is an organization signup, create or reuse the Organization
     if role == "organization":
         if not organization_name:
-            log_security_event("missing_org_name", request.remote_addr, None, email=email)
+            log_security_event("missing_org_name", ip_address=request.remote_addr, email=email)
             return jsonify({"error": "organization_name is required for organization signups"}), 400
         org = Organization.query.filter_by(name=organization_name).first()
         if not org:

@@ -78,6 +78,19 @@ def create_app(config_object: object | None = None):
 	jwt.init_app(app)
 	socketio.init_app(app)
 
+	# JWT error handlers - return JSON instead of HTML
+	@jwt.expired_token_loader
+	def expired_token_callback(jwt_header, jwt_payload):
+		return jsonify({"error": "Token has expired", "code": "token_expired"}), 401
+
+	@jwt.invalid_token_loader
+	def invalid_token_callback(error):
+		return jsonify({"error": "Invalid token", "code": "invalid_token"}), 401
+
+	@jwt.unauthorized_loader
+	def missing_token_callback(error):
+		return jsonify({"error": "Authorization token is missing", "code": "authorization_required"}), 401
+
 	# Initialize Redis cache
 	try:
 		from .extensions import init_redis
@@ -171,50 +184,22 @@ def create_app(config_object: object | None = None):
 	# enable CORS for API routes so frontend dev server can call /api/*
 	try:
 		from flask_cors import CORS  # type: ignore
-		# Restrict CORS origins to the frontend origin when available. In local
-		# development frontend commonly runs on http://localhost:3000; prefer an
-		# explicit origin over a wildcard to reduce CSRF risk for APIs.
 		frontend_origin = app.config.get("FRONTEND_ORIGIN", "http://localhost:3000")
-		# Support comma-separated list of origins
 		origins_list = [o.strip().rstrip("/") for o in frontend_origin.split(",")]
 		print(f"Setting CORS origins to: {origins_list}", flush=True)
 		CORS(app, origins=origins_list, supports_credentials=True, allow_headers=["Content-Type", "Authorization"], methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"], expose_headers=["Content-Type", "Authorization"])
-
-		# Ensure CORS headers are added to all responses, including errors
-		@app.after_request
-		def add_cors_headers(response):
-			response.headers['Access-Control-Allow-Origin'] = origins_list[0] if origins_list else 'http://localhost:3000'
-			response.headers['Access-Control-Allow-Credentials'] = 'true'
-			response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
-			response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
-			return response
-
-		# Handle CORS preflight before JWT authentication
-		@app.before_request
-		def handle_options_preflight():
-			if request.method == 'OPTIONS':
-				response = app.make_default_options_response()
-				response.headers['Access-Control-Allow-Origin'] = origins_list[0] if origins_list else 'http://localhost:3000'
-				response.headers['Access-Control-Allow-Credentials'] = 'true'
-				response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
-				response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
-				return response
 	except Exception as e:
 		print(f"Failed to configure CORS: {e}", flush=True)
-		# flask-cors not installed or not needed in production
 		pass
-
-	# Security: Apply rate limiting to auth endpoints
-	if limiter:
-		# Authentication endpoints - strict rate limiting
-		limiter.limit("10 per minute")(app.view_functions.get('api_bp.login', lambda: None))
-		limiter.limit("5 per minute")(app.view_functions.get('api_bp.register', lambda: None))
-
-		# General API endpoints - moderate rate limiting
-		limiter.limit("100 per minute")(app.view_functions.get('api_bp.me', lambda: None))
 
 	# register blueprints
 	app.register_blueprint(api_bp, url_prefix="/api")
+
+	# Security: Apply rate limiting to auth endpoints (must be after blueprint registration)
+	if limiter:
+		limiter.limit("10 per minute")(app.view_functions.get('api_bp.login', lambda: None))
+		limiter.limit("5 per minute")(app.view_functions.get('api_bp.register', lambda: None))
+		limiter.limit("100 per minute")(app.view_functions.get('api_bp.get_me', lambda: None))
 
 	# Register practice AI agents blueprint separately to avoid circular imports
 	try:
@@ -257,12 +242,13 @@ def create_app(config_object: object | None = None):
 
 	@app.errorhandler(500)
 	def internal_error(error):
+	    frontend_origin = app.config.get("FRONTEND_ORIGIN", "http://localhost:3000")
 	    response = jsonify({
 	        "error": "Internal Server Error",
 	        "message": str(error)
 	    })
 	    response.headers.add(
-	        "Access-Control-Allow-Origin", "http://localhost:3000"
+	        "Access-Control-Allow-Origin", frontend_origin
 	    )
 	    response.headers.add(
 	        "Access-Control-Allow-Credentials", "true"
@@ -304,14 +290,6 @@ def create_app(config_object: object | None = None):
 			response.headers.setdefault("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload")
 		return response
 
-	# debug: log Authorization header for /api/auth/me to help diagnose token issues
-	@app.before_request
-	def log_auth_header():
-		from flask import request
-		if request.path == "/api/auth/me":
-			# print the raw Authorization header (may be None)
-			print("DEBUG: Authorization header:", request.headers.get("Authorization"))
-
 	@app.route("/")
 	def index():
 		return jsonify({"status": "ok", "message": "RecruAI backend running"})
@@ -321,7 +299,8 @@ def create_app(config_object: object | None = None):
 		"""Health check endpoint for Docker container monitoring"""
 		try:
 			# Check database connection
-			db.session.execute("SELECT 1")
+			from sqlalchemy import text
+			db.session.execute(text("SELECT 1"))
 			db_status = "healthy"
 		except Exception as e:
 			db_status = f"unhealthy: {str(e)}"

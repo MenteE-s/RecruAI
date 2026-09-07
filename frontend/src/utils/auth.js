@@ -49,27 +49,18 @@ export function getAuthHeaders(additionalHeaders = {}) {
 // Override global fetch to automatically handle authentication
 const originalFetch = window.fetch;
 window.fetch = function (url, options = {}) {
-  // Detect production the same way we detect backend URL
-  const isProduction =
-    typeof window !== "undefined" && window.location.hostname !== "localhost";
-
-  // Check if this is an API call that needs authentication
   if (typeof url === "string" && url.includes("/api/")) {
-    if (isProduction) {
-      // Production: Add Authorization header
-      const token = localStorage.getItem("access_token");
-      if (token) {
-        options.headers = {
-          ...options.headers,
-          Authorization: `Bearer ${token}`,
-        };
-      }
-    } else {
-      // Development: Add credentials for cookies
-      options.credentials = "include";
+    // Always include credentials for cookie-based auth
+    options.credentials = "include";
+    // Always add Authorization header if token exists
+    const token = localStorage.getItem("access_token");
+    if (token) {
+      options.headers = {
+        ...options.headers,
+        Authorization: `Bearer ${token}`,
+      };
     }
   }
-
   return originalFetch.call(this, url, options);
 };
 

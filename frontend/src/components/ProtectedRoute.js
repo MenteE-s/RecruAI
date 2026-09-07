@@ -1,9 +1,7 @@
 // src/components/ProtectedRoute.js
 import { Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { getAuthHeaders } from "../utils/auth";
-
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "";
+import { getAuthHeaders, getBackendUrl } from "../utils/auth";
 
 // ProtectedRoute now performs a lightweight token validation with the backend
 // If a token exists we call /api/auth/me to verify it and refresh the stored role.
@@ -15,7 +13,6 @@ export default function ProtectedRoute({ children }) {
     let cancelled = false;
 
     (async () => {
-      // Check if token exists before making the request
       const token = localStorage.getItem("access_token");
       if (!token) {
         if (!cancelled) {
@@ -26,16 +23,12 @@ export default function ProtectedRoute({ children }) {
       }
 
       try {
-        // rely on HttpOnly cookies; include credentials so browser sends the cookie
-        const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
+        const res = await fetch(`${getBackendUrl()}/api/auth/me`, {
           credentials: "include",
           headers: getAuthHeaders(),
         });
-        // debug log
-        // eslint-disable-next-line no-console
         console.log("/api/auth/me status:", res.status);
         if (!res.ok) {
-          // clear any local flags and let the user sign in again
           localStorage.removeItem("access_token");
           localStorage.removeItem("isAuthenticated");
           localStorage.removeItem("authRole");
@@ -43,7 +36,6 @@ export default function ProtectedRoute({ children }) {
         } else {
           const data = await res.json();
           if (!cancelled) {
-            // mark authenticated in localStorage
             localStorage.setItem("isAuthenticated", "true");
             if (data.user && data.user.role) {
               localStorage.setItem("authRole", data.user.role);
@@ -52,8 +44,6 @@ export default function ProtectedRoute({ children }) {
           }
         }
       } catch (err) {
-        // network error - be conservative: treat as not authenticated
-        // eslint-disable-next-line no-console
         console.error("/api/auth/me network error:", err);
         localStorage.removeItem("access_token");
         localStorage.removeItem("isAuthenticated");
@@ -69,7 +59,7 @@ export default function ProtectedRoute({ children }) {
     };
   }, []);
 
-  if (checking) return null; // or a loader component
+  if (checking) return null;
   if (!ok) return <Navigate to="/signin" replace />;
   return children;
 }

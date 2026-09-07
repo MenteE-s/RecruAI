@@ -14,11 +14,11 @@ const RecruAINavbar = () => {
     let mounted = true;
     async function verify() {
       try {
-        // quick local flag check then server verify for accuracy
-        const cached =
-          typeof window !== "undefined" &&
-          localStorage.getItem("isAuthenticated") === "true";
-        if (cached && mounted) setSignedIn(true);
+        const token = localStorage.getItem("access_token");
+        if (!token) {
+          if (mounted) setSignedIn(false);
+          return;
+        }
         const { verifyTokenWithServer } = await import("../../utils/auth");
         const user = await verifyTokenWithServer();
         if (!mounted) return;
