@@ -152,6 +152,9 @@ export function getSidebarItems(role, plan) {
         { name: "Applied Jobs", link: "/jobs/applied", icon: FiCheckCircle, section: "jobs" },
         { name: "Notifications", link: "/notifications", icon: FiBell, section: "activity" },
         { name: "Analytics", link: "/analytics", icon: FiBarChart2, section: "activity" },
+        { name: "Resume Builder", link: "/resume/builder", icon: FiFileText, section: "pro" },
+        { name: "Job Alerts", link: "/jobs/alerts", icon: FiBell, section: "pro" },
+        { name: "Career Coaching", link: "/coaching", icon: FiUsers, section: "pro" },
         { name: "Practice", link: "/practice", icon: FiTarget, section: "ai" },
         { name: "My AI Agents", link: "/ai-agents", icon: FiCpu, section: "ai" },
         {
@@ -160,11 +163,12 @@ export function getSidebarItems(role, plan) {
           icon: FiLink,
           section: "ai",
         },
+        { name: "Billing", link: "/billing", icon: FiCreditCard, section: "pro" },
         { name: "Settings", link: "/settings", icon: FiSettings, section: "bottom" },
         { name: "Sign Out", link: "/signin", icon: FiLogOut, section: "bottom" },
        ];
      } else {
-       // pro
+       // pro - same as trial now (all features visible)
        return [
          { name: "Dashboard", link: "/dashboard", icon: FiHome, section: "main" },
          { name: "Profile", link: "/profile", icon: FiUser, section: "main" },
