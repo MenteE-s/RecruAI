@@ -69,42 +69,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # ML Service (Embedding Generation via Gradio)
-  mlservices:
-    container_name: recruai_mlservices
-    build:
-      context: ./mlservices
-      dockerfile: Dockerfile
-    volumes:
-      - ./mlservices:/app
-    ports:
-      - "7860:7860"
-    networks:
-      - recruai_network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:7860 || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # ngrok for exposing local dev server (webhook testing, demos)
-  ngrok:
-    image: ngrok/ngrok:latest
-    container_name: recruai_ngrok
-    command: http backend:5000 --domain ${NGROK_DOMAIN:-}
-    environment:
-      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN:-}
-    ports:
-      - "4040:4040"
-    depends_on:
-      - backend
-    networks:
-      - recruai_network
-    profiles:
-      - ngrok
-    restart: unless-stopped
-
 volumes:
   pgdata:
   redisdata:

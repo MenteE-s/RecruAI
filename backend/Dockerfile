@@ -43,12 +43,14 @@ COPY . /app/backend
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
 USER appuser
 
-# Expose port
-EXPOSE 5000
+# Expose port - driven by .env PORT (default 8000)
+ARG PORT=8000
+ENV PORT=${PORT}
+EXPOSE ${PORT}
 
-# Health check
+# Health check - uses PORT env var
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:5000/api/health || exit 1
+    CMD sh -c "curl -f http://localhost:${PORT}/api/health || exit 1"
 
-# Run the application with gunicorn using the package path
-CMD ["gunicorn", "-w", "2", "--threads", "4", "--bind", "0.0.0.0:5000", "backend.app:create_app()"]
+# Run the application with gunicorn - bind port from .env PORT
+CMD ["sh", "-c", "gunicorn -w 2 --threads 4 --bind 0.0.0.0:${PORT} backend.app:create_app()"]

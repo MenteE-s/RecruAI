@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { FiMenu, FiPlus, FiLogOut } from "react-icons/fi";
+import { FiMenu, FiLogOut } from "react-icons/fi";
 import { getBackendUrl } from "../../utils/auth";
 
 export default function Sidebar({ open, toggleSidebar, items = [] }) {
@@ -112,19 +112,7 @@ export default function Sidebar({ open, toggleSidebar, items = [] }) {
           <span className="text-lg font-bold text-gray-900">RecruAI</span>
         </div>
 
-        {/* CTA Button */}
-        <div className="px-4 mb-2">
-          <button
-            onClick={() => {
-              navigate("/jobs");
-              if (open) toggleSidebar();
-            }}
-            className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-2.5 rounded-lg transition-colors duration-150"
-          >
-            <FiPlus className="w-4 h-4" />
-            <span>Browse Jobs</span>
-          </button>
-        </div>
+
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto px-3 py-2">

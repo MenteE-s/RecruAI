@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+html {
+  scroll-behavior: smooth;
+}
+
 /* Notification bell animation */
 @keyframes bell-ring {
   0% {
@@ -89,6 +93,16 @@
 }
 .markdown-content h3 {
   font-size: 1rem;
+}
+
+/* Marquee scroll animations for hero logo walls */
+@keyframes marquee-left {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+@keyframes marquee-right {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
 }
 
 /* Custom Scrollbar */

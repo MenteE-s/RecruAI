@@ -19,8 +19,8 @@ import SignIn from "./pages/SignIn";
 import ContactUs from "./pages/ContactUs";
 import TermsAndConditions from "./pages/TermsAndConditions";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
-import AboutUs from "./pages/AboutUs";
 import Blog from "./pages/Blog";
+import Careers from "./pages/Careers";
 import SystemStatus from "./pages/SystemStatus";
 import Community from "./pages/Community";
 import CookiesPolicy from "./pages/CookiesPolicy";
@@ -53,6 +53,7 @@ import HirePeople from "./pages/organization/HirePeople";
 import TeamMembers from "./pages/organization/TeamMembers";
 import UserProfile from "./pages/organization/UserProfile";
 import JobPosts from "./pages/organization/JobPosts";
+import JobPostDetails from "./pages/organization/JobPostDetails";
 import Candidates from "./pages/organization/Candidates";
 import InterviewManagement from "./pages/organization/InterviewManagement";
 import InterviewAnalysis from "./pages/InterviewAnalysis";
@@ -132,8 +133,8 @@ function App() {
           <Route path="/contact" element={<ContactUs />} />
           <Route path="/terms" element={<TermsAndConditions />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
-          <Route path="/about" element={<AboutUs />} />
           <Route path="/blog" element={<Blog />} />
+          <Route path="/careers" element={<Careers />} />
           <Route path="/status" element={<SystemStatus />} />
           <Route path="/community" element={<Community />} />
           <Route path="/cookies" element={<CookiesPolicy />} />
@@ -367,6 +368,14 @@ function App() {
             }
           />
           <Route
+            path="/organization/candidate-analysis"
+            element={
+              <ProtectedRoute>
+                <CandidateAnalysis />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/organization/candidate-analysis/:userId"
             element={
               <ProtectedRoute>
@@ -379,6 +388,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <JobPosts />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/organization/jobs/:id"
+            element={
+              <ProtectedRoute>
+                <JobPostDetails />
               </ProtectedRoute>
             }
           />
