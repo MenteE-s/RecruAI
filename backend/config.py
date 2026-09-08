@@ -64,13 +64,13 @@ class Config:
     # CORS configuration - auto-detect based on environment
     FRONTEND_ORIGIN = os.getenv(
         "FRONTEND_ORIGIN",
-        "https://recru-ai-lime.vercel.app" if IS_PRODUCTION else "http://localhost:3000"
+        "https://recruai.yourdomain.com" if IS_PRODUCTION else "http://localhost:3000"
     )
 
     # API configuration
     API_BASE_URL = os.getenv(
         "API_BASE_URL",
-        "https://recruai-production.up.railway.app" if IS_PRODUCTION else "http://localhost:5000"
+        "https://recruai.yourdomain.com" if IS_PRODUCTION else "http://localhost:5000"
     )
 
     # Security: Rate limiting configuration
