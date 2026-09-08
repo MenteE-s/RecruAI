@@ -165,6 +165,10 @@ const Hero = () => {
           Built for Pakistan — Expanding across the Gulf & Asia
         </p>
 
+        <div className="mt-4 text-xs text-gray-500 tracking-wide uppercase">
+          Built for Pakistan — Expanding across the Gulf & Asia
+        </div>
+
         <div className="mt-12 grid grid-cols-2 sm:grid-cols-4 gap-8 max-w-4xl mx-auto">
           <div className="text-center">
             <div className="text-3xl font-bold text-gray-900">25K+</div>
