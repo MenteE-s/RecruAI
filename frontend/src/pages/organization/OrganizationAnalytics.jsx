@@ -1,407 +1,201 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
-import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
-import Card from "../../components/ui/Card";
-import {
-  getSidebarItems,
-  getBackendUrl,
-  getAuthHeaders,
-} from "../../utils/auth";
+import { getSidebarItems, getBackendUrl, getAuthHeaders } from "../../utils/auth";
 import { formatDate } from "../../utils/timezone";
+import { FiBarChart2, FiTrendingUp, FiAward, FiUsers, FiTarget, FiFileText, FiCheckCircle, FiAlertTriangle, FiClock, FiArrowRight } from "react-icons/fi";
 
 export default function OrganizationAnalytics() {
   const navigate = useNavigate();
-  const role =
-    typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
-  const plan =
-    typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
+  const role = typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
+  const plan = typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
   const sidebarItems = getSidebarItems(role, plan);
-
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [orgId, setOrgId] = useState(1); // TODO: Get from user context
+  const [orgId] = useState(1);
 
-  useEffect(() => {
-    fetchInterviewAnalytics();
-  }, []);
+  useEffect(() => { fetchInterviewAnalytics(); }, []);
 
   const fetchInterviewAnalytics = async () => {
     try {
-      const response = await fetch(
-        `${getBackendUrl()}/api/organizations/${orgId}/analytics`,
-        {
-          credentials: "include",
-          headers: getAuthHeaders(),
-        }
-      );
-      if (response.ok) {
-        const data = await response.json();
-        setAnalytics(data);
-      }
-    } catch (error) {
-      console.error("Error fetching interview analytics:", error);
-    } finally {
-      setLoading(false);
-    }
+      const res = await fetch(`${getBackendUrl()}/api/organizations/${orgId}/analytics`, { credentials: "include", headers: getAuthHeaders() });
+      if (res.ok) setAnalytics(await res.json());
+    } catch (e) { console.error(e); } finally { setLoading(false); }
   };
 
   if (loading) {
     return (
-      <DashboardLayout
-        NavbarComponent={OrganizationNavbar}
-        sidebarItems={sidebarItems}
-      >
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      <DashboardLayout sidebarItems={sidebarItems}>
+        <div className="space-y-4">
+          <div className="rounded-2xl bg-gray-900 h-48 animate-pulse" />
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {[1, 2, 3, 4].map((i) => <div key={i} className="bg-white border border-gray-200 h-28 animate-pulse" />)}
+          </div>
         </div>
       </DashboardLayout>
     );
   }
 
+  const hasData = analytics && analytics.total_interviews_analyzed > 0;
+
   return (
-    <DashboardLayout
-      NavbarComponent={OrganizationNavbar}
-      sidebarItems={sidebarItems}
-    >
-      <div className="mb-6">
-        <div className="rounded-2xl p-6 bg-white border border-gray-200 text-gray-900 shadow-sm">
-          <div className="flex items-center justify-between">
+    <DashboardLayout sidebarItems={sidebarItems}>
+      {/* Hero */}
+      <div className="relative overflow-hidden rounded-2xl bg-gray-900 text-white mb-6">
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-transparent to-indigo-600/20" />
+        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3" />
+        <div className="relative p-6 md:p-8">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold font-display">
-                Interview Analytics
-              </h1>
-              <p className="mt-1 text-gray-500">
-                Comprehensive insights into your interview performance and
-                candidate evaluations
-              </p>
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 border border-white/20 text-xs font-medium tracking-wide mb-3">
+                <FiBarChart2 className="w-3.5 h-3.5" />
+                ANALYTICS
+              </div>
+              <h1 className="text-3xl md:text-[2rem] font-bold leading-tight">Interview analytics</h1>
+              <p className="text-gray-300 mt-2 max-w-xl text-sm md:text-[15px]">Insights into performance, candidate evaluations, and hiring trends.</p>
+            </div>
+            <div className="grid grid-cols-3 gap-3 lg:w-[380px]">
+              <div className="bg-white/10 backdrop-blur border border-white/10 p-4 text-center">
+                <p className="text-2xl font-bold">{analytics?.total_interviews_analyzed || 0}</p>
+                <p className="text-xs text-gray-300 mt-1">Analyzed</p>
+              </div>
+              <div className="bg-blue-500/20 backdrop-blur border border-blue-400/20 p-4 text-center">
+                <p className="text-2xl font-bold text-blue-200">{analytics?.average_scores?.overall ? `${analytics.average_scores.overall}%` : "—"}</p>
+                <p className="text-xs text-blue-200 mt-1">Avg score</p>
+              </div>
+              <div className="bg-green-500/20 backdrop-blur border border-green-400/20 p-4 text-center">
+                <p className="text-2xl font-bold text-green-200">{analytics?.pass_rate ? `${analytics.pass_rate}%` : "—"}</p>
+                <p className="text-xs text-green-200 mt-1">Pass rate</p>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <Card>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-blue-600">
-              {analytics?.total_interviews_analyzed || 0}
+      {!hasData ? (
+        <div className="bg-white border border-gray-200 p-12 text-center">
+          <div className="w-14 h-14 bg-gray-100 flex items-center justify-center mx-auto mb-4"><FiBarChart2 className="w-7 h-7 text-gray-400" /></div>
+          <h3 className="text-lg font-semibold text-gray-900">No analytics yet</h3>
+          <p className="text-sm text-gray-500 mt-1 max-w-md mx-auto">Complete interviews and generate analyses to see insights here.</p>
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+            <div className="bg-white border border-gray-200 p-5 text-center">
+              <p className="text-2xl font-bold text-blue-600">{analytics?.total_interviews_analyzed || 0}</p>
+              <p className="text-xs text-gray-500 mt-1">Interviews analyzed</p>
             </div>
-            <div className="text-sm text-gray-600">Interviews Analyzed</div>
-          </div>
-        </Card>
-        <Card>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-green-600">
-              {analytics?.average_scores?.overall
-                ? `${analytics.average_scores.overall}%`
-                : "--"}
+            <div className="bg-white border border-gray-200 p-5 text-center">
+              <p className="text-2xl font-bold text-green-600">{analytics?.average_scores?.overall ? `${analytics.average_scores.overall}%` : "--"}</p>
+              <p className="text-xs text-gray-500 mt-1">Avg overall</p>
             </div>
-            <div className="text-sm text-gray-600">Avg Overall Score</div>
-          </div>
-        </Card>
-        <Card>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-purple-600">
-              {analytics?.pass_rate ? `${analytics.pass_rate}%` : "--"}
+            <div className="bg-white border border-gray-200 p-5 text-center">
+              <p className="text-2xl font-bold text-purple-600">{analytics?.pass_rate ? `${analytics.pass_rate}%` : "--"}</p>
+              <p className="text-xs text-gray-500 mt-1">Pass rate</p>
             </div>
-            <div className="text-sm text-gray-600">Pass Rate</div>
-          </div>
-        </Card>
-        <Card>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-orange-600">
-              {analytics?.top_strengths?.length || 0}
+            <div className="bg-white border border-gray-200 p-5 text-center">
+              <p className="text-2xl font-bold text-orange-600">{analytics?.top_strengths?.length || 0}</p>
+              <p className="text-xs text-gray-500 mt-1">Top skills</p>
             </div>
-            <div className="text-sm text-gray-600">Top Skills Identified</div>
           </div>
-        </Card>
-      </div>
 
-      {/* Performance Scores Overview */}
-      {analytics?.average_scores && (
-        <Card className="mb-8">
-          <h3 className="text-xl font-semibold mb-6">
-            Average Performance Scores
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[
-              {
-                label: "Communication",
-                score: analytics.average_scores.communication,
-                color: "blue",
-              },
-              {
-                label: "Technical Skills",
-                score: analytics.average_scores.technical,
-                color: "green",
-              },
-              {
-                label: "Problem Solving",
-                score: analytics.average_scores.problem_solving,
-                color: "purple",
-              },
-              {
-                label: "Cultural Fit",
-                score: analytics.average_scores.cultural_fit,
-                color: "orange",
-              },
-            ].map((item) => (
-              <div key={item.label} className="text-center">
-                <div
-                  className={`text-3xl font-bold text-${item.color}-600 mb-2`}
-                >
-                  {item.score ? `${item.score}%` : "--"}
-                </div>
-                <div className="text-sm text-gray-600 mb-3">{item.label}</div>
-                {item.score && (
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className={`bg-${item.color}-500 h-2 rounded-full transition-all duration-500`}
-                      style={{ width: `${item.score}%` }}
-                    ></div>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </Card>
-      )}
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Top Strengths */}
-        <Card>
-          <h3 className="text-lg font-semibold mb-4 text-green-600">
-            💪 Most Common Strengths
-          </h3>
-          <div className="space-y-3">
-            {analytics?.top_strengths && analytics.top_strengths.length > 0 ? (
-              analytics.top_strengths.slice(0, 5).map((strength, index) => (
-                <div key={index} className="flex justify-between items-center">
-                  <span className="text-gray-700">{strength.skill}</span>
-                  <div className="flex items-center gap-2">
-                    <div className="w-16 bg-gray-200 rounded-full h-2">
-                      <div
-                        className="bg-green-500 h-2 rounded-full"
-                        style={{
-                          width: `${
-                            analytics.total_interviews_analyzed > 0
-                              ? (strength.count /
-                                  analytics.total_interviews_analyzed) *
-                                100
-                              : 0
-                          }%`,
-                        }}
-                      ></div>
+          {analytics?.average_scores && (
+            <div className="bg-white border border-gray-200 p-6 mb-6">
+              <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2"><FiTarget className="w-4 h-4 text-gray-500" /> Average scores</h3>
+              <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {[
+                  { label: "Communication", score: analytics.average_scores.communication, color: "bg-blue-600", icon: FiUsers },
+                  { label: "Technical", score: analytics.average_scores.technical, color: "bg-green-600", icon: FiAward },
+                  { label: "Problem solving", score: analytics.average_scores.problem_solving, color: "bg-purple-600", icon: FiTarget },
+                  { label: "Cultural fit", score: analytics.average_scores.cultural_fit, color: "bg-orange-600", icon: FiUsers },
+                ].map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <div key={item.label} className="border border-gray-100 p-4 text-center">
+                      <div className={`w-10 h-10 ${item.color} flex items-center justify-center mx-auto`}><Icon className="w-5 h-5 text-white" /></div>
+                      <p className="text-2xl font-bold text-gray-900 mt-3">{item.score ? `${item.score}%` : "--"}</p>
+                      <p className="text-xs text-gray-500 mt-1">{item.label}</p>
+                      {item.score && <div className="mt-3 h-1.5 bg-gray-100"><div className={`${item.color} h-1.5`} style={{ width: `${item.score}%` }} /></div>}
                     </div>
-                    <span className="text-sm font-medium text-gray-600 w-6 text-right">
-                      {strength.count}
-                    </span>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="text-gray-500 italic">No strength data available</p>
-            )}
-          </div>
-        </Card>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
-        {/* Common Improvements */}
-        <Card>
-          <h3 className="text-lg font-semibold mb-4 text-orange-600">
-            🎯 Common Areas for Improvement
-          </h3>
-          <div className="space-y-3">
-            {analytics?.common_improvements &&
-            analytics.common_improvements.length > 0 ? (
-              analytics.common_improvements
-                .slice(0, 5)
-                .map((improvement, index) => (
-                  <div
-                    key={index}
-                    className="flex justify-between items-center"
-                  >
-                    <span className="text-gray-700">{improvement.area}</span>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <div className="bg-white border border-gray-200 p-6">
+              <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2"><FiCheckCircle className="w-4 h-4 text-green-600" /> Most common strengths</h3>
+              <div className="mt-4 space-y-3">
+                {analytics?.top_strengths?.slice(0, 5).map((s, i) => (
+                  <div key={i} className="flex items-center justify-between">
+                    <span className="text-sm text-gray-700">{s.skill}</span>
                     <div className="flex items-center gap-2">
-                      <div className="w-16 bg-gray-200 rounded-full h-2">
-                        <div
-                          className="bg-orange-500 h-2 rounded-full"
-                          style={{
-                            width: `${
-                              analytics.total_interviews_analyzed > 0
-                                ? (improvement.count /
-                                    analytics.total_interviews_analyzed) *
-                                  100
-                                : 0
-                            }%`,
-                          }}
-                        ></div>
-                      </div>
-                      <span className="text-sm font-medium text-gray-600 w-6 text-right">
-                        {improvement.count}
-                      </span>
+                      <div className="w-16 h-1.5 bg-gray-100"><div className="bg-green-600 h-1.5" style={{ width: `${(s.count / analytics.total_interviews_analyzed) * 100}%` }} /></div>
+                      <span className="text-xs font-medium text-gray-600 w-6 text-right">{s.count}</span>
                     </div>
                   </div>
-                ))
-            ) : (
-              <p className="text-gray-500 italic">
-                No improvement data available
-              </p>
-            )}
-          </div>
-        </Card>
-      </div>
-
-      {/* Recent Interview Analyses */}
-      {analytics?.analytics && analytics.analytics.length > 0 && (
-        <Card className="mt-8">
-          <h3 className="text-xl font-semibold mb-6">
-            Recent Interview Analyses
-          </h3>
-          <div className="space-y-4">
-            {analytics.analytics.slice(0, 5).map((analysis, index) => (
-              <div
-                key={analysis.id || index}
-                className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 cursor-pointer"
-                onClick={() =>
-                  navigate(`/interviews/${analysis.interview_id}/analysis`)
-                }
-              >
-                <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <h4 className="font-medium text-gray-900">
-                      Interview #{analysis.interview_id}
-                    </h4>
-                    <p className="text-sm text-gray-600">
-                      Analyzed: {formatDate(analysis.created_at)}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-lg font-bold text-blue-600">
-                      {analysis.overall_score}/100
-                    </div>
-                    <div className="text-xs text-gray-500">Overall Score</div>
-                  </div>
-                </div>
-                <div className="grid grid-cols-4 gap-4 text-sm">
-                  <div>
-                    <span className="text-gray-600">Communication:</span>
-                    <span className="font-medium ml-1">
-                      {analysis.communication_score || "--"}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Technical:</span>
-                    <span className="font-medium ml-1">
-                      {analysis.technical_score || "--"}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Problem Solving:</span>
-                    <span className="font-medium ml-1">
-                      {analysis.problem_solving_score || "--"}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Cultural Fit:</span>
-                    <span className="font-medium ml-1">
-                      {analysis.cultural_fit_score || "--"}
-                    </span>
-                  </div>
-                </div>
+                )) || <p className="text-sm text-gray-500">No data</p>}
               </div>
-            ))}
+            </div>
+            <div className="bg-white border border-gray-200 p-6">
+              <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2"><FiAlertTriangle className="w-4 h-4 text-amber-600" /> Common improvements</h3>
+              <div className="mt-4 space-y-3">
+                {analytics?.common_improvements?.slice(0, 5).map((imp, i) => (
+                  <div key={i} className="flex items-center justify-between">
+                    <span className="text-sm text-gray-700">{imp.area}</span>
+                    <div className="flex items-center gap-2">
+                      <div className="w-16 h-1.5 bg-gray-100"><div className="bg-amber-500 h-1.5" style={{ width: `${(imp.count / analytics.total_interviews_analyzed) * 100}%` }} /></div>
+                      <span className="text-xs font-medium text-gray-600 w-6 text-right">{imp.count}</span>
+                    </div>
+                  </div>
+                )) || <p className="text-sm text-gray-500">No data</p>}
+              </div>
+            </div>
           </div>
-        </Card>
-      )}
 
-      {/* Recent Interviews */}
-      {analytics?.recent_interviews &&
-        analytics.recent_interviews.length > 0 && (
-          <Card className="mt-8">
-            <h3 className="text-xl font-semibold mb-6">Recent Interviews</h3>
-            <div className="space-y-4">
-              {analytics.recent_interviews
-                .slice(0, 5)
-                .map((interview, index) => (
-                  <div
-                    key={interview.id || index}
-                    className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 cursor-pointer"
-                    onClick={() =>
-                      navigate(`/interviews/${interview.id}/analysis`)
-                    }
-                  >
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <h4 className="font-medium text-gray-900">
-                          {interview.title || `Interview #${interview.id}`}
-                        </h4>
-                        <p className="text-sm text-gray-600">
-                          {new Date(
-                            interview.scheduled_at
-                          ).toLocaleDateString()}{" "}
-                          at{" "}
-                          {new Date(
-                            interview.scheduled_at
-                          ).toLocaleTimeString()}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <span
-                          className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                            interview.status === "completed"
-                              ? "bg-green-100 text-green-800"
-                              : interview.status === "cancelled"
-                              ? "bg-red-100 text-red-800"
-                              : "bg-yellow-100 text-yellow-800"
-                          }`}
-                        >
-                          {interview.status}
-                        </span>
+          {analytics?.analytics?.length > 0 && (
+            <div className="bg-white border border-gray-200 p-6 mb-6">
+              <h3 className="text-sm font-semibold text-gray-900">Recent analyses</h3>
+              <div className="mt-4 space-y-3">
+                {analytics.analytics.slice(0, 5).map((analysis) => (
+                  <div key={analysis.id} onClick={() => navigate(`/interviews/${analysis.interview_id}/analysis`)} className="border border-gray-200 p-4 hover:border-gray-300 hover:bg-gray-50 cursor-pointer flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Interview #{analysis.interview_id}</p>
+                      <p className="text-xs text-gray-500">{formatDate(analysis.created_at)}</p>
+                      <div className="mt-1 flex gap-1">
+                        <span className="text-xs bg-gray-50 border border-gray-200 px-2 py-1">Comm {analysis.communication_score || "--"}</span>
+                        <span className="text-xs bg-gray-50 border border-gray-200 px-2 py-1">Tech {analysis.technical_score || "--"}</span>
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <span className="text-gray-600">Duration:</span>
-                        <span className="font-medium ml-1">
-                          {interview.duration_minutes} minutes
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Type:</span>
-                        <span className="font-medium ml-1 capitalize">
-                          {interview.interview_type}
-                        </span>
-                      </div>
+                    <div className="text-right">
+                      <p className="text-lg font-bold text-blue-600">{analysis.overall_score}/100</p>
+                      <span className="text-xs text-blue-600 flex items-center gap-1 justify-end">View <FiArrowRight className="w-3 h-3" /></span>
                     </div>
-                    {interview.post_title && (
-                      <div className="mt-2 text-sm">
-                        <span className="text-gray-600">Position:</span>
-                        <span className="font-medium ml-1">
-                          {interview.post_title}
-                        </span>
-                      </div>
-                    )}
                   </div>
                 ))}
+              </div>
             </div>
-          </Card>
-        )}
+          )}
 
-      {/* Empty State */}
-      {(!analytics || analytics.total_interviews_analyzed === 0) && (
-        <Card className="mt-8">
-          <div className="text-center py-12">
-            <div className="text-4xl mb-4">📊</div>
-            <h3 className="text-lg font-semibold mb-2">
-              No Interview Analytics Yet
-            </h3>
-            <p className="text-gray-600 mb-4">
-              Complete some interviews and generate analyses to see performance
-              insights here.
-            </p>
-          </div>
-        </Card>
+          {analytics?.recent_interviews?.length > 0 && (
+            <div className="bg-white border border-gray-200 p-6">
+              <h3 className="text-sm font-semibold text-gray-900">Recent interviews</h3>
+              <div className="mt-4 space-y-3">
+                {analytics.recent_interviews.slice(0, 5).map((interview) => (
+                  <div key={interview.id} onClick={() => navigate(`/interviews/${interview.id}/analysis`)} className="border border-gray-200 p-4 hover:bg-gray-50 cursor-pointer flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{interview.title || `Interview #${interview.id}`}</p>
+                      <p className="text-xs text-gray-500">{new Date(interview.scheduled_at).toLocaleDateString()} at {new Date(interview.scheduled_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} • {interview.duration_minutes} min • {interview.interview_type}</p>
+                      {interview.post_title && <p className="text-xs text-blue-600 mt-1">{interview.post_title}</p>}
+                    </div>
+                    <span className={`text-xs font-medium border px-2 py-1 ${interview.status === "completed" ? "bg-green-50 text-green-700 border-green-200" : interview.status === "cancelled" ? "bg-red-50 text-red-700 border-red-200" : "bg-amber-50 text-amber-700 border-amber-200"}`}>{interview.status}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
       )}
     </DashboardLayout>
   );

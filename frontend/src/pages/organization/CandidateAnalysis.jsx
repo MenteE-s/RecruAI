@@ -49,6 +49,15 @@ export default function CandidateAnalysis() {
 
   useEffect(() => {
     const load = async () => {
+      if (!userId) {
+        // No candidate selected - just load org context for job selector
+        try {
+          const meRes = await fetch(`${getBackendUrl()}/api/auth/me`, { credentials: "include", headers: getAuthHeaders() });
+          if (meRes.ok) setOrgId((await meRes.json()).user?.organization_id);
+        } catch {}
+        setLoading(false);
+        return;
+      }
       setLoading(true);
       setError(null);
       try {
@@ -148,12 +157,35 @@ export default function CandidateAnalysis() {
     );
   }
 
+  if (!userId) {
+    return (
+      <DashboardLayout sidebarItems={sidebarItems}>
+        <div className="space-y-6">
+          <div className="relative overflow-hidden rounded-2xl bg-gray-900 text-white">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-transparent to-indigo-600/20" />
+            <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3" />
+            <div className="relative p-6 md:p-8">
+              <h1 className="text-2xl md:text-3xl font-bold">Candidate analysis</h1>
+              <p className="text-gray-300 mt-2 max-w-xl text-sm">Select a candidate from Hire to see AI-powered skill comparison.</p>
+              <button onClick={() => navigate("/organization/hire")} className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 bg-white text-gray-900 text-sm font-medium hover:bg-gray-100">
+                <FiBriefcase className="w-4 h-4" /> Go to Hire People
+              </button>
+            </div>
+          </div>
+          <div className="bg-white border border-gray-200 p-12 text-center">
+            <div className="w-14 h-14 bg-gray-100 flex items-center justify-center mx-auto mb-4"><FiBriefcase className="w-7 h-7 text-gray-400" /></div>
+            <h3 className="text-lg font-semibold text-gray-900">No candidate selected</h3>
+            <p className="text-sm text-gray-500 mt-1 max-w-md mx-auto">Go to <span className="font-medium text-gray-700">Hire People</span>, search for a candidate, and click the briefcase icon to view their analysis. Or open <span className="font-mono text-xs bg-gray-100 border border-gray-200 px-1.5 py-0.5">/organization/candidate-analysis/:userId</span> directly.</p>
+            <button onClick={() => navigate("/organization/hire")} className="mt-6 inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700">Browse candidates</button>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   if (error || !candidate) {
     return (
-      <DashboardLayout
-        NavbarComponent={OrganizationNavbar}
-        sidebarItems={sidebarItems}
-      >
+      <DashboardLayout sidebarItems={sidebarItems}>
         <div className="p-4 md:p-8">
           <div className="rounded-2xl p-6 bg-white border border-gray-200 shadow-sm">
             <div className="text-center py-12">

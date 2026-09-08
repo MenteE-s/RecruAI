@@ -367,6 +367,14 @@ function App() {
             }
           />
           <Route
+            path="/organization/candidate-analysis"
+            element={
+              <ProtectedRoute>
+                <CandidateAnalysis />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/organization/candidate-analysis/:userId"
             element={
               <ProtectedRoute>
