@@ -201,7 +201,11 @@ export default function HirePeople() {
                     const cid = getUserId(candidate);
                     const isExpanded = expandedRow === cid;
                     return (
-                      <tr key={cid} className={`hover:bg-gray-50 ${isExpanded ? "bg-gray-50" : ""}`}>
+                      <tr
+                        key={cid}
+                        onClick={() => viewProfile(cid)}
+                        className={`hover:bg-blue-50/50 cursor-pointer ${isExpanded ? "bg-blue-50/30" : ""}`}
+                      >
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-3">
                             <div className="shrink-0">
@@ -232,9 +236,37 @@ export default function HirePeople() {
                         <td className="px-4 py-3"><MatchBadge level={candidate.match_level || "possible"} similarity={candidate.similarity || 0} /></td>
                         <td className="px-4 py-3 text-center">
                           <div className="flex items-center justify-center gap-1">
-                            <button onClick={() => viewProfile(cid)} className="p-1.5 text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-200" title="View"><FiEye className="w-4 h-4" /></button>
-                            <button onClick={() => navigate(`/organization/candidate-analysis/${cid}`)} className="p-1.5 text-green-600 hover:bg-green-50 border border-transparent hover:border-green-200" title="Analysis"><FiBriefcase className="w-4 h-4" /></button>
-                            <button onClick={() => { if (isExpanded) setExpandedRow(null); else { setExpandedRow(cid); loadExplanation(cid, query); } }} className="p-1.5 text-gray-500 hover:bg-gray-100 border border-transparent hover:border-gray-200">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                viewProfile(cid);
+                              }}
+                              className="p-1.5 text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-200"
+                              title="View"
+                            >
+                              <FiEye className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/organization/candidate-analysis/${cid}`);
+                              }}
+                              className="p-1.5 text-green-600 hover:bg-green-50 border border-transparent hover:border-green-200"
+                              title="Analysis"
+                            >
+                              <FiBriefcase className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (isExpanded) setExpandedRow(null);
+                                else {
+                                  setExpandedRow(cid);
+                                  loadExplanation(cid, query);
+                                }
+                              }}
+                              className="p-1.5 text-gray-500 hover:bg-gray-100 border border-transparent hover:border-gray-200"
+                            >
                               {explainingUser === cid ? <FiLoader className="animate-spin w-4 h-4" /> : isExpanded ? <FiChevronUp className="w-4 h-4" /> : <FiChevronDown className="w-4 h-4" />}
                             </button>
                           </div>
