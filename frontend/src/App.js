@@ -19,8 +19,8 @@ import SignIn from "./pages/SignIn";
 import ContactUs from "./pages/ContactUs";
 import TermsAndConditions from "./pages/TermsAndConditions";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
-import AboutUs from "./pages/AboutUs";
 import Blog from "./pages/Blog";
+import Careers from "./pages/Careers";
 import SystemStatus from "./pages/SystemStatus";
 import Community from "./pages/Community";
 import CookiesPolicy from "./pages/CookiesPolicy";
@@ -132,8 +132,8 @@ function App() {
           <Route path="/contact" element={<ContactUs />} />
           <Route path="/terms" element={<TermsAndConditions />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
-          <Route path="/about" element={<AboutUs />} />
           <Route path="/blog" element={<Blog />} />
+          <Route path="/careers" element={<Careers />} />
           <Route path="/status" element={<SystemStatus />} />
           <Route path="/community" element={<Community />} />
           <Route path="/cookies" element={<CookiesPolicy />} />

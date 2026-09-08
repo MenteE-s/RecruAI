@@ -2,48 +2,62 @@ import React from "react";
 import { Link } from "react-router-dom";
 import RecruAINavbar from "../components/product/RecruAINavbar";
 import Footer from "../components/Footer";
-import { getBackendUrl } from "../utils/auth";
+
 const Blog = () => {
   const blogPosts = [
     {
       id: 1,
-      title: "The Future of AI in Recruitment: Trends to Watch in 2025",
+      title: "How AI-Powered Interview Platforms Are Changing Hiring in 2025",
       excerpt:
-        "Explore the latest AI advancements transforming how companies find and hire talent, from predictive analytics to automated screening.",
-      date: "November 25, 2025",
+        "Artificial intelligence is reshaping recruitment. From automated screening to realistic mock interviews, discover how AI helps companies hire faster and candidates prepare smarter.",
+      date: "December 2, 2025",
       readTime: "5 min read",
-      category: "AI Trends",
-      image: `${getBackendUrl()}/api/placeholder/400/250`,
+      category: "AI Recruitment",
     },
     {
       id: 2,
-      title: "Building Inclusive Hiring Practices with Technology",
+      title: "10 Common Interview Mistakes and How to Avoid Them",
       excerpt:
-        "How AI tools can help reduce bias in recruitment while ensuring diverse and inclusive hiring processes.",
-      date: "November 18, 2025",
-      readTime: "4 min read",
-      category: "Diversity & Inclusion",
-      image: `${getBackendUrl()}/api/placeholder/400/250`,
+        "Whether you're a fresh graduate or a seasoned professional, these interview pitfalls can cost you the job. Learn practical strategies to present your best self.",
+      date: "November 28, 2025",
+      readTime: "6 min read",
+      category: "Career Advice",
     },
     {
       id: 3,
-      title: "From Resume to Interview: Optimizing Your Application Strategy",
+      title: "Building a Strong Professional Profile That Recruiters Notice",
       excerpt:
-        "Practical tips for job seekers to navigate modern recruitment processes and stand out to employers.",
-      date: "November 10, 2025",
-      readTime: "6 min read",
-      category: "Career Advice",
-      image: `${getBackendUrl()}/api/placeholder/400/250`,
+        "Your profile is your first impression. Here's how to showcase experience, skills, and achievements that stand out to hiring managers and AI screening tools.",
+      date: "November 20, 2025",
+      readTime: "4 min read",
+      category: "Job Seekers",
     },
     {
       id: 4,
-      title: "The ROI of AI-Powered Recruitment Platforms",
+      title: "Why Companies Are Switching to AI Screening for Candidate Assessment",
       excerpt:
-        "Understanding the measurable benefits and cost savings of implementing AI tools in your hiring process.",
-      date: "November 3, 2025",
+        "Traditional resume screening is slow and biased. Learn how organizations use AI-driven assessment to evaluate skills fairly and reduce time-to-hire.",
+      date: "November 15, 2025",
       readTime: "7 min read",
-      category: "Business Strategy",
-      image: `${getBackendUrl()}/api/placeholder/400/250`,
+      category: "Organizations",
+    },
+    {
+      id: 5,
+      title: "Remote Hiring Best Practices for Distributed Teams",
+      excerpt:
+        "Remote work is here to stay. Discover how leading companies conduct effective virtual interviews and onboard new hires across time zones.",
+      date: "November 8, 2025",
+      readTime: "5 min read",
+      category: "Remote Work",
+    },
+    {
+      id: 6,
+      title: "From Application to Onboarding: The Complete Recruitment Journey",
+      excerpt:
+        "A step-by-step guide to the modern hiring process — from posting a job offer to welcoming your newest team member.",
+      date: "November 1, 2025",
+      readTime: "8 min read",
+      category: "Recruitment Process",
     },
   ];
 
@@ -51,87 +65,79 @@ const Blog = () => {
     <div className="min-h-screen bg-gray-50">
       <RecruAINavbar />
 
-      {/* Hero Section */}
-      <div className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h1 className="text-4xl md:text-6xl font-bold mb-6">MenteE Blog</h1>
-            <p className="text-xl md:text-2xl text-indigo-100 max-w-3xl mx-auto">
-              Insights, trends, and expert perspectives on AI-powered
-              recruitment and professional development.
-            </p>
+      {/* Hero */}
+      <div className="bg-gray-900 text-white py-20">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <div className="inline-flex items-center px-3 py-1 bg-white/10 border border-white/20 text-sm font-medium text-white mb-6">
+            MenteE Blog
           </div>
+          <h1 className="text-4xl sm:text-5xl font-bold mb-4">
+            Insights on{" "}
+            <span className="text-blue-400">AI Recruitment</span>{" "}
+            & Career Growth
+          </h1>
+          <p className="text-lg text-gray-300 max-w-2xl mx-auto">
+            Expert perspectives on interview preparation, talent acquisition,
+            and the evolving landscape of AI-powered hiring.
+          </p>
         </div>
       </div>
 
-      {/* Blog Posts Grid */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      {/* Blog Posts */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {blogPosts.map((post) => (
             <article
               key={post.id}
-              className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow"
+              className="bg-white border border-gray-200 overflow-hidden hover:shadow-lg hover:border-blue-200 transition-all"
             >
-              <div className="h-48 bg-gradient-to-r from-indigo-500 to-blue-500 flex items-center justify-center">
-                <div className="text-white text-center">
-                  <div className="text-4xl mb-2">📝</div>
-                  <div className="text-sm opacity-75">{post.category}</div>
-                </div>
+              <div className="h-40 bg-blue-600 flex items-center justify-center">
+                <span className="text-white text-sm font-medium bg-white/20 px-3 py-1">
+                  {post.category}
+                </span>
               </div>
               <div className="p-6">
-                <div className="flex items-center text-sm text-gray-500 mb-3">
-                  <span className="bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full text-xs font-medium">
-                    {post.category}
-                  </span>
-                  <span className="mx-2">•</span>
+                <div className="flex items-center text-xs text-gray-500 mb-3 gap-2">
                   <span>{post.date}</span>
-                  <span className="mx-2">•</span>
+                  <span>•</span>
                   <span>{post.readTime}</span>
                 </div>
-                <h2 className="text-xl font-bold text-gray-900 mb-3 hover:text-indigo-600 transition-colors">
-                  <Link to={`/blog/${post.id}`}>{post.title}</Link>
+                <h2 className="text-lg font-semibold text-gray-900 mb-2 leading-snug">
+                  <Link
+                    to={`/blog/${post.id}`}
+                    className="hover:text-blue-600 transition-colors"
+                  >
+                    {post.title}
+                  </Link>
                 </h2>
-                <p className="text-gray-600 mb-4">{post.excerpt}</p>
+                <p className="text-gray-600 text-sm mb-4">{post.excerpt}</p>
                 <Link
                   to={`/blog/${post.id}`}
-                  className="text-indigo-600 hover:text-indigo-800 font-medium inline-flex items-center"
+                  className="text-blue-600 hover:text-blue-700 text-sm font-medium"
                 >
-                  Read more
-                  <svg
-                    className="w-4 h-4 ml-1"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5l7 7-7 7"
-                    />
-                  </svg>
+                  Read more →
                 </Link>
               </div>
             </article>
           ))}
         </div>
 
-        {/* Newsletter Signup */}
-        <div className="mt-16 bg-indigo-50 rounded-lg p-8 text-center">
+        {/* Newsletter */}
+        <div className="mt-16 bg-gray-50 border border-gray-200 p-8 text-center">
           <h3 className="text-2xl font-bold text-gray-900 mb-4">
             Stay Updated
           </h3>
-          <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
-            Get the latest insights on AI recruitment, career advice, and
-            industry trends delivered to your inbox.
+          <p className="text-gray-600 mb-6 max-w-xl mx-auto">
+            Get the latest on AI recruitment, career advice, and product updates
+            delivered to your inbox.
           </p>
           <div className="max-w-md mx-auto flex gap-4">
             <input
               type="email"
               placeholder="Enter your email"
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+              className="flex-1 px-4 py-2 border border-gray-300 text-sm focus:outline-none focus:border-blue-500"
             />
-            <button className="bg-indigo-600 text-white px-6 py-2 rounded-md hover:bg-indigo-700 transition-colors">
+            <button className="bg-blue-600 text-white px-6 py-2 text-sm font-medium hover:bg-blue-700 transition-colors">
               Subscribe
             </button>
           </div>

@@ -155,12 +155,14 @@ const Footer = () => {
             <h4 className="text-lg font-semibold text-white mb-4">Company</h4>
             <ul className="space-y-2">
               <li>
-                <Link
-                  to="/about"
+                <a
+                  href="https://menteeai.org"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="text-secondary-300 hover:text-white transition-colors"
                 >
                   About MenteE
-                </Link>
+                </a>
               </li>
               <li>
                 <a
@@ -190,38 +192,32 @@ const Footer = () => {
           </div>
 
           <div>
-            <h4 className="text-lg font-semibold text-white mb-4">Support</h4>
+            <h4 className="text-lg font-semibold text-white mb-4">Company</h4>
             <ul className="space-y-2">
               <li>
                 <a
-                  href="/contact"
+                  href="https://menteeai.org"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="text-secondary-300 hover:text-white transition-colors"
                 >
-                  Help Center
-                </a>
-              </li>
-              <li>
-                <a
-                  href="/contact"
-                  className="text-secondary-300 hover:text-white transition-colors"
-                >
-                  Contact Us
+                  About MenteE
                 </a>
               </li>
               <li>
                 <Link
-                  to="/status"
+                  to="/careers"
                   className="text-secondary-300 hover:text-white transition-colors"
                 >
-                  System Status
+                  Careers
                 </Link>
               </li>
               <li>
                 <Link
-                  to="/community"
+                  to="/blog"
                   className="text-secondary-300 hover:text-white transition-colors"
                 >
-                  Community
+                  Blog
                 </Link>
               </li>
             </ul>
