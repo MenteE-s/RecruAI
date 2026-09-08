@@ -68,8 +68,10 @@ export default function HirePeople() {
     setExplainingUser(userId);
     try {
       const res = await fetch(`${getBackendUrl()}/api/recommendations/explain`, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json", ...getAuthHeaders() }, body: JSON.stringify({ user_id: userId, query: searchQuery }) });
-      if (res.ok) setExplanations((prev) => ({ ...prev, [userId]: await res.json() }));
-      else showToast("Failed to load AI analysis", "error");
+      if (res.ok) {
+        const data = await res.json();
+        setExplanations((prev) => ({ ...prev, [userId]: data }));
+      } else showToast("Failed to load AI analysis", "error");
     } catch { showToast("Network error. Try again.", "error"); }
     finally { setExplainingUser(null); }
   }, []);
