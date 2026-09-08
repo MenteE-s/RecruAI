@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 
 const jobs = [
   {
@@ -82,9 +83,10 @@ const FeaturedJobs = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {jobs.map((job, index) => (
-            <div
+            <Link
               key={index}
-              className="bg-white border border-gray-200 p-6 hover:shadow-lg hover:border-blue-200 transition-all cursor-pointer"
+              to="/signin"
+              className="block bg-white border border-gray-200 p-6 hover:shadow-lg hover:border-blue-200 transition-all cursor-pointer"
             >
               <div className="flex items-start justify-between mb-4">
                 <div className="w-10 h-10 bg-gray-100 flex items-center justify-center text-gray-700 font-bold text-sm">
@@ -118,14 +120,17 @@ const FeaturedJobs = () => {
                   {job.applicants} applicants
                 </span>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
 
         <div className="text-center mt-10">
-          <button className="bg-white text-blue-600 border border-blue-600 hover:bg-blue-50 px-6 py-3 text-sm font-medium transition-colors">
+          <Link
+            to="/signin"
+            className="inline-block bg-white text-blue-600 border border-blue-600 hover:bg-blue-50 px-6 py-3 text-sm font-medium transition-colors"
+          >
             View All Jobs
-          </button>
+          </Link>
         </div>
       </div>
     </section>
