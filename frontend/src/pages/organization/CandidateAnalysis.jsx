@@ -183,24 +183,26 @@ export default function CandidateAnalysis() {
       NavbarComponent={OrganizationNavbar}
       sidebarItems={sidebarItems}
     >
-      <div className="p-4 md:p-8 space-y-6">
-        {/* Header */}
-          <div className="flex items-center justify-between">
-            <button
-              onClick={() => navigate("/organization/hire")}
-              className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 transition-colors"
-            >
-              <FiArrowLeft size={16} />
-              Back to Hire People
-            </button>
-            <button
-              onClick={() => navigate(`/organization/user/${userId}`)}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
-            >
-              <FiExternalLink size={14} />
-              View Full Profile
-            </button>
+      <div className="space-y-6">
+        {/* Hero */}
+        <div className="relative overflow-hidden rounded-2xl bg-gray-900 text-white">
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-transparent to-indigo-600/20" />
+          <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3" />
+          <div className="relative p-6 md:p-8">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <button onClick={() => navigate("/organization/hire")} className="inline-flex items-center gap-1.5 text-sm text-blue-200 hover:text-white mb-2">
+                  <FiArrowLeft className="w-4 h-4" /> Back to hire
+                </button>
+                <h1 className="text-2xl md:text-3xl font-bold">Candidate analysis</h1>
+                <p className="text-gray-300 mt-1 text-sm max-w-xl">AI-powered comparison of candidate skills vs job requirements.</p>
+              </div>
+              <button onClick={() => navigate(`/organization/user/${userId}`)} className="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-gray-900 text-sm font-medium hover:bg-gray-100 self-start md:self-auto">
+                <FiExternalLink className="w-4 h-4" /> View full profile
+              </button>
+            </div>
           </div>
+        </div>
 
         {/* Profile Card */}
         <div className="rounded-2xl bg-white border border-gray-200 shadow-sm overflow-hidden">

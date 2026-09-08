@@ -1833,22 +1833,35 @@ export default function InterviewManagement() {
         </div>
       )}
 
-      <div className="mb-6 flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            Interview Management
-          </h1>
-          <p className="text-gray-600 mt-1">
-            Schedule and manage interviews with candidates.
-          </p>
+      <div className="relative overflow-hidden rounded-2xl bg-gray-900 text-white mb-6">
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-transparent to-indigo-600/20" />
+        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3" />
+        <div className="relative p-6 md:p-8">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 border border-white/20 text-xs font-medium tracking-wide mb-3">INTERVIEWS</div>
+              <h1 className="text-3xl md:text-[2rem] font-bold leading-tight">Interview management</h1>
+              <p className="text-gray-300 mt-2 max-w-xl text-sm md:text-[15px]">Schedule and manage interviews with candidates.</p>
+            </div>
+            <button onClick={() => setShowScheduleModal(true)} className="inline-flex items-center justify-center gap-2 bg-white text-gray-900 px-5 py-3 text-sm font-medium hover:bg-gray-100 self-start lg:self-auto">
+              + Schedule interview
+            </button>
+          </div>
+          <div className="mt-6 grid grid-cols-3 gap-3 max-w-md">
+            <div className="bg-white/10 backdrop-blur border border-white/10 p-3 text-center">
+              <p className="text-xl font-bold">{interviews.length}</p>
+              <p className="text-xs text-gray-300 mt-1">Total</p>
+            </div>
+            <div className="bg-blue-500/20 backdrop-blur border border-blue-400/20 p-3 text-center">
+              <p className="text-xl font-bold text-blue-200">{interviews.filter((i) => i.status === "scheduled").length}</p>
+              <p className="text-xs text-blue-200 mt-1">Scheduled</p>
+            </div>
+            <div className="bg-green-500/20 backdrop-blur border border-green-400/20 p-3 text-center">
+              <p className="text-xl font-bold text-green-200">{interviews.filter((i) => i.status === "completed").length}</p>
+              <p className="text-xs text-green-200 mt-1">Completed</p>
+            </div>
+          </div>
         </div>
-        <button
-          onClick={() => setShowScheduleModal(true)}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center"
-        >
-          <span className="mr-2">+</span>
-          Schedule Interview
-        </button>
       </div>
 
       {/* Selected Interviews Summary */}
