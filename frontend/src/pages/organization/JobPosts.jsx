@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import { getSidebarItems, verifyTokenWithServer, getBackendUrl, getAuthHeaders } from "../../utils/auth";
 import { useToast } from "../../components/ui/ToastContext";
@@ -17,6 +18,7 @@ import {
 } from "react-icons/fi";
 
 export default function JobPosts() {
+  const navigate = useNavigate();
   const role = typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
   const plan = typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
   const sidebarItems = getSidebarItems(role, plan);
@@ -251,11 +253,11 @@ export default function JobPosts() {
         ) : (
           <div className="divide-y divide-gray-100">
             {filtered.map((post) => (
-              <div key={post.id} className="p-5 hover:bg-gray-50">
+              <div key={post.id} onClick={() => navigate(`/organization/jobs/${post.id}`)} className="p-5 hover:bg-blue-50/50 cursor-pointer border border-transparent hover:border-blue-100 transition-colors">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <h4 className="text-[15px] font-semibold text-gray-900">{post.title}</h4>
+                      <h4 className="text-[15px] font-semibold text-gray-900 group-hover:text-blue-600">{post.title}</h4>
                       <span className={`text-xs font-medium border px-2 py-0.5 ${post.status === "active" ? "bg-green-50 text-green-700 border-green-200" : post.status === "inactive" ? "bg-amber-50 text-amber-700 border-amber-200" : "bg-red-50 text-red-700 border-red-200"}`}>{post.status}</span>
                     </div>
                     <p className="text-sm text-gray-600 mt-1 line-clamp-2">{post.description}</p>
@@ -269,8 +271,24 @@ export default function JobPosts() {
                     {post.requirements && post.requirements.length > 0 && <div className="mt-2 flex flex-wrap gap-1.5">{post.requirements.slice(0, 3).map((r, j) => <span key={j} className="text-xs bg-white border border-gray-200 px-2 py-1 text-gray-600">{r}</span>)} {post.requirements.length > 3 && <span className="text-xs text-gray-500">+{post.requirements.length - 3}</span>}</div>}
                   </div>
                   <div className="flex gap-1.5 shrink-0 ml-4">
-                    <button onClick={() => handleEdit(post)} className="p-2 bg-white border border-gray-200 text-blue-600 hover:bg-blue-50"><FiEdit2 className="w-4 h-4" /></button>
-                    <button onClick={() => handleDelete(post.id)} className="p-2 bg-white border border-gray-200 text-red-600 hover:bg-red-50"><FiTrash2 className="w-4 h-4" /></button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEdit(post);
+                      }}
+                      className="p-2 bg-white border border-gray-200 text-blue-600 hover:bg-blue-50"
+                    >
+                      <FiEdit2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(post.id);
+                      }}
+                      className="p-2 bg-white border border-gray-200 text-red-600 hover:bg-red-50"
+                    >
+                      <FiTrash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
               </div>

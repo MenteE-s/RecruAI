@@ -53,6 +53,7 @@ import HirePeople from "./pages/organization/HirePeople";
 import TeamMembers from "./pages/organization/TeamMembers";
 import UserProfile from "./pages/organization/UserProfile";
 import JobPosts from "./pages/organization/JobPosts";
+import JobPostDetails from "./pages/organization/JobPostDetails";
 import Candidates from "./pages/organization/Candidates";
 import InterviewManagement from "./pages/organization/InterviewManagement";
 import InterviewAnalysis from "./pages/InterviewAnalysis";
@@ -387,6 +388,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <JobPosts />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/organization/jobs/:id"
+            element={
+              <ProtectedRoute>
+                <JobPostDetails />
               </ProtectedRoute>
             }
           />
