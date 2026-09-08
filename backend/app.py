@@ -417,5 +417,5 @@ def optimize_database():
 
 
 if __name__ == "__main__":
-	# quick dev runner
-	app.run(host="0.0.0.0", port=int(os.getenv("PORT", 5000)), debug=os.getenv("FLASK_DEBUG", "1") == "1")
+	# quick dev runner - PORT read from backend/.env (no hardcoded fallback duplicated)
+	app.run(host="0.0.0.0", port=app.config.get("PORT", int(os.getenv("PORT", "8000"))), debug=os.getenv("FLASK_DEBUG", "1") == "1")

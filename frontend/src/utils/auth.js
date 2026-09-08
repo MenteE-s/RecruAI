@@ -22,26 +22,17 @@ import {
   FiLogOut,
 } from "react-icons/fi";
 
-// Get the backend URL for API calls and uploaded files
+// Get the backend URL for API calls and uploaded files - reads from frontend/.env REACT_APP_API_BASE_URL (no hardcoded port)
 export function getBackendUrl() {
-  // Use environment variable for API base URL, with fallback logic
   const envUrl = process.env.REACT_APP_API_BASE_URL;
+  if (envUrl) return envUrl;
 
-  // If no env var, try to detect based on current location
-  if (!envUrl) {
-    // In production, backend is served from the same origin via nginx reverse proxy
-    if (
-      typeof window !== "undefined" &&
-      window.location.hostname !== "localhost"
-    ) {
-      // Same-origin: frontend and backend share the same domain (nginx routes /api/* to backend)
-      return window.location.origin;
-    }
-    // In local development
-    return "http://localhost:5000";
+  // Fallback: same-origin via nginx in production, otherwise require .env
+  if (typeof window !== "undefined" && window.location.hostname !== "localhost") {
+    return window.location.origin;
   }
-
-  return envUrl;
+  console.error("REACT_APP_API_BASE_URL not set - define it in frontend/.env (e.g. http://localhost:8000)");
+  return window.location.origin;
 }
 
 // Helper to get headers with Authorization if token exists

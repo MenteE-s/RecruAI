@@ -5,8 +5,9 @@ from dotenv import load_dotenv
 # Load backend/.env so imports that evaluate at module import time (like
 # Config.SQLALCHEMY_DATABASE_URI) pick up the DATABASE_URL when CLI or
 # scripts import this module from repo root.
+# Use override=True so backend/.env wins over repo-root .env that Flask auto-loads (which has docker hosts kafka:29092 / redis:6379)
 here = os.path.dirname(os.path.abspath(__file__))
-load_dotenv(os.path.join(here, ".env"))
+load_dotenv(os.path.join(here, ".env"), override=True)
 
 
 class Config:
@@ -67,10 +68,13 @@ class Config:
         "https://recruai.yourdomain.com" if IS_PRODUCTION else "http://localhost:3000"
     )
 
-    # API configuration
+    # Server port - single source of truth, override via .env PORT
+    PORT = int(os.getenv("PORT", "8000"))
+
+    # API configuration - reads from .env, fallback uses PORT env var (no hardcoded port duplicated)
     API_BASE_URL = os.getenv(
         "API_BASE_URL",
-        "https://recruai.yourdomain.com" if IS_PRODUCTION else "http://localhost:5000"
+        "https://recruai.yourdomain.com" if IS_PRODUCTION else f"http://localhost:{os.getenv('PORT', '8000')}"
     )
 
     # Security: Rate limiting configuration
