@@ -18,7 +18,13 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from werkzeug.security import generate_password_hash
 
 from backend.extensions import db
-from backend.models import User, Skill, Experience, Education
+from backend.models import User, Skill, Experience, Education, Organization
+
+# Demo orgs so seeded experiences link to real companies (LinkedIn-style).
+DEMO_ORGS = [
+    {"name": "TechCorp", "industry": "Software Engineering", "location": "Karachi, Pakistan"},
+    {"name": "DataLabs", "industry": "Data & AI", "location": "Lahore, Pakistan"},
+]
 
 PASSWORD_HASH = generate_password_hash("Seed12345!")
 
@@ -185,6 +191,32 @@ def seed():
         created += 1
     db.session.commit()
     print(f"Seeded {created} candidates, skipped {skipped} existing.")
+
+    # Ensure demo orgs exist, then (re)link seeded experiences by company name
+    # so reruns also repair links for already-seeded rows.
+    orgs_by_name = {}
+    for o in DEMO_ORGS:
+        org = Organization.query.filter_by(name=o["name"]).first()
+        if not org:
+            org = Organization(name=o["name"], industry=o["industry"], location=o["location"])
+            db.session.add(org)
+            db.session.flush()
+        orgs_by_name[o["name"].lower()] = org
+    db.session.commit()
+
+    emails = [c["email"] for c in CANDIDATES]
+    users = User.query.filter(User.email.in_(emails)).all()
+    linked = 0
+    for exp in Experience.query.filter(
+        Experience.user_id.in_([u.id for u in users]),
+        Experience.organization_id.is_(None),
+    ).all():
+        org = orgs_by_name.get((exp.company or "").strip().lower())
+        if org:
+            exp.organization_id = org.id
+            linked += 1
+    db.session.commit()
+    print(f"Linked {linked} seeded experiences to demo orgs.")
 
 
 if __name__ == "__main__":

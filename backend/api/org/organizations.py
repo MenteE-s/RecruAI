@@ -419,6 +419,34 @@ def create_default_ai_agents_for_org(org_id: int):
         db.session.add(agent)
     db.session.commit()
 
+@api_bp.route("/organizations/suggest", methods=["GET"])
+@jwt_required()
+def suggest_organizations():
+    """LinkedIn-style company autocomplete: exact matches first, then prefix, then substring."""
+    from sqlalchemy import func
+    q = (request.args.get("q") or "").strip()
+    try:
+        limit = min(max(int(request.args.get("limit", 8)), 1), 20)
+    except (TypeError, ValueError):
+        limit = 8
+    if len(q) < 2:
+        return jsonify([]), 200
+    ql = q.lower()
+    exact = func.lower(Organization.name) == ql
+    prefix = func.lower(Organization.name).like(ql + "%")
+    orgs = (Organization.query
+            .filter(Organization.name.ilike(f"%{q}%"))
+            .order_by(exact.desc(), prefix.desc(), Organization.name.asc())
+            .limit(limit).all())
+    return jsonify([{
+        "id": o.id,
+        "name": o.name,
+        "profile_image": o.profile_image,
+        "industry": o.industry,
+        "location": o.location,
+    } for o in orgs]), 200
+
+
 @api_bp.route("/organizations", methods=["GET"])
 @cached("org_listings", ttl=600)
 def list_organizations():
@@ -676,6 +704,44 @@ def list_organization_users(org_id):
     org = Organization.query.get_or_404(org_id)
     users = User.query.filter_by(organization_id=org_id).all()
     return jsonify([user.to_dict() for user in users]), 200
+
+
+@api_bp.route("/organizations/<int:org_id>/people", methods=["GET"])
+@jwt_required()
+def list_organization_people(org_id):
+    """People connected to this org through work experience (linked FK or
+    case-insensitive exact company-name match), split into current/past."""
+    from datetime import date
+    from sqlalchemy import func, or_
+    from ...models import Experience
+    org = Organization.query.get_or_404(org_id)
+    today = date.today()
+    rows = (db.session.query(Experience, User)
+            .join(User, User.id == Experience.user_id)
+            .filter(or_(
+                Experience.organization_id == org_id,
+                func.lower(Experience.company) == org.name.lower(),
+            ))
+            .order_by(Experience.start_date.desc()).all())
+
+    def person(exp, user):
+        return {
+            "user_id": user.id,
+            "name": user.name,
+            "profile_picture": user.profile_picture,
+            "title": exp.title,
+            "start_date": exp.start_date.isoformat() if exp.start_date else None,
+            "end_date": exp.end_date.isoformat() if exp.end_date else None,
+        }
+
+    current, past = [], []
+    for exp, user in rows:
+        (current if (exp.end_date is None or exp.end_date > today) else past).append(person(exp, user))
+    return jsonify({
+        "organization": {"id": org.id, "name": org.name, "profile_image": org.profile_image},
+        "current": current,
+        "past": past,
+    }), 200
 
 @api_bp.route("/organizations/<int:org_id>/invite", methods=["POST"])
 def invite_team_member(org_id):

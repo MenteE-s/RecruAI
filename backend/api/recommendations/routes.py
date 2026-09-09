@@ -207,6 +207,7 @@ def search_profiles():
             plan=filters.get('plan') or None,
             min_exp=_to_float(filters.get('min_exp')),
             max_exp=_to_float(filters.get('max_exp')),
+            company_id=filters.get('company_id') or None,
         )
 
         return jsonify({

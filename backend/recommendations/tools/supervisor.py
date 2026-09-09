@@ -118,39 +118,104 @@ class RecommendationSupervisor:
         include_explanations: bool = True
     ) -> List[Dict[str, Any]]:
         """
-        Recommend jobs for a user profile
+        Recommend jobs for a user profile using Postgres full-text search (no ML).
+        Matches the user's skills/titles against active job posts, reranks by
+        skill overlap, and returns items shaped for the BrowseJobs UI:
+        {id, job, similarity_score, match_level, matching_skills, explanation}.
         """
+        from ...models import User, Skill, Experience, Post
+
         session = self._get_session()
         try:
-            # Get profile embedding
-            profile_embedding = session.query(ProfileEmbedding).filter_by(user_id=user_id).first()
-            if not profile_embedding:
-                raise ValueError(f"Profile {user_id} not found in embeddings. Please embed the profile first.")
+            try:
+                uid = int(user_id)
+            except (TypeError, ValueError):
+                return []
+            user = session.query(User).filter_by(id=uid).first()
+            if not user:
+                return []
+            top_k = top_k or 10
 
-            # Get profile data for explanations
-            profile_data = {
-                'profile_content': profile_embedding.profile_content,
-            }
+            skill_names = [s.name for s in session.query(Skill).filter_by(user_id=user.id).all() if s.name]
+            exp_rows = session.query(Experience).filter_by(user_id=user.id).all()
+            profile_text = " ".join(
+                skill_names
+                + [user.current_position or ""]
+                + [e.title or "" for e in exp_rows]
+                + [(e.description or "")[:500] for e in exp_rows]
+            ).strip()
+            if not profile_text:
+                return []
 
-            # Find similar jobs
-            similar_jobs = self.retriever.find_similar_jobs(
-                query_embedding=profile_embedding.embedding,
-                organization_id=organization_id,
-                top_k=top_k
+            doc = (
+                func.setweight(func.to_tsvector("english", func.coalesce(Post.title, "")), "A")
+                .op("||")(func.setweight(func.to_tsvector("english", func.coalesce(Post.requirements, "")), "B"))
+                .op("||")(func.setweight(func.to_tsvector("english", func.coalesce(Post.description, "")), "C"))
+                .op("||")(func.setweight(func.to_tsvector(
+                    "english",
+                    func.coalesce(Post.category, "") + " " + func.coalesce(Post.employment_type, ""),
+                ), "D"))
             )
+            tsq = func.plainto_tsquery("english", profile_text[:2000])
+            rank = func.ts_rank(doc, tsq)
 
-            # Generate explanations if requested
-            if include_explanations:
-                for job in similar_jobs:
-                    job_data = {
-                        'job_content': f"Job Title: {job['job_title']}\nIndustry: {job['industry']}",
-                    }
-                    explanation = self.generator.generate_job_explanation_sync(
-                        job_data, profile_data, job['similarity']
+            q = (session.query(Post, rank.label("rank"))
+                 .filter(Post.status == "active")
+                 # NB: ts_rank returns 1e-20 (not 0) for non-matching docs.
+                 .filter(rank > 1e-6))
+            if organization_id:
+                try:
+                    q = q.filter(Post.organization_id == int(organization_id))
+                except (TypeError, ValueError):
+                    pass
+            rows = q.order_by(rank.desc()).limit(top_k * 3).all()
+            if not rows:
+                return []
+            max_rank = max(float(r[1]) for r in rows)
+            damping = min(1.0, max_rank / 0.12) if max_rank > 0 else 1.0
+
+            import json as _json
+            user_skills_lower = set(s.lower().strip() for s in skill_names)
+            profile_data = {"profile_content": profile_text[:3000]}
+            results = []
+            for post, r in rows:
+                raw = float(r)
+                text_score = (raw / max_rank) * damping if max_rank > 0 else 0.0
+                req_list: List[str] = []
+                if post.requirements:
+                    try:
+                        parsed = _json.loads(post.requirements)
+                        req_list = parsed if isinstance(parsed, list) else []
+                    except (_json.JSONDecodeError, TypeError):
+                        req_list = []
+                req_keywords = _extract_keywords(" ".join(req_list))
+                matched = sorted({
+                    kw for kw in req_keywords
+                    if any(kw == cs or kw in cs or cs in kw for cs in user_skills_lower)
+                })
+                ratio = len(matched) / len(req_keywords) if req_keywords else 1.0
+                score = text_score * (0.3 + 0.7 * ratio)
+
+                job = post.to_dict()
+                job["organization"] = post.organization.to_dict() if post.organization else None
+                item = {
+                    "id": post.id,
+                    "job": job,
+                    "similarity_score": round(score, 4),
+                    "match_level": self.generator._classify_match_level(score),
+                    "matching_skills": matched,
+                    "explanation": None,
+                }
+                if include_explanations:
+                    item["explanation"] = self.generator.generate_job_explanation_sync(
+                        {"job_content": f"Job Title: {post.title}\nRequirements: {', '.join(req_list[:10])}"},
+                        profile_data,
+                        score,
                     )
-                    job['explanation'] = explanation
+                results.append(item)
 
-            return similar_jobs
+            results.sort(key=lambda x: -x["similarity_score"])
+            return results[:top_k]
 
         finally:
             session.close()
@@ -370,6 +435,7 @@ class RecommendationSupervisor:
         plan: Optional[str] = None,
         min_exp: Optional[float] = None,
         max_exp: Optional[float] = None,
+        company_id: Optional[int] = None,
     ) -> Dict[str, Any]:
         """
         Search profiles using Postgres full-text search (tsvector).
@@ -472,6 +538,24 @@ class RecommendationSupervisor:
                 base_filters.append(User.employment_status == employment_status)
             if plan:
                 base_filters.append(User.plan == plan)
+            if company_id:
+                # Exact company filter: linked experiences, or free-text
+                # company matching the org name (case-insensitive).
+                from ...models import Experience as ExpModel, Organization as OrgModel
+                org = session.query(OrgModel).get(company_id)
+                if org is None:
+                    return {'results': [], 'total': 0, 'page': 1,
+                            'per_page': per_page, 'total_pages': 1}
+                linked_ids = [
+                    r[0] for r in session.query(ExpModel.user_id).filter(
+                        or_(ExpModel.organization_id == org.id,
+                            func.lower(ExpModel.company) == org.name.lower())
+                    ).distinct().all()
+                ]
+                if not linked_ids:
+                    return {'results': [], 'total': 0, 'page': 1,
+                            'per_page': per_page, 'total_pages': 1}
+                base_filters.append(User.id.in_(linked_ids))
 
             limit_n = (top_k or 20) * 3
             rank_rows = (

@@ -2,7 +2,7 @@ from flask import request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from .. import api_bp
 from ...extensions import db
-from ...models import Experience, Project
+from ...models import Experience, Organization, Project
 import json
 from datetime import datetime
 from ...utils.kafka_service import kafka_service as kafka
@@ -45,10 +45,21 @@ def create_experience():
         except ValueError:
             return jsonify({'error': 'Invalid end_date format. Use YYYY-MM-DD'}), 400
 
+    # Optional LinkedIn-style link: selecting a platform company pins the
+    # company text to the org name so search/people pages stay connected.
+    company_text = data['company']
+    organization_id = data.get('organization_id') or None
+    if organization_id:
+        org = Organization.query.get(organization_id)
+        if not org:
+            return jsonify({'error': 'Organization not found'}), 400
+        company_text = org.name
+
     experience = Experience(
         user_id=user_id,
         title=data['title'],
-        company=data['company'],
+        company=company_text,
+        organization_id=organization_id,
         duration=data.get('duration'),
         location=data.get('location'),
         description=data.get('description'),
@@ -81,10 +92,31 @@ def update_experience(exp_id):
     if not experience:
         return jsonify({'error': 'Experience not found'}), 404
 
-    data = request.get_json()
+    data = request.get_json() or {}
+
+    # Handle the org link explicitly (validate + keep company text in sync).
+    if 'organization_id' in data:
+        org_id = data.pop('organization_id') or None
+        if org_id:
+            org = Organization.query.get(org_id)
+            if not org:
+                return jsonify({'error': 'Organization not found'}), 400
+            experience.organization_id = org.id
+            experience.company = org.name
+        else:
+            experience.organization_id = None
+
     for key, value in data.items():
-        if hasattr(experience, key):
+        if key in ('start_date', 'end_date') and value in ('', None):
+            setattr(experience, key, None)
+        elif hasattr(experience, key):
             setattr(experience, key, value)
+
+    # Free-text rename breaks the link (same as LinkedIn clearing the company).
+    if ('company' in data and data.get('company')
+            and experience.organization_id
+            and experience.organization and data['company'] != experience.organization.name):
+        experience.organization_id = None
 
     db.session.commit()
 
