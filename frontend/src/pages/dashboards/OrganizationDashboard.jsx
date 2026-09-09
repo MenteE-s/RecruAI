@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import { getSidebarItems, getBackendUrl, getAuthHeaders } from "../../utils/auth";
-import { FiUsers, FiBarChart2, FiBriefcase, FiBell, FiFileText, FiMessageSquare, FiTrendingUp } from "react-icons/fi";
+import { FiUsers, FiBarChart2, FiBriefcase, FiBell, FiFileText, FiMessageSquare, FiTrendingUp, FiChevronRight } from "react-icons/fi";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
 import { Doughnut } from "react-chartjs-2";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 export default function OrganizationDashboard() {
+  const navigate = useNavigate();
   const role = typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
   const plan = typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
   const sidebarItems = getSidebarItems(role, plan);
@@ -55,23 +57,28 @@ export default function OrganizationDashboard() {
               <h1 className="text-3xl md:text-[2rem] font-bold leading-tight mt-1">{user?.organization ? `${user.organization}` : "Organization dashboard"}</h1>
               <p className="text-gray-300 mt-2 max-w-xl text-sm md:text-[15px]">Manage your team, requisitions, and hiring pipeline.</p>
               <div className="mt-4 hidden md:flex gap-2">
-                <button className="px-4 py-2 bg-white text-gray-900 text-sm font-medium hover:bg-gray-100 transition-colors">Invite members</button>
-                <button className="px-4 py-2 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors">New campaign</button>
+                <button onClick={() => navigate("/organization/team")} className="px-4 py-2 bg-white text-gray-900 text-sm font-medium hover:bg-gray-100 transition-colors">Invite members</button>
+                <button onClick={() => navigate("/organization/jobs")} className="px-4 py-2 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors">New campaign</button>
               </div>
             </div>
             <div className="grid grid-cols-3 gap-3 lg:w-[380px]">
-              <div className="bg-white/10 backdrop-blur border border-white/10 p-4 text-center">
-                <p className="text-2xl font-bold">{stats.pipeline}</p>
-                <p className="text-xs text-gray-300 mt-1">Pipeline</p>
-              </div>
-              <div className="bg-white/10 backdrop-blur border border-white/10 p-4 text-center">
-                <p className="text-2xl font-bold">{stats.open_requisitions}</p>
-                <p className="text-xs text-gray-300 mt-1">Open reqs</p>
-              </div>
-              <div className="bg-blue-500/20 backdrop-blur border border-blue-400/20 p-4 text-center">
-                <p className="text-2xl font-bold text-blue-200">{stats.new_applications}</p>
-                <p className="text-xs text-blue-200 mt-1">New apps</p>
-              </div>
+              {[
+                { label: "Pipeline", value: stats.pipeline, to: "/organization/pipeline" },
+                { label: "Open reqs", value: stats.open_requisitions, to: "/organization/jobs" },
+                { label: "New apps", value: stats.new_applications, to: "/organization/candidates", highlight: true },
+              ].map((s) => (
+                <button
+                  key={s.label}
+                  onClick={() => navigate(s.to)}
+                  title={`View ${s.label}`}
+                  className={s.highlight
+                    ? "bg-blue-500/20 backdrop-blur border border-blue-400/20 p-4 text-center hover:bg-blue-500/30 transition-colors cursor-pointer"
+                    : "bg-white/10 backdrop-blur border border-white/10 p-4 text-center hover:bg-white/15 transition-colors cursor-pointer"}
+                >
+                  <p className={`text-2xl font-bold ${s.highlight ? "text-blue-200" : ""}`}>{s.value}</p>
+                  <p className={`text-xs mt-1 ${s.highlight ? "text-blue-200" : "text-gray-300"}`}>{s.label}</p>
+                </button>
+              ))}
             </div>
           </div>
         </div>
@@ -79,40 +86,52 @@ export default function OrganizationDashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         {[
-          { title: "New applications", value: stats.new_applications, change: stats.new_applications ? "Review now" : "All caught up", icon: FiBell },
-          { title: "Team members", value: stats.team_members, change: "+8%", icon: FiUsers },
-          { title: "Open reqs", value: stats.open_requisitions, change: "-2", icon: FiBriefcase },
-          { title: "Pipeline", value: stats.pipeline, change: "+12%", icon: FiBarChart2 },
+          { title: "New applications", value: stats.new_applications, change: stats.new_applications ? "Review now" : "All caught up", icon: FiBell, to: "/organization/candidates" },
+          { title: "Team members", value: stats.team_members, change: "+8%", icon: FiUsers, to: "/organization/team" },
+          { title: "Open reqs", value: stats.open_requisitions, change: "-2", icon: FiBriefcase, to: "/organization/jobs" },
+          { title: "Pipeline", value: stats.pipeline, change: "+12%", icon: FiBarChart2, to: "/organization/pipeline" },
         ].map((card) => {
           const Icon = card.icon;
           return (
-            <div key={card.title} className="bg-white border border-gray-200 p-4 flex items-center gap-3">
-              <div className="w-10 h-10 bg-gray-900 text-white flex items-center justify-center"><Icon className="w-5 h-5" /></div>
-              <div>
+            <button
+              key={card.title}
+              onClick={() => navigate(card.to)}
+              title={`View ${card.title}`}
+              className="bg-white border border-gray-200 p-4 flex items-center gap-3 text-left hover:border-blue-300 hover:shadow-sm transition-all cursor-pointer group"
+            >
+              <div className="w-10 h-10 bg-gray-900 text-white flex items-center justify-center shrink-0"><Icon className="w-5 h-5" /></div>
+              <div className="flex-1 min-w-0">
                 <p className="text-xl font-bold text-gray-900">{loading ? "—" : card.value}</p>
                 <p className="text-xs text-gray-500">{card.title}</p>
                 <p className="text-xs text-blue-600 mt-0.5">{card.change}</p>
               </div>
-            </div>
+              <FiChevronRight className="w-4 h-4 text-gray-300 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all shrink-0" />
+            </button>
           );
         })}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
         {[
-          { title: "Total posts", value: analytics.total_posts, icon: FiFileText },
-          { title: "Total interviews", value: analytics.total_interviews, icon: FiMessageSquare },
-          { title: "Active posts", value: analytics.active_posts, icon: FiTrendingUp },
+          { title: "Total posts", value: analytics.total_posts, icon: FiFileText, to: "/organization/jobs" },
+          { title: "Total interviews", value: analytics.total_interviews, icon: FiMessageSquare, to: "/organization/interviews" },
+          { title: "Active posts", value: analytics.active_posts, icon: FiTrendingUp, to: "/organization/jobs" },
         ].map((card) => {
           const Icon = card.icon;
           return (
-            <div key={card.title} className="bg-white border border-gray-200 p-4 flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-50 border border-blue-100 flex items-center justify-center"><Icon className="w-5 h-5 text-blue-600" /></div>
-              <div>
+            <button
+              key={card.title}
+              onClick={() => navigate(card.to)}
+              title={`View ${card.title}`}
+              className="bg-white border border-gray-200 p-4 flex items-center gap-3 text-left hover:border-blue-300 hover:shadow-sm transition-all cursor-pointer group"
+            >
+              <div className="w-10 h-10 bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0"><Icon className="w-5 h-5 text-blue-600" /></div>
+              <div className="flex-1 min-w-0">
                 <p className="text-xl font-bold text-gray-900">{loading ? "—" : card.value}</p>
                 <p className="text-xs text-gray-500">{card.title}</p>
               </div>
-            </div>
+              <FiChevronRight className="w-4 h-4 text-gray-300 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all shrink-0" />
+            </button>
           );
         })}
       </div>

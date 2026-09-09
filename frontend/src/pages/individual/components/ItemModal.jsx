@@ -1,13 +1,14 @@
 import Modal from "./Modal";
 import { useState } from "react";
 import { FiX } from "react-icons/fi";
+import CompanySearchInput from "./CompanySearchInput";
 
 const itemConfigs = {
   experiences: {
     title: "Experience",
     fields: [
       { name: "title", label: "Job Title", required: true },
-      { name: "company", label: "Company", required: true },
+      { name: "company", label: "Company", required: true, type: "company-search" },
       { name: "location", label: "Location" },
       { name: "start_date", label: "Start Date", type: "date" },
       { name: "end_date", label: "End Date", type: "date" },
@@ -206,7 +207,14 @@ export default function ItemModal({ isOpen, onClose, itemType, itemData, onSave,
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 {field.label} {field.required && "*"}
               </label>
-              {field.type === "textarea" ? (
+              {field.type === "company-search" ? (
+                <CompanySearchInput
+                  name={field.name}
+                  defaultCompany={itemData?.[field.name] || ""}
+                  defaultOrg={itemData?.organization || null}
+                  required={field.required}
+                />
+              ) : field.type === "textarea" ? (
                 <textarea
                   name={field.name}
                   defaultValue={itemData?.[field.name] || ""}

@@ -56,8 +56,10 @@ def upload_organization_profile_image(org_id):
     extension = filename.rsplit('.', 1)[1].lower()
     unique_filename = f"org_{org_id}_profile.{extension}"
 
-    # Save file
-    upload_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'uploads', 'organization_images', 'profile_images', unique_filename)
+    # Save file (create the directory on fresh clones/containers)
+    upload_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'uploads', 'organization_images', 'profile_images')
+    os.makedirs(upload_dir, exist_ok=True)
+    upload_path = os.path.join(upload_dir, unique_filename)
     file.save(upload_path)
 
     # Update organization profile image path
@@ -120,8 +122,10 @@ def upload_organization_banner_image(org_id):
     extension = filename.rsplit('.', 1)[1].lower()
     unique_filename = f"org_{org_id}_banner.{extension}"
 
-    # Save file
-    upload_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'uploads', 'organization_images', 'banner_images', unique_filename)
+    # Save file (create the directory on fresh clones/containers)
+    upload_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'uploads', 'organization_images', 'banner_images')
+    os.makedirs(upload_dir, exist_ok=True)
+    upload_path = os.path.join(upload_dir, unique_filename)
     file.save(upload_path)
 
     # Update organization banner image path

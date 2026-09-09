@@ -2,6 +2,7 @@ import { FiBriefcase, FiMapPin, FiEdit2, FiTrash2 } from "react-icons/fi";
 import Card from "../../../../components/ui/Card";
 import SectionHeader from "../SectionHeader";
 import { formatDate } from "../utils";
+import { getUploadUrl } from "../../../../utils/auth";
 
 export default function ExperienceSection({ experiences, onAdd, onEdit, onRemove }) {
   return (
@@ -17,9 +18,17 @@ export default function ExperienceSection({ experiences, onAdd, onEdit, onRemove
         <div className="space-y-4">
           {(experiences || []).map((exp, index) => (
             <div key={exp.id || index} className="flex items-start justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors">
-              <div className="flex-1">
-                <h4 className="font-medium text-gray-900">{exp.title}</h4>
-                <p className="text-sm text-gray-600">{exp.company}</p>
+              <div className="flex gap-3 flex-1 min-w-0">
+                {exp.organization?.profile_image ? (
+                  <img src={getUploadUrl(exp.organization.profile_image)} alt="" className="w-10 h-10 rounded object-cover border border-gray-200 shrink-0" />
+                ) : (
+                  <span className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center shrink-0">
+                    <FiBriefcase size={16} className="text-gray-400" />
+                  </span>
+                )}
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-medium text-gray-900">{exp.title}</h4>
+                  <p className="text-sm text-gray-600">{exp.company}</p>
                 {exp.location && (
                   <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
                     <FiMapPin size={12} /> {exp.location}
@@ -34,6 +43,7 @@ export default function ExperienceSection({ experiences, onAdd, onEdit, onRemove
                 {exp.description && (
                   <p className="text-sm text-gray-600 mt-2 line-clamp-2">{exp.description}</p>
                 )}
+                </div>
               </div>
               <div className="flex gap-2 ml-4">
                 <button onClick={() => onEdit("experiences", exp, index)} className="text-gray-400 hover:text-blue-600 transition-colors">

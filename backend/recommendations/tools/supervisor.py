@@ -5,7 +5,9 @@ Orchestrates the recommendation pipeline
 
 import hashlib
 import logging
+import re
 from typing import List, Dict, Any, Optional
+from sqlalchemy import func, or_
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.engine import Engine
 
@@ -18,6 +20,26 @@ from ...utils.subscription import SubscriptionManager
 
 
 logger = logging.getLogger(__name__)
+
+
+_STOP_WORDS = {'a', 'an', 'the', 'and', 'or', 'of', 'in', 'to', 'for', 'with',
+              'on', 'at', 'by', 'is', 'are', 'was', 'were', 'be', 'been',
+              'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would',
+              'could', 'should', 'may', 'might', 'can', 'shall', 'than',
+              'that', 'this', 'these', 'those', 'it', 'its', 'you', 'your',
+              'our', 'we', 'they', 'them', 'their', 'experience', 'knowledge',
+              'understanding', 'skills', 'ability', 'using', 'years', 'plus',
+              'strong', 'proven', 'development', 'building', 'work', 'working'}
+
+
+def _extract_keywords(text: str) -> set:
+    """Split text into lowercase keywords, dropping stopwords and short tokens."""
+    return set(
+        w.strip('(),.?:;"\'!-').lower()
+        for w in (text or "").split()
+        if len(w.strip('(),.?:;"\'!-')) > 2
+        and w.strip('(),.?:;"\'!-').lower() not in _STOP_WORDS
+    )
 
 
 class RecommendationSupervisor:
@@ -96,39 +118,103 @@ class RecommendationSupervisor:
         include_explanations: bool = True
     ) -> List[Dict[str, Any]]:
         """
-        Recommend jobs for a user profile
+        Recommend jobs for a user profile using Postgres full-text search (no ML).
+        Matches the user's skills/titles against active job posts, reranks by
+        skill overlap, and returns items shaped for the BrowseJobs UI:
+        {id, job, similarity_score, match_level, matching_skills, explanation}.
         """
+        from ...models import User, Skill, Experience, Post
+
         session = self._get_session()
         try:
-            # Get profile embedding
-            profile_embedding = session.query(ProfileEmbedding).filter_by(user_id=user_id).first()
-            if not profile_embedding:
-                raise ValueError(f"Profile {user_id} not found in embeddings. Please embed the profile first.")
+            try:
+                uid = int(user_id)
+            except (TypeError, ValueError):
+                return []
+            user = session.query(User).filter_by(id=uid).first()
+            if not user:
+                return []
+            top_k = top_k or 10
 
-            # Get profile data for explanations
-            profile_data = {
-                'profile_content': profile_embedding.profile_content,
-            }
+            skill_names = [s.name for s in session.query(Skill).filter_by(user_id=user.id).all() if s.name]
+            exp_rows = session.query(Experience).filter_by(user_id=user.id).all()
+            profile_text = " ".join(
+                skill_names
+                + [user.current_position or ""]
+                + [e.title or "" for e in exp_rows]
+                + [(e.description or "")[:500] for e in exp_rows]
+            ).strip()
+            if not profile_text:
+                return []
 
-            # Find similar jobs
-            similar_jobs = self.retriever.find_similar_jobs(
-                query_embedding=profile_embedding.embedding,
-                organization_id=organization_id,
-                top_k=top_k
+            doc = (
+                func.setweight(func.to_tsvector("english", func.coalesce(Post.title, "")), "A")
+                .op("||")(func.setweight(func.to_tsvector("english", func.coalesce(Post.requirements, "")), "B"))
+                .op("||")(func.setweight(func.to_tsvector("english", func.coalesce(Post.description, "")), "C"))
+                .op("||")(func.setweight(func.to_tsvector(
+                    "english",
+                    func.coalesce(Post.category, "") + " " + func.coalesce(Post.employment_type, ""),
+                ), "D"))
             )
+            tsq = func.plainto_tsquery("english", profile_text[:2000])
+            rank = func.ts_rank(doc, tsq)
 
-            # Generate explanations if requested
-            if include_explanations:
-                for job in similar_jobs:
-                    job_data = {
-                        'job_content': f"Job Title: {job['job_title']}\nIndustry: {job['industry']}",
-                    }
-                    explanation = self.generator.generate_job_explanation_sync(
-                        job_data, profile_data, job['similarity']
+            q = (session.query(Post, rank.label("rank"))
+                 .filter(Post.status == "active")
+                 # NB: ts_rank returns 1e-20 (not 0) for non-matching docs.
+                 .filter(rank > 1e-6))
+            if organization_id:
+                try:
+                    q = q.filter(Post.organization_id == int(organization_id))
+                except (TypeError, ValueError):
+                    pass
+            rows = q.order_by(rank.desc()).limit(top_k * 3).all()
+            if not rows:
+                return []
+            max_rank = max(float(r[1]) for r in rows)
+            damping = min(1.0, max_rank / 0.12) if max_rank > 0 else 1.0
+
+            import json as _json
+            user_skills_lower = set(s.lower().strip() for s in skill_names)
+            profile_data = {"profile_content": profile_text[:3000]}
+            results = []
+            for post, r in rows:
+                raw = float(r)
+                text_score = (raw / max_rank) * damping if max_rank > 0 else 0.0
+                req_list: List[str] = []
+                if post.requirements:
+                    try:
+                        parsed = _json.loads(post.requirements)
+                        req_list = parsed if isinstance(parsed, list) else []
+                    except (_json.JSONDecodeError, TypeError):
+                        req_list = []
+                req_keywords = _extract_keywords(" ".join(req_list))
+                matched = sorted({
+                    kw for kw in req_keywords
+                    if any(kw == cs or kw in cs or cs in kw for cs in user_skills_lower)
+                })
+                ratio = len(matched) / len(req_keywords) if req_keywords else 1.0
+                score = text_score * (0.3 + 0.7 * ratio)
+
+                job = post.to_dict()  # organization is {id, name, profile_image}
+                item = {
+                    "id": post.id,
+                    "job": job,
+                    "similarity_score": round(score, 4),
+                    "match_level": self.generator._classify_match_level(score),
+                    "matching_skills": matched,
+                    "explanation": None,
+                }
+                if include_explanations:
+                    item["explanation"] = self.generator.generate_job_explanation_sync(
+                        {"job_content": f"Job Title: {post.title}\nRequirements: {', '.join(req_list[:10])}"},
+                        profile_data,
+                        score,
                     )
-                    job['explanation'] = explanation
+                results.append(item)
 
-            return similar_jobs
+            results.sort(key=lambda x: -x["similarity_score"])
+            return results[:top_k]
 
         finally:
             session.close()
@@ -340,76 +426,212 @@ class RecommendationSupervisor:
         organization_id: Optional[str] = None,
         top_k: int = 20,
         generate_ai_explanations: bool = False,
-        user_id: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
+        user_id: Optional[str] = None,
+        page: int = 1,
+        per_page: int = 10,
+        min_similarity: float = 0.15,
+        employment_status: Optional[str] = None,
+        plan: Optional[str] = None,
+        min_exp: Optional[float] = None,
+        max_exp: Optional[float] = None,
+        company_id: Optional[int] = None,
+    ) -> Dict[str, Any]:
         """
-        Search profiles using a natural language query.
-        Embeds the query, finds similar profiles via vector similarity,
-        then optionally generates AI explanations with PII stripped.
-        Returns enriched profile data suitable for the Hire page.
+        Search profiles using Postgres full-text search (tsvector).
+        No ML service, no LLM, no embeddings required: ranks candidates
+        with ts_rank over a weighted document (skills > name/title >
+        experience > education), then applies the same skill-overlap
+        reranking as before. Returns enriched profile data suitable
+        for the Hire page.
         """
+        from ...models import User, Skill, Experience, Education as Edu
+
+        query = (query or "").strip()
+        if not query:
+            return []
+
         session = self._get_session()
         try:
-            logger.info(f"Searching profiles for query: '{query}' (org_id={organization_id})")
+            logger.info(f"Searching profiles (tsvector) for query: '{query}' (org_id={organization_id})")
 
-            # 1a. Analyze query for required skills (cached)
-            analysis_cache_key = f"query_analysis:v1:{hashlib.md5(query.encode()).hexdigest()}"
-            query_analysis = cache_get(analysis_cache_key)
-            if not query_analysis:
-                query_analysis = self.generator.analyze_search_query(query)
-                # Track token usage for query analysis
-                if user_id and hasattr(self.generator.llm_provider, 'get_last_token_usage'):
-                    tokens_used = self.generator.llm_provider.get_last_token_usage()
-                    if tokens_used:
-                        from ...models import User, Organization
-                        user = session.query(User).filter_by(id=int(user_id)).first()
-                        org = session.query(Organization).filter_by(id=organization_id).first() if organization_id else None
-                        SubscriptionManager.track_token_usage(
-                            user=user,
-                            org=org,
-                            provider=self.generator.provider_manager.config.AI_PROVIDER,
-                            model=self.generator.provider_manager.config.AI_MODEL,
-                            tokens=tokens_used,
-                            operation_type="search_query_analysis"
-                        )
-                cache_set(analysis_cache_key, query_analysis, ttl=3600)
-            required_skills = set(s.lower().strip() for s in query_analysis.get('detected_skills', []))
+            # 1. Detect required skills from known skill names in the DB (no LLM).
+            #    A skill counts as required if its full name appears in the query
+            #    (word boundaries, so "Go" doesn't match "good") or all of its
+            #    tokens appear among the query keywords.
+            known_skills = sorted({
+                (r[0] or "").strip()
+                for r in session.query(Skill.name).distinct().all()
+                if r[0] and r[0].strip()
+            })
+            q_lower = query.lower()
+            q_tokens = _extract_keywords(query)
+            required_names: List[str] = []
+            for name in known_skills:
+                nl = name.lower()
+                if re.search(r'\b' + re.escape(nl) + r'\b', q_lower):
+                    required_names.append(name)
+                    continue
+                parts = [t for t in re.findall(r'[a-z0-9#+]+', nl) if len(t) > 1]
+                if parts and all(p in q_tokens for p in parts):
+                    required_names.append(name)
+            required_skills = set(s.lower().strip() for s in required_names)
 
-            # 1b. Expand the query to profile-like format (cached), then embed
-            query_hash = hashlib.md5(query.encode()).hexdigest()
-            cache_key = f"expanded_query:v1:{query_hash}"
-            expanded_query = cache_get(cache_key)
-            if not expanded_query:
-                expanded_query = self.generator.expand_search_query(query)
-                # Track token usage for query expansion
-                if user_id and hasattr(self.generator.llm_provider, 'get_last_token_usage'):
-                    tokens_used = self.generator.llm_provider.get_last_token_usage()
-                    if tokens_used:
-                        from ...models import User, Organization
-                        user = session.query(User).filter_by(id=int(user_id)).first()
-                        org = session.query(Organization).filter_by(id=organization_id).first() if organization_id else None
-                        SubscriptionManager.track_token_usage(
-                            user=user,
-                            org=org,
-                            provider=self.generator.provider_manager.config.AI_PROVIDER,
-                            model=self.generator.provider_manager.config.AI_MODEL,
-                            tokens=tokens_used,
-                            operation_type="search_query_expansion"
-                        )
-                cache_set(cache_key, expanded_query, ttl=3600)
-            logger.info(f"Expanded query: '{expanded_query[:100]}...'")
-            query_embedding = self.embedder.embed_text(expanded_query)
-            logger.info(f"Query embedding generated: {len(query_embedding)} dims")
-
-            # 2. Find similar profiles from the current organization
-            similar_profiles = self.retriever.find_similar_profiles(
-                query_embedding=query_embedding,
-                organization_id=organization_id,
-                top_k=top_k,
-                similarity_threshold=0.0  # Allow all results, sorted by similarity
+            # 2. Rank candidates with tsvector (skills weighted highest).
+            skills_sq = (
+                session.query(
+                    Skill.user_id.label("user_id"),
+                    func.string_agg(Skill.name, " ").label("skills_agg"),
+                ).group_by(Skill.user_id).subquery()
+            )
+            exp_sq = (
+                session.query(
+                    Experience.user_id.label("user_id"),
+                    func.string_agg(
+                        func.coalesce(Experience.title, "") + " "
+                        + func.coalesce(Experience.company, "") + " "
+                        + func.coalesce(Experience.description, ""),
+                        " ",
+                    ).label("exp_agg"),
+                ).group_by(Experience.user_id).subquery()
+            )
+            edu_sq = (
+                session.query(
+                    Edu.user_id.label("user_id"),
+                    func.string_agg(
+                        func.coalesce(Edu.degree, "") + " "
+                        + func.coalesce(Edu.field, "") + " "
+                        + func.coalesce(Edu.school, ""),
+                        " ",
+                    ).label("edu_agg"),
+                ).group_by(Edu.user_id).subquery()
             )
 
-            logger.info(f"Found {len(similar_profiles)} similar profiles")
+            doc = (
+                func.setweight(func.to_tsvector("english", func.coalesce(skills_sq.c.skills_agg, "")), "A")
+                .op("||")(func.setweight(func.to_tsvector(
+                    "english",
+                    func.coalesce(User.name, "") + " " + func.coalesce(User.current_position, ""),
+                ), "B"))
+                .op("||")(func.setweight(func.to_tsvector("english", func.coalesce(exp_sq.c.exp_agg, "")), "C"))
+                .op("||")(func.setweight(func.to_tsvector("english", func.coalesce(edu_sq.c.edu_agg, "")), "D"))
+            )
+            # plainto_tsquery is safe for arbitrary user input (no query-syntax errors;
+            # stopword-only input simply matches nothing).
+            tsq = func.plainto_tsquery("english", query)
+            rank = func.ts_rank(doc, tsq)
+
+            org_id_int = None
+            if organization_id:
+                try:
+                    org_id_int = int(organization_id)
+                except (TypeError, ValueError):
+                    org_id_int = None
+
+            base_filters = [User.role == "individual"]
+            if org_id_int is not None:
+                base_filters.append(or_(
+                    User.organization_id == org_id_int,
+                    User.organization_id.is_(None),
+                ))
+            if employment_status:
+                base_filters.append(User.employment_status == employment_status)
+            if plan:
+                base_filters.append(User.plan == plan)
+            if company_id:
+                # Exact company filter: linked experiences, or free-text
+                # company matching the org name (case-insensitive).
+                from ...models import Experience as ExpModel, Organization as OrgModel
+                org = session.query(OrgModel).get(company_id)
+                if org is None:
+                    return {'results': [], 'total': 0, 'page': 1,
+                            'per_page': per_page, 'total_pages': 1}
+                linked_ids = [
+                    r[0] for r in session.query(ExpModel.user_id).filter(
+                        or_(ExpModel.organization_id == org.id,
+                            func.lower(ExpModel.company) == org.name.lower())
+                    ).distinct().all()
+                ]
+                if not linked_ids:
+                    return {'results': [], 'total': 0, 'page': 1,
+                            'per_page': per_page, 'total_pages': 1}
+                base_filters.append(User.id.in_(linked_ids))
+
+            limit_n = (top_k or 20) * 3
+            rank_rows = (
+                session.query(User.id.label("uid"), rank.label("rank"))
+                .outerjoin(skills_sq, skills_sq.c.user_id == User.id)
+                .outerjoin(exp_sq, exp_sq.c.user_id == User.id)
+                .outerjoin(edu_sq, edu_sq.c.user_id == User.id)
+                .filter(*base_filters)
+                # NB: ts_rank returns 1e-20 (not 0) for non-matching docs,
+                # so the cutoff must sit above that quirk.
+                .filter(rank > 1e-6)
+                .order_by(rank.desc())
+                .limit(limit_n)
+                .all()
+            )
+            # None = no text hit; gets a modest default score below (skill-only match).
+            rank_map: Dict[int, Any] = {r.uid: float(r.rank) for r in rank_rows}
+
+            # 2b. Safety net: users holding a required skill even if ts_rank missed.
+            if required_skills:
+                skill_q = (
+                    session.query(Skill.user_id.label("uid"))
+                    .join(User, User.id == Skill.user_id)
+                    .filter(*base_filters)
+                    .filter(func.lower(Skill.name).in_(list(required_skills)))
+                    .distinct()
+                    .limit(limit_n)
+                )
+                for r in skill_q.all():
+                    rank_map.setdefault(r.uid, None)
+
+            if not rank_map:
+                return []
+
+            # Normalize ranks relative to the best hit: raw ts_rank magnitudes
+            # vary with weighting/doc length, so absolute thresholds are meaningless.
+            # `damping` keeps a garbage query from scoring 'excellent' just for
+            # being the best of a bad lot (tune STRONG_RANK if needed).
+            STRONG_RANK = 0.12
+            max_rank = max((r for r in rank_map.values() if r), default=0.0)
+            damping = min(1.0, max_rank / STRONG_RANK) if max_rank > 0 else 1.0
+
+            logger.info(f"Found {len(rank_map)} candidate profiles (tsvector)")
+
+            # 2c. Prefetch education/experience/skills for scoring + explanations.
+            edu_by_user: Dict[int, list] = {}
+            for e in session.query(Edu).filter(Edu.user_id.in_(list(rank_map))).all():
+                edu_by_user.setdefault(e.user_id, []).append({
+                    "degree": e.degree, "school": e.school, "field": e.field,
+                })
+            exp_by_user: Dict[int, list] = {}
+            for e in session.query(Experience).filter(Experience.user_id.in_(list(rank_map))).all():
+                exp_by_user.setdefault(e.user_id, []).append(e)
+            skills_by_user: Dict[int, list] = {}
+            for s in session.query(Skill).filter(Skill.user_id.in_(list(rank_map))).all():
+                if s.name:
+                    skills_by_user.setdefault(s.user_id, []).append(s.name)
+
+            similar_profiles = []
+            for uid, r in rank_map.items():
+                if r:
+                    text_score = (r / max_rank) * damping
+                else:
+                    text_score = 0.45 * damping
+                lines = [f"Skills: {', '.join(skills_by_user.get(uid, []))}"]
+                for e in exp_by_user.get(uid, [])[:5]:
+                    lines.append(
+                        f"Experience: {e.title or ''} at {e.company or ''} - {(e.description or '')[:200]}"
+                    )
+                edu_level = self._get_highest_education(edu_by_user.get(uid, []))
+                lines.append(f"Education: {edu_level or 'Not specified'}")
+                similar_profiles.append({
+                    "user_id": uid,
+                    "similarity": text_score,
+                    "profile_content": "\n".join(lines),
+                    "education_level": edu_level,
+                })
 
             if not similar_profiles:
                 return []
@@ -443,6 +665,11 @@ class RecommendationSupervisor:
                         end = exp.end_date or today
                         diff = (end - exp.start_date).days / 365.25
                         exp_years += max(0, diff)
+
+                if min_exp is not None and exp_years < min_exp:
+                    continue
+                if max_exp is not None and exp_years > max_exp:
+                    continue
 
                 # Skill reranking: cross-reference candidate skills vs required skills
                 candidate_skills_lower = set(s.lower().strip() for s in skill_names)
@@ -485,14 +712,36 @@ class RecommendationSupervisor:
                     'skill_match_ratio': round(skill_match_ratio, 2),
                 }
 
-                if generate_ai_explanations:
+                results.append(result)
+
+            # 4. Sort: excellent first, then good, then possible, then poor;
+            #    within same level, higher adjusted_similarity first
+            level_order = {'excellent': 0, 'good': 1, 'possible': 2, 'poor': 3}
+            results.sort(key=lambda r: (level_order.get(r['match_level'], 99), -r['similarity']))
+
+            # 5. Similarity floor: drop weak matches so payloads stay small/fast.
+            results = [r for r in results if r['similarity'] >= min_similarity]
+            total = len(results)
+
+            # 6. Paginate (page is 1-based; per_page capped to bound work).
+            page = max(1, page or 1)
+            per_page = min(max(1, per_page or 10), 50)
+            total_pages = max(1, -(-total // per_page))
+            page = min(page, total_pages)
+            start = (page - 1) * per_page
+            page_results = results[start:start + per_page]
+
+            # 7. AI explanations only for the returned page (bounded LLM cost).
+            if generate_ai_explanations and page_results:
+                content_map = {int(p['user_id']): p['profile_content'] for p in similar_profiles}
+                for result in page_results:
                     ai_result = self.generator.generate_search_explanation_sync(
                         query=query,
-                        profile_content=profile['profile_content'],
-                        similarity_score=adjusted_similarity,
-                        skills_count=len(skill_names),
-                        experience_years=exp_years,
-                        education_level=profile['education_level'],
+                        profile_content=content_map.get(int(result['user_id']), ''),
+                        similarity_score=result['similarity'],
+                        skills_count=result['skills_count'],
+                        experience_years=result['experience_years'],
+                        education_level=result['education_level'],
                     )
                     result['explanation'] = ai_result['explanation']
                     result['match_level'] = ai_result['match_level']
@@ -512,14 +761,13 @@ class RecommendationSupervisor:
                             operation_type="search_explanation"
                         )
 
-                results.append(result)
-
-            # 4. Sort: excellent first, then good, then possible, then poor;
-            #    within same level, higher adjusted_similarity first
-            level_order = {'excellent': 0, 'good': 1, 'possible': 2, 'poor': 3}
-            results.sort(key=lambda r: (level_order.get(r['match_level'], 99), -r['similarity']))
-
-            return results
+            return {
+                'results': page_results,
+                'total': total,
+                'page': page,
+                'per_page': per_page,
+                'total_pages': total_pages,
+            }
 
         finally:
             session.close()
@@ -763,31 +1011,15 @@ class RecommendationSupervisor:
                     requirements_list = []
 
             # ---- Match each requirement across the FULL profile ----
-            STOP_WORDS = {'a', 'an', 'the', 'and', 'or', 'of', 'in', 'to', 'for', 'with',
-                          'on', 'at', 'by', 'is', 'are', 'was', 'were', 'be', 'been',
-                          'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would',
-                          'could', 'should', 'may', 'might', 'can', 'shall', 'than',
-                          'that', 'this', 'these', 'those', 'it', 'its', 'you', 'your',
-                          'our', 'we', 'they', 'them', 'their', 'experience', 'knowledge',
-                          'understanding', 'skills', 'ability', 'using', 'years', 'plus',
-                          'strong', 'proven', 'development', 'building', 'work', 'working'}
-            def extract_keywords(text):
-                return set(
-                    w.strip('(),.?:;"\'!-').lower()
-                    for w in text.split()
-                    if len(w.strip('(),.?:;"\'!-')) > 2
-                    and w.strip('(),.?:;"\'!-').lower() not in STOP_WORDS
-                )
-
             corpus_words = set()
             for source in all_techs:
                 if source:
-                    corpus_words.update(extract_keywords(source))
+                    corpus_words.update(_extract_keywords(source))
 
             matched = []
             missing = []
             for req in requirements_list:
-                req_keywords = extract_keywords(req)
+                req_keywords = _extract_keywords(req)
                 if not req_keywords:
                     matched.append(req)
                     continue

@@ -35,6 +35,9 @@ export default function HirePeople() {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
   const lastSearchedQuery = useRef("");
+  const [searchTotal, setSearchTotal] = useState(0);
+  const [searchTotalPages, setSearchTotalPages] = useState(1);
+  const lastSearchKey = useRef("");
 
   const loadUsers = useCallback(async () => {
     setLoading(true); setError(null);
@@ -50,18 +53,39 @@ export default function HirePeople() {
   }, []);
   useEffect(() => { loadUsers(); }, [loadUsers]);
 
-  const triggerSearch = useCallback(async (searchQuery) => {
+  const parseExpFilter = (v) => {
+    if (!v) return {};
+    const parts = v.split("-").map(Number);
+    const out = {};
+    if (!Number.isNaN(parts[0])) out.min_exp = parts[0];
+    if (parts[1]) out.max_exp = parts[1];
+    return out;
+  };
+
+  const triggerSearch = useCallback(async (searchQuery, page = 1, filterOverrides = {}) => {
     if (!searchQuery || !searchQuery.trim()) { setSearchMode(false); setAiResults(null); return; }
-    if (searchQuery === lastSearchedQuery.current) return;
+    const emp = filterOverrides.empStatusFilter !== undefined ? filterOverrides.empStatusFilter : empStatusFilter;
+    const exp = filterOverrides.expFilter !== undefined ? filterOverrides.expFilter : expFilter;
+    const pln = filterOverrides.planFilter !== undefined ? filterOverrides.planFilter : planFilter;
+    const key = JSON.stringify({ q: searchQuery, page, emp, exp, pln });
+    if (key === lastSearchKey.current) return;
+    lastSearchKey.current = key;
     lastSearchedQuery.current = searchQuery;
-    setExplanations({}); setExpandedRow(null); setIsSearching(true); setSearchMode(true); setCurrentPage(1);
+    setExplanations({}); setExpandedRow(null); setIsSearching(true); setSearchMode(true); setCurrentPage(page);
     try {
-      const res = await fetch(`${getBackendUrl()}/api/recommendations/search`, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json", ...getAuthHeaders() }, body: JSON.stringify({ query: searchQuery, top_k: 50 }) });
-      if (res.ok) setAiResults((await res.json()).results || []);
+      const res = await fetch(`${getBackendUrl()}/api/recommendations/search`, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json", ...getAuthHeaders() }, body: JSON.stringify({ query: searchQuery, top_k: 50, page, per_page: pageSize, min_similarity: 0.15, filters: { employment_status: emp || undefined, plan: pln || undefined, ...parseExpFilter(exp) } }) });
+      if (res.ok) {
+        const data = await res.json();
+        setAiResults(data.results || []);
+        setFilteredUsers(data.results || []);
+        setSearchTotal(data.total || 0);
+        setSearchTotalPages(data.total_pages || 1);
+        setCurrentPage(data.page || page);
+      }
       else { showToast((await res.json().catch(() => ({}))).error || "Search failed. Try again.", "error"); setSearchMode(false); setAiResults(null); }
     } catch { showToast("Search request failed. Is the backend running?", "error"); setSearchMode(false); setAiResults(null); }
     finally { setIsSearching(false); }
-  }, []);
+  }, [empStatusFilter, expFilter, planFilter]);
 
   const loadExplanation = useCallback(async (userId, searchQuery) => {
     if (explainingUser) return;
@@ -77,23 +101,17 @@ export default function HirePeople() {
   }, []);
 
   useEffect(() => {
-    if (searchMode && aiResults) {
-      let list = [...aiResults];
-      if (empStatusFilter) list = list.filter((u) => (u.employment_status || "").toLowerCase() === empStatusFilter.toLowerCase());
-      if (expFilter) { const [min, max] = expFilter.split("-").map(Number); list = list.filter((u) => { const yrs = u.experience_years || 0; if (max) return yrs >= min && yrs <= max; return yrs >= min; }); }
-      if (planFilter) list = list.filter((u) => (u.plan || "").toLowerCase() === planFilter.toLowerCase());
-      setFilteredUsers(list);
-    } else if (!searchMode) {
+    if (!searchMode) {
       let list = [...users];
       if (empStatusFilter) list = list.filter((u) => (u.employment_status || "").toLowerCase() === empStatusFilter.toLowerCase());
       if (planFilter) list = list.filter((u) => (u.plan || "").toLowerCase() === planFilter.toLowerCase());
       setFilteredUsers(list);
     }
-  }, [empStatusFilter, expFilter, planFilter, searchMode, aiResults, users]);
+  }, [empStatusFilter, planFilter, searchMode, users]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / pageSize));
-  const paginated = filteredUsers.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-  const clearSearch = () => { setQuery(""); setSearchMode(false); setAiResults(null); setExpandedRow(null); setExplanations({}); lastSearchedQuery.current = ""; };
+  const totalPages = searchMode ? searchTotalPages : Math.max(1, Math.ceil(filteredUsers.length / pageSize));
+  const paginated = searchMode ? filteredUsers : filteredUsers.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const clearSearch = () => { setQuery(""); setSearchMode(false); setAiResults(null); setExpandedRow(null); setExplanations({}); setSearchTotal(0); setSearchTotalPages(1); lastSearchedQuery.current = ""; lastSearchKey.current = ""; };
   const viewProfile = (userId) => navigate(`/organization/user/${userId}`);
   const getUserId = (c) => c.user_id || c.id;
   const MatchBadge = ({ level, similarity }) => {
@@ -134,7 +152,7 @@ export default function HirePeople() {
           <h1 className="text-3xl md:text-[2rem] font-bold leading-tight">Discover top talent</h1>
           <p className="text-gray-300 mt-2 max-w-2xl text-sm md:text-[15px]">Describe the ideal candidate and let AI find the best matches from your talent pool.</p>
           <div className="mt-4 flex items-center gap-4 text-xs">
-            <span className="inline-flex items-center gap-1.5 bg-white/10 border border-white/20 px-2.5 py-1"><span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />{filteredUsers.length} candidates</span>
+            <span className="inline-flex items-center gap-1.5 bg-white/10 border border-white/20 px-2.5 py-1"><span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />{(searchMode ? searchTotal : filteredUsers.length)} candidates</span>
             {searchMode && aiResults && <span className="inline-flex items-center gap-1.5 bg-blue-500/20 border border-blue-400/30 px-2.5 py-1 text-blue-200">AI ranked</span>}
           </div>
         </div>
@@ -151,22 +169,22 @@ export default function HirePeople() {
             </div>
           </div>
           {isSearching && <p className="text-sm text-blue-600 flex items-center gap-2"><FiLoader className="animate-spin w-4 h-4" /> AI is analyzing candidates…</p>}
-          {searchMode && aiResults && <div className="flex items-center justify-between text-sm"><span className="text-gray-600">Found {aiResults.length} candidates</span><button onClick={clearSearch} className="text-blue-600 hover:text-blue-700 font-medium text-xs">Show all</button></div>}
+          {searchMode && aiResults && <div className="flex items-center justify-between text-sm"><span className="text-gray-600">Found {searchTotal} candidates</span><button onClick={clearSearch} className="text-blue-600 hover:text-blue-700 font-medium text-xs">Show all</button></div>}
           <div className="flex flex-wrap gap-2">
-            <select value={empStatusFilter} onChange={(e) => { setEmpStatusFilter(e.target.value); setCurrentPage(1); }} className="px-3 py-2 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white">
+            <select value={empStatusFilter} onChange={(e) => { const v = e.target.value; setEmpStatusFilter(v); if (searchMode && query.trim()) triggerSearch(query, 1, { empStatusFilter: v }); else setCurrentPage(1); }} className="px-3 py-2 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white">
               <option value="">All status</option>
               <option value="unemployed">Unemployed</option>
               <option value="working">Working</option>
               <option value="hired">Hired</option>
               <option value="onboarding">Onboarding</option>
             </select>
-            <select value={expFilter} onChange={(e) => { setExpFilter(e.target.value); setCurrentPage(1); }} className="px-3 py-2 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white">
+            <select value={expFilter} onChange={(e) => { const v = e.target.value; setExpFilter(v); if (searchMode && query.trim()) triggerSearch(query, 1, { expFilter: v }); else setCurrentPage(1); }} className="px-3 py-2 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white">
               <option value="">All experience</option>
               <option value="0-2">Junior (0-2 yrs)</option>
               <option value="3-5">Mid (3-5 yrs)</option>
               <option value="5-">Senior (5+ yrs)</option>
             </select>
-            <select value={planFilter} onChange={(e) => { setPlanFilter(e.target.value); setCurrentPage(1); }} className="px-3 py-2 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white">
+            <select value={planFilter} onChange={(e) => { const v = e.target.value; setPlanFilter(v); if (searchMode && query.trim()) triggerSearch(query, 1, { planFilter: v }); else setCurrentPage(1); }} className="px-3 py-2 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white">
               <option value="">All plans</option>
               <option value="trial">Trial</option>
               <option value="pro">Pro</option>
@@ -306,16 +324,16 @@ export default function HirePeople() {
               <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-white">
                 <span className="text-xs text-gray-600">Page {currentPage} of {totalPages}</span>
                 <div className="flex gap-1.5">
-                  <button onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-3 py-1.5 text-sm border border-gray-200 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed">Previous</button>
+                  <button onClick={() => { if (searchMode) triggerSearch(query, Math.max(1, currentPage - 1)); else setCurrentPage((p) => Math.max(1, p - 1)); }} disabled={currentPage === 1} className="px-3 py-1.5 text-sm border border-gray-200 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed">Previous</button>
                   {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                     let pageNum;
                     if (totalPages <= 5) pageNum = i + 1;
                     else if (currentPage <= 3) pageNum = i + 1;
                     else if (currentPage >= totalPages - 2) pageNum = totalPages - 4 + i;
                     else pageNum = currentPage - 2 + i;
-                    return <button key={pageNum} onClick={() => setCurrentPage(pageNum)} className={`px-3 py-1.5 text-sm border ${currentPage === pageNum ? "bg-gray-900 text-white border-gray-900" : "border-gray-200 hover:bg-gray-50"}`}>{pageNum}</button>;
+                    return <button key={pageNum} onClick={() => { if (searchMode) triggerSearch(query, pageNum); else setCurrentPage(pageNum); }} className={`px-3 py-1.5 text-sm border ${currentPage === pageNum ? "bg-gray-900 text-white border-gray-900" : "border-gray-200 hover:bg-gray-50"}`}>{pageNum}</button>;
                   })}
-                  <button onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="px-3 py-1.5 text-sm border border-gray-200 hover:bg-gray-50 disabled:opacity-40">Next</button>
+                  <button onClick={() => { if (searchMode) triggerSearch(query, Math.min(totalPages, currentPage + 1)); else setCurrentPage((p) => Math.min(totalPages, p + 1)); }} disabled={currentPage === totalPages} className="px-3 py-1.5 text-sm border border-gray-200 hover:bg-gray-50 disabled:opacity-40">Next</button>
                 </div>
               </div>
             )}

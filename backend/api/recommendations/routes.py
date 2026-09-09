@@ -168,7 +168,7 @@ def recommend_agents(job_id):
 @recommendations_bp.route('/search', methods=['POST'])
 @jwt_required()
 def search_profiles():
-    """Search profiles by natural language text query using vector + AI"""
+    """Search profiles by text query using Postgres full-text search (no ML)."""
     try:
         current_user_id = get_jwt_identity()
         user = User.query.get(current_user_id)
@@ -179,23 +179,40 @@ def search_profiles():
         if not data or not data.get('query'):
             return jsonify({'error': 'Search query is required'}), 400
 
-        top_k = data.get('top_k', 20)
+        top_k = data.get('top_k', 50)
         generate_ai = data.get('ai_explanations', False)
+        page = data.get('page', 1)
+        per_page = data.get('per_page', 10)
+        min_similarity = data.get('min_similarity', 0.15)
+        filters = data.get('filters') or {}
+
+        def _to_float(v):
+            try:
+                return float(v) if v is not None and v != '' else None
+            except (TypeError, ValueError):
+                return None
 
         supervisor = get_supervisor()
 
-        results = supervisor.search_profiles_by_text(
+        result = supervisor.search_profiles_by_text(
             query=data['query'],
             organization_id=str(user.organization_id) if user.organization_id else None,
             top_k=top_k,
             generate_ai_explanations=generate_ai,
-            user_id=str(user.id)
+            user_id=str(user.id),
+            page=page,
+            per_page=per_page,
+            min_similarity=float(min_similarity or 0),
+            employment_status=filters.get('employment_status') or None,
+            plan=filters.get('plan') or None,
+            min_exp=_to_float(filters.get('min_exp')),
+            max_exp=_to_float(filters.get('max_exp')),
+            company_id=filters.get('company_id') or None,
         )
 
         return jsonify({
             'query': data['query'],
-            'results': results,
-            'total': len(results)
+            **result,
         })
 
     except Exception as e:

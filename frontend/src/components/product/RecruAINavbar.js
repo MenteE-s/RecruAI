@@ -1,13 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import socketService from "../../utils/socket";
-
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "";
+import { Link } from "react-router-dom";
+import SignOutButton from "../ui/SignOutButton";
 
 const RecruAINavbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const navigate = useNavigate();
   const [signedIn, setSignedIn] = useState(false);
 
   useEffect(() => {
@@ -36,25 +33,6 @@ const RecruAINavbar = () => {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
-
-  function handleSignOut() {
-    (async () => {
-      try {
-        await fetch(`${API_BASE_URL}/api/auth/logout`, {
-          method: "POST",
-          credentials: "include",
-        });
-      } catch (e) {}
-      try {
-        localStorage.removeItem("access_token");
-        localStorage.removeItem("isAuthenticated");
-        localStorage.removeItem("authRole");
-        socketService.disconnect();
-      } catch (e) {}
-      setSignedIn(false);
-      navigate("/signin", { replace: true });
-    })();
-  }
 
   return (
     <nav className={`bg-white fixed w-full z-50 transition-all duration-300 ${scrolled ? "shadow-md" : "shadow-sm"}`}>
@@ -98,9 +76,7 @@ const RecruAINavbar = () => {
                 <Link to="/dashboard" className="text-sm font-medium text-gray-700 hover:text-gray-900 px-4 py-2 transition-colors">
                   Dashboard
                 </Link>
-                <button onClick={handleSignOut} className="text-sm font-medium text-gray-500 hover:text-gray-700 px-4 py-2 transition-colors">
-                  Sign Out
-                </button>
+                <SignOutButton variant="solid" onSignedOut={() => setSignedIn(false)} />
               </>
             )}
           </div>
@@ -150,9 +126,7 @@ const RecruAINavbar = () => {
                 <Link to="/dashboard" className="block w-full text-center px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded transition-colors">
                   Dashboard
                 </Link>
-                <button onClick={handleSignOut} className="block w-full text-center px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors">
-                  Sign Out
-                </button>
+                <SignOutButton variant="solid" onSignedOut={() => setSignedIn(false)} />
               </div>
             )}
           </div>
