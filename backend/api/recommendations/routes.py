@@ -168,7 +168,7 @@ def recommend_agents(job_id):
 @recommendations_bp.route('/search', methods=['POST'])
 @jwt_required()
 def search_profiles():
-    """Search profiles by natural language text query using vector + AI"""
+    """Search profiles by text query using Postgres full-text search (no ML)."""
     try:
         current_user_id = get_jwt_identity()
         user = User.query.get(current_user_id)
