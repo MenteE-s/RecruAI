@@ -4,6 +4,7 @@ import DashboardLayout from "../../components/layout/DashboardLayout";
 import {
   getSidebarItems,
   getBackendUrl,
+  getUploadUrl,
   getAuthHeaders,
 } from "../../utils/auth";
 import { useToast } from "../../components/ui/ToastContext";
@@ -433,7 +434,11 @@ export default function BrowseJobs() {
             {recommendedJobs.slice(0, 4).map((rec, idx) => (
               <div key={`rec-${rec.id}-${idx}`} onClick={() => navigate(`/jobs/${rec.job.id}`)} className="group cursor-pointer border border-blue-100 bg-blue-50/50 hover:bg-white hover:border-blue-200 hover:shadow-sm p-4 transition-all">
                 <div className="flex gap-3">
-                  <div className="w-10 h-10 bg-blue-600 text-white flex items-center justify-center text-sm font-bold shrink-0">{getCompanyInitials(rec.job.organization?.name || rec.job.company_name)}</div>
+                  {rec.job.organization?.profile_image ? (
+                    <img src={getUploadUrl(rec.job.organization.profile_image)} alt="" className="w-10 h-10 rounded object-cover border border-blue-100 shrink-0" />
+                  ) : (
+                    <div className="w-10 h-10 bg-blue-600 text-white flex items-center justify-center text-sm font-bold shrink-0">{getCompanyInitials(rec.job.organization?.name || rec.job.company_name)}</div>
+                  )}
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 text-sm leading-tight truncate">{sanitizeHtml(rec.job.title)}</h3>
                     <p className="text-xs text-gray-600 truncate">{rec.job.organization?.name || rec.job.company_name || "—"}</p>
@@ -487,7 +492,11 @@ export default function BrowseJobs() {
                 <div key={job.id} className="group bg-white border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all">
                   <div className="p-5">
                     <div className="flex gap-4">
-                      <div className="hidden sm:flex w-11 h-11 bg-gray-900 text-white items-center justify-center text-sm font-bold shrink-0">{getCompanyInitials(job.organization?.name)}</div>
+                      {job.organization?.profile_image ? (
+                        <img src={getUploadUrl(job.organization.profile_image)} alt="" className="hidden sm:block w-11 h-11 rounded object-cover border border-gray-200 shrink-0" />
+                      ) : (
+                        <div className="hidden sm:flex w-11 h-11 bg-gray-900 text-white items-center justify-center text-sm font-bold shrink-0">{getCompanyInitials(job.organization?.name)}</div>
+                      )}
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-wrap items-start justify-between gap-2">
                           <div className="min-w-0">
