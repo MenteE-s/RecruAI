@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import { getSidebarItems, getBackendUrl, getAuthHeaders } from "../../utils/auth";
 import { useToast } from "../../components/ui/ToastContext";
 import { formatDate } from "../../utils/timezone";
-import { FiUsers, FiSearch, FiX, FiEye, FiCalendar, FiBriefcase, FiCheckCircle, FiClock, FiMapPin } from "react-icons/fi";
+import { FiUsers, FiSearch, FiX, FiEye, FiCalendar, FiBriefcase, FiCheckCircle, FiClock, FiMapPin, FiArrowRight } from "react-icons/fi";
 
 export default function Candidates() {
+  const navigate = useNavigate();
   const role = typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
   const plan = typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
   const sidebarItems = getSidebarItems(role, plan);
@@ -276,6 +278,19 @@ export default function Candidates() {
                 </div>
               </div>
               {candidateProfile.skills?.length > 0 && <div className="bg-gray-50 border border-gray-200 p-4"><h4 className="text-sm font-semibold text-gray-900 mb-2">Skills</h4><div className="flex flex-wrap gap-1.5">{candidateProfile.skills.map((s, i) => <span key={i} className="text-xs bg-blue-50 text-blue-700 border border-blue-200 px-2 py-1">{s.name} {s.level && `(${s.level})`}</span>)}</div></div>}
+            </div>
+            <div className="px-6 py-4 border-t border-gray-100 flex justify-end">
+              <button
+                onClick={() => {
+                  const id = candidateProfile.id || candidateProfile.user_id;
+                  setShowCandidateProfile(false);
+                  setCandidateProfile(null);
+                  if (id) navigate(`/organization/user/${id}`);
+                }}
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-700"
+              >
+                Visit full profile <FiArrowRight className="w-4 h-4" />
+              </button>
             </div>
           </div>
         </div>

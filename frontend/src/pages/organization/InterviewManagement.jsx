@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
 import Card from "../../components/ui/Card";
+import { FiPlayCircle, FiCalendar, FiCheckCircle, FiXCircle } from "react-icons/fi";
 import {
   getSidebarItems,
   getBackendUrl,
@@ -1971,61 +1972,69 @@ export default function InterviewManagement() {
         </div>
 
         {/* Section Visibility Toggles */}
-        <div className="flex flex-wrap gap-4">
-          <label className="flex items-center">
-            <input
-              type="checkbox"
-              checked={showSections.inProgress}
-              onChange={() => toggleSection("inProgress")}
-              className="mr-2"
-            />
-            <span className="text-sm text-orange-700 font-medium">
-              In Progress
-            </span>
-          </label>
-          <label className="flex items-center">
-            <input
-              type="checkbox"
-              checked={showSections.scheduled}
-              onChange={() => toggleSection("scheduled")}
-              className="mr-2"
-            />
-            <span className="text-sm text-gray-700 font-medium">Scheduled</span>
-          </label>
-          <label className="flex items-center">
-            <input
-              type="checkbox"
-              checked={showSections.completed}
-              onChange={() => toggleSection("completed")}
-              className="mr-2"
-            />
-            <span className="text-sm text-green-700 font-medium">
-              Completed
-            </span>
-          </label>
-          <label className="flex items-center">
-            <input
-              type="checkbox"
-              checked={showSections.cancelled}
-              onChange={() => toggleSection("cancelled")}
-              className="mr-2"
-            />
-            <span className="text-sm text-red-700 font-medium">
-              Cancelled/No Show
-            </span>
-          </label>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => toggleSection("inProgress")}
+            className={`flex items-center gap-2 px-3 py-2 text-sm font-medium border transition-colors rounded-none ${
+              showSections.inProgress
+                ? "bg-orange-600 text-white border-orange-600"
+                : "bg-white text-orange-700 border-orange-200 hover:bg-orange-50"
+            }`}
+          >
+            <FiPlayCircle className="w-4 h-4" />
+            In Progress
+          </button>
+          <button
+            onClick={() => toggleSection("scheduled")}
+            className={`flex items-center gap-2 px-3 py-2 text-sm font-medium border transition-colors rounded-none ${
+              showSections.scheduled
+                ? "bg-blue-600 text-white border-blue-600"
+                : "bg-white text-blue-700 border-blue-200 hover:bg-blue-50"
+            }`}
+          >
+            <FiCalendar className="w-4 h-4" />
+            Scheduled
+          </button>
+          <button
+            onClick={() => toggleSection("completed")}
+            className={`flex items-center gap-2 px-3 py-2 text-sm font-medium border transition-colors rounded-none ${
+              showSections.completed
+                ? "bg-green-600 text-white border-green-600"
+                : "bg-white text-green-700 border-green-200 hover:bg-green-50"
+            }`}
+          >
+            <FiCheckCircle className="w-4 h-4" />
+            Completed
+          </button>
+          <button
+            onClick={() => toggleSection("cancelled")}
+            className={`flex items-center gap-2 px-3 py-2 text-sm font-medium border transition-colors rounded-none ${
+              showSections.cancelled
+                ? "bg-red-600 text-white border-red-600"
+                : "bg-white text-red-700 border-red-200 hover:bg-red-50"
+            }`}
+          >
+            <FiXCircle className="w-4 h-4" />
+            Cancelled/No Show
+          </button>
         </div>
       </div>
 
       {/* Section: In Progress Interviews */}
       {showSections.inProgress && (
         <>
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-lg font-semibold text-orange-700">
-              Current/In Progress Interviews ({inProgress.length})
+          <div className="flex items-center gap-3 mb-4">
+            <span className="w-1 h-6 rounded-full bg-orange-500 shrink-0" />
+            <FiPlayCircle className="w-5 h-5 text-orange-600 shrink-0" />
+            <h2 className="text-lg font-semibold text-gray-900 whitespace-nowrap">
+              Current/In Progress Interviews
             </h2>
+            <span className="text-xs font-medium bg-orange-50 text-orange-700 border border-orange-200 px-2 py-0.5 rounded-full shrink-0">
+              {inProgress.length}
+            </span>
+            <div className="flex-1 border-t border-gray-200" />
             {inProgress.length > 0 && (
-              <label className="flex items-center text-sm">
+              <label className="flex items-center text-sm text-gray-600 shrink-0">
                 <input
                   type="checkbox"
                   onChange={(e) =>
@@ -2039,7 +2048,9 @@ export default function InterviewManagement() {
           </div>
           <div className="space-y-4 mb-6">
             {inProgress.length === 0 ? (
-              <div className="text-gray-500">No interviews in progress.</div>
+              <div className="border border-dashed border-gray-300 bg-gray-50/50 px-4 py-6 text-center text-sm text-gray-500">
+                No interviews in progress.
+              </div>
             ) : (
               inProgress.map((interview) => (
                 <Card key={interview.id}>
@@ -2054,12 +2065,18 @@ export default function InterviewManagement() {
       {/* Section: Scheduled Interviews */}
       {showSections.scheduled && (
         <>
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-lg font-semibold text-gray-700">
-              Scheduled Interviews ({scheduled.length})
+          <div className="flex items-center gap-3 mb-4 mt-8">
+            <span className="w-1 h-6 rounded-full bg-blue-500 shrink-0" />
+            <FiCalendar className="w-5 h-5 text-blue-600 shrink-0" />
+            <h2 className="text-lg font-semibold text-gray-900 whitespace-nowrap">
+              Scheduled Interviews
             </h2>
+            <span className="text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded-full shrink-0">
+              {scheduled.length}
+            </span>
+            <div className="flex-1 border-t border-gray-200" />
             {scheduled.length > 0 && (
-              <label className="flex items-center text-sm">
+              <label className="flex items-center text-sm text-gray-600 shrink-0">
                 <input
                   type="checkbox"
                   onChange={(e) => handleSelectAll(scheduled, e.target.checked)}
@@ -2071,7 +2088,9 @@ export default function InterviewManagement() {
           </div>
           <div className="space-y-4 mb-6">
             {scheduled.length === 0 ? (
-              <div className="text-gray-500">No scheduled interviews.</div>
+              <div className="border border-dashed border-gray-300 bg-gray-50/50 px-4 py-6 text-center text-sm text-gray-500">
+                No scheduled interviews.
+              </div>
             ) : (
               scheduled.map((interview) => (
                 <Card key={interview.id}>
@@ -2086,12 +2105,18 @@ export default function InterviewManagement() {
       {/* Section: Completed Interviews */}
       {showSections.completed && (
         <>
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-lg font-semibold text-green-700">
-              Completed Interviews ({completed.length})
+          <div className="flex items-center gap-3 mb-4 mt-8">
+            <span className="w-1 h-6 rounded-full bg-green-500 shrink-0" />
+            <FiCheckCircle className="w-5 h-5 text-green-600 shrink-0" />
+            <h2 className="text-lg font-semibold text-gray-900 whitespace-nowrap">
+              Completed Interviews
             </h2>
+            <span className="text-xs font-medium bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 rounded-full shrink-0">
+              {completed.length}
+            </span>
+            <div className="flex-1 border-t border-gray-200" />
             {completed.length > 0 && (
-              <label className="flex items-center text-sm">
+              <label className="flex items-center text-sm text-gray-600 shrink-0">
                 <input
                   type="checkbox"
                   onChange={(e) => handleSelectAll(completed, e.target.checked)}
@@ -2103,7 +2128,9 @@ export default function InterviewManagement() {
           </div>
           <div className="space-y-4 mb-6">
             {completed.length === 0 ? (
-              <div className="text-gray-500">No completed interviews.</div>
+              <div className="border border-dashed border-gray-300 bg-gray-50/50 px-4 py-6 text-center text-sm text-gray-500">
+                No completed interviews.
+              </div>
             ) : (
               completed.map((interview) => (
                 <Card key={interview.id}>
@@ -2118,12 +2145,18 @@ export default function InterviewManagement() {
       {/* Section: Cancelled/No Show Interviews */}
       {showSections.cancelled && (
         <>
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-lg font-semibold text-red-700">
-              Cancelled/No Show Interviews ({cancelled.length})
+          <div className="flex items-center gap-3 mb-4 mt-8">
+            <span className="w-1 h-6 rounded-full bg-red-500 shrink-0" />
+            <FiXCircle className="w-5 h-5 text-red-600 shrink-0" />
+            <h2 className="text-lg font-semibold text-gray-900 whitespace-nowrap">
+              Cancelled/No Show Interviews
             </h2>
+            <span className="text-xs font-medium bg-red-50 text-red-700 border border-red-200 px-2 py-0.5 rounded-full shrink-0">
+              {cancelled.length}
+            </span>
+            <div className="flex-1 border-t border-gray-200" />
             {cancelled.length > 0 && (
-              <label className="flex items-center text-sm">
+              <label className="flex items-center text-sm text-gray-600 shrink-0">
                 <input
                   type="checkbox"
                   onChange={(e) => handleSelectAll(cancelled, e.target.checked)}
@@ -2135,7 +2168,7 @@ export default function InterviewManagement() {
           </div>
           <div className="space-y-4 mb-6">
             {cancelled.length === 0 ? (
-              <div className="text-gray-500">
+              <div className="border border-dashed border-gray-300 bg-gray-50/50 px-4 py-6 text-center text-sm text-gray-500">
                 No cancelled or no-show interviews.
               </div>
             ) : (
@@ -2148,20 +2181,6 @@ export default function InterviewManagement() {
           </div>
         </>
       )}
-
-      {/* Section: Cancelled Interviews */}
-      <h2 className="text-lg font-semibold text-gray-500 mb-2">
-        Cancelled Interviews
-      </h2>
-      <div className="space-y-4 mb-6">
-        {cancelled.length === 0 ? (
-          <div className="text-gray-500">No cancelled interviews.</div>
-        ) : (
-          cancelled.map((interview) => (
-            <Card key={interview.id}>{renderInterviewCard(interview)}</Card>
-          ))
-        )}
-      </div>
 
       {/* Schedule Interview Modal */}
       <ScheduleInterviewModal
