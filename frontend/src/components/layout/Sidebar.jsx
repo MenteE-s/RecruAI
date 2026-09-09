@@ -1,6 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { FiMenu, FiLogOut } from "react-icons/fi";
-import { getBackendUrl } from "../../utils/auth";
+import { FiMenu } from "react-icons/fi";
+import SignOutButton from "../ui/SignOutButton";
 
 export default function Sidebar({ open, toggleSidebar, items = [] }) {
   const location = useLocation();
@@ -20,26 +20,8 @@ export default function Sidebar({ open, toggleSidebar, items = [] }) {
   const isActive = (link) => location.pathname === link;
 
   const handleNavClick = (item) => {
-    if (item.name === "Sign Out") {
-      handleSignOut();
-      return;
-    }
     navigate(item.link);
     if (open) toggleSidebar();
-  };
-
-  const handleSignOut = async () => {
-    try {
-      await fetch(`${getBackendUrl()}/api/auth/logout`, {
-        method: "POST",
-        credentials: "include",
-      });
-    } catch (e) {}
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("isAuthenticated");
-    localStorage.removeItem("authRole");
-    localStorage.removeItem("authPlan");
-    navigate("/signin", { replace: true });
   };
 
   const NavItem = ({ item }) => {
@@ -178,15 +160,7 @@ export default function Sidebar({ open, toggleSidebar, items = [] }) {
               <span>Settings</span>
             </button>
           )}
-          {signOutItem && (
-            <button
-              onClick={handleSignOut}
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-red-50 hover:text-red-600 transition-all duration-150"
-            >
-              <FiLogOut className="w-5 h-5 shrink-0 text-gray-400" />
-              <span>Sign Out</span>
-            </button>
-          )}
+          {signOutItem && <SignOutButton variant="sidebar" />}
         </div>
       </aside>
     </>

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import socketService from "../../utils/socket";
 import { getBackendUrl } from "../../utils/auth";
+import SignOutButton from "../ui/SignOutButton";
 
 export default function IndividualNavbar({ isAuthenticated }) {
-  const navigate = useNavigate();
   const signedIn =
     isAuthenticated || localStorage.getItem("isAuthenticated") === "true";
 
@@ -38,20 +38,6 @@ export default function IndividualNavbar({ isAuthenticated }) {
     } catch (err) {
       console.error("Notification fetch failed", err);
     }
-  };
-
-  const signOut = async () => {
-    try {
-      await fetch(`${getBackendUrl()}/api/auth/logout`, {
-        method: "POST",
-        credentials: "include",
-      });
-    } catch (_) {}
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("isAuthenticated");
-    localStorage.removeItem("authRole");
-    socketService.disconnect();
-    navigate("/signin", { replace: true });
   };
 
   return (
@@ -102,12 +88,7 @@ export default function IndividualNavbar({ isAuthenticated }) {
                   Profile
                 </Link>
 
-                <button
-                  onClick={signOut}
-                  className="text-sm font-medium text-red-600 hover:text-red-700"
-                >
-                  Sign out
-                </button>
+                <SignOutButton variant="solid" />
               </>
             )}
           </div>

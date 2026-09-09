@@ -1,28 +1,10 @@
 import React from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { getBackendUrl } from "../../utils/auth";
+import { Link } from "react-router-dom";
+import SignOutButton from "../ui/SignOutButton";
 
 export default function OrganizationNavbar({ isAuthenticated }) {
-  const navigate = useNavigate();
   const signedIn =
     isAuthenticated || localStorage.getItem("isAuthenticated") === "true";
-
-  function signOut() {
-    (async () => {
-      try {
-        await fetch(`${getBackendUrl()}/api/auth/logout`, {
-          method: "POST",
-          credentials: "include",
-        });
-      } catch (e) {
-        // ignore network errors
-      }
-      localStorage.removeItem("access_token");
-      localStorage.removeItem("isAuthenticated");
-      localStorage.removeItem("authRole");
-      navigate("/signin", { replace: true });
-    })();
-  }
 
   return (
     <nav className="w-full bg-white border-b border-gray-200">
@@ -52,9 +34,7 @@ export default function OrganizationNavbar({ isAuthenticated }) {
                 <Link to="/org/settings" className="text-sm text-gray-600 hover:text-gray-900">
                   Settings
                 </Link>
-                <button onClick={signOut} className="ml-2 text-sm text-red-600 hover:text-red-700">
-                  Sign out
-                </button>
+                <span className="ml-2"><SignOutButton variant="solid" /></span>
               </>
             )}
           </div>
