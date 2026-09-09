@@ -196,8 +196,7 @@ class RecommendationSupervisor:
                 ratio = len(matched) / len(req_keywords) if req_keywords else 1.0
                 score = text_score * (0.3 + 0.7 * ratio)
 
-                job = post.to_dict()
-                job["organization"] = post.organization.to_dict() if post.organization else None
+                job = post.to_dict()  # organization is {id, name, profile_image}
                 item = {
                     "id": post.id,
                     "job": job,

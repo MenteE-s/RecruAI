@@ -98,7 +98,7 @@ export default function JobDetails() {
     try {
       const response = await fetch(`${getBackendUrl()}/api/posts`);
       if (response.ok) {
-        const allJobs = await response.json();
+        const allJobs = (await response.json()).data || [];
         // Filter jobs: same company or same category, exclude current job, limit to 3
         const recommended = allJobs
           .filter(

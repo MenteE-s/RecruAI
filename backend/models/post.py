@@ -50,6 +50,10 @@ class Post(db.Model):
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
             "organization_id": self.organization_id,
-            "organization": self.organization.name if self.organization else None,
+            "organization": {
+                "id": self.organization.id,
+                "name": self.organization.name,
+                "profile_image": self.organization.profile_image,
+            } if self.organization else None,
             "organization_details": self.organization.to_dict() if self.organization else None,
         }

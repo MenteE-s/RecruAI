@@ -1,4 +1,5 @@
 from flask import request, jsonify
+from sqlalchemy import func
 from .. import api_bp
 from ...extensions import db
 from ...models import Post, Organization
@@ -233,6 +234,22 @@ def list_posts():
 
     # Build base query - only show active posts by default
     query = Post.query.filter(Post.status == 'active')
+
+    # Full-text search over title / requirements / description / category.
+    # (The generic column filters below can't express `search`, so handle it here.)
+    search_text = (request.args.get('search') or '').strip()
+    if search_text:
+        doc = (
+            func.setweight(func.to_tsvector('english', func.coalesce(Post.title, '')), 'A')
+            .op('||')(func.setweight(func.to_tsvector('english', func.coalesce(Post.requirements, '')), 'B'))
+            .op('||')(func.setweight(func.to_tsvector('english', func.coalesce(Post.description, '')), 'C'))
+            .op('||')(func.setweight(func.to_tsvector(
+                'english',
+                func.coalesce(Post.category, '') + ' ' + func.coalesce(Post.location, ''),
+            ), 'D'))
+        )
+        tsq = func.plainto_tsquery('english', search_text[:500])
+        query = query.filter(func.ts_rank(doc, tsq) > 1e-6).order_by(func.ts_rank(doc, tsq).desc())
 
     # Apply filters and sorting
     query = apply_filters_and_sorting(query, Post, filters, sort_by, sort_order)

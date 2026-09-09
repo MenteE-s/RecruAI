@@ -8,7 +8,6 @@ import {
 } from "../../utils/auth";
 import { useToast } from "../../components/ui/ToastContext";
 import {
-  useDebounce,
   LoadingSkeleton,
   ListErrorBoundary,
   sanitizeHtml,
@@ -60,7 +59,9 @@ export default function BrowseJobs() {
   });
 
   const [recommendedJobs, setRecommendedJobs] = useState([]);
-  const debouncedSearch = useDebounce(filters.search, 300);
+  // Search runs only on explicit submit (button/Enter/suggestion), never on keystroke.
+  const [submittedSearch, setSubmittedSearch] = useState("");
+  const runSearch = () => setSubmittedSearch(filters.search);
 
   const fetchRecommendedJobs = useCallback(async () => {
     try {
@@ -81,7 +82,7 @@ export default function BrowseJobs() {
     fetchJobs(true);
     fetchSavedJobs();
     fetchAppliedJobs();
-  }, [debouncedSearch, filters.category, filters.location, filters.employment_type]);
+  }, [submittedSearch, filters.category, filters.location, filters.employment_type]);
 
   useEffect(() => {
     fetchRecommendedJobs();
@@ -101,7 +102,7 @@ export default function BrowseJobs() {
           per_page: pagination.per_page,
           status: "active",
         });
-        if (debouncedSearch) params.append("search", debouncedSearch);
+        if (submittedSearch) params.append("search", submittedSearch);
         if (filters.category) params.append("category", filters.category);
         if (filters.location) params.append("location", filters.location);
         if (filters.employment_type) params.append("employment_type", filters.employment_type);
@@ -112,13 +113,14 @@ export default function BrowseJobs() {
         if (response.ok) {
           const data = await response.json();
           const newJobs = data.data || [];
+          const meta = data.pagination || {};
           if (reset) setJobs(newJobs);
           else setJobs((prev) => [...prev, ...newJobs]);
           setPagination({
-            page: data.page || currentPage,
-            per_page: data.per_page || pagination.per_page,
-            total: data.total || 0,
-            has_more: data.has_more || false,
+            page: meta.page || currentPage,
+            per_page: meta.per_page || pagination.per_page,
+            total: meta.total ?? 0,
+            has_more: meta.has_next || false,
           });
         }
       } catch (error) {
@@ -128,7 +130,7 @@ export default function BrowseJobs() {
         setLoading(false);
       }
     },
-    [pagination.page, pagination.per_page, debouncedSearch, filters.category, filters.location, filters.employment_type, showToast]
+    [pagination.page, pagination.per_page, submittedSearch, filters.category, filters.location, filters.employment_type, showToast]
   );
 
   const fetchSavedJobs = async () => {
@@ -235,8 +237,8 @@ export default function BrowseJobs() {
     return [...new Set(values)];
   };
 
-  const activeFiltersCount = [filters.category, filters.location, filters.employment_type, debouncedSearch].filter(Boolean).length;
-  const clearFilters = () => setFilters({ search: "", category: "", location: "", employment_type: "" });
+  const activeFiltersCount = [filters.category, filters.location, filters.employment_type, submittedSearch].filter(Boolean).length;
+  const clearFilters = () => { setFilters({ search: "", category: "", location: "", employment_type: "" }); setSubmittedSearch(""); };
 
   const getCompanyInitials = (name) => {
     if (!name) return "CO";
@@ -296,18 +298,22 @@ export default function BrowseJobs() {
                   placeholder="Search by title, company, or keyword…"
                   value={filters.search}
                   onChange={(e) => setFilters((prev) => ({ ...prev, search: e.target.value }))}
-                  className="w-full pl-11 pr-4 py-3.5 bg-white text-gray-900 placeholder-gray-400 border-0 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  onKeyDown={(e) => { if (e.key === "Enter") runSearch(); }}
+                  className="w-full pl-11 pr-24 py-3.5 bg-white text-gray-900 placeholder-gray-400 border-0 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                 />
                 {filters.search && (
-                  <button onClick={() => setFilters((p) => ({ ...p, search: "" }))} className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 hover:bg-gray-100 rounded text-gray-500">
+                  <button onClick={() => { setFilters((p) => ({ ...p, search: "" })); setSubmittedSearch(""); }} className="absolute right-[92px] top-1/2 -translate-y-1/2 p-1.5 hover:bg-gray-100 rounded text-gray-500">
                     <FiX className="w-4 h-4" />
                   </button>
                 )}
+                <button onClick={runSearch} className="absolute right-1.5 top-1/2 -translate-y-1/2 px-4 py-2 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors">
+                  Search
+                </button>
               </div>
               <div className="mt-3 flex flex-wrap gap-2 text-xs">
                 <span className="text-gray-400">Try:</span>
                 {["Remote", "Product Designer", "Engineering", "Marketing"].map((k) => (
-                  <button key={k} onClick={() => setFilters((p) => ({ ...p, search: k }))} className="px-2.5 py-1 bg-white/10 hover:bg-white/15 border border-white/15 text-white transition-colors">
+                  <button key={k} onClick={() => { setFilters((p) => ({ ...p, search: k })); setSubmittedSearch(k); }} className="px-2.5 py-1 bg-white/10 hover:bg-white/15 border border-white/15 text-white transition-colors">
                     {k}
                   </button>
                 ))}
@@ -403,7 +409,7 @@ export default function BrowseJobs() {
             {filters.category && <span className="inline-flex items-center gap-1.5 text-xs bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-1">Category: {filters.category} <button onClick={() => setFilters((p) => ({ ...p, category: "" }))} className="hover:text-blue-900"><FiX className="w-3 h-3" /></button></span>}
             {filters.location && <span className="inline-flex items-center gap-1.5 text-xs bg-gray-50 text-gray-700 border border-gray-200 px-2.5 py-1">Location: {filters.location} <button onClick={() => setFilters((p) => ({ ...p, location: "" }))} className="hover:text-gray-900"><FiX className="w-3 h-3" /></button></span>}
             {filters.employment_type && <span className="inline-flex items-center gap-1.5 text-xs bg-gray-50 text-gray-700 border border-gray-200 px-2.5 py-1">Type: {filters.employment_type} <button onClick={() => setFilters((p) => ({ ...p, employment_type: "" }))} className="hover:text-gray-900"><FiX className="w-3 h-3" /></button></span>}
-            {debouncedSearch && <span className="inline-flex items-center gap-1.5 text-xs bg-gray-900 text-white px-2.5 py-1">“{debouncedSearch}” <button onClick={() => setFilters((p) => ({ ...p, search: "" }))} className="hover:text-gray-300"><FiX className="w-3 h-3" /></button></span>}
+            {submittedSearch && <span className="inline-flex items-center gap-1.5 text-xs bg-gray-900 text-white px-2.5 py-1">“{submittedSearch}” <button onClick={() => { setFilters((p) => ({ ...p, search: "" })); setSubmittedSearch(""); }} className="hover:text-gray-300"><FiX className="w-3 h-3" /></button></span>}
           </div>
         )}
       </div>
