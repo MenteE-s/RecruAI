@@ -362,8 +362,15 @@ class RecommendationSupervisor:
         organization_id: Optional[str] = None,
         top_k: int = 20,
         generate_ai_explanations: bool = False,
-        user_id: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
+        user_id: Optional[str] = None,
+        page: int = 1,
+        per_page: int = 10,
+        min_similarity: float = 0.15,
+        employment_status: Optional[str] = None,
+        plan: Optional[str] = None,
+        min_exp: Optional[float] = None,
+        max_exp: Optional[float] = None,
+    ) -> Dict[str, Any]:
         """
         Search profiles using Postgres full-text search (tsvector).
         No ML service, no LLM, no embeddings required: ranks candidates
@@ -461,6 +468,10 @@ class RecommendationSupervisor:
                     User.organization_id == org_id_int,
                     User.organization_id.is_(None),
                 ))
+            if employment_status:
+                base_filters.append(User.employment_status == employment_status)
+            if plan:
+                base_filters.append(User.plan == plan)
 
             limit_n = (top_k or 20) * 3
             rank_rows = (
@@ -469,7 +480,9 @@ class RecommendationSupervisor:
                 .outerjoin(exp_sq, exp_sq.c.user_id == User.id)
                 .outerjoin(edu_sq, edu_sq.c.user_id == User.id)
                 .filter(*base_filters)
-                .filter(rank > 0)
+                # NB: ts_rank returns 1e-20 (not 0) for non-matching docs,
+                # so the cutoff must sit above that quirk.
+                .filter(rank > 1e-6)
                 .order_by(rank.desc())
                 .limit(limit_n)
                 .all()
@@ -570,6 +583,11 @@ class RecommendationSupervisor:
                         diff = (end - exp.start_date).days / 365.25
                         exp_years += max(0, diff)
 
+                if min_exp is not None and exp_years < min_exp:
+                    continue
+                if max_exp is not None and exp_years > max_exp:
+                    continue
+
                 # Skill reranking: cross-reference candidate skills vs required skills
                 candidate_skills_lower = set(s.lower().strip() for s in skill_names)
                 matched_required = []
@@ -611,14 +629,36 @@ class RecommendationSupervisor:
                     'skill_match_ratio': round(skill_match_ratio, 2),
                 }
 
-                if generate_ai_explanations:
+                results.append(result)
+
+            # 4. Sort: excellent first, then good, then possible, then poor;
+            #    within same level, higher adjusted_similarity first
+            level_order = {'excellent': 0, 'good': 1, 'possible': 2, 'poor': 3}
+            results.sort(key=lambda r: (level_order.get(r['match_level'], 99), -r['similarity']))
+
+            # 5. Similarity floor: drop weak matches so payloads stay small/fast.
+            results = [r for r in results if r['similarity'] >= min_similarity]
+            total = len(results)
+
+            # 6. Paginate (page is 1-based; per_page capped to bound work).
+            page = max(1, page or 1)
+            per_page = min(max(1, per_page or 10), 50)
+            total_pages = max(1, -(-total // per_page))
+            page = min(page, total_pages)
+            start = (page - 1) * per_page
+            page_results = results[start:start + per_page]
+
+            # 7. AI explanations only for the returned page (bounded LLM cost).
+            if generate_ai_explanations and page_results:
+                content_map = {int(p['user_id']): p['profile_content'] for p in similar_profiles}
+                for result in page_results:
                     ai_result = self.generator.generate_search_explanation_sync(
                         query=query,
-                        profile_content=profile['profile_content'],
-                        similarity_score=adjusted_similarity,
-                        skills_count=len(skill_names),
-                        experience_years=exp_years,
-                        education_level=profile['education_level'],
+                        profile_content=content_map.get(int(result['user_id']), ''),
+                        similarity_score=result['similarity'],
+                        skills_count=result['skills_count'],
+                        experience_years=result['experience_years'],
+                        education_level=result['education_level'],
                     )
                     result['explanation'] = ai_result['explanation']
                     result['match_level'] = ai_result['match_level']
@@ -638,14 +678,13 @@ class RecommendationSupervisor:
                             operation_type="search_explanation"
                         )
 
-                results.append(result)
-
-            # 4. Sort: excellent first, then good, then possible, then poor;
-            #    within same level, higher adjusted_similarity first
-            level_order = {'excellent': 0, 'good': 1, 'possible': 2, 'poor': 3}
-            results.sort(key=lambda r: (level_order.get(r['match_level'], 99), -r['similarity']))
-
-            return results[:top_k] if top_k else results
+            return {
+                'results': page_results,
+                'total': total,
+                'page': page,
+                'per_page': per_page,
+                'total_pages': total_pages,
+            }
 
         finally:
             session.close()
