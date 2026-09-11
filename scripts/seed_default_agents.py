@@ -472,6 +472,8 @@ def seed_default_agents():
     print(f"Seeding complete! Added default agents to {processed} organizations.")
 
 if __name__ == "__main__":
+    if os.getenv("ALLOW_DEMO_SEED") != "1":
+        raise SystemExit("Refusing to seed default agents: set ALLOW_DEMO_SEED=1 to run.")
     # Initialize the Flask app context
     from backend.app import create_app
     app = create_app()
