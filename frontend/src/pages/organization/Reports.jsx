@@ -6,6 +6,7 @@ import {
   getSidebarItems,
   getBackendUrl,
   getAuthHeaders,
+  getCurrentUser,
 } from "../../utils/auth";
 
 export default function Reports() {
@@ -25,8 +26,9 @@ export default function Reports() {
 
   const fetchAnalytics = async () => {
     try {
-      // Get organization ID from user context (placeholder for now)
-      const orgId = 1; // TODO: Get from user context
+      const me = await getCurrentUser();
+      const orgId = me?.organization_id;
+      if (!orgId) { setError("No organization found for this user"); setLoading(false); return; }
       const response = await fetch(
         `${getBackendUrl()}/api/organizations/${orgId}/analytics`,
         {

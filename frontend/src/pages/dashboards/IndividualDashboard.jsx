@@ -32,7 +32,8 @@ export default function IndividualDashboard() {
   const fetchInterviews = async () => {
     try {
       const user = await verifyTokenWithServer();
-      const userId = user && user.id ? user.id : 1;
+      const userId = user?.id;
+      if (!userId) { setLoading(false); return; }
       if (user && user.name) setUserName(user.name.split(" ")[0]);
       const [interviewsRes, appliedRes, savedRes] = await Promise.all([
         fetch(`${getBackendUrl()}/api/interviews?user_id=${userId}`, { credentials: "include" }),

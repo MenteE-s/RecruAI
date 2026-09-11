@@ -4,12 +4,14 @@ import TextInterview from "../components/interviews/TextInterview";
 import ThinkingDisplay from "../components/interviews/ThinkingDisplay";
 import { formatDateTime } from "../utils/timezone";
 import socketService from "../utils/socket";
+import { getCurrentUser } from "../utils/auth";
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "";
 
 const InterviewRoom = () => {
   const { interviewId } = useParams();
   const navigate = useNavigate();
+  const [me, setMe] = useState(null);
   const [interview, setInterview] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -21,7 +23,11 @@ const InterviewRoom = () => {
 
   // Get user role and determine if they're interviewer or candidate
   const userRole = localStorage.getItem("authRole");
-  const userId = 1; // TODO: Get from auth context
+  const userId = me?.id || null;
+
+  useEffect(() => {
+    getCurrentUser().then(setMe);
+  }, []);
 
   // Determine if user is interviewer or candidate
   // Organization users are interviewers, individual users are candidates
@@ -34,7 +40,7 @@ const InterviewRoom = () => {
   }, [interviewId]);
 
   useEffect(() => {
-    if (interviewId && interviewId !== "undefined") {
+    if (interviewId && interviewId !== "undefined" && me) {
       fetchInterview();
       loadConversation();
 
@@ -88,7 +94,7 @@ const InterviewRoom = () => {
       setError("Invalid interview ID");
       setLoading(false);
     }
-  }, [interviewId]);
+  }, [interviewId, me]);
 
   // Add exit confirmation for ongoing interviews
   useEffect(() => {
@@ -190,8 +196,7 @@ const InterviewRoom = () => {
         setInterview(data);
 
         // Check if user has access to this interview
-        if (userRole === "organization" && data.organization_id !== 1) {
-          // TODO: Get org ID from context
+        if (userRole === "organization" && me && data.organization_id !== me.organization_id) {
           setError("Access denied");
           return;
         }

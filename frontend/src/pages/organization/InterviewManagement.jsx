@@ -44,7 +44,7 @@ const ScheduleInterviewModal = ({
     scheduled_at: "",
     duration_minutes: 60,
     user_id: "",
-    organization_id: organizationId || 1, // Use passed org id or default 1
+    organization_id: organizationId || "", // Synced when org resolves; never default
     post_id: "",
     interview_type: "text",
     location: "",
@@ -98,7 +98,7 @@ const ScheduleInterviewModal = ({
 
   useEffect(() => {
     // Normalize formData when org changes
-    setFormData((prev) => ({ ...prev, organization_id: organizationId || 1 }));
+    setFormData((prev) => ({ ...prev, organization_id: organizationId || "" }));
   }, [organizationId]);
 
   const fetchPosts = useCallback(async () => {
@@ -116,7 +116,7 @@ const ScheduleInterviewModal = ({
       );
       if (response.ok) {
         const data = await response.json();
-        setPosts(data.posts || []);
+        setPosts(Array.isArray(data) ? data : (data.posts || []));
       }
     } catch (error) {
       console.error("Error fetching posts:", error);
@@ -138,7 +138,7 @@ const ScheduleInterviewModal = ({
       );
       if (response.ok) {
         const data = await response.json();
-        setAiAgents(data.agents || []);
+        setAiAgents(Array.isArray(data) ? data : (data.agents || []));
       }
     } catch (error) {
       console.error("Error fetching AI agents:", error);
@@ -1039,8 +1039,8 @@ export default function InterviewManagement() {
 
   const fetchAIAgents = useCallback(async () => {
     try {
-      // TODO: Get organization ID from user context
-      const orgId = organizationId || 1; // Fallback to 1 if missing
+      const orgId = organizationId;
+      if (!orgId) { setAiAgents([]); return; }
       const response = await fetch(
         `${getBackendUrl()}/api/organizations/${orgId}/ai-agents`,
         {

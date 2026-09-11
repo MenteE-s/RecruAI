@@ -6,6 +6,7 @@ import {
   getBackendUrl,
   getUploadUrl,
   getAuthHeaders,
+  getCurrentUserId,
 } from "../../utils/auth";
 import { useToast } from "../../components/ui/ToastContext";
 import {
@@ -136,7 +137,8 @@ export default function BrowseJobs() {
 
   const fetchSavedJobs = async () => {
     try {
-      const userId = 1;
+      const userId = await getCurrentUserId();
+      if (!userId) return;
       const response = await fetch(`${getBackendUrl()}/api/saved-jobs/user/${userId}`, {
         headers: getAuthHeaders(),
         credentials: "include",
@@ -152,7 +154,8 @@ export default function BrowseJobs() {
 
   const fetchAppliedJobs = async () => {
     try {
-      const userId = 1;
+      const userId = await getCurrentUserId();
+      if (!userId) return;
       const response = await fetch(`${getBackendUrl()}/api/applications/user/${userId}`, {
         headers: getAuthHeaders(),
         credentials: "include",
@@ -170,12 +173,11 @@ export default function BrowseJobs() {
   const handleSaveJob = useCallback(
     async (postId) => {
       try {
-        const userId = 1;
         const response = await fetch(`${getBackendUrl()}/api/saved-jobs`, {
           method: "POST",
           headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
           credentials: "include",
-          body: JSON.stringify({ user_id: userId, post_id: postId }),
+          body: JSON.stringify({ post_id: postId }),
         });
         if (response.ok) {
           setSavedJobs((prev) => new Set([...prev, postId]));
@@ -196,7 +198,9 @@ export default function BrowseJobs() {
         credentials: "include",
       });
       if (response.ok) {
-        const savedJob = await fetch(`${getBackendUrl()}/api/saved-jobs/user/1`, {
+        const userId = await getCurrentUserId();
+        if (!userId) return;
+        const savedJob = await fetch(`${getBackendUrl()}/api/saved-jobs/user/${userId}`, {
           headers: getAuthHeaders(),
         })
           .then((r) => r.json())
@@ -216,12 +220,11 @@ export default function BrowseJobs() {
 
   const handleApplyJob = async (postId) => {
     try {
-      const userId = 1;
       const response = await fetch(`${getBackendUrl()}/api/applications`, {
         method: "POST",
         headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ user_id: userId, post_id: postId, cover_letter: "", resume_url: "" }),
+        body: JSON.stringify({ post_id: postId, cover_letter: "", resume_url: "" }),
       });
       if (response.ok) {
         setAppliedJobs((prev) => new Set([...prev, postId]));
@@ -535,7 +538,7 @@ export default function BrowseJobs() {
                           <button onClick={() => { setSelectedJob(job); setShowApplyConfirm(true); }} className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors">Apply now</button>
                         )}
                         {saved ? (
-                          <button onClick={() => fetch(`${getBackendUrl()}/api/saved-jobs/check?user_id=1&post_id=${job.id}`).then((r) => r.json()).then((d) => { if (d.saved_id) handleUnsaveJob(d.saved_id); })} className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-gray-900 text-white text-sm font-medium hover:bg-black transition-colors"><FiBookmark className="w-4 h-4 fill-white" /> Saved</button>
+                          <button onClick={() => fetch(`${getBackendUrl()}/api/saved-jobs/check?post_id=${job.id}`).then((r) => r.json()).then((d) => { if (d.saved_id) handleUnsaveJob(d.saved_id); })} className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-gray-900 text-white text-sm font-medium hover:bg-black transition-colors"><FiBookmark className="w-4 h-4 fill-white" /> Saved</button>
                         ) : (
                           <button onClick={() => handleSaveJob(job.id)} className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white text-gray-700 border border-gray-200 text-sm font-medium hover:bg-gray-50 transition-colors"><FiBookmark className="w-4 h-4" /> Save</button>
                         )}
@@ -549,7 +552,7 @@ export default function BrowseJobs() {
                         <button onClick={() => { setSelectedJob(job); setShowApplyConfirm(true); }} className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700">Apply</button>
                       )}
                       {saved ? (
-                        <button onClick={() => fetch(`${getBackendUrl()}/api/saved-jobs/check?user_id=1&post_id=${job.id}`).then((r) => r.json()).then((d) => { if (d.saved_id) handleUnsaveJob(d.saved_id); })} className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-gray-900 text-white text-sm font-medium"><FiBookmark className="w-4 h-4 fill-white" /> Saved</button>
+                          <button onClick={() => fetch(`${getBackendUrl()}/api/saved-jobs/check?post_id=${job.id}`).then((r) => r.json()).then((d) => { if (d.saved_id) handleUnsaveJob(d.saved_id); })} className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-gray-900 text-white text-sm font-medium"><FiBookmark className="w-4 h-4 fill-white" /> Saved</button>
                       ) : (
                         <button onClick={() => handleSaveJob(job.id)} className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white border border-gray-200 text-gray-700 text-sm font-medium"><FiBookmark className="w-4 h-4" /> Save</button>
                       )}

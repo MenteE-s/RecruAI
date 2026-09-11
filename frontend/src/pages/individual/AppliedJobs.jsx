@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { getBackendUrl, getAuthHeaders, getSidebarItems } from "../../utils/auth";
+import { getBackendUrl, getAuthHeaders, getSidebarItems, getCurrentUserId } from "../../utils/auth";
 import { useNavigate, Link } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import { formatDate } from "../../utils/timezone";
@@ -44,7 +44,8 @@ export default function AppliedJobs() {
 
   const fetchAppliedJobs = async () => {
     try {
-      const userId = 1;
+      const userId = await getCurrentUserId();
+      if (!userId) { setLoading(false); return; }
       const response = await fetch(`${getBackendUrl()}/api/applied-jobs/user/${userId}`, {
         credentials: "include",
         headers: getAuthHeaders(),

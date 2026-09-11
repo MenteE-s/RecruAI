@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import IndividualNavbar from "../../components/layout/IndividualNavbar";
 import Card from "../../components/ui/Card";
-import { getSidebarItems, getBackendUrl, getUploadUrl } from "../../utils/auth";
+import { getSidebarItems, getBackendUrl, getUploadUrl, getCurrentUserId } from "../../utils/auth";
 import { useToast } from "../../components/ui/ToastContext";
 import { formatDate } from "../../utils/timezone";
 import {
@@ -75,9 +75,8 @@ export default function JobDetails() {
 
   const checkSavedStatus = async () => {
     try {
-      const userId = 1; // TODO: Get from user context
       const response = await fetch(
-        `${getBackendUrl()}/api/saved-jobs/check?user_id=${userId}&post_id=${id}`
+        `${getBackendUrl()}/api/saved-jobs/check?post_id=${id}`
       );
       if (response.ok) {
         const data = await response.json();
@@ -90,13 +89,15 @@ export default function JobDetails() {
 
   const checkAppliedStatus = async () => {
     try {
-      const userId = 1; // TODO: Get from user context
+      const userId = await getCurrentUserId();
+      if (!userId) return;
       const response = await fetch(
         `${getBackendUrl()}/api/applications/user/${userId}`
       );
       if (response.ok) {
-        const applications = await response.json();
-        const hasApplied = applications.some(
+        const data = await response.json();
+        const applications = data.data || data;
+        const hasApplied = (Array.isArray(applications) ? applications : []).some(
           (app) => app.post_id === parseInt(id)
         );
         setApplied(hasApplied);
@@ -129,12 +130,11 @@ export default function JobDetails() {
 
   const handleSaveJob = async () => {
     try {
-      const userId = 1; // TODO: Get from user context
       const response = await fetch(`${getBackendUrl()}/api/saved-jobs`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ user_id: userId, post_id: parseInt(id) }),
+        body: JSON.stringify({ post_id: parseInt(id) }),
       });
 
       if (response.ok) {
@@ -160,15 +160,14 @@ export default function JobDetails() {
 
   const handleUnsaveJob = async () => {
     try {
-      const userId = 1; // TODO: Get from user context
       const response = await fetch(
-        `${getBackendUrl()}/api/saved-jobs/check?user_id=${userId}&post_id=${id}`
+        `${getBackendUrl()}/api/saved-jobs/check?post_id=${id}`
       );
       if (response.ok) {
         const data = await response.json();
         if (data.saved_id) {
           const deleteResponse = await fetch(
-            `/api/saved-jobs/${data.saved_id}`,
+            `${getBackendUrl()}/api/saved-jobs/${data.saved_id}`,
             {
               method: "DELETE",
               credentials: "include",
@@ -195,13 +194,11 @@ export default function JobDetails() {
 
   const handleApplyJob = async () => {
     try {
-      const userId = 1; // TODO: Get from user context
       const response = await fetch(`${getBackendUrl()}/api/applications`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
-          user_id: userId,
           post_id: parseInt(id),
           cover_letter: "",
           resume_url: "",

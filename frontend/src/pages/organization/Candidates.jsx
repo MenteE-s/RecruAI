@@ -38,7 +38,7 @@ export default function Candidates() {
     try {
       if (reset) { setLoading(true); setApplications([]); setPagination((p) => ({ ...p, page: 1 })); }
       const currentPage = reset ? 1 : pagination.page;
-      const params = new URLSearchParams({ page: currentPage, per_page: pagination.per_page });
+      const params = new URLSearchParams({ page: currentPage, per_page: pagination.per_page, organization_id: organizationId });
       const res = await fetch(`${getBackendUrl()}/api/applications?${params}`, { credentials: "include", headers: getAuthHeaders() });
       if (res.ok) {
         const result = await res.json();
@@ -69,7 +69,7 @@ export default function Candidates() {
   const scheduleInterview = async (e) => {
     e.preventDefault();
     try {
-      const payload = { title: interviewForm.title, description: interviewForm.description, scheduled_at: new Date(interviewForm.scheduled_at).toISOString(), duration_minutes: interviewForm.duration_minutes, user_id: selectedApplication.user_id, organization_id: organizationId || 1, post_id: selectedApplication.post_id, interview_type: interviewForm.interview_type, interviewers: interviewForm.interviewers ? interviewForm.interviewers.split(",").map((i) => i.trim()) : [] };
+      const payload = { title: interviewForm.title, description: interviewForm.description, scheduled_at: new Date(interviewForm.scheduled_at).toISOString(), duration_minutes: interviewForm.duration_minutes, user_id: selectedApplication.user_id, organization_id: organizationId, post_id: selectedApplication.post_id, interview_type: interviewForm.interview_type, interviewers: interviewForm.interviewers ? interviewForm.interviewers.split(",").map((i) => i.trim()) : [] };
       const res = await fetch(`${getBackendUrl()}/api/interviews`, { method: "POST", headers: getAuthHeaders({ "Content-Type": "application/json" }), credentials: "include", body: JSON.stringify(payload) });
       if (res.ok) { showToast({ message: "Interview scheduled successfully!", type: "success" }); setShowScheduleInterview(false); resetInterviewForm(); } else showToast({ message: "Failed to schedule interview", type: "error" });
     } catch { showToast({ message: "Failed to schedule interview", type: "error" }); }

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
-import { getSidebarItems, getBackendUrl, getAuthHeaders } from "../../utils/auth";
+import { getSidebarItems, getBackendUrl, getAuthHeaders, getCurrentUserId } from "../../utils/auth";
 import { formatDate } from "../../utils/timezone";
 import {
   FiBookmark,
@@ -34,7 +34,8 @@ export default function SavedJobs() {
 
   const fetchSavedJobs = async () => {
     try {
-      const userId = 1;
+      const userId = await getCurrentUserId();
+      if (!userId) { setLoading(false); return; }
       const response = await fetch(`${getBackendUrl()}/api/saved-jobs/user/${userId}`, {
         headers: getAuthHeaders(),
       });
@@ -51,7 +52,8 @@ export default function SavedJobs() {
 
   const fetchAppliedJobs = async () => {
     try {
-      const userId = 1;
+      const userId = await getCurrentUserId();
+      if (!userId) return;
       const response = await fetch(`${getBackendUrl()}/api/applications/user/${userId}`, {
         headers: getAuthHeaders(),
       });
@@ -80,12 +82,11 @@ export default function SavedJobs() {
 
   const handleApplyJob = async (postId) => {
     try {
-      const userId = 1;
       const response = await fetch(`${getBackendUrl()}/api/applications`, {
         method: "POST",
         headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ user_id: userId, post_id: postId, cover_letter: "", resume_url: "" }),
+        body: JSON.stringify({ post_id: postId, cover_letter: "", resume_url: "" }),
       });
       if (response.ok) setAppliedJobs((prev) => new Set([...prev, postId]));
     } catch (error) {

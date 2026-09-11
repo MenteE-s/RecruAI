@@ -45,10 +45,12 @@ export function getAuthHeaders(additionalHeaders = {}) {
   return headers;
 }
 
-// Override global fetch to automatically handle authentication
+// Override global fetch to automatically handle authentication.
+// Scoped to our own backend origin only: never attach credentials or bearer
+// tokens to third-party URLs that merely contain "/api/".
 const originalFetch = window.fetch;
 window.fetch = function (url, options = {}) {
-  if (typeof url === "string" && url.includes("/api/")) {
+  if (typeof url === "string" && url.startsWith(getBackendUrl())) {
     // Always include credentials for cookie-based auth
     options.credentials = "include";
     // Always add Authorization header if token exists
@@ -127,6 +129,32 @@ export function clearLocalAuth() {
   } catch (e) {
     // ignore
   }
+  cachedMeUser = null;
+}
+
+let cachedMeUser = null;
+
+/** Current signed-in user via /api/auth/me (cached per page load). Never hardcode ids. */
+export async function getCurrentUser() {
+  if (cachedMeUser) return cachedMeUser;
+  try {
+    const res = await fetch(`${getBackendUrl()}/api/auth/me`, {
+      credentials: "include",
+      headers: getAuthHeaders(),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    cachedMeUser = data?.user || null;
+    return cachedMeUser;
+  } catch {
+    return null;
+  }
+}
+
+/** Current user id, or null when signed out. */
+export async function getCurrentUserId() {
+  const user = await getCurrentUser();
+  return user?.id || null;
 }
 
 export function getSidebarItems(role, plan) {
@@ -155,7 +183,7 @@ export function getSidebarItems(role, plan) {
         { name: "Resume Builder", link: "/resume/builder", icon: FiFileText, section: "pro" },
         { name: "Job Alerts", link: "/jobs/alerts", icon: FiBell, section: "pro" },
         { name: "Career Coaching", link: "/coaching", icon: FiUsers, section: "pro" },
-        { name: "Practice", link: "/practice", icon: FiTarget, section: "ai" },
+        {/* PITCH: Practice hidden (stub alerts) — re-enable when implemented */}
         { name: "My AI Agents", link: "/ai-agents", icon: FiCpu, section: "ai" },
         {
           name: "Shareable Profiles",
@@ -163,7 +191,7 @@ export function getSidebarItems(role, plan) {
           icon: FiLink,
           section: "ai",
         },
-        { name: "Billing", link: "/billing", icon: FiCreditCard, section: "pro" },
+        {/* PITCH: Billing hidden (Stripe stubs) — re-enable when implemented */}
         { name: "Settings", link: "/settings", icon: FiSettings, section: "bottom" },
         { name: "Sign Out", link: "/signin", icon: FiLogOut, section: "bottom" },
        ];
@@ -192,7 +220,7 @@ export function getSidebarItems(role, plan) {
          { name: "Resume Builder", link: "/resume/builder", icon: FiFileText, section: "pro" },
          { name: "Job Alerts", link: "/jobs/alerts", icon: FiBell, section: "pro" },
          { name: "Career Coaching", link: "/coaching", icon: FiUsers, section: "pro" },
-         { name: "Practice", link: "/practice", icon: FiTarget, section: "ai" },
+         {/* PITCH: Practice hidden (stub alerts) — re-enable when implemented */}
          { name: "My AI Agents", link: "/ai-agents", icon: FiCpu, section: "ai" },
          {
            name: "Shareable Profiles",
@@ -200,7 +228,7 @@ export function getSidebarItems(role, plan) {
            icon: FiLink,
            section: "ai",
          },
-         { name: "Billing", link: "/billing", icon: FiCreditCard, section: "pro" },
+         {/* PITCH: Billing hidden (Stripe stubs) — re-enable when implemented */}
          { name: "Settings", link: "/settings", icon: FiSettings, section: "bottom" },
          { name: "Sign Out", link: "/signin", icon: FiLogOut, section: "bottom" },
        ];
@@ -258,10 +286,8 @@ export function getSidebarItems(role, plan) {
          { name: "Notifications", link: "/notifications", icon: FiBell, section: "activity" },
          { name: "Pipeline", link: "/organization/pipeline", icon: FiBarChart2, section: "activity" },
          { name: "Analytics", link: "/organization/analytics", icon: FiBarChart2, section: "activity" },
-         { name: "Reports", link: "/organization/reports", icon: FiFileText, section: "pro" },
-         { name: "Integrations", link: "/organization/integrations", icon: FiLink, section: "pro" },
-         { name: "AI Insights", link: "/organization/insights", icon: FiCpu, section: "pro" },
-         { name: "Billing", link: "/organization/billing", icon: FiCreditCard, section: "pro" },
+          { name: "Reports", link: "/organization/reports", icon: FiFileText, section: "pro" },
+          {/* PITCH: Integrations/Insights/Billing hidden (coming-soon stubs) */}
          { name: "Settings", link: "/settings", icon: FiSettings, section: "bottom" },
          { name: "Sign Out", link: "/signin", icon: FiLogOut, section: "bottom" },
        ];
