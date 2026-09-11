@@ -1,5 +1,4 @@
 import Modal from "./Modal";
-import { useState } from "react";
 import { FiX } from "react-icons/fi";
 import CompanySearchInput from "./CompanySearchInput";
 

@@ -14,7 +14,6 @@ import {
   FiTrash2,
   FiSearch,
   FiX,
-  FiClock,
 } from "react-icons/fi";
 
 export default function JobPosts() {

@@ -12,7 +12,6 @@ import {
   FiBriefcase,
   FiUsers,
   FiGlobe,
-  FiFileText,
   FiShield,
   FiTrash2,
   FiArrowRight,

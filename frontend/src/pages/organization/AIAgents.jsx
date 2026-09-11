@@ -3,7 +3,7 @@ import DashboardLayout from "../../components/layout/DashboardLayout";
 import { getSidebarItems, verifyTokenWithServer, getBackendUrl, getAuthHeaders } from "../../utils/auth";
 import { useToast } from "../../components/ui/ToastContext";
 import { formatDate } from "../../utils/timezone";
-import { FiCpu, FiPlus, FiEdit2, FiTrash2, FiPlay, FiBriefcase, FiFileText, FiSettings, FiEye, FiCalendar, FiCheckCircle, FiAlertCircle, FiX, FiZap } from "react-icons/fi";
+import { FiCpu, FiPlus, FiEdit2, FiTrash2, FiPlay, FiCalendar, FiAlertCircle } from "react-icons/fi";
 
 export default function AIAgents() {
   const role = typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
@@ -30,6 +30,7 @@ export default function AIAgents() {
       else showToast({ message: (await res.json().catch(() => ({})))?.error || "Failed to load AI agents", type: "error" });
     } catch { showToast({ message: "Failed to load AI agents", type: "error" }); }
     finally { setLoading(false); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [organizationId]);
 
   useEffect(() => {
@@ -246,9 +247,4 @@ export default function AIAgents() {
       )}
     </DashboardLayout>
   );
-}
-
-function getInitials(name) {
-  if (!name) return "AI";
-  return name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
 }

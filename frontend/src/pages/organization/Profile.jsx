@@ -21,7 +21,6 @@ import {
   FiUpload,
   FiGlobe,
   FiAward,
-  FiCheckCircle,
 } from "react-icons/fi";
 
 const Modal = ({ isOpen, onClose, children }) => {

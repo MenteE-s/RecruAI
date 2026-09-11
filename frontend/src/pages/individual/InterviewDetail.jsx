@@ -137,6 +137,7 @@ export default function InterviewDetail() {
     if (!interview) return;
     if (interview.status !== "completed") return;
     fetchAnalysis();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [interviewId, interview]);
 
   const loadConversation = async () => {
@@ -170,6 +171,7 @@ export default function InterviewDetail() {
   useEffect(() => {
     if (!interviewId) return;
     loadConversation();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [interviewId]);
 
   useEffect(() => {

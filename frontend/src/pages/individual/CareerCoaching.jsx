@@ -21,7 +21,7 @@ export default function CareerCoaching() {
                 COACHING
               </div>
               <h1 className="text-3xl md:text-[2rem] font-bold leading-tight">Career coaching</h1>
-              <p className="text-gray-300 mt-2 max-w-xl text-sm md:text-[15px]">Personalized guidance to accelerate your growth — 1:1 sessions, plans, and resources.</p>
+              <p className="text-gray-300 mt-2 max-w-xl text-sm md:text-[15px]">Personalized guidance to accelerate your growth â€” 1:1 sessions, plans, and resources.</p>
               <div className="mt-4 flex gap-2">
                 <button className="bg-white text-gray-900 px-4 py-2 text-sm font-medium hover:bg-gray-100 transition-colors">Book session</button>
                 <button className="bg-white/10 border border-white/20 text-white px-4 py-2 text-sm font-medium hover:bg-white/15 transition-colors">View plan</button>
@@ -53,7 +53,7 @@ export default function CareerCoaching() {
               <div className="w-14 h-14 bg-gray-900 text-white flex items-center justify-center text-lg font-bold shrink-0">SJ</div>
               <div>
                 <h4 className="text-[15px] font-semibold text-gray-900">Sarah Johnson</h4>
-                <p className="text-sm text-gray-600">Senior Career Coach • 15+ years</p>
+                <p className="text-sm text-gray-600">Senior Career Coach â€¢ 15+ years</p>
                 <div className="mt-1.5 flex items-center gap-1">
                   {[1, 2, 3, 4, 5].map((s) => <FiStar key={s} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />)}
                   <span className="text-xs text-gray-500 ml-1">4.9 (128 reviews)</span>
@@ -78,7 +78,7 @@ export default function CareerCoaching() {
                 <div className="w-10 h-10 bg-blue-600 text-white flex items-center justify-center"><FiVideo className="w-5 h-5" /></div>
                 <div>
                   <p className="text-sm font-medium text-gray-900">Resume review</p>
-                  <p className="text-xs text-gray-500 flex items-center gap-1"><FiClock className="w-3 h-3" /> Tomorrow • 3:00 PM • 30m</p>
+                  <p className="text-xs text-gray-500 flex items-center gap-1"><FiClock className="w-3 h-3" /> Tomorrow â€¢ 3:00 PM â€¢ 30m</p>
                 </div>
               </div>
               <button className="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium hover:bg-blue-700">Join</button>
@@ -88,7 +88,7 @@ export default function CareerCoaching() {
                 <div className="w-10 h-10 bg-gray-100 border border-gray-200 flex items-center justify-center"><FiTarget className="w-5 h-5 text-gray-500" /></div>
                 <div>
                   <p className="text-sm font-medium text-gray-900">Interview prep</p>
-                  <p className="text-xs text-gray-500 flex items-center gap-1"><FiClock className="w-3 h-3" /> Friday • 2:00 PM • 45m</p>
+                  <p className="text-xs text-gray-500 flex items-center gap-1"><FiClock className="w-3 h-3" /> Friday â€¢ 2:00 PM â€¢ 45m</p>
                 </div>
               </div>
               <button className="px-3 py-1.5 bg-white border border-gray-200 text-xs font-medium text-gray-700 hover:bg-gray-50">Reschedule</button>
@@ -111,7 +111,7 @@ export default function CareerCoaching() {
               <div className="w-7 h-7 bg-blue-600 text-white flex items-center justify-center shrink-0"><div className="w-2 h-2 bg-white rounded-full animate-pulse" /></div>
               <div>
                 <p className="text-sm font-medium text-gray-900">Update resume with achievements</p>
-                <p className="text-xs text-gray-500">In progress • 60% • Due Friday</p>
+                <p className="text-xs text-gray-500">In progress â€¢ 60% â€¢ Due Friday</p>
                 <div className="mt-1.5 h-1 bg-white border border-blue-200">
                   <div className="h-1 bg-blue-600" style={{ width: "60%" }} />
                 </div>
@@ -131,18 +131,18 @@ export default function CareerCoaching() {
         <div className="bg-white border border-gray-200 p-6">
           <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2"><FiBookOpen className="w-4 h-4 text-gray-500" /> Recommended resources</h3>
           <div className="mt-4 space-y-2">
-            <a href="#" className="block p-4 border border-gray-200 hover:border-blue-200 hover:bg-blue-50/50 group transition-colors">
+            <button type="button" className="block w-full text-left p-4 border border-gray-200 hover:border-blue-200 hover:bg-blue-50/50 group transition-colors cursor-pointer">
               <p className="text-sm font-medium text-gray-900 group-hover:text-blue-600">System design interview guide</p>
-              <p className="text-xs text-gray-500 mt-1">Master complex system design questions • 12 chapters • 4.8★</p>
-            </a>
-            <a href="#" className="block p-4 border border-gray-200 hover:border-blue-200 hover:bg-blue-50/50 group transition-colors">
+              <p className="text-xs text-gray-500 mt-1">Master complex system design questions â€¢ 12 chapters â€¢ 4.8â˜…</p>
+            </button>
+            <button type="button" className="block w-full text-left p-4 border border-gray-200 hover:border-blue-200 hover:bg-blue-50/50 group transition-colors cursor-pointer">
               <p className="text-sm font-medium text-gray-900 group-hover:text-blue-600">Leadership communication</p>
-              <p className="text-xs text-gray-500 mt-1">Improve presentation and storytelling • Video course</p>
-            </a>
-            <a href="#" className="block p-4 border border-gray-200 hover:border-blue-200 hover:bg-blue-50/50 group transition-colors">
+              <p className="text-xs text-gray-500 mt-1">Improve presentation and storytelling â€¢ Video course</p>
+            </button>
+            <button type="button" className="block w-full text-left p-4 border border-gray-200 hover:border-blue-200 hover:bg-blue-50/50 group transition-colors cursor-pointer">
               <p className="text-sm font-medium text-gray-900 group-hover:text-blue-600">Behavioral interview: STAR method</p>
-              <p className="text-xs text-gray-500 mt-1">Craft compelling stories • Templates included</p>
-            </a>
+              <p className="text-xs text-gray-500 mt-1">Craft compelling stories â€¢ Templates included</p>
+            </button>
           </div>
         </div>
       </div>

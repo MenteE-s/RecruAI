@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { getSidebarItems, getBackendUrl, getAuthHeaders } from '../../utils/auth';
 import Chip from '../../components/ui/Chip';
-import { FiCreditCard, FiZap, FiFileText, FiSettings, FiTrendingUp, FiClock, FiCheckCircle, FiAlertTriangle, FiDownload, FiArrowRight } from 'react-icons/fi';
+import { FiCreditCard, FiZap, FiFileText, FiSettings, FiTrendingUp, FiAlertTriangle, FiDownload, FiArrowRight } from 'react-icons/fi';
 
 export default function Billing() {
   const role = typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
@@ -48,7 +48,9 @@ export default function Billing() {
     }
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { fetchUserData(); fetchTokenUsage(); }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { if (organization?.id) fetchTokenUsage(); }, [organization?.id]);
 
   if (loading) {

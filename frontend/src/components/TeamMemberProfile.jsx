@@ -24,6 +24,7 @@ const TeamMemberProfile = ({ member, onClose }) => {
 
   useEffect(() => {
     fetchProfileData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [member]);
 
   const fetchProfileData = async () => {

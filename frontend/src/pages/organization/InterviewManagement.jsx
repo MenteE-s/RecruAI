@@ -79,12 +79,12 @@ const ScheduleInterviewModal = ({
     }
   }, []);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (isOpen) {
       fetchPosts();
       fetchAiAgents();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, organizationId]);
 
   // Fetch recommended agents when job is selected

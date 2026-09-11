@@ -17,7 +17,6 @@ import {
   FiUsers,
   FiArrowRight,
   FiEye,
-  FiStar,
 } from "react-icons/fi";
 
 export default function Analytics() {
@@ -35,6 +34,7 @@ export default function Analytics() {
       setUserId(id);
       fetchInterviewAnalytics(id);
     });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchInterviewAnalytics = async (uid) => {

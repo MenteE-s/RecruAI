@@ -6,20 +6,7 @@ import {
   getBackendUrl,
   getAuthHeaders,
 } from "../../utils/auth";
-import {
-  FiAward,
-  FiBook,
-  FiCode,
-  FiFileText,
-  FiUsers,
-  FiBriefcase,
-  FiCheck,
-  FiUser,
-  FiGlobe,
-  FiHeart,
-  FiLink,
-  FiTarget,
-} from "react-icons/fi";
+
 
 import ProfileBanner from "./components/ProfileBanner";
 import ProfileSidebar from "./components/ProfileSidebar";

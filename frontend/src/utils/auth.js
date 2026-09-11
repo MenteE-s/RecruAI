@@ -11,14 +11,10 @@ import {
   FiUsers,
   FiSettings,
   FiCheckCircle,
-  FiShare2,
-  FiCreditCard,
   FiHome,
   FiBriefcase,
-  FiTarget,
   FiCpu,
   FiLink,
-  FiPlus,
   FiLogOut,
 } from "react-icons/fi";
 

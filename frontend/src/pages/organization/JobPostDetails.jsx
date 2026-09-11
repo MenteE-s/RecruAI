@@ -9,7 +9,6 @@ import {
   FiTag,
   FiDollarSign,
   FiCalendar,
-  FiClock,
   FiEdit2,
   FiTrash2,
   FiArrowLeft,
@@ -44,6 +43,7 @@ export default function JobPostDetails() {
 
   useEffect(() => {
     fetchPost();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const fetchPost = async () => {
@@ -119,10 +119,6 @@ export default function JobPostDetails() {
       showToast({ message: "Failed to delete", type: "error" });
     }
   };
-
-  const updateRequirement = (i, v) => setFormData((p) => ({ ...p, requirements: p.requirements.map((r, idx) => (idx === i ? v : r)) }));
-  const addRequirement = () => setFormData((p) => ({ ...p, requirements: [...p.requirements, ""] }));
-  const removeRequirement = (i) => setFormData((p) => ({ ...p, requirements: p.requirements.filter((_, idx) => idx !== i) }));
 
   if (loading) {
     return (

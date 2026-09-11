@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
-import Card from "../../components/ui/Card";
 import {
   getSidebarItems,
   getBackendUrl,
@@ -104,6 +103,7 @@ export default function CandidateAnalysis() {
     } finally {
       setJobsLoading(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orgId]);
 
   useEffect(() => {

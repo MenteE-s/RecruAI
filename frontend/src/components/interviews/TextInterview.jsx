@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import Card from "../ui/Card";
 import ThinkingDisplay from "./ThinkingDisplay";
 import { formatTime as formatTimeTz } from "../../utils/timezone";
 import { getBackendUrl } from "../../utils/auth";
@@ -20,7 +19,7 @@ const TextInterview = ({
   setShowThinking = () => {},
 }) => {
   const [newMessage, setNewMessage] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
+  const [isTyping] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(null);
   const [isInterviewCompleted, setIsInterviewCompleted] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
@@ -235,15 +234,6 @@ const TextInterview = ({
             // Updated logic to match backend sender types: 'user' vs 'agent'
             const isAI =
               message.type === "agent" || message.type === "ai_response";
-            const isInterviewerMessage =
-              message.type === "interviewer_response" ||
-              (isInterviewer &&
-                message.type === "user" &&
-                message.userId === interviewData?.interviewer_id);
-
-            const isFromOtherParty = isInterviewer
-              ? message.type === "user"
-              : isAI || message.type === "interviewer_response";
 
             // Simplified: User's own messages on right, others on left
             // For Candidates (isInterviewer=false): 'user' messages are MINE (Right), 'agent'/'interviewer' on LEFT

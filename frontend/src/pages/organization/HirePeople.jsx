@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import { getSidebarItems, getBackendUrl, getUploadUrl, getAuthHeaders } from "../../utils/auth";
 import { useToast } from "../../components/ui/ToastContext";
-import { FiUsers, FiSearch, FiEye, FiChevronDown, FiChevronUp, FiX, FiLoader, FiBriefcase, FiStar, FiMapPin, FiAward } from "react-icons/fi";
+import { FiUsers, FiSearch, FiEye, FiChevronDown, FiChevronUp, FiX, FiLoader, FiBriefcase } from "react-icons/fi";
 
 const MATCH_COLORS = {
   excellent: { badge: "bg-green-50 text-green-700 border-green-200", bar: "bg-green-600", dot: "bg-green-500" },
@@ -21,7 +21,7 @@ export default function HirePeople() {
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [, setError] = useState(null);
   const [query, setQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [aiResults, setAiResults] = useState(null);
@@ -50,6 +50,7 @@ export default function HirePeople() {
       } else { setError("Failed to load users"); showToast("Failed to load candidates", "error"); }
     } catch { setError("Network error. Please try again."); showToast("Network error. Please try again.", "error"); }
     finally { setLoading(false); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   useEffect(() => { loadUsers(); }, [loadUsers]);
 
@@ -85,6 +86,7 @@ export default function HirePeople() {
       else { showToast((await res.json().catch(() => ({}))).error || "Search failed. Try again.", "error"); setSearchMode(false); setAiResults(null); }
     } catch { showToast("Search request failed. Is the backend running?", "error"); setSearchMode(false); setAiResults(null); }
     finally { setIsSearching(false); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [empStatusFilter, expFilter, planFilter]);
 
   const loadExplanation = useCallback(async (userId, searchQuery) => {
@@ -98,6 +100,7 @@ export default function HirePeople() {
       } else showToast("Failed to load AI analysis", "error");
     } catch { showToast("Network error. Try again.", "error"); }
     finally { setExplainingUser(null); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -128,7 +131,6 @@ export default function HirePeople() {
       </div>
     );
   };
-  const SkillTag = ({ skill }) => <span className="inline-flex items-center px-2 py-1 text-xs bg-blue-50 text-blue-700 border border-blue-200 mr-1 mb-1">{skill}</span>;
 
   if (loading) {
     return (

@@ -4,7 +4,7 @@ import DashboardLayout from "../../components/layout/DashboardLayout";
 import { getSidebarItems, getBackendUrl, getAuthHeaders } from "../../utils/auth";
 import { useToast } from "../../components/ui/ToastContext";
 import { formatDate } from "../../utils/timezone";
-import { FiUsers, FiSearch, FiX, FiEye, FiCalendar, FiBriefcase, FiCheckCircle, FiClock, FiMapPin, FiArrowRight } from "react-icons/fi";
+import { FiUsers, FiSearch, FiX, FiEye, FiCalendar, FiBriefcase, FiMapPin, FiArrowRight } from "react-icons/fi";
 
 export default function Candidates() {
   const navigate = useNavigate();
@@ -48,8 +48,10 @@ export default function Candidates() {
       } else throw new Error("Failed to fetch applications");
     } catch (err) { showToast("Error fetching applications", "error"); }
     finally { if (reset) setLoading(false); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [organizationId, pagination.page, pagination.per_page]);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { if (organizationId) fetchApplications(true); }, [organizationId]);
 
   const updateApplicationStatus = useCallback(async (appId, status) => {
@@ -57,6 +59,7 @@ export default function Candidates() {
       const res = await fetch(`${getBackendUrl()}/api/applications/${appId}`, { method: "PUT", headers: getAuthHeaders({ "Content-Type": "application/json" }), credentials: "include", body: JSON.stringify({ status }) });
       if (res.ok) { await fetchApplications(); showToast({ message: `Application ${status} successfully`, type: "success" }); } else showToast({ message: "Failed to update application status", type: "error" });
     } catch { showToast({ message: "Failed to update application status", type: "error" }); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchApplications]);
 
   const fetchCandidateProfile = useCallback(async (userId) => {
@@ -64,6 +67,7 @@ export default function Candidates() {
       const res = await fetch(`${getBackendUrl()}/api/users/${userId}/full-profile`, { credentials: "include", headers: getAuthHeaders() });
       if (res.ok) { setCandidateProfile(await res.json()); setShowCandidateProfile(true); } else showToast({ message: "Failed to load candidate profile", type: "error" });
     } catch { showToast({ message: "Failed to load candidate profile", type: "error" }); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const scheduleInterview = async (e) => {

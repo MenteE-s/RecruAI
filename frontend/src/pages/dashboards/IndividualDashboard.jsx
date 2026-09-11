@@ -7,13 +7,11 @@ import {
   FiBriefcase,
   FiCalendar,
   FiCheckCircle,
-  FiClock,
   FiBookmark,
   FiArrowRight,
   FiTarget,
   FiActivity,
   FiTrendingUp,
-  FiUsers,
   FiZap,
 } from "react-icons/fi";
 

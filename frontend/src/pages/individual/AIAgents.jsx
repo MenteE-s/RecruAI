@@ -13,7 +13,6 @@ import {
   FiCheckCircle,
   FiAlertCircle,
   FiX,
-  FiArrowRight,
 } from "react-icons/fi";
 
 export default function IndividualAIAgents() {

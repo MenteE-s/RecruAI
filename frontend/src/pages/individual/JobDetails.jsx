@@ -41,12 +41,14 @@ export default function JobDetails() {
     fetchJobDetails();
     checkSavedStatus();
     checkAppliedStatus();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   useEffect(() => {
     if (job) {
       fetchRecommendedJobs();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [job]);
 
   const fetchJobDetails = async () => {

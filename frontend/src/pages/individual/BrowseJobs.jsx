@@ -84,6 +84,7 @@ export default function BrowseJobs() {
     fetchJobs(true);
     fetchSavedJobs();
     fetchAppliedJobs();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [submittedSearch, filters.category, filters.location, filters.employment_type]);
 
   useEffect(() => {

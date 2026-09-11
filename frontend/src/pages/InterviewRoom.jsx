@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import TextInterview from "../components/interviews/TextInterview";
-import ThinkingDisplay from "../components/interviews/ThinkingDisplay";
 import { formatDateTime } from "../utils/timezone";
 import socketService from "../utils/socket";
 import { getCurrentUser } from "../utils/auth";
@@ -94,6 +93,7 @@ const InterviewRoom = () => {
       setError("Invalid interview ID");
       setLoading(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [interviewId, me]);
 
   // Add exit confirmation for ongoing interviews
@@ -180,6 +180,7 @@ const InterviewRoom = () => {
         clearInterval(intervalId);
       }
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [interview, interviewId]);
 
   const fetchInterview = async () => {

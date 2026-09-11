@@ -43,6 +43,7 @@ export default function Notifications() {
     };
     socketService.on("notification_created", handleNewNotification);
     return () => socketService.off("notification_created", handleNewNotification);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, filters]);
 
   const fetchNotifications = async () => {

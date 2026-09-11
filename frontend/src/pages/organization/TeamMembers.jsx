@@ -84,6 +84,7 @@ export default function TeamMembers() {
     } catch { setError("Network error. Please try again."); }
     finally { setLoading(false); }
   };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { if (organizationId) { if (activeTab === "team") loadTeamMembers(); else loadHiredCandidates(); } }, [organizationId, activeTab]);
 
   const inviteMember = async (formData) => {

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import { getSidebarItems, getBackendUrl, getAuthHeaders } from "../../utils/auth";
 import { formatDate } from "../../utils/timezone";
-import { FiBarChart2, FiTrendingUp, FiAward, FiUsers, FiTarget, FiFileText, FiCheckCircle, FiAlertTriangle, FiClock, FiArrowRight } from "react-icons/fi";
+import { FiBarChart2, FiAward, FiUsers, FiTarget, FiCheckCircle, FiAlertTriangle, FiArrowRight } from "react-icons/fi";
 
 export default function OrganizationAnalytics() {
   const navigate = useNavigate();
@@ -14,6 +14,7 @@ export default function OrganizationAnalytics() {
   const [loading, setLoading] = useState(true);
   const [orgId] = useState(1);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { fetchInterviewAnalytics(); }, []);
 
   const fetchInterviewAnalytics = async () => {

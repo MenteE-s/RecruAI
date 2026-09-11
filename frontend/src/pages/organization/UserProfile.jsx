@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import { getSidebarItems, getBackendUrl, getUploadUrl, getAuthHeaders } from "../../utils/auth";
-import { FiMail, FiBriefcase, FiAward, FiBook, FiCode, FiFolder, FiFileText, FiHeart, FiGlobe, FiStar, FiMic, FiShield, FiArrowLeft, FiMapPin, FiCalendar, FiUsers } from "react-icons/fi";
+import { FiMail, FiBriefcase, FiAward, FiBook, FiCode, FiFolder, FiFileText, FiHeart, FiGlobe, FiStar, FiArrowLeft, FiMapPin, FiCalendar } from "react-icons/fi";
 
 export default function UserProfile() {
   const { userId } = useParams();
@@ -87,7 +87,7 @@ export default function UserProfile() {
     );
   }
 
-  const { user, experiences, educations, skills, projects, publications, awards, certifications, languages, volunteer_experiences, references, hobby_interests, professional_memberships, patents, course_trainings, social_media_links, key_achievements, conferences, speaking_engagements, licenses, team_member_info, is_team_member, hired_organizations } = profileData;
+  const { user, experiences, educations, skills, projects, publications, awards, certifications, languages, social_media_links, team_member_info, is_team_member, hired_organizations } = profileData;
 
   return (
     <DashboardLayout sidebarItems={sidebarItems}>

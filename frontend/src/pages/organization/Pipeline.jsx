@@ -3,7 +3,7 @@ import DashboardLayout from "../../components/layout/DashboardLayout";
 import { getSidebarItems, getBackendUrl, getAuthHeaders, getCurrentUser } from "../../utils/auth";
 import { formatDate } from "../../utils/timezone";
 import socketService from "../../utils/socket";
-import { FiBriefcase, FiUsers, FiBarChart2, FiCalendar, FiArrowRight } from "react-icons/fi";
+import { FiBriefcase, FiBarChart2 } from "react-icons/fi";
 
 export default function Pipeline() {
   const role = typeof window !== "undefined" ? localStorage.getItem("authRole") : null;

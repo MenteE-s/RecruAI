@@ -31,6 +31,7 @@ const InterviewAnalysis = () => {
     if (interviewId) {
       fetchInterviewData();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [interviewId]);
 
   const fetchInterviewData = async () => {
