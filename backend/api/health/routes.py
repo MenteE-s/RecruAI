@@ -3,8 +3,8 @@ from ...ai_providers import get_ai_provider_manager
 from ...utils.kafka_service import KafkaService
 
 
-@api_bp.route("/health", methods=["GET"])
-def health():
+@api_bp.route("/health/detailed", methods=["GET"])
+def health_detailed():
     try:
         ai_manager = get_ai_provider_manager()
         ai_health = ai_manager.healthcheck()

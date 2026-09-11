@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
-import { getSidebarItems, getBackendUrl, getAuthHeaders } from "../../utils/auth";
+import { getSidebarItems, getBackendUrl, getAuthHeaders, getCurrentUser } from "../../utils/auth";
 import { formatDate } from "../../utils/timezone";
 import socketService from "../../utils/socket";
 import { FiBriefcase, FiUsers, FiBarChart2, FiCalendar, FiArrowRight } from "react-icons/fi";
@@ -12,7 +12,11 @@ export default function Pipeline() {
   const [pipelineData, setPipelineData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedPost, setSelectedPost] = useState(null);
-  const [orgId] = useState(1);
+  const [orgId, setOrgId] = useState(null);
+
+  useEffect(() => {
+    getCurrentUser().then((u) => { if (u?.organization_id) setOrgId(u.organization_id); else setLoading(false); });
+  }, []);
 
   const pipelineStages = [
     { key: "applied", label: "Applied", color: "blue", icon: "📝" },
@@ -27,6 +31,7 @@ export default function Pipeline() {
   ];
 
   const fetchPipelineData = useCallback(async () => {
+    if (!orgId) return;
     try {
       const res = await fetch(`${getBackendUrl()}/api/pipeline/${orgId}`, { credentials: "include", headers: getAuthHeaders() });
       if (res.ok) {

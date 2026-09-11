@@ -2,40 +2,40 @@ import React, { useState } from "react";
 
 const testimonials = [
   {
-    name: "Sarah Chen",
+    name: "Ahmed Khan",
     role: "Software Engineer",
-    company: "Google",
-    image: "https://images.unsplash.com/photo-1494790108755-2616b612b786?ixlib=rb-4.0.3&auto=format&fit=crop&w=687&q=80",
-    content: "RecruAI transformed my interview preparation completely. The AI feedback was incredibly detailed and helped me identify areas I never knew I needed to improve. I got my dream job at Google!",
+    company: "Dubai, UAE (from Lahore)",
+    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=687&q=80",
+    content: "RecruAI's CV optimization boosted my ATS score from 52 to 91, and the AI job matching found me the perfect role in Dubai. I applied from Lahore and got hired in 3 weeks!",
     rating: 5,
-    achievement: "Landed Dream Job",
+    achievement: "Hired in Dubai",
   },
   {
-    name: "Michael Rodriguez",
-    role: "HR Director",
-    company: "TechCorp",
-    image: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80",
-    content: "As an HR professional, RecruAI has revolutionized our recruitment process. We've reduced hiring time by 40% and significantly improved candidate quality. It's a game-changer for organizations.",
+    name: "Fatima Raza",
+    role: "HR Manager",
+    company: "Karachi, Pakistan",
+    image: "https://images.unsplash.com/photo-1494790108755-2616b612b786?ixlib=rb-4.0.3&auto=format&fit=crop&w=687&q=80",
+    content: "As an HR professional, RecruAI has revolutionized our hiring. We've reduced screening time by 40% and the CV-ranked applicants from Pakistan & Gulf are top quality.",
     rating: 5,
     achievement: "40% Time Saved",
   },
   {
     name: "Emily Johnson",
     role: "Product Manager",
-    company: "Startup Inc",
+    company: "Riyadh, Saudi Arabia",
     image: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80",
-    content: "The personalized coaching feature is amazing. It's like having a personal interview coach available 24/7. The progress tracking helped me see my improvement over time.",
+    content: "The perfect-job matching is unreal. It understood my skills and suggested roles in Riyadh I would never have found. Plus the interview coaching prepared me perfectly.",
     rating: 5,
-    achievement: "24/7 Coaching",
+    achievement: "Perfect Match",
   },
   {
-    name: "David Park",
-    role: "Recent Graduate",
-    company: "University of Technology",
-    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=687&q=80",
-    content: "Being a fresh graduate, I was nervous about interviews. RecruAI gave me the confidence I needed. The stress-free practice environment was perfect for building my skills.",
+    name: "Bilal Ahmed",
+    role: "Fresh Graduate, FAST",
+    company: "Islamabad → Doha",
+    image: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80",
+    content: "Being a fresh graduate from Pakistan, I was nervous. RecruAI optimized my CV, gave me mock interviews, and I landed my first job in Doha. Best job portal in Asia, honestly.",
     rating: 5,
-    achievement: "Confidence Boost",
+    achievement: "First Job in Gulf",
   },
   {
     name: "Lisa Thompson",
@@ -73,7 +73,7 @@ const Testimonials = () => {
             <span className="text-blue-600">Users Say</span>
           </h2>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Trusted by thousands of professionals worldwide
+            Loved by job seekers across Pakistan, UAE, Saudi Arabia, Qatar & the Gulf
           </p>
         </div>
 

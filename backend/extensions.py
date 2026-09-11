@@ -2,6 +2,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_jwt_extended import JWTManager
 from flask_socketio import SocketIO
+import os
 import redis
 import logging
 
@@ -10,7 +11,10 @@ logger = logging.getLogger(__name__)
 db = SQLAlchemy()
 migrate = Migrate()
 jwt = JWTManager()
-socketio = SocketIO(cors_allowed_origins="*", async_mode="threading")
+# Default origins; create_app() overrides with the configured FRONTEND_ORIGIN
+# list at init_app time. Never "*" in production (breaks credentialed CORS).
+_default_origins = [o.strip().rstrip("/") for o in os.getenv("FRONTEND_ORIGIN", "http://localhost:3000").split(",")]
+socketio = SocketIO(cors_allowed_origins=_default_origins, async_mode="threading")
 
 # Redis client — initialized in app factory
 redis_client = None

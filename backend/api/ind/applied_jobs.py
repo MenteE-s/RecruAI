@@ -1,25 +1,42 @@
 from flask import request, jsonify
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from .. import api_bp
 from ...extensions import db
 from ...models import Application
 from ...utils.kafka_service import kafka_service
 from datetime import datetime
 
+
+def _identity():
+    try:
+        return int(get_jwt_identity())
+    except (TypeError, ValueError):
+        return None
+
 # Applied jobs endpoints
 @api_bp.route("/applied-jobs/user/<int:user_id>", methods=["GET"])
+@jwt_required()
 def list_applied_jobs(user_id):
+    if _identity() != user_id:
+        return jsonify({"error": "Forbidden"}), 403
     applications = Application.query.filter_by(user_id=user_id).order_by(Application.applied_at.desc()).all()
     return jsonify([app.to_dict() for app in applications]), 200
 
 @api_bp.route("/applied-jobs/<int:application_id>", methods=["GET"])
+@jwt_required()
 def get_application_details(application_id):
     application = Application.query.get_or_404(application_id)
+    if application.user_id != _identity():
+        return jsonify({"error": "Forbidden"}), 403
     return jsonify(application.to_dict()), 200
 
 @api_bp.route("/applied-jobs/<int:application_id>", methods=["DELETE"])
+@jwt_required()
 def cancel_application(application_id):
     """Cancel/withdraw a job application"""
     application = Application.query.get_or_404(application_id)
+    if application.user_id != _identity():
+        return jsonify({"error": "Forbidden"}), 403
 
     # Only allow cancellation if application is still pending or in early stages
     if application.status in ['accepted', 'rejected']:

@@ -4,9 +4,9 @@ import { Link } from "react-router-dom";
 const jobs = [
   {
     title: "Senior Software Engineer",
-    company: "Google",
-    location: "Mountain View, CA",
-    salary: "$180K - $250K",
+    company: "Systems Ltd",
+    location: "Lahore, Pakistan",
+    salary: "PKR 450K - 700K /mo",
     type: "Full-time",
     remote: "Hybrid",
     posted: "2 days ago",
@@ -14,39 +14,39 @@ const jobs = [
   },
   {
     title: "Product Manager",
-    company: "Microsoft",
-    location: "Seattle, WA",
-    salary: "$150K - $200K",
+    company: "Daraz",
+    location: "Karachi, Pakistan",
+    salary: "PKR 350K - 550K /mo",
     type: "Full-time",
-    remote: "Remote",
+    remote: "On-site",
     posted: "1 day ago",
     applicants: 89,
   },
   {
     title: "UX Designer",
-    company: "Apple",
-    location: "Cupertino, CA",
-    salary: "$140K - $190K",
+    company: "Careem",
+    location: "Dubai, UAE",
+    salary: "AED 15K - 22K /mo",
     type: "Full-time",
-    remote: "On-site",
+    remote: "Hybrid",
     posted: "3 days ago",
     applicants: 156,
   },
   {
     title: "Data Scientist",
-    company: "Amazon",
-    location: "Seattle, WA",
-    salary: "$160K - $220K",
+    company: "STC",
+    location: "Riyadh, Saudi Arabia",
+    salary: "SAR 18K - 25K /mo",
     type: "Full-time",
-    remote: "Hybrid",
+    remote: "On-site",
     posted: "5 hours ago",
     applicants: 67,
   },
   {
     title: "Frontend Developer",
-    company: "Meta",
-    location: "Menlo Park, CA",
-    salary: "$145K - $205K",
+    company: "Talabat",
+    location: "Doha, Qatar • Remote",
+    salary: "QAR 14K - 20K /mo",
     type: "Full-time",
     remote: "Remote",
     posted: "1 day ago",
@@ -54,9 +54,9 @@ const jobs = [
   },
   {
     title: "DevOps Engineer",
-    company: "Netflix",
-    location: "Los Gatos, CA",
-    salary: "$170K - $240K",
+    company: "Meezan Bank",
+    location: "Islamabad, Pakistan",
+    salary: "PKR 400K - 600K /mo",
     type: "Full-time",
     remote: "Hybrid",
     posted: "4 days ago",
@@ -73,11 +73,10 @@ const FeaturedJobs = () => {
             Featured Jobs
           </div>
           <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
-            Top{" "}
-            <span className="text-blue-600">Opportunities</span>
+            Top <span className="text-blue-600">Opportunities</span> in Pakistan & Gulf
           </h2>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Discover roles at leading companies actively hiring through RecruAI
+            Hand-picked roles in Karachi, Lahore, Islamabad, Dubai, Riyadh, Doha & more — find your perfect job
           </p>
         </div>
 

@@ -111,11 +111,6 @@ def test_ai_agent(agent_id):
 
         ai_service = get_ai_service()
 
-        # Debug: Check if API key is loaded
-        import os
-        groq_key = os.getenv("GROQ_API_KEY", "")
-        print(f"DEBUG: GROQ_API_KEY loaded: {'Yes' if groq_key else 'No'} (length: {len(groq_key)})")
-
         # Build system prompt for testing
         system_prompt = agent.system_prompt
         if agent.custom_instructions:

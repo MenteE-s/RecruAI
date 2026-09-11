@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
-import { getSidebarItems, getBackendUrl, getAuthHeaders } from "../../utils/auth";
+import { getSidebarItems, getBackendUrl, getAuthHeaders, getCurrentUserId } from "../../utils/auth";
 import { formatDate } from "../../utils/timezone";
 import {
   FiBarChart2,
@@ -27,15 +27,19 @@ export default function Analytics() {
   const sidebarItems = getSidebarItems(role, plan);
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [userId] = useState(1);
+  const [userId, setUserId] = useState(null);
 
   useEffect(() => {
-    fetchInterviewAnalytics();
+    getCurrentUserId().then((id) => {
+      if (!id) { setLoading(false); return; }
+      setUserId(id);
+      fetchInterviewAnalytics(id);
+    });
   }, []);
 
-  const fetchInterviewAnalytics = async () => {
+  const fetchInterviewAnalytics = async (uid) => {
     try {
-      const response = await fetch(`${getBackendUrl()}/api/users/${userId}/analytics`, {
+      const response = await fetch(`${getBackendUrl()}/api/users/${uid || userId}/analytics`, {
         headers: getAuthHeaders(),
         credentials: "include",
       });

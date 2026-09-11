@@ -1,16 +1,50 @@
 from flask import request, jsonify
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from .. import api_bp
 from ...extensions import db
-from ...models import Application, Post, Interview, TeamMember
+from ...models import Application, Post, Interview, TeamMember, User
 from sqlalchemy import func
 from ...utils.pagination import Pagination, get_pagination_params, paginated_response, apply_filters_and_sorting, get_request_filters, get_sorting_params
 from ...utils.kafka_service import kafka_service as kafka
 from datetime import datetime
 
+
+def _current_user():
+    try:
+        return User.query.get(int(get_jwt_identity()))
+    except (TypeError, ValueError):
+        return None
+
+
+def _managed_org_ids(user):
+    """Org ids the user may manage applications for (own org + team memberships)."""
+    ids = set()
+    if user.organization_id:
+        ids.add(user.organization_id)
+    for tm in TeamMember.query.filter_by(user_id=user.id).all():
+        ids.add(tm.organization_id)
+    return ids
+
+
+def _can_manage_post(user, post):
+    if not user or not post:
+        return False
+    return post.organization_id in _managed_org_ids(user)
+
+
 # Application endpoints
 @api_bp.route("/applications", methods=["GET"])
+@jwt_required()
 def get_applications():
-    """Get applications with pagination, filtering, and sorting support"""
+    """Get applications with pagination, filtering, and sorting support.
+
+    Organization users/team members see their orgs' applications (scoped to
+    their own org by default); individuals see only their own.
+    """
+    user = _current_user()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
     # Get pagination parameters
     page, per_page = get_pagination_params()
 
@@ -20,12 +54,19 @@ def get_applications():
     # Get sorting parameters
     sort_by, sort_order = get_sorting_params(default_sort='applied_at')
 
-    # Special handling for organization_id filter
-    organization_id = request.args.get('organization_id')
-    if organization_id:
+    org_ids = _managed_org_ids(user)
+    requested = request.args.get('organization_id', type=int)
+    if requested:
+        if requested not in org_ids:
+            return jsonify({"error": "Forbidden for this organization"}), 403
+        org_ids = {requested}
+
+    if org_ids:
         # Join with Post to filter by organization
-        query = db.session.query(Application).join(Post, Application.post_id == Post.id).filter(Post.organization_id == organization_id)
+        query = db.session.query(Application).join(Post, Application.post_id == Post.id).filter(Post.organization_id.in_(org_ids))
     else:
+        # Individuals with no org ties see only their own applications
+        filters['user_id'] = user.id
         query = Application.query
 
     # Apply filters and sorting
@@ -38,13 +79,19 @@ def get_applications():
     return jsonify(paginated_response(pagination_result['items'], pagination_result['pagination'])), 200
 
 @api_bp.route("/applications", methods=["POST"])
+@jwt_required()
 def create_application():
     payload = request.get_json(silent=True) or {}
-    print(f"Create application payload: {payload}")
-    user_id = payload.get("user_id")
+    # Identity comes from the JWT, never from the client payload.
+    try:
+        user_id = int(get_jwt_identity())
+    except (TypeError, ValueError):
+        return jsonify({"error": "Invalid user identity"}), 400
     post_id = payload.get("post_id")
-    if not user_id or not post_id:
-        return jsonify({"error": "user_id and post_id required"}), 400
+    if not post_id:
+        return jsonify({"error": "post_id required"}), 400
+    if not Post.query.get(post_id):
+        return jsonify({"error": "Job post not found"}), 404
 
     # Check if user already applied
     existing = Application.query.filter_by(user_id=user_id, post_id=post_id).first()
@@ -73,8 +120,14 @@ def create_application():
     return jsonify(application.to_dict()), 201
 
 @api_bp.route("/applications/user/<int:user_id>", methods=["GET"])
+@jwt_required()
 def list_user_applications(user_id):
-    """Get applications for a specific user with pagination"""
+    """Get applications for a specific user with pagination (own only)."""
+    try:
+        if int(get_jwt_identity()) != user_id:
+            return jsonify({"error": "Forbidden"}), 403
+    except (TypeError, ValueError):
+        return jsonify({"error": "Invalid user identity"}), 400
     # Get pagination parameters
     page, per_page = get_pagination_params()
 
@@ -98,8 +151,12 @@ def list_user_applications(user_id):
     return jsonify(paginated_response(pagination_result['items'], pagination_result['pagination'])), 200
 
 @api_bp.route("/applications/post/<int:post_id>", methods=["GET"])
+@jwt_required()
 def list_post_applications(post_id):
-    """Get applications for a specific post with pagination"""
+    """Get applications for a specific post (managing org only)."""
+    post = Post.query.get_or_404(post_id)
+    if not _can_manage_post(_current_user(), post):
+        return jsonify({"error": "Forbidden for this organization"}), 403
     # Get pagination parameters
     page, per_page = get_pagination_params()
 
@@ -123,8 +180,11 @@ def list_post_applications(post_id):
     return jsonify(paginated_response(pagination_result['items'], pagination_result['pagination'])), 200
 
 @api_bp.route("/applications/<int:app_id>", methods=["PUT"])
+@jwt_required()
 def update_application_status(app_id):
     application = Application.query.get_or_404(app_id)
+    if not _can_manage_post(_current_user(), application.post):
+        return jsonify({"error": "Forbidden for this organization"}), 403
     payload = request.get_json(silent=True) or {}
     if "status" in payload:
         application.status = payload["status"]
@@ -149,10 +209,13 @@ def update_application_status(app_id):
 
 
 @api_bp.route("/applications/<int:app_id>/onboard", methods=["POST"])
+@jwt_required()
 def mark_application_onboarded(app_id):
     """Mark an application as onboarded"""
     from datetime import datetime
     application = Application.query.get_or_404(app_id)
+    if not _can_manage_post(_current_user(), application.post):
+        return jsonify({"error": "Forbidden for this organization"}), 403
     application.onboarded = True
     application.pipeline_stage = "hired"  # Update pipeline stage to hired when onboarded
     
@@ -177,17 +240,24 @@ def mark_application_onboarded(app_id):
 
 
 @api_bp.route("/applications/<int:app_id>/offboard", methods=["POST"])
+@jwt_required()
 def mark_application_offboarded(app_id):
     """Mark an application as not onboarded"""
     application = Application.query.get_or_404(app_id)
+    if not _can_manage_post(_current_user(), application.post):
+        return jsonify({"error": "Forbidden for this organization"}), 403
     application.onboarded = False
     # Optionally update pipeline stage when offboarding
     db.session.commit()
     return jsonify({"message": "Application marked as not onboarded", "application": application.to_dict()}), 200
 
 @api_bp.route("/pipeline/<int:org_id>", methods=["GET"])
+@jwt_required()
 def get_pipeline_data(org_id):
-    """Get pipeline data for an organization"""
+    """Get pipeline data for an organization (members only)."""
+    user = _current_user()
+    if not user or org_id not in _managed_org_ids(user):
+        return jsonify({"error": "Forbidden for this organization"}), 403
     # Get all posts for this organization
     posts = Post.query.filter_by(organization_id=org_id).all()
 
@@ -228,9 +298,12 @@ def get_pipeline_data(org_id):
     return jsonify(pipeline_data), 200
 
 @api_bp.route("/pipeline/application/<int:app_id>/stage", methods=["PUT"])
+@jwt_required()
 def update_pipeline_stage(app_id):
     """Update pipeline stage for an application"""
     application = Application.query.get_or_404(app_id)
+    if not _can_manage_post(_current_user(), application.post):
+        return jsonify({"error": "Forbidden for this organization"}), 403
     payload = request.get_json(silent=True) or {}
     new_stage = payload.get("pipeline_stage")
 

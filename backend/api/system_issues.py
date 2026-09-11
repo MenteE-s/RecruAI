@@ -1,4 +1,5 @@
 from flask import request, jsonify
+from flask_jwt_extended import jwt_required
 from sqlalchemy import desc
 from . import api_bp
 from ..extensions import db
@@ -6,6 +7,7 @@ from ..models.system_issue import SystemIssue
 
 
 @api_bp.route('/system-issues', methods=['GET'])
+@jwt_required()
 def get_system_issues():
     """Get all system issues with filtering and pagination"""
     try:
@@ -54,7 +56,7 @@ def get_system_issues():
     except Exception as e:
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': 'Internal server error'
         }), 500
 
 
@@ -96,13 +98,14 @@ def create_system_issue():
         db.session.rollback()
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': 'Internal server error'
         }), 500
 
 
 @api_bp.route('/system-issues/<int:issue_id>', methods=['PUT'])
+@jwt_required()
 def update_system_issue(issue_id):
-    """Update an existing system issue (for admin use)"""
+    """Update an existing system issue (authenticated users; admin console use)."""
     try:
         issue = SystemIssue.query.get_or_404(issue_id)
         data = request.get_json()
@@ -130,11 +133,12 @@ def update_system_issue(issue_id):
         db.session.rollback()
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': 'Internal server error'
         }), 500
 
 
 @api_bp.route('/system-issues/stats', methods=['GET'])
+@jwt_required()
 def get_system_issue_stats():
     """Get statistics about system issues"""
     try:
@@ -168,5 +172,5 @@ def get_system_issue_stats():
     except Exception as e:
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': 'Internal server error'
         }), 500

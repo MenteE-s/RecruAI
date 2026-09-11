@@ -69,8 +69,7 @@ def query_rag():
                 "workflow_id": result.get('workflow_id'),
                 "success": not result.get('rag_disabled'),
                 "message": "RAG query processed"
-            },
-            user_id=current_user_id
+            }
         )
 
         # Handle RAG disabled case
@@ -153,8 +152,7 @@ def agentic_query_rag():
                 "thinking_step": result.get('thinking_step'),
                 "enhanced_by_thinking": result.get('final_response', {}).get('enhanced_by_thinking', False),
                 "message": "Agentic RAG query processed"
-            },
-            user_id=current_user_id
+            }
         )
 
         # Handle RAG disabled case
@@ -244,8 +242,7 @@ def ingest_text():
                 "chunks_embedded": stored_count,
                 "content_length": len(content),
                 "message": f"New content ingested into RAG system ({len(chunks)} chunks)"
-            },
-            user_id=current_user_id
+            }
         )
 
         return jsonify({

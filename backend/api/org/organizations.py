@@ -7,7 +7,27 @@ from ...utils.timezone_utils import is_valid_timezone, get_current_time_info
 from ...utils.kafka_service import kafka_service as kafka
 from ...utils.cache import cached, invalidate_org_cache
 import json
+import secrets
 from datetime import datetime
+
+
+def _manages_org(org_id):
+    """Caller may administer this org: its org account or a team member."""
+    from flask_jwt_extended import get_jwt_identity
+    try:
+        uid = int(get_jwt_identity())
+    except (TypeError, ValueError):
+        return False
+    user = User.query.get(uid)
+    if not user:
+        return False
+    try:
+        org_id = int(org_id)
+    except (TypeError, ValueError):
+        return False
+    if user.role == "organization" and user.organization_id == org_id:
+        return True
+    return TeamMember.query.filter_by(organization_id=org_id, user_id=user.id).first() is not None
 
 # Default AI agents to create for new organizations
 DEFAULT_AI_AGENTS = [
@@ -448,6 +468,7 @@ def suggest_organizations():
 
 
 @api_bp.route("/organizations", methods=["GET"])
+@jwt_required()
 @cached("org_listings", ttl=600)
 def list_organizations():
     orgs = Organization.query.order_by(Organization.id.asc()).all()
@@ -465,6 +486,7 @@ def list_organizations():
     } for o in orgs]), 200
 
 @api_bp.route("/organizations", methods=["POST"])
+@jwt_required()
 def create_organization():
     payload = request.get_json(silent=True) or {}
     name = payload.get("name")
@@ -501,6 +523,7 @@ def create_organization():
     return jsonify({"id": org.id, "name": org.name}), 201
 
 @api_bp.route("/organizations/<int:org_id>", methods=["GET"])
+@jwt_required()
 @cached("org_details", ttl=300, key_func=lambda org_id: f"org_{org_id}")
 def get_organization(org_id):
     org = Organization.query.get_or_404(org_id)
@@ -525,7 +548,10 @@ def get_organization(org_id):
     })
 
 @api_bp.route("/organizations/<int:org_id>", methods=["PUT"])
+@jwt_required()
 def update_organization(org_id):
+    if not _manages_org(org_id):
+        return jsonify({"error": "Forbidden for this organization"}), 403
     org = Organization.query.get_or_404(org_id)
     payload = request.get_json(silent=True) or {}
 
@@ -557,8 +583,11 @@ def update_organization(org_id):
 
 
 @api_bp.route("/organizations/<int:org_id>/timezone", methods=["PUT"])
+@jwt_required()
 def update_organization_timezone(org_id):
     """Update organization's timezone preference."""
+    if not _manages_org(org_id):
+        return jsonify({"error": "Forbidden for this organization"}), 403
     org = Organization.query.get_or_404(org_id)
     payload = request.get_json(silent=True) or {}
     
@@ -595,7 +624,10 @@ def get_organization_current_time(org_id):
 
 
 @api_bp.route("/organizations/<int:org_id>/profile", methods=["PUT"])
+@jwt_required()
 def update_organization_profile(org_id):
+    if not _manages_org(org_id):
+        return jsonify({"error": "Forbidden for this organization"}), 403
     org = Organization.query.get_or_404(org_id)
     payload = request.get_json(silent=True) or {}
 
@@ -621,13 +653,19 @@ def update_organization_profile(org_id):
     return jsonify(org.to_dict()), 200
 
 @api_bp.route("/organizations/<int:org_id>/team-members", methods=["GET"])
+@jwt_required()
 def list_team_members(org_id):
+    if not _manages_org(org_id):
+        return jsonify({"error": "Forbidden for this organization"}), 403
     org = Organization.query.get_or_404(org_id)
     team_members = [tm.to_dict() for tm in org.team_members]
     return jsonify(team_members), 200
 
 @api_bp.route("/organizations/<int:org_id>/team-members", methods=["POST"])
+@jwt_required()
 def add_team_member(org_id):
+    if not _manages_org(org_id):
+        return jsonify({"error": "Forbidden for this organization"}), 403
     org = Organization.query.get_or_404(org_id)
     payload = request.get_json(silent=True) or {}
     user_id = payload.get("user_id")
@@ -669,7 +707,10 @@ def add_team_member(org_id):
     return jsonify(tm.to_dict()), 201
 
 @api_bp.route("/organizations/<int:org_id>/team-members/<int:member_id>", methods=["PUT"])
+@jwt_required()
 def update_team_member(org_id, member_id):
+    if not _manages_org(org_id):
+        return jsonify({"error": "Forbidden for this organization"}), 403
     tm = TeamMember.query.filter_by(id=member_id, organization_id=org_id).first_or_404()
     payload = request.get_json(silent=True) or {}
 
@@ -684,7 +725,10 @@ def update_team_member(org_id, member_id):
     return jsonify(tm.to_dict()), 200
 
 @api_bp.route("/organizations/<int:org_id>/team-members/<int:member_id>", methods=["DELETE"])
+@jwt_required()
 def remove_team_member(org_id, member_id):
+    if not _manages_org(org_id):
+        return jsonify({"error": "Forbidden for this organization"}), 403
     tm = TeamMember.query.filter_by(id=member_id, organization_id=org_id).first_or_404()
     db.session.delete(tm)
     db.session.commit()
@@ -699,8 +743,11 @@ def remove_team_member(org_id, member_id):
     return jsonify({"message": "team member removed"}), 200
 
 @api_bp.route("/organizations/<int:org_id>/users", methods=["GET"])
+@jwt_required()
 def list_organization_users(org_id):
-    """Get all users belonging to an organization"""
+    """Get all users belonging to an organization (managers only)."""
+    if not _manages_org(org_id):
+        return jsonify({"error": "Forbidden for this organization"}), 403
     org = Organization.query.get_or_404(org_id)
     users = User.query.filter_by(organization_id=org_id).all()
     return jsonify([user.to_dict() for user in users]), 200
@@ -744,7 +791,10 @@ def list_organization_people(org_id):
     }), 200
 
 @api_bp.route("/organizations/<int:org_id>/invite", methods=["POST"])
+@jwt_required()
 def invite_team_member(org_id):
+    if not _manages_org(org_id):
+        return jsonify({"error": "Forbidden for this organization"}), 403
     org = Organization.query.get_or_404(org_id)
     payload = request.get_json(silent=True) or {}
     email = payload.get("email")
@@ -770,7 +820,8 @@ def invite_team_member(org_id):
             role="organization",
             organization_id=org_id
         )
-        user.set_password("temppass123")  # Temporary password
+        # Random temporary password (must pass strength policy); share out-of-band.
+        user.set_password(f"Tmp-{secrets.token_urlsafe(12)}!A9")
         db.session.add(user)
         db.session.flush()  # Get user.id
         user_id = user.id

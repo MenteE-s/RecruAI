@@ -16,8 +16,14 @@ class Config:
     DATABASE_URL example: postgresql://user:pass@host:5432/dbname
     """
 
-    # Detect if we're in production (Railway sets RAILWAY_ENVIRONMENT)
-    IS_PRODUCTION = os.getenv("RAILWAY_ENVIRONMENT") is not None or os.getenv("PRODUCTION") == "1"
+    # Detect if we're in production. Set PRODUCTION=1 (or FLASK_ENV=production)
+    # on any VPS/EC2 host; RAILWAY_ENVIRONMENT covers Railway.
+    IS_PRODUCTION = (
+        os.getenv("RAILWAY_ENVIRONMENT") is not None
+        or os.getenv("PRODUCTION") == "1"
+        or os.getenv("IS_PRODUCTION") == "1"
+        or os.getenv("FLASK_ENV") == "production"
+    )
 
     SQLALCHEMY_DATABASE_URI = os.getenv(
         "DATABASE_URL",
@@ -28,13 +34,16 @@ class Config:
 
     # Security: Strong secret keys required
     SECRET_KEY = os.getenv("SECRET_KEY")
-    if not SECRET_KEY and IS_PRODUCTION:
-        raise ValueError("SECRET_KEY environment variable is required in production")
+    if IS_PRODUCTION:
+        if not SECRET_KEY or SECRET_KEY == "dev-secret-change-in-production":
+            raise ValueError("SECRET_KEY environment variable is required in production")
     elif not SECRET_KEY:
         SECRET_KEY = "dev-secret-change-in-production"  # Better default for dev
 
     # JWT uses its own key, but default to SECRET_KEY when not provided
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", SECRET_KEY)
+    if IS_PRODUCTION and JWT_SECRET_KEY == "dev-secret-change-in-production":
+        raise ValueError("JWT_SECRET_KEY environment variable is required in production")
 
     # Security: Enhanced JWT settings
     JWT_TOKEN_LOCATION = ["headers", "cookies"]
@@ -47,9 +56,10 @@ class Config:
     from datetime import timedelta
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES_HOURS", "2")))  # 2 hours instead of 24
 
-    # Kafka configuration
+    # Kafka configuration. Toggle with KAFKA_ENABLED=1 (needs a reachable
+    # broker at KAFKA_BOOTSTRAP_SERVERS); default off for small hosts.
     KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
-    KAFKA_ENABLED = os.getenv("KAFKA_ENABLED", "0" if IS_PRODUCTION else "0") == "1"
+    KAFKA_ENABLED = os.getenv("KAFKA_ENABLED", "0") == "1"
 
     # Redis configuration
     REDIS_URL = os.getenv(
@@ -122,7 +132,8 @@ class Config:
 
     @property
     def EMBEDDING_DIMENSIONS(self):
-        return int(os.getenv("EMBEDDING_DIMENSIONS", "1536"))
+        # all-MiniLM-L6-v2 (HF space + pgvector columns) is 384-dim.
+        return int(os.getenv("EMBEDDING_DIMENSIONS", "384"))
 
     @property
     def OPENAI_API_KEY(self):

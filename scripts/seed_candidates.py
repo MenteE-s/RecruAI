@@ -220,6 +220,8 @@ def seed():
 
 
 if __name__ == "__main__":
+    if os.getenv("ALLOW_DEMO_SEED") != "1":
+        raise SystemExit("Refusing to seed demo candidates: set ALLOW_DEMO_SEED=1 to run.")
     from backend.app import create_app
 
     app = create_app()

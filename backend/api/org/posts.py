@@ -1,9 +1,23 @@
 from flask import request, jsonify
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy import func
 from .. import api_bp
 from ...extensions import db
-from ...models import Post, Organization
+from ...models import Post, Organization, User, TeamMember
 import json
+
+
+def _can_manage_org(user, org_id):
+    """Caller may mutate this org's posts: own org account or team member."""
+    if not user or not org_id:
+        return False
+    try:
+        org_id = int(org_id)
+    except (TypeError, ValueError):
+        return False
+    if user.role == "organization" and user.organization_id == org_id:
+        return True
+    return TeamMember.query.filter_by(organization_id=org_id, user_id=user.id).first() is not None
 from datetime import datetime
 from ...utils.pagination import Pagination, get_pagination_params, paginated_response, apply_filters_and_sorting, get_request_filters, get_sorting_params
 from ...utils.kafka_service import kafka_service as kafka
@@ -24,6 +38,7 @@ def list_posts_for_org(org_id):
     return jsonify([p.to_dict() for p in org.posts])
 
 @api_bp.route("/posts", methods=["POST"])
+@jwt_required()
 def create_post():
     try:
         payload = request.get_json()
@@ -35,6 +50,13 @@ def create_post():
 
     if not org_id or not title:
         return jsonify({"error": "organization_id and title required"}), 400
+
+    try:
+        caller = User.query.get(int(get_jwt_identity()))
+    except (TypeError, ValueError):
+        caller = None
+    if not _can_manage_org(caller, org_id):
+        return jsonify({"error": "Forbidden for this organization"}), 403
 
     if len(title.strip()) < 3:
         return jsonify({"error": "title must be at least 3 characters"}), 400
@@ -114,11 +136,16 @@ def create_post():
         return jsonify({"error": f"Failed to save job: {str(e)}"}), 500
 
 @api_bp.route("/posts/<int:post_id>", methods=["PUT"])
+@jwt_required()
 def update_post(post_id):
     post = Post.query.get_or_404(post_id)
 
-    # TODO: Add authentication check - ensure user is part of the organization
-    # For now, allowing all updates
+    try:
+        caller = User.query.get(int(get_jwt_identity()))
+    except (TypeError, ValueError):
+        caller = None
+    if not _can_manage_org(caller, post.organization_id):
+        return jsonify({"error": "Forbidden for this organization"}), 403
 
     payload = request.get_json(silent=True) or {}
 
@@ -196,8 +223,15 @@ def update_post(post_id):
         return jsonify({"error": f"Failed to update job: {str(e)}"}), 500
 
 @api_bp.route("/posts/<int:post_id>", methods=["DELETE"])
+@jwt_required()
 def delete_post(post_id):
     post = Post.query.get_or_404(post_id)
+    try:
+        caller = User.query.get(int(get_jwt_identity()))
+    except (TypeError, ValueError):
+        caller = None
+    if not _can_manage_org(caller, post.organization_id):
+        return jsonify({"error": "Forbidden for this organization"}), 403
     try:
         post_id_val = post.id
         org_id_val = post.organization_id

@@ -41,55 +41,20 @@ const Pricing = () => {
 
   const organizationPlans = [
     {
-      name: "Startup",
-      description: "For small teams and startups",
-      price: 30,
-      duration: "recruiter/month",
+      name: "For Organizations",
+      description: "Custom hiring solutions for startups, SMEs & enterprises",
+      price: "Contact us",
+      duration: "for pricing",
       features: [
-        "Up to 3 recruiters",
-        "AI candidate screening",
-        "Basic analytics dashboard",
-        "Email support",
-        "Standard integrations",
-        "14-day free trial",
-      ],
-      popular: false,
-      cta: "Start Free Trial",
-    },
-    {
-      name: "Professional",
-      description: "For growing organizations",
-      price: 25,
-      duration: "recruiter/month",
-      features: [
-        "Up to 10 recruiters",
-        "Advanced AI screening",
-        "Custom question banks",
-        "Detailed analytics",
-        "ATS integration",
-        "Priority support",
-        "Team collaboration tools",
-        "Free onboarding & training",
+        "Post unlimited jobs across Pakistan & Gulf",
+        "AI candidate screening & matching",
+        "Pipeline, analytics & team collaboration",
+        "ATS integrations & custom workflows",
+        "Dedicated support & onboarding",
+        "Flexible plans for every team size",
       ],
       popular: true,
-      cta: "Schedule Demo",
-    },
-    {
-      name: "Enterprise",
-      description: "For large organizations",
-      price: "Custom",
-      duration: "pricing",
-      features: [
-        "Unlimited recruiters",
-        "White-label solution",
-        "Custom AI models",
-        "Advanced integrations",
-        "Dedicated account manager",
-        "SLA guarantee",
-        "Custom training & support",
-      ],
-      popular: false,
-      cta: "Custom — Talk to Us",
+      cta: "Contact Us for Pricing",
     },
   ];
 
@@ -139,8 +104,12 @@ const Pricing = () => {
         </div>
 
         {/* Cards */}
-        <div className={`grid gap-6 max-w-5xl mx-auto ${
-          currentPlans.length === 2 ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1 md:grid-cols-3"
+        <div className={`grid gap-6 mx-auto ${
+          currentPlans.length === 1
+            ? "grid-cols-1 max-w-md"
+            : currentPlans.length === 2
+              ? "grid-cols-1 md:grid-cols-2 max-w-5xl"
+              : "grid-cols-1 md:grid-cols-3 max-w-5xl"
         }`}>
           {currentPlans.map((plan, index) => (
             <div
@@ -161,7 +130,7 @@ const Pricing = () => {
               <p className="text-sm text-gray-600 mb-6">{plan.description}</p>
 
               <div className="mb-6">
-                <div className="flex items-baseline">
+                <div className="flex items-baseline flex-wrap">
                   {typeof plan.price === "number" ? (
                     <>
                       <span className="text-4xl font-bold text-gray-900">
@@ -170,7 +139,12 @@ const Pricing = () => {
                       <span className="text-gray-600 ml-2">/{plan.duration}</span>
                     </>
                   ) : (
-                    <span className="text-4xl font-bold text-gray-900">{plan.price}</span>
+                    <>
+                      <span className="text-4xl font-bold text-gray-900">{plan.price}</span>
+                      {plan.duration && (
+                        <span className="text-gray-600 ml-2">/{plan.duration}</span>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
