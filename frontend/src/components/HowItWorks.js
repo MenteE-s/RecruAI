@@ -25,29 +25,29 @@ const HowItWorks = () => {
           {/* Job Seeker Flow */}
           <div>
             <h3 className="text-lg font-bold text-gray-900 mb-6 pb-3 border-b border-gray-200">
-              Job Seeker Journey
+              Job Seeker Journey — Pakistan to Gulf
             </h3>
             <div className="space-y-6">
               {[
                 {
                   step: "1",
-                  title: "Create Profile",
-                  desc: "Sign up and build your professional profile with experience, skills, and education",
+                  title: "Create Profile + Optimize CV",
+                  desc: "Sign up, upload your CV and let AI rewrite it for ATS, add Gulf-ready keywords, and boost your score",
                 },
                 {
                   step: "2",
+                  title: "Find Your Perfect Job",
+                  desc: "Get AI-matched jobs in Pakistan (Karachi, Lahore, Islamabad) and Gulf (Dubai, Riyadh, Doha, Kuwait)",
+                },
+                {
+                  step: "3",
                   title: "Practice Interviews",
                   desc: "Take unlimited AI mock interviews. Get real-time feedback and improve your scores",
                 },
                 {
-                  step: "3",
-                  title: "Browse & Apply",
-                  desc: "Find matching jobs, apply with one click, and track all applications",
-                },
-                {
                   step: "4",
-                  title: "Get Invited",
-                  desc: "Organizations can find you and send interview invitations directly",
+                  title: "Apply & Get Invited",
+                  desc: "Apply with one click, track applications, and get direct invitations from top employers",
                 },
                 {
                   step: "5",

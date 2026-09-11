@@ -6,11 +6,11 @@ const CTA = () => {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
-            Ready to Transform Your Interview Success?
+            Ready to Find Your Perfect Job?
           </h2>
           <p className="text-lg text-blue-100 max-w-2xl mx-auto">
-            Join thousands of professionals who have mastered their interview skills with RecruAI.
-            Start free forever or try our premium features with a 14-day trial.
+            Join Pakistan&apos;s fastest-growing job portal — expanding across the Gulf & Asia.
+            Optimize your CV, get matched, and get hired. Start free forever.
           </p>
         </div>
 
@@ -19,13 +19,13 @@ const CTA = () => {
           <div className="border border-white/20 p-8">
             <h3 className="text-xl font-bold text-white mb-2">For Job Seekers</h3>
             <p className="text-blue-100 text-sm mb-6">
-              Start practicing with AI interviews today
+              Find jobs in Pakistan & Gulf + optimize your CV with AI
             </p>
             <button className="w-full bg-white text-blue-600 hover:bg-blue-50 px-6 py-3 text-sm font-medium transition-colors mb-4">
-              Start Free Forever
+              Find Jobs & Optimize CV
             </button>
             <p className="text-xs text-blue-200">
-              Earn $3 per referral • No credit card required
+              Free CV review • No credit card required
             </p>
           </div>
 

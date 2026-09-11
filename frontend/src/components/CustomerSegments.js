@@ -4,19 +4,19 @@ const CustomerSegments = () => {
   const segments = [
     {
       title: "Job Seekers",
-      subtitle: "Students, Fresh Graduates & Professionals",
+      subtitle: "Students, Fresh Graduates & Professionals in Pakistan & Gulf",
       icon: (
         <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
         </svg>
       ),
       benefits: [
+        "Find your perfect job with AI matching",
+        "CV optimization with ATS score & rewrites",
+        "Jobs across Pakistan, UAE, Saudi, Qatar & Gulf",
         "Unlimited AI mock interviews",
         "Real-time feedback & scoring",
-        "Job matching & one-click apply",
-        "Track interview history & results",
-        "Hired status tracking",
-        "Invitations from organizations",
+        "One-click apply & invitations from organizations",
       ],
       painPoints: [
         "Expensive coaching services",
