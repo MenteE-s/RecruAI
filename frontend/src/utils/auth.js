@@ -183,7 +183,7 @@ export function getSidebarItems(role, plan) {
         { name: "Resume Builder", link: "/resume/builder", icon: FiFileText, section: "pro" },
         { name: "Job Alerts", link: "/jobs/alerts", icon: FiBell, section: "pro" },
         { name: "Career Coaching", link: "/coaching", icon: FiUsers, section: "pro" },
-        {/* PITCH: Practice hidden (stub alerts) — re-enable when implemented */}
+        // PITCH: Practice hidden (stub alerts) — re-enable when implemented
         { name: "My AI Agents", link: "/ai-agents", icon: FiCpu, section: "ai" },
         {
           name: "Shareable Profiles",
@@ -191,7 +191,7 @@ export function getSidebarItems(role, plan) {
           icon: FiLink,
           section: "ai",
         },
-        {/* PITCH: Billing hidden (Stripe stubs) — re-enable when implemented */}
+        // PITCH: Billing hidden (Stripe stubs) — re-enable when implemented
         { name: "Settings", link: "/settings", icon: FiSettings, section: "bottom" },
         { name: "Sign Out", link: "/signin", icon: FiLogOut, section: "bottom" },
        ];
@@ -220,7 +220,7 @@ export function getSidebarItems(role, plan) {
          { name: "Resume Builder", link: "/resume/builder", icon: FiFileText, section: "pro" },
          { name: "Job Alerts", link: "/jobs/alerts", icon: FiBell, section: "pro" },
          { name: "Career Coaching", link: "/coaching", icon: FiUsers, section: "pro" },
-         {/* PITCH: Practice hidden (stub alerts) — re-enable when implemented */}
+         // PITCH: Practice hidden (stub alerts) — re-enable when implemented
          { name: "My AI Agents", link: "/ai-agents", icon: FiCpu, section: "ai" },
          {
            name: "Shareable Profiles",
@@ -228,7 +228,7 @@ export function getSidebarItems(role, plan) {
            icon: FiLink,
            section: "ai",
          },
-         {/* PITCH: Billing hidden (Stripe stubs) — re-enable when implemented */}
+         // PITCH: Billing hidden (Stripe stubs) — re-enable when implemented
          { name: "Settings", link: "/settings", icon: FiSettings, section: "bottom" },
          { name: "Sign Out", link: "/signin", icon: FiLogOut, section: "bottom" },
        ];
@@ -287,7 +287,7 @@ export function getSidebarItems(role, plan) {
          { name: "Pipeline", link: "/organization/pipeline", icon: FiBarChart2, section: "activity" },
          { name: "Analytics", link: "/organization/analytics", icon: FiBarChart2, section: "activity" },
           { name: "Reports", link: "/organization/reports", icon: FiFileText, section: "pro" },
-          {/* PITCH: Integrations/Insights/Billing hidden (coming-soon stubs) */}
+          // PITCH: Integrations/Insights/Billing hidden (coming-soon stubs)
          { name: "Settings", link: "/settings", icon: FiSettings, section: "bottom" },
          { name: "Sign Out", link: "/signin", icon: FiLogOut, section: "bottom" },
        ];

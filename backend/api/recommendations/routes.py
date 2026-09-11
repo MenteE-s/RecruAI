@@ -63,8 +63,7 @@ def recommend_candidates(job_id):
                 "job_id": job_id,
                 "count": len(recommendations),
                 "message": f"Candidate recommendations requested for job {job_id}"
-            },
-            user_id=current_user_id
+            }
         )
 
         return jsonify({
@@ -111,8 +110,7 @@ def recommend_jobs():
                 "user_id": current_user_id,
                 "count": len(recommendations),
                 "message": "Job recommendations requested for profile"
-            },
-            user_id=current_user_id
+            }
         )
 
         return jsonify({
