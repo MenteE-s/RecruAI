@@ -1,11 +1,45 @@
 from flask import request, jsonify
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from .. import api_bp
 from ...extensions import db
-from ...models import Interview, InterviewAnalysis, Message, ConversationMessage
+from ...models import Interview, InterviewAnalysis, Message, ConversationMessage, User, TeamMember
 from ...ai_service import get_ai_service
 from ...utils.kafka_service import KafkaService
 import json
 from datetime import datetime
+
+
+def _can_access_interview_id(interview_id):
+    """Participant or managing-org member."""
+    try:
+        uid = int(get_jwt_identity())
+    except (TypeError, ValueError):
+        return False
+    user = User.query.get(uid)
+    interview = Interview.query.get(interview_id)
+    if not user or not interview:
+        return False
+    if interview.user_id == user.id:
+        return True
+    org_ids = set()
+    if user.organization_id:
+        org_ids.add(user.organization_id)
+    for tm in TeamMember.query.filter_by(user_id=user.id).all():
+        org_ids.add(tm.organization_id)
+    return interview.organization_id in org_ids
+
+
+def _manages_org_id(org_id):
+    try:
+        uid = int(get_jwt_identity())
+    except (TypeError, ValueError):
+        return False
+    user = User.query.get(uid)
+    if not user:
+        return False
+    if user.role == "organization" and user.organization_id == org_id:
+        return True
+    return TeamMember.query.filter_by(organization_id=org_id, user_id=user.id).first() is not None
 
 def generate_ai_analysis(interview, messages):
     """Generate real AI analysis of interview conversation"""
@@ -205,8 +239,11 @@ Provide a detailed analysis with accurate scores based on the actual content and
         }
 
 @api_bp.route('/interviews/<int:interview_id>/analyze', methods=['POST'])
+@jwt_required()
 def generate_interview_analysis(interview_id):
-    """Generate AI analysis for completed interview"""
+    """Generate AI analysis for completed interview (participant/org only)."""
+    if not _can_access_interview_id(interview_id):
+        return jsonify({"error": "Forbidden"}), 403
     interview = Interview.query.get_or_404(interview_id)
 
     if interview.status != 'completed':
@@ -290,8 +327,11 @@ def generate_interview_analysis(interview_id):
     }), 200
 
 @api_bp.route('/interviews/<int:interview_id>/analysis', methods=['GET'])
+@jwt_required()
 def get_interview_analysis(interview_id):
-    """Get analysis for a specific interview"""
+    """Get analysis for a specific interview (participant/org only)."""
+    if not _can_access_interview_id(interview_id):
+        return jsonify({"error": "Forbidden"}), 403
     analysis = InterviewAnalysis.query.filter_by(interview_id=interview_id).first()
     if not analysis:
         return jsonify({"error": "Analysis not found for this interview"}), 404
@@ -299,8 +339,11 @@ def get_interview_analysis(interview_id):
     return jsonify(analysis.to_dict()), 200
 
 @api_bp.route('/organizations/<int:org_id>/analytics', methods=['GET'])
+@jwt_required()
 def get_organization_analytics(org_id):
-    """Get aggregated analytics for an organization"""
+    """Get aggregated analytics for an organization (members only)."""
+    if not _manages_org_id(org_id):
+        return jsonify({"error": "Forbidden for this organization"}), 403
     from sqlalchemy import func, desc
 
     # Get all completed interviews with analysis for this organization

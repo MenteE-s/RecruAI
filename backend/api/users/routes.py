@@ -1,6 +1,8 @@
 from flask import request, jsonify
+from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from .. import api_bp
+from ..decorators import organization_required
 from ...extensions import db
 from ...models import (
     User, Experience, Education, Skill, Project, Certification,
@@ -16,6 +18,16 @@ from ...utils.kafka_service import kafka_service
 from ...utils.cache import cached, invalidate_user_cache
 
 
+def _own_id_or_403(user_id):
+    """Caller may act only as themselves; returns None or a 403 tuple."""
+    try:
+        if int(get_jwt_identity()) != int(user_id):
+            return jsonify({"error": "Forbidden"}), 403
+    except (TypeError, ValueError):
+        return jsonify({"error": "Invalid user identity"}), 400
+    return None
+
+
 @api_bp.route("/timezones", methods=["GET"])
 def list_timezones():
     """Get list of available timezones for user selection."""
@@ -23,8 +35,12 @@ def list_timezones():
 
 
 @api_bp.route("/users/<int:user_id>/timezone", methods=["PUT"])
+@jwt_required()
 def update_user_timezone(user_id):
-    """Update user's timezone preference."""
+    """Update user's timezone preference (own account only)."""
+    denied = _own_id_or_403(user_id)
+    if denied:
+        return denied
     user = User.query.get_or_404(user_id)
 
     try:
@@ -82,8 +98,9 @@ def get_user_current_time(user_id):
 
 
 @api_bp.route("/users", methods=["GET"])
+@jwt_required()
 def list_users():
-    """List users with pagination, filtering, and sorting support"""
+    """List users with pagination, filtering, and sorting support (login required)"""
     # Get pagination parameters
     page, per_page = get_pagination_params()
 
@@ -111,6 +128,7 @@ def list_users():
 
 
 @api_bp.route("/users", methods=["POST"])
+@organization_required
 def create_user():
     try:
         payload = request.get_json()
@@ -163,6 +181,7 @@ def create_user():
 
 
 @api_bp.route("/users/<int:user_id>/full-profile", methods=["GET"])
+@jwt_required()
 @cached("user_profile", ttl=300, key_func=lambda user_id: f"user_{user_id}")
 def get_user_full_profile(user_id):
     user = User.query.get_or_404(user_id)
@@ -193,8 +212,12 @@ def get_user_full_profile(user_id):
 
 
 @api_bp.route("/users/<int:user_id>/toggle-favorite/<int:target_user_id>", methods=["POST"])
+@jwt_required()
 def toggle_favorite(user_id, target_user_id):
-    """Toggle favorite status for a user"""
+    """Toggle favorite status for a user (own list only)."""
+    denied = _own_id_or_403(user_id)
+    if denied:
+        return denied
     # Check if the favorite relationship already exists
     favorite = Favorite.query.filter_by(
         user_id=user_id, 
@@ -267,8 +290,12 @@ def toggle_favorite(user_id, target_user_id):
 
 
 @api_bp.route("/users/<int:user_id>/favorites", methods=["GET"])
+@jwt_required()
 def get_favorites(user_id):
-    """Get list of favorited users for a specific user"""
+    """Get list of favorited users for a specific user (own list only)."""
+    denied = _own_id_or_403(user_id)
+    if denied:
+        return denied
     user = User.query.get_or_404(user_id)
     
     # Get pagination parameters
@@ -290,8 +317,12 @@ def get_favorites(user_id):
 
 
 @api_bp.route("/users/<int:user_id>/is-favorite/<int:target_user_id>", methods=["GET"])
+@jwt_required()
 def is_favorite(user_id, target_user_id):
-    """Check if a user is favorited by another user"""
+    """Check if a user is favorited by another user (own list only)."""
+    denied = _own_id_or_403(user_id)
+    if denied:
+        return denied
     favorite = Favorite.query.filter_by(
         user_id=user_id,
         target_user_id=target_user_id
@@ -303,11 +334,15 @@ def is_favorite(user_id, target_user_id):
 
 
 @api_bp.route("/users/<int:user_id>/join-position", methods=["POST"])
+@jwt_required()
 def join_position(user_id):
-    """Allow a candidate to join/accept their hired position"""
+    """Allow a candidate to join/accept their hired position (own account only)."""
     from datetime import datetime
     from ...models import Application
 
+    denied = _own_id_or_403(user_id)
+    if denied:
+        return denied
     user = User.query.get_or_404(user_id)
 
     # Check if user is hired

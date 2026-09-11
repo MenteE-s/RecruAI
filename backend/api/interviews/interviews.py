@@ -1,7 +1,8 @@
 from flask import request, jsonify
+from sqlalchemy import or_
 from .. import api_bp
 from ...extensions import db
-from ...models import Interview, Application, ConversationMemory, Message, InterviewAnalysis, ConversationMessage, Organization, Post, User
+from ...models import Interview, Application, ConversationMemory, Message, InterviewAnalysis, ConversationMessage, Organization, Post, User, TeamMember
 from ...utils.kafka_service import KafkaService
 import json
 from datetime import datetime, timezone, timedelta
@@ -10,6 +11,37 @@ from ...utils.pagination import Pagination, get_pagination_params, paginated_res
 from ...utils.subscription import require_interview_access
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from ...api.notifications.routes import create_interview_notification
+
+def _me():
+    try:
+        return User.query.get(int(get_jwt_identity()))
+    except (TypeError, ValueError):
+        return None
+
+
+def _managed_org_ids(user):
+    ids = set()
+    if user.organization_id:
+        ids.add(user.organization_id)
+    for tm in TeamMember.query.filter_by(user_id=user.id).all():
+        ids.add(tm.organization_id)
+    return ids
+
+
+def _can_see_interview(user, interview):
+    if not user or not interview:
+        return False
+    if interview.user_id == user.id:
+        return True
+    return (interview.organization_id is not None
+            and interview.organization_id in _managed_org_ids(user))
+
+
+def _manages_interview(user, interview):
+    if not user or not interview or not interview.organization_id:
+        return False
+    return interview.organization_id in _managed_org_ids(user)
+
 
 def update_pipeline_stage_for_interview(interview):
     """Update pipeline stage based on interview status"""
@@ -38,19 +70,31 @@ def update_pipeline_stage_for_interview(interview):
     db.session.commit()
 
 @api_bp.route('/interviews', methods=['GET'])
+@jwt_required()
 def get_interviews():
-    """Get interviews with pagination, filtering, and sorting support"""
+    """Get interviews with pagination, filtering, and sorting support.
+
+    Scoped: own interviews plus managed organizations' interviews.
+    """
+    user = _me()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
     # Get pagination parameters
     page, per_page = get_pagination_params()
 
     # Get filters from request
     filters = get_request_filters(Interview)
+    filters.pop('user_id', None)
+    filters.pop('organization_id', None)
 
     # Get sorting parameters
     sort_by, sort_order = get_sorting_params(default_sort='scheduled_at')
 
-    # Build base query
-    query = Interview.query
+    # Build base query scoped to caller
+    query = Interview.query.filter(or_(
+        Interview.user_id == user.id,
+        Interview.organization_id.in_(_managed_org_ids(user) or [-1]),
+    ))
 
     # Apply filters and sorting
     query = apply_filters_and_sorting(query, Interview, filters, sort_by, sort_order)
@@ -62,9 +106,12 @@ def get_interviews():
     return jsonify(paginated_response(pagination_result['items'], pagination_result['pagination'])), 200
 
 @api_bp.route('/interviews/<int:interview_id>', methods=['GET'])
+@jwt_required()
 def get_interview(interview_id):
-    """Get a specific interview"""
+    """Get a specific interview (participant or managing org)."""
     interview = Interview.query.get_or_404(interview_id)
+    if not _can_see_interview(_me(), interview):
+        return jsonify({"error": "Forbidden"}), 403
     return jsonify(interview.to_dict()), 200
 
 @api_bp.route('/interviews', methods=['POST'])
@@ -214,10 +261,12 @@ def create_interview():
     }), 201
 
 @api_bp.route('/interviews/<int:interview_id>', methods=['PUT'])
+@jwt_required()
 def update_interview(interview_id):
-    """Update an interview"""
-    print(f"PUT request received for interview {interview_id}")
+    """Update an interview (participant or managing org)."""
     interview = Interview.query.get_or_404(interview_id)
+    if not _can_see_interview(_me(), interview):
+        return jsonify({"error": "Forbidden"}), 403
     data = request.get_json()
 
     print(f"Updating interview {interview_id} with data: {data}")
@@ -322,9 +371,12 @@ def update_interview(interview_id):
     }), 200
 
 @api_bp.route('/interviews/<int:interview_id>', methods=['DELETE'])
+@jwt_required()
 def delete_interview(interview_id):
-    """Delete an interview"""
+    """Delete an interview (participant or managing org)."""
     interview = Interview.query.get_or_404(interview_id)
+    if not _can_see_interview(_me(), interview):
+        return jsonify({"error": "Forbidden"}), 403
     user_id = interview.user_id
     org_id = interview.organization_id
 
@@ -350,20 +402,29 @@ def delete_interview(interview_id):
     return jsonify({'message': 'Interview deleted successfully'}), 200
 
 @api_bp.route('/interviews/upcoming', methods=['GET'])
+@jwt_required()
 def get_upcoming_interviews():
     """Get upcoming and currently-active interviews.
 
+    Scoped to the caller: own interviews plus managed organizations'.
     Includes interviews that:
     - Are scheduled for the future, OR
     - Started within the last 2 hours (to account for ongoing interviews)
     AND have status 'scheduled' or 'in_progress'.
     """
+    user = _me()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
     now = datetime.utcnow()
     # Include interviews that started up to 2 hours ago (ongoing buffer)
     buffer_start = now - timedelta(hours=2)
     interviews = Interview.query.filter(
         Interview.scheduled_at >= buffer_start,
-        Interview.status.in_(['scheduled', 'in_progress'])
+        Interview.status.in_(['scheduled', 'in_progress']),
+        or_(
+            Interview.user_id == user.id,
+            Interview.organization_id.in_(_managed_org_ids(user) or [-1]),
+        )
     ).order_by(Interview.scheduled_at.asc()).all()
     return jsonify({'interviews': [interview.to_dict() for interview in interviews]}), 200
 
@@ -406,9 +467,12 @@ def get_interview_history():
     return jsonify({'interviews': [interview.to_dict() for interview in all_interviews]}), 200
 
 @api_bp.route('/interviews/<int:interview_id>/complete', methods=['POST'])
+@jwt_required()
 def complete_interview(interview_id):
-    """Mark interview as completed"""
+    """Mark interview as completed (participant or managing org)."""
     interview = Interview.query.get_or_404(interview_id)
+    if not _can_see_interview(_me(), interview):
+        return jsonify({"error": "Forbidden"}), 403
 
     # Update status to completed
     interview.status = "completed"
@@ -423,11 +487,14 @@ def complete_interview(interview_id):
     }), 200
 
 @api_bp.route('/interviews/<int:interview_id>/decision', methods=['POST'])
+@jwt_required()
 def update_interview_decision(interview_id):
-    """Update interview decision (pass, second round, third round, fail)"""
+    """Update interview decision (managing org only)."""
     from ...utils.interview_utils import update_interview_decision as update_decision_util
 
     interview = Interview.query.get_or_404(interview_id)
+    if not _manages_interview(_me(), interview):
+        return jsonify({"error": "Forbidden for this organization"}), 403
     payload = request.get_json(silent=True) or {}
 
     decision = payload.get("decision")  # 'passed', 'failed', 'second_round', 'third_round'
@@ -470,8 +537,12 @@ def update_interview_decision(interview_id):
     }), 200
 
 @api_bp.route('/organizations/<int:org_id>/interviews', methods=['GET'])
+@jwt_required()
 def get_organization_interviews(org_id):
-    """Get all interviews for an organization"""
+    """Get all interviews for an organization (members only)."""
+    user = _me()
+    if not user or org_id not in _managed_org_ids(user):
+        return jsonify({"error": "Forbidden for this organization"}), 403
     status_filter = request.args.get('status')
     decision_filter = request.args.get('decision')
 
@@ -487,10 +558,14 @@ def get_organization_interviews(org_id):
     return jsonify({'interviews': [interview.to_dict() for interview in interviews]}), 200
 
 @api_bp.route('/organizations/<int:org_id>/interviews/<int:interview_id>/decision', methods=['POST'])
+@jwt_required()
 def update_organization_interview_decision(org_id, interview_id):
-    """Organization endpoint to update interview decision"""
+    """Organization endpoint to update interview decision (managing org only)."""
     from ...utils.interview_utils import update_interview_decision as update_decision_util
 
+    user = _me()
+    if not user or org_id not in _managed_org_ids(user):
+        return jsonify({"error": "Forbidden for this organization"}), 403
     interview = Interview.query.filter_by(id=interview_id, organization_id=org_id).first_or_404()
     payload = request.get_json(silent=True)
     if payload is None:
@@ -598,8 +673,12 @@ def get_interview_conversation(interview_id):
     }), 200
 
 @api_bp.route('/organizations/<int:org_id>/interviews/status-summary', methods=['GET'])
+@jwt_required()
 def get_organization_interview_status_summary(org_id):
-    """Get interview status summary for an organization"""
+    """Get interview status summary for an organization (members only)."""
+    user = _me()
+    if not user or org_id not in _managed_org_ids(user):
+        return jsonify({"error": "Forbidden for this organization"}), 403
     from ...utils.interview_utils import get_interview_status_summary
 
     summary = get_interview_status_summary(organization_id=org_id)

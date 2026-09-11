@@ -26,7 +26,8 @@ def get_notifications():
         if not user:
             return jsonify({"error": "user not found"}), 404
         # Get pagination parameters
-        page, per_page = get_pagination_params(max_per_page=50)
+        page, per_page = get_pagination_params()
+        per_page = min(per_page, 50)
 
         # Get filter parameters
         show_archived = request.args.get("archived", "false").lower() == "true"
@@ -57,8 +58,9 @@ def get_notifications():
         query = query.order_by(desc(Notification.created_at))
 
         # Paginate
-        pagination = Pagination(query, page, per_page)
-        notifications = pagination.get_items()
+        pagination_result = Pagination(query, page, per_page).paginate()
+        notifications = pagination_result['items']
+        pagination = pagination_result['pagination']
 
         # Format response
         notification_data = []
@@ -157,6 +159,35 @@ def archive_notification(notification_id):
     except Exception as e:
         log_security_event("notification_archive_error", user_id=str(user_id), ip_address=request.remote_addr, details={"error": str(e), "notification_id": notification_id})
         return jsonify({"error": "Failed to archive notification"}), 500
+
+
+@notifications_bp.route("/<int:notification_id>/unarchive", methods=["PUT"])
+@jwt_required()
+def unarchive_notification(notification_id):
+    """Unarchive a notification"""
+    try:
+        uid = get_jwt_identity()
+        user_id = int(uid)
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({"error": "user not found"}), 404
+
+        notification = Notification.query.filter(
+            and_(
+                Notification.id == notification_id,
+                Notification.user_id == user_id,
+                Notification.is_deleted == False
+            )
+        ).first_or_404()
+
+        notification.unarchive()
+        db.session.commit()
+
+        return jsonify({"message": "Notification unarchived"}), 200
+
+    except Exception as e:
+        log_security_event("notification_unarchive_error", user_id=str(user_id), ip_address=request.remote_addr, details={"error": str(e)})
+        return jsonify({"error": "Failed to unarchive notification"}), 500
 
 
 @notifications_bp.route("/<int:notification_id>/favorite", methods=["PUT"])

@@ -39,22 +39,12 @@ def upload_organization_profile_image(org_id):
     if file.filename == '':
         return jsonify({'error': 'No file selected'}), 400
 
-    # Validate file type
-    allowed_extensions = {'png', 'jpg', 'jpeg', 'gif'}
-    if not file.filename.lower().split('.')[-1] in allowed_extensions:
-        return jsonify({'error': 'Invalid file type. Only PNG, JPG, JPEG, and GIF are allowed'}), 400
-
-    # Validate file size (max 5MB)
-    file.seek(0, os.SEEK_END)
-    file_size = file.tell()
-    file.seek(0)
-    if file_size > 5 * 1024 * 1024:  # 5MB
-        return jsonify({'error': 'File too large. Maximum size is 5MB'}), 400
-
-    # Secure filename and create unique filename
-    filename = secure_filename(file.filename)
-    extension = filename.rsplit('.', 1)[1].lower()
-    unique_filename = f"org_{org_id}_profile.{extension}"
+    # Validate file type, size, and magic bytes (blocks polyglot/renamed files)
+    from ...api.profile.uploads import _validate_image_upload
+    valid, ext_or_error = _validate_image_upload(file)
+    if not valid:
+        return jsonify({'error': ext_or_error}), 400
+    unique_filename = f"org_{org_id}_profile.{ext_or_error}"
 
     # Save file (create the directory on fresh clones/containers)
     upload_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'uploads', 'organization_images', 'profile_images')
@@ -105,22 +95,12 @@ def upload_organization_banner_image(org_id):
     if file.filename == '':
         return jsonify({'error': 'No file selected'}), 400
 
-    # Validate file type
-    allowed_extensions = {'png', 'jpg', 'jpeg', 'gif'}
-    if not file.filename.lower().split('.')[-1] in allowed_extensions:
-        return jsonify({'error': 'Invalid file type. Only PNG, JPG, JPEG, and GIF are allowed'}), 400
-
-    # Validate file size (max 5MB)
-    file.seek(0, os.SEEK_END)
-    file_size = file.tell()
-    file.seek(0)
-    if file_size > 5 * 1024 * 1024:  # 5MB
-        return jsonify({'error': 'File too large. Maximum size is 5MB'}), 400
-
-    # Secure filename and create unique filename
-    filename = secure_filename(file.filename)
-    extension = filename.rsplit('.', 1)[1].lower()
-    unique_filename = f"org_{org_id}_banner.{extension}"
+    # Validate file type, size, and magic bytes (blocks polyglot/renamed files)
+    from ...api.profile.uploads import _validate_image_upload
+    valid, ext_or_error = _validate_image_upload(file)
+    if not valid:
+        return jsonify({'error': ext_or_error}), 400
+    unique_filename = f"org_{org_id}_banner.{ext_or_error}"
 
     # Save file (create the directory on fresh clones/containers)
     upload_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'uploads', 'organization_images', 'banner_images')

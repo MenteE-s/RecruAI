@@ -10,6 +10,37 @@ from werkzeug.utils import secure_filename
 from ...api.notifications.routes import create_profile_notification
 from ...utils.kafka_service import kafka_service as kafka
 from datetime import datetime
+
+
+_ALLOWED_IMAGE_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+_IMAGE_MAGIC = {
+    'png': [b'\x89PNG\r\n\x1a\n'],
+    'jpg': [b'\xff\xd8\xff'],
+    'jpeg': [b'\xff\xd8\xff'],
+    'gif': [b'GIF87a', b'GIF89a'],
+}
+
+
+def _validate_image_upload(file, max_bytes=5 * 1024 * 1024):
+    """Validate an uploaded image. Returns (True, extension) or (False, error)."""
+    name = (file.filename or '').lower()
+    if '.' not in name:
+        return False, 'Invalid file type. Only PNG, JPG, JPEG, and GIF are allowed'
+    ext = name.rsplit('.', 1)[1]
+    if ext not in _ALLOWED_IMAGE_EXTENSIONS:
+        return False, 'Invalid file type. Only PNG, JPG, JPEG, and GIF are allowed'
+    file.seek(0, os.SEEK_END)
+    if file.tell() > max_bytes:
+        file.seek(0)
+        return False, 'File too large. Maximum size is 5MB'
+    file.seek(0)
+    head = file.read(10)
+    file.seek(0)
+    if not any(head.startswith(m) for m in _IMAGE_MAGIC[ext]):
+        return False, 'File content does not match its image type'
+    return True, ext
+
+
 @api_bp.route('/profile/user/<int:user_id>', methods=['GET'])
 @jwt_required()
 def get_user_profile(user_id):
@@ -161,25 +192,16 @@ def upload_profile_picture():
     if file.filename == '':
         return jsonify({'error': 'No file selected'}), 400
 
-    # Validate file type
-    allowed_extensions = {'png', 'jpg', 'jpeg', 'gif'}
-    if not file.filename.lower().split('.')[-1] in allowed_extensions:
-        return jsonify({'error': 'Invalid file type. Only PNG, JPG, JPEG, and GIF are allowed'}), 400
+    # Validate file type, size, and magic bytes (blocks polyglot/renamed files)
+    valid, ext_or_error = _validate_image_upload(file)
+    if not valid:
+        return jsonify({'error': ext_or_error}), 400
+    unique_filename = f"user_{user_id_int}_profile.{ext_or_error}"
 
-    # Validate file size (max 5MB)
-    file.seek(0, os.SEEK_END)
-    file_size = file.tell()
-    file.seek(0)
-    if file_size > 5 * 1024 * 1024:  # 5MB
-        return jsonify({'error': 'File too large. Maximum size is 5MB'}), 400
-
-    # Secure filename and create unique filename
-    filename = secure_filename(file.filename)
-    extension = filename.rsplit('.', 1)[1].lower()
-    unique_filename = f"user_{user_id_int}_profile.{extension}"
-
-    # Save file
-    upload_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'uploads', 'profile_pictures', unique_filename)
+    # Save file (create the directory on fresh clones/containers)
+    upload_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'uploads', 'profile_pictures')
+    os.makedirs(upload_dir, exist_ok=True)
+    upload_path = os.path.join(upload_dir, unique_filename)
     file.save(upload_path)
 
     # Update user profile picture path
@@ -201,7 +223,7 @@ def upload_profile_picture():
         }), 200
     except Exception as e:
         db.session.rollback()
-        return jsonify({"error": f"Failed to update profile picture: {str(e)}"}), 500
+        return jsonify({"error": "Failed to update profile picture"}), 500
 
 
 # Banner Upload endpoint
@@ -227,22 +249,11 @@ def upload_banner():
     if file.filename == '':
         return jsonify({'error': 'No file selected'}), 400
 
-    # Validate file type
-    allowed_extensions = {'png', 'jpg', 'jpeg', 'gif'}
-    if not file.filename.lower().split('.')[-1] in allowed_extensions:
-        return jsonify({'error': 'Invalid file type. Only PNG, JPG, JPEG, and GIF are allowed'}), 400
-
-    # Validate file size (max 5MB)
-    file.seek(0, os.SEEK_END)
-    file_size = file.tell()
-    file.seek(0)
-    if file_size > 5 * 1024 * 1024:  # 5MB
-        return jsonify({'error': 'File too large. Maximum size is 5MB'}), 400
-
-    # Secure filename and create unique filename
-    filename = secure_filename(file.filename)
-    extension = filename.rsplit('.', 1)[1].lower()
-    unique_filename = f"user_{user_id_int}_banner.{extension}"
+    # Validate file type, size, and magic bytes (blocks polyglot/renamed files)
+    valid, ext_or_error = _validate_image_upload(file)
+    if not valid:
+        return jsonify({'error': ext_or_error}), 400
+    unique_filename = f"user_{user_id_int}_banner.{ext_or_error}"
 
     # Create banners directory if it doesn't exist
     banners_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'uploads', 'banners')
@@ -272,4 +283,4 @@ def upload_banner():
         }), 200
     except Exception as e:
         db.session.rollback()
-        return jsonify({"error": f"Failed to update banner: {str(e)}"}), 500
+        return jsonify({"error": "Failed to update banner"}), 500
