@@ -17,8 +17,6 @@ import {
   FiGlobe,
   FiTrash2,
   FiArrowRight,
-  FiDownload,
-  FiPlus,
 } from "react-icons/fi";
 
 export default function Settings() {
@@ -142,21 +140,10 @@ export default function Settings() {
         {/* Payment Methods */}
         <div className="bg-white border border-gray-200 p-6">
           <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2"><FiCreditCard className="w-4 h-4 text-gray-500" /> Payment methods</h3>
-          <div className="mt-4 space-y-3">
-            <div className="flex items-center justify-between p-4 border border-gray-200 hover:border-gray-300 transition-colors">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-50 border border-blue-100 flex items-center justify-center"><FiCreditCard className="w-5 h-5 text-blue-600" /></div>
-                <div>
-                  <p className="text-sm font-medium text-gray-900">•••• •••• •••• 4242</p>
-                  <p className="text-xs text-gray-500">Expires 12/25 • Visa</p>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <button className="px-3 py-1.5 bg-white border border-gray-200 text-xs font-medium text-gray-700 hover:bg-gray-50">Edit</button>
-                <button className="px-3 py-1.5 bg-white border border-red-200 text-xs font-medium text-red-600 hover:bg-red-50">Remove</button>
-              </div>
-            </div>
-            <button className="inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50"><FiPlus className="w-4 h-4" /> Add payment method</button>
+          <div className="mt-4 text-center py-6 border border-dashed border-gray-200 rounded-lg">
+            <FiCreditCard className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+            <p className="text-sm text-gray-500">No payment methods yet</p>
+            <p className="text-xs text-gray-400 mt-1">Billing will be available soon</p>
           </div>
         </div>
 
@@ -164,24 +151,11 @@ export default function Settings() {
         <div className="bg-white border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2"><FiClock className="w-4 h-4 text-gray-500" /> Billing history</h3>
-            <span className="text-xs text-gray-500">{2} invoices</span>
           </div>
-          <div className="mt-4 space-y-2">
-            {[
-              { title: "Pro Plan — Monthly", date: "November 1, 2024", amount: "$9.99" },
-              { title: "Pro Plan — Monthly", date: "October 1, 2024", amount: "$9.99" },
-            ].map((inv, i) => (
-              <div key={i} className="flex items-center justify-between p-4 border border-gray-200 hover:bg-gray-50 transition-colors">
-                <div>
-                  <p className="text-sm font-medium text-gray-900">{inv.title}</p>
-                  <p className="text-xs text-gray-500">{inv.date}</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <p className="text-sm font-semibold text-gray-900">{inv.amount}</p>
-                  <button className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700"><FiDownload className="w-3.5 h-3.5" /> Download</button>
-                </div>
-              </div>
-            ))}
+          <div className="mt-4 text-center py-6 border border-dashed border-gray-200 rounded-lg">
+            <FiClock className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+            <p className="text-sm text-gray-500">No invoices yet</p>
+            <p className="text-xs text-gray-400 mt-1">Your billing history will appear here</p>
           </div>
         </div>
 
