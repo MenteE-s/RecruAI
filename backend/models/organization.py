@@ -116,6 +116,7 @@ class Organization(db.Model):
     def track_token_usage(self, provider: str, model: str, tokens: int, operation_type: str):
         """Track token usage for billing/analytics"""
         from backend.models.token_usage import TokenUsage
+        from sqlalchemy import text
 
         # Create token usage record
         usage = TokenUsage(
@@ -127,10 +128,11 @@ class Organization(db.Model):
         )
         db.session.add(usage)
 
-        # Update organization's total token count
-        if self.tokens_used is None:
-            self.tokens_used = 0
-        self.tokens_used += tokens
+        # Increment via raw SQL to avoid session-mismatch issues
+        db.session.execute(
+            text("UPDATE organizations SET tokens_used = COALESCE(tokens_used, 0) + :t WHERE id = :id"),
+            {"t": tokens, "id": self.id}
+        )
 
         db.session.commit()
 
