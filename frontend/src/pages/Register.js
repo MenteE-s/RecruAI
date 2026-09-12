@@ -9,6 +9,7 @@ export default function Register() {
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("individual");
   const [organizationName, setOrganizationName] = useState("");
+  const [referralEmail, setReferralEmail] = useState("");
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -20,6 +21,15 @@ export default function Register() {
     const update = (e) => setMousePosition({ x: e.clientX, y: e.clientY });
     window.addEventListener("mousemove", update);
     return () => window.removeEventListener("mousemove", update);
+  }, []);
+
+  // Prefill referral email from ?ref= query param
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get("ref");
+    if (ref) {
+      setReferralEmail(decodeURIComponent(ref));
+    }
   }, []);
 
   // Verify stored token with the server on mount. If valid, redirect to dashboard.
@@ -60,6 +70,7 @@ export default function Register() {
           role,
           organization_name:
             role === "organization" ? organizationName : undefined,
+          referral_email: referralEmail || undefined,
         }),
       });
       const data = await res.json();
@@ -208,6 +219,16 @@ export default function Register() {
                 className="mt-1 block w-full border px-3 py-2 rounded"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+              />
+            </label>
+            <label className="block mb-2">
+              <span className="text-sm">Referral email (optional)</span>
+              <input
+                className="mt-1 block w-full border px-3 py-2 rounded"
+                value={referralEmail}
+                onChange={(e) => setReferralEmail(e.target.value)}
+                placeholder="e.g. friend@example.com"
+                type="email"
               />
             </label>
             <label className="block mb-4 relative">

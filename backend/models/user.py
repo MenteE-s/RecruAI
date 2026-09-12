@@ -56,6 +56,11 @@ class User(db.Model):
 
     interviews = db.relationship("Interview", back_populates="user", cascade="all, delete-orphan")
 
+    # Referral tracking (lenient — store whatever email is typed; link only on match)
+    referred_by_email = db.Column(db.String(120), nullable=True)
+    referred_by_user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    referred_by = db.relationship("User", remote_side=[id], backref="referrals", foreign_keys=[referred_by_user_id])
+
     def __repr__(self):
         return f"<User {self.email}>"
 
@@ -133,6 +138,9 @@ class User(db.Model):
             "current_company_id": self.current_company_id,
             "hired_date": self.hired_date.isoformat() if self.hired_date else None,
             "onboarded_date": self.onboarded_date.isoformat() if self.onboarded_date else None,
+            # Referral
+            "referred_by_email": self.referred_by_email,
+            "referred_by_user_id": self.referred_by_user_id,
         }
 
     def to_public_dict(self):

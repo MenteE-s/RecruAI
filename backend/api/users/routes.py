@@ -381,3 +381,27 @@ def join_position(user_id):
         "message": "Successfully joined position",
         "user": user.to_dict()
     }), 200
+
+
+@api_bp.route("/users/me/referrals", methods=["GET"])
+@jwt_required()
+def get_my_referrals():
+    """List users who were referred by the current user."""
+    user_id = int(get_jwt_identity())
+    me = User.query.get_or_404(user_id)
+
+    referrals = User.query.filter_by(referred_by_user_id=user_id).order_by(User.created_at.desc()).all()
+
+    return jsonify({
+        "total": len(referrals),
+        "referrals": [
+            {
+                "id": r.id,
+                "name": r.name,
+                "email": r.email,
+                "role": r.role,
+                "created_at": r.created_at.isoformat() if r.created_at else None,
+            }
+            for r in referrals
+        ]
+    }), 200

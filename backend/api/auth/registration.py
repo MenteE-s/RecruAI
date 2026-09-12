@@ -1,4 +1,4 @@
-from flask import request, jsonify, make_response
+from flask import request, jsonify, make_response, current_app
 from flask_jwt_extended import create_access_token, set_access_cookies
 from .. import api_bp
 from ...extensions import db
@@ -19,6 +19,7 @@ def register():
     name = sanitize_input(data.get("name", ""))
     role = sanitize_input(data.get("role", "individual"))
     organization_name = sanitize_input(data.get("organization_name", ""))
+    referral_email = sanitize_input(data.get("referral_email", ""))
 
     if not email or not password:
         log_security_event("missing_credentials", ip_address=request.remote_addr)
@@ -39,6 +40,14 @@ def register():
         return jsonify({"error": "Invalid role specified"}), 400
 
     user = User(email=email, name=name, role=role, plan="trial")
+
+    # Referral tracking — lenient: store whatever email was typed; link only on match.
+    referred_by_user = None
+    if referral_email:
+        user.referred_by_email = referral_email
+        referred_by_user = User.query.filter_by(email=referral_email).first()
+        if referred_by_user and referred_by_user.id != user.id:
+            user.referred_by_user_id = referred_by_user.id
 
     try:
         user.set_password(password)
@@ -73,12 +82,28 @@ def register():
             db.session.add(team_member)
 
         db.session.commit()
+
+        # Referral notification (best-effort — never fail registration)
+        if referred_by_user and user.referred_by_user_id:
+            try:
+                from ...api.notifications.routes import create_profile_notification
+                create_profile_notification(
+                    referred_by_user.id,
+                    "referral_signup",
+                    f"{user.name or user.email} signed up with your referral link",
+                    extra={"referral_user_id": user.id, "referral_email": user.email},
+                )
+            except Exception:
+                current_app.logger.debug("Failed to create referral notification", exc_info=True)
+
         log_security_event("registration_success", user_id=user.id, ip_address=request.remote_addr, email=email, details={"role": role})
         kafka_service.emit_event("user_registered", {
             "user_id": user.id,
             "email": email,
             "role": role,
             "organization_id": user.organization_id,
+            "referred_by_email": referral_email or None,
+            "referred_by_user_id": user.referred_by_user_id,
             "ip": request.remote_addr
         })
     except Exception as e:
