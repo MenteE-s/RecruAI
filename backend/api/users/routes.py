@@ -8,7 +8,7 @@ from ...models import (
     User, Experience, Education, Skill, Project, Certification,
     Award, Language, VolunteerExperience, Reference, HobbyInterest,
     ProfessionalMembership, Patent, CourseTraining, SocialMediaLink, KeyAchievement,
-    Favorite
+    Favorite, Application, Post, Interview, TeamMember
 )
 from ...utils.timezone_utils import get_timezone_list, is_valid_timezone, get_current_time_info
 from ...utils.security import log_security_event, sanitize_input, validate_email, validate_request_size
@@ -100,7 +100,22 @@ def get_user_current_time(user_id):
 @api_bp.route("/users", methods=["GET"])
 @jwt_required()
 def list_users():
-    """List users with pagination, filtering, and sorting support (login required)"""
+    """List users (organization-side hiring directory).
+
+    Individuals may not dump the user directory; organization accounts and
+    team members may browse candidates.
+    """
+    try:
+        me = User.query.get(int(get_jwt_identity()))
+    except (TypeError, ValueError):
+        return jsonify({"error": "Invalid user identity"}), 400
+    if not me:
+        return jsonify({"error": "user not found"}), 404
+    manages_any = bool(me.organization_id) or (
+        TeamMember.query.filter_by(user_id=me.id).first() is not None
+    )
+    if me.role != "organization" and not manages_any:
+        return jsonify({"error": "Forbidden: organization account required"}), 403
     # Get pagination parameters
     page, per_page = get_pagination_params()
 
@@ -144,10 +159,14 @@ def create_user():
 
     email = sanitize_input(payload.get("email", ""))
     name = sanitize_input(payload.get("name", ""))
+    role = sanitize_input(payload.get("role", "individual"))
 
     if not email:
         log_security_event("missing_email_create_user", request.remote_addr, None)
         return jsonify({"error": "email required"}), 400
+
+    if role not in ("individual", "organization"):
+        return jsonify({"error": "Invalid role specified"}), 400
 
     # Validate email format
     if not validate_email(email):
@@ -159,7 +178,7 @@ def create_user():
         log_security_event("duplicate_user_creation_attempt", request.remote_addr, None, email=email)
         return jsonify({"error": "email already exists"}), 400
 
-    user = User(email=email, name=name)
+    user = User(email=email, name=name, role=role)
     db.session.add(user)
     db.session.commit()
 
@@ -184,6 +203,38 @@ def create_user():
 @jwt_required()
 @cached("user_profile", ttl=300, key_func=lambda user_id: f"user_{user_id}")
 def get_user_full_profile(user_id):
+    """Full profile: the user themselves, or a hiring manager whose org has
+    an application or interview relationship with that user."""
+    try:
+        me_id = int(get_jwt_identity())
+    except (TypeError, ValueError):
+        return jsonify({"error": "Invalid user identity"}), 400
+    me = User.query.get_or_404(me_id)
+    if me.id != int(user_id):
+        managed_ids = set()
+        if me.organization_id:
+            managed_ids.add(me.organization_id)
+        for tm in TeamMember.query.filter_by(user_id=me.id).all():
+            managed_ids.add(tm.organization_id)
+        related = False
+        if managed_ids:
+            related = (
+                Application.query.join(Post, Application.post_id == Post.id)
+                .filter(
+                    Application.user_id == user_id,
+                    Post.organization_id.in_(managed_ids),
+                )
+                .first()
+                is not None
+            ) or (
+                Interview.query.filter(
+                    Interview.user_id == user_id,
+                    Interview.organization_id.in_(managed_ids),
+                ).first()
+                is not None
+            )
+        if not related:
+            return jsonify({"error": "Forbidden"}), 403
     user = User.query.get_or_404(user_id)
 
     # Get all profile data

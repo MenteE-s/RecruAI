@@ -1,8 +1,8 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { FiMenu } from "react-icons/fi";
+import { FiMenu, FiChevronsLeft, FiChevronsRight } from "react-icons/fi";
 import SignOutButton from "../ui/SignOutButton";
 
-export default function Sidebar({ open, toggleSidebar, items = [] }) {
+export default function Sidebar({ open, toggleSidebar, items = [], collapsed = false, onToggleCollapse }) {
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -30,7 +30,10 @@ export default function Sidebar({ open, toggleSidebar, items = [] }) {
       <li>
         <button
           onClick={() => handleNavClick(item)}
+          title={collapsed ? item.name : undefined}
           className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 ${
+            collapsed ? "md:justify-center md:px-0" : ""
+          } ${
             active
               ? "bg-blue-600 text-white"
               : "text-gray-700 hover:bg-gray-100"
@@ -39,7 +42,7 @@ export default function Sidebar({ open, toggleSidebar, items = [] }) {
           <item.icon
             className={`w-5 h-5 shrink-0 ${active ? "text-white" : "text-gray-400"}`}
           />
-          <span>{item.name}</span>
+          <span className={collapsed ? "md:hidden" : ""}>{item.name}</span>
         </button>
       </li>
     );
@@ -80,18 +83,29 @@ export default function Sidebar({ open, toggleSidebar, items = [] }) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed md:relative inset-y-0 left-0 z-40 w-64 md:w-64 md:shrink-0 bg-white border-r border-gray-200 transform ${
+        className={`fixed md:relative inset-y-0 left-0 z-40 w-64 ${
+          collapsed ? "md:w-20" : "md:w-64"
+        } md:shrink-0 bg-white border-r border-gray-200 transform ${
           open ? "translate-x-0" : "-translate-x-full"
-        } md:translate-x-0 transition-transform duration-200 ease-in-out h-screen flex flex-col`}
+        } md:translate-x-0 transition-all duration-200 ease-in-out h-screen flex flex-col`}
       >
         {/* Brand */}
-        <div className="px-5 py-5 flex items-center gap-2.5">
+        <div className={`px-5 py-5 flex items-center gap-2.5 ${collapsed ? "md:justify-center md:px-0" : ""}`}>
           <img
             src="/mentee-logo.png"
             alt="MenteE Logo"
-            className="w-8 h-8 rounded-lg object-contain"
+            className="w-8 h-8 rounded-lg object-contain shrink-0"
           />
-          <span className="text-lg font-bold text-gray-900">RecruAI</span>
+          <span className={`text-lg font-bold text-gray-900 ${collapsed ? "md:hidden" : ""}`}>RecruAI</span>
+          {onToggleCollapse && (
+            <button
+              onClick={onToggleCollapse}
+              title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+              className="hidden md:flex ml-auto p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+            >
+              {collapsed ? <FiChevronsRight className="w-4 h-4" /> : <FiChevronsLeft className="w-4 h-4" />}
+            </button>
+          )}
         </div>
 
 
@@ -148,7 +162,10 @@ export default function Sidebar({ open, toggleSidebar, items = [] }) {
           {settingsItem && (
             <button
               onClick={() => handleNavClick(settingsItem)}
+              title={collapsed ? "Settings" : undefined}
               className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 ${
+                collapsed ? "md:justify-center md:px-0" : ""
+              } ${
                 isActive(settingsItem.link)
                   ? "bg-blue-600 text-white"
                   : "text-gray-700 hover:bg-gray-100"
@@ -157,10 +174,10 @@ export default function Sidebar({ open, toggleSidebar, items = [] }) {
               <settingsItem.icon
                 className={`w-5 h-5 shrink-0 ${isActive(settingsItem.link) ? "text-white" : "text-gray-400"}`}
               />
-              <span>Settings</span>
+              <span className={collapsed ? "md:hidden" : ""}>Settings</span>
             </button>
           )}
-          {signOutItem && <SignOutButton variant="sidebar" />}
+          {signOutItem && <SignOutButton variant="sidebar" iconOnly={collapsed} />}
         </div>
       </aside>
     </>

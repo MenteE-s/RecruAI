@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import { getSidebarItems, getBackendUrl, getAuthHeaders } from "../../utils/auth";
 import TimezoneSelector from "../../components/ui/TimezoneSelector";
+import PaymentMethods from "../../components/ui/PaymentMethods";
 import {
   FiSettings,
   FiCreditCard,
@@ -244,11 +245,7 @@ export default function Settings() {
         {/* Payment Methods */}
         <div className="bg-white border border-gray-200 p-6">
           <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2"><FiCreditCard className="w-4 h-4 text-gray-500" /> Payment methods</h3>
-          <div className="mt-4 text-center py-6 border border-dashed border-gray-200 rounded-lg">
-            <FiCreditCard className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-            <p className="text-sm text-gray-500">No payment methods yet</p>
-            <p className="text-xs text-gray-400 mt-1">Billing will be available soon</p>
-          </div>
+          <div className="mt-4"><PaymentMethods storageKey="recruai_cards_individual" /></div>
         </div>
 
         {/* Billing History */}

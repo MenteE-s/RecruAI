@@ -1,4 +1,5 @@
 from flask import Blueprint, jsonify, request
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from ...extensions import db
 from ...models import AIInterviewAgent, User
 from ...utils.kafka_service import KafkaService
@@ -6,14 +7,31 @@ from ...utils.kafka_service import KafkaService
 api_bp = Blueprint('ind_ai_agents', __name__)
 
 
+def _own_id_or_403(user_id):
+    try:
+        if int(get_jwt_identity()) != int(user_id):
+            return jsonify({"error": "Forbidden"}), 403
+    except (TypeError, ValueError):
+        return jsonify({"error": "Invalid user identity"}), 400
+    return None
+
+
 @api_bp.route('/users/<int:user_id>/ai-agents', methods=['GET'])
+@jwt_required()
 def list_user_ai_agents(user_id):
+    denied = _own_id_or_403(user_id)
+    if denied:
+        return denied
     agents = AIInterviewAgent.query.filter_by(owner_user_id=user_id).all()
     return jsonify({'agents': [a.to_dict() for a in agents]}), 200
 
 
 @api_bp.route('/users/<int:user_id>/ai-agents', methods=['POST'])
+@jwt_required()
 def create_user_ai_agent(user_id):
+    denied = _own_id_or_403(user_id)
+    if denied:
+        return denied
     payload = request.get_json() or {}
     name = payload.get('name')
     industry = payload.get('industry')
@@ -49,7 +67,11 @@ def create_user_ai_agent(user_id):
 
 
 @api_bp.route('/users/<int:user_id>/ai-agents/<int:agent_id>', methods=['PUT'])
+@jwt_required()
 def update_user_ai_agent(user_id, agent_id):
+    denied = _own_id_or_403(user_id)
+    if denied:
+        return denied
     agent = AIInterviewAgent.query.filter_by(id=agent_id, owner_user_id=user_id).first_or_404()
     payload = request.get_json() or {}
     for field in ['name', 'industry', 'description', 'custom_instructions']:
@@ -72,7 +94,11 @@ def update_user_ai_agent(user_id, agent_id):
 
 
 @api_bp.route('/users/<int:user_id>/ai-agents/<int:agent_id>', methods=['DELETE'])
+@jwt_required()
 def delete_user_ai_agent(user_id, agent_id):
+    denied = _own_id_or_403(user_id)
+    if denied:
+        return denied
     agent = AIInterviewAgent.query.filter_by(id=agent_id, owner_user_id=user_id).first_or_404()
     db.session.delete(agent)
     db.session.commit()

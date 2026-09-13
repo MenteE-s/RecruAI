@@ -17,7 +17,7 @@ const VARIANT_STYLES = {
  * Shared red sign-out button with a "Want to sign out?" confirm dialog.
  * `onSignedOut` runs after local auth is cleared (e.g. to flip navbar state).
  */
-export default function SignOutButton({ variant = "solid", className = "", onSignedOut }) {
+export default function SignOutButton({ variant = "solid", className = "", iconOnly = false, onSignedOut }) {
   const navigate = useNavigate();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
@@ -47,9 +47,13 @@ export default function SignOutButton({ variant = "solid", className = "", onSig
 
   return (
     <>
-      <button onClick={() => setConfirmOpen(true)} className={VARIANT_STYLES[variant] || VARIANT_STYLES.solid}>
+      <button
+        onClick={() => setConfirmOpen(true)}
+        title={iconOnly ? "Sign out" : undefined}
+        className={`${VARIANT_STYLES[variant] || VARIANT_STYLES.solid} ${className} ${iconOnly ? "md:justify-center md:px-0" : ""}`}
+      >
         <FiLogOut className={variant === "sidebar" ? "w-5 h-5 shrink-0" : "w-4 h-4"} />
-        <span>Sign out</span>
+        <span className={iconOnly ? "md:hidden" : ""}>Sign out</span>
       </button>
 
       {confirmOpen &&

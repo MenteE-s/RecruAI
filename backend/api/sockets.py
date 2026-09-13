@@ -6,31 +6,47 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-@socketio.on('connect')
-def handle_connect():
-    """Handle client connection and join the caller's own room.
+# sid -> authenticated user id for this process (threading mode).
+# Lets later events (join_org) reuse the connect-time identity instead of
+# re-transmitting the JWT.
+_connected_users = {}
 
-    NOTE: passing the JWT in the query string can leak it into server logs;
-    prefer the Authorization header / cookies where the client supports it.
-    """
-    token = request.args.get('token')
+
+def _user_id_from_token(token):
     if not token:
-        logger.warning("Connection attempt without token")
-        return False # Reject connection
-
+        return None
     try:
         decoded = decode_token(token)
-        try:
-            user_id = int(decoded['sub'])
-        except (TypeError, ValueError, KeyError):
-            logger.warning("Connection attempt with invalid identity")
-            return False
+        return int(decoded["sub"])
+    except (TypeError, ValueError, KeyError, Exception):
+        return None
 
+
+@socketio.on('connect')
+def handle_connect(auth=None):
+    """Handle client connection and join the caller's own room.
+
+    The JWT arrives via the Socket.IO auth handshake (never the URL query
+    string, which would leak it into server/proxy logs). The query-string
+    form is still accepted as a fallback for older clients.
+    """
+    token = (auth or {}).get('token') or request.args.get('token')
+    if not token:
+        logger.warning("Connection attempt without token")
+        return False  # Reject connection
+
+    user_id = _user_id_from_token(token)
+    if not user_id:
+        logger.warning("Connection attempt with invalid identity")
+        return False
+
+    try:
         from ..models import User
         if not User.query.get(user_id):
             logger.warning(f"Connection attempt for unknown user {user_id}")
             return False
 
+        _connected_users[request.sid] = user_id
         join_room(f"user_{user_id}")
         logger.info(f"User {user_id} connected and joined room: user_{user_id}")
 
@@ -40,22 +56,28 @@ def handle_connect():
 
 @socketio.on('disconnect')
 def handle_disconnect():
+    _connected_users.pop(request.sid, None)
     logger.info("Client disconnected")
 
 @socketio.on('join_org')
 def handle_join_org(data):
     """Explicitly join an organization room (members of that org only)."""
-    from flask import request as freq
     try:
         org_id = int((data or {}).get('org_id'))
     except (TypeError, ValueError):
         return
-    # Re-verify the caller's membership from their token (never trust room claims).
-    token = freq.args.get('token')
+    # Prefer the connect-time identity; fall back to token re-verification
+    # (never trust room claims).
+    uid = _connected_users.get(request.sid)
+    if uid is None:
+        token = ((data or {}).get('token')
+                 or request.args.get('token'))
+        uid = _user_id_from_token(token)
+        if uid is None:
+            logger.warning("join_org without verifiable identity")
+            return
     try:
-        from flask_jwt_extended import decode_token as _decode
         from ..models import User as _User, TeamMember as _TM
-        uid = int(_decode(token)['sub'])
         user = _User.query.get(uid)
         if not user:
             return

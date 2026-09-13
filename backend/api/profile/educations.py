@@ -84,7 +84,7 @@ def update_education(edu_id):
     
     # Handle date fields specially
     for key, value in data.items():
-        if hasattr(education, key):
+        if key not in ('id', 'user_id') and hasattr(education, key):
             if key in ['start_date', 'end_date']:
                 if value and value != '':
                     try:
@@ -175,7 +175,7 @@ def update_skill(skill_id):
 
     data = request.get_json()
     for key, value in data.items():
-        if hasattr(skill, key):
+        if key not in ('id', 'user_id') and hasattr(skill, key):
             setattr(skill, key, value)
 
     db.session.commit()
@@ -237,7 +237,7 @@ def update_language(lang_id):
 
     data = request.get_json()
     for key, value in data.items():
-        if hasattr(language, key):
+        if key not in ('id', 'user_id') and hasattr(language, key):
             setattr(language, key, value)
 
     db.session.commit()

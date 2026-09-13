@@ -37,6 +37,7 @@ from .shareable_profile import ShareableProfile, ProfileAnalytics
 from .favorite import Favorite
 from .token_usage import TokenUsage
 from .notification import Notification
+from .payment_method import PaymentMethod
 from .profile_embedding import ProfileEmbedding
 from .job_embedding import JobEmbedding
 from .agent_embedding import AgentEmbedding
@@ -82,6 +83,7 @@ __all__ = [
     "Favorite",
     "TokenUsage",
     "Notification",
+    "PaymentMethod",
     "ProfileEmbedding",
     "JobEmbedding",
     "AgentEmbedding",

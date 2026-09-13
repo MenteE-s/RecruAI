@@ -8,12 +8,33 @@ export default function DashboardLayout({
   sidebarItems,
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  // Desktop collapse (persisted); mobile drawer state stays separate.
+  const [collapsed, setCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem("sidebarCollapsed") === "1";
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleCollapse = () => {
+    setCollapsed((c) => {
+      try {
+        localStorage.setItem("sidebarCollapsed", c ? "0" : "1");
+      } catch {
+        /* storage unavailable */
+      }
+      return !c;
+    });
+  };
 
   return (
     <div className="h-screen bg-gray-50 flex overflow-hidden">
       <Sidebar
         open={sidebarOpen}
         toggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+        collapsed={collapsed}
+        onToggleCollapse={toggleCollapse}
         items={sidebarItems}
       />
 

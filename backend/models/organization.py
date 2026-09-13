@@ -65,6 +65,17 @@ class Organization(db.Model):
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
 
+    def to_public_dict(self):
+        """Public-safe org summary for job boards and directories.
+
+        Excludes contact_email/contact_name so public listings cannot be
+        harvested for spam. Use to_dict() only in manager/auth contexts.
+        """
+        d = self.to_dict()
+        d.pop("contact_email", None)
+        d.pop("contact_name", None)
+        return d
+
     # Subscription methods
     def is_trial_active(self) -> bool:
         """Check if organization is still in trial period (7 days)"""

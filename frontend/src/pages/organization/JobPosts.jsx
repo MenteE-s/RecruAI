@@ -32,13 +32,30 @@ export default function JobPosts() {
   const [formData, setFormData] = useState({ title: "", description: "", location: "", employment_type: "Full-time", category: "", salary_min: "", salary_max: "", salary_currency: "USD", requirements: [], application_deadline: "", status: "active" });
   const [organizationId, setOrganizationId] = useState(null);
 
-  useEffect(() => { fetchPosts(); }, []);
-  useEffect(() => { (async () => { const user = await verifyTokenWithServer(); if (user?.organization_id) setOrganizationId(user.organization_id); })(); }, []);
+  useEffect(() => {
+    (async () => {
+      const user = await verifyTokenWithServer();
+      if (user?.organization_id) {
+        setOrganizationId(user.organization_id);
+        fetchPosts(user.organization_id);
+      } else {
+        setLoading(false);
+      }
+    })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const fetchPosts = async () => {
+  const fetchPosts = async (orgId) => {
     try {
-      const res = await fetch(`${getBackendUrl()}/api/posts`, { credentials: "include", headers: getAuthHeaders() });
-      if (res.ok) setPosts((await res.json()).data);
+      const id = orgId ?? organizationId;
+      if (!id) return;
+      // Org-scoped: only this company's posts (the old /api/posts call
+      // returned every company's listings, which inflated the counts).
+      const res = await fetch(`${getBackendUrl()}/api/organizations/${id}/posts`, { credentials: "include", headers: getAuthHeaders() });
+      if (res.ok) {
+        const json = await res.json();
+        setPosts(Array.isArray(json) ? json : json.data || []);
+      }
     } catch (e) { console.error(e); } finally { setLoading(false); }
   };
 
@@ -51,7 +68,7 @@ export default function JobPosts() {
       if (!orgId) { showToast({ message: "Unable to determine your organization. Please sign in again.", type: "error" }); return; }
       const payload = { ...formData, organization_id: orgId, requirements: formData.requirements.filter((r) => r.trim()) };
       const res = await fetch(url, { method, headers: getAuthHeaders({ "Content-Type": "application/json" }), credentials: "include", body: JSON.stringify(payload) });
-      if (res.ok) { await fetchPosts(); resetForm(); showToast({ message: editingPost ? "Job post updated!" : "Job post created!", type: "success" }); } else showToast({ message: (await res.json().catch(() => ({})))?.error || "Failed to save", type: "error" });
+      if (res.ok) { await fetchPosts(organizationId); resetForm(); showToast({ message: editingPost ? "Job post updated!" : "Job post created!", type: "success" }); } else showToast({ message: (await res.json().catch(() => ({})))?.error || "Failed to save", type: "error" });
     } catch { showToast({ message: "Failed to save job post", type: "error" }); }
   };
   const handleDelete = async (postId) => { setPostToDelete(postId); setShowDeleteConfirm(true); };
@@ -59,7 +76,7 @@ export default function JobPosts() {
     if (!postToDelete) return;
     try {
       const res = await fetch(`${getBackendUrl()}/api/posts/${postToDelete}`, { method: "DELETE", credentials: "include", headers: getAuthHeaders() });
-      if (res.ok) { await fetchPosts(); setShowDeleteConfirm(false); setPostToDelete(null); showToast({ message: "Deleted", type: "success" }); } else showToast({ message: "Failed to delete", type: "error" });
+      if (res.ok) { await fetchPosts(organizationId); setShowDeleteConfirm(false); setPostToDelete(null); showToast({ message: "Deleted", type: "success" }); } else showToast({ message: "Failed to delete", type: "error" });
     } catch { showToast({ message: "Failed to delete", type: "error" }); }
   };
   const handleEdit = (post) => {

@@ -477,8 +477,6 @@ def list_organizations():
         "name": o.name,
         "description": o.description,
         "website": o.website,
-        "contact_email": o.contact_email,
-        "contact_name": o.contact_name,
         "location": o.location,
         "profile_image": o.profile_image,
         "banner_image": o.banner_image,
@@ -757,7 +755,10 @@ def list_organization_users(org_id):
 @jwt_required()
 def list_organization_people(org_id):
     """People connected to this org through work experience (linked FK or
-    case-insensitive exact company-name match), split into current/past."""
+    case-insensitive exact company-name match), split into current/past.
+    Managers of the org only."""
+    if not _manages_org(org_id):
+        return jsonify({"error": "Forbidden for this organization"}), 403
     from datetime import date
     from sqlalchemy import func, or_
     from ...models import Experience

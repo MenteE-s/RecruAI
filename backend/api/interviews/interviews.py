@@ -193,6 +193,11 @@ def create_interview():
         if not org:
             return jsonify({'error': f'Organization with ID {org_id} not found.'}), 404
 
+        # Security: only managers of this org may schedule interviews as it.
+        if org_id not in _managed_org_ids(user):
+            log_security_event("interview_create_forbidden_org", request.remote_addr, user_id, details={"organization_id": org_id})
+            return jsonify({'error': 'Forbidden for this organization'}), 403
+
         # If post_id is still None but was provided as a non-digit title (old bug), try to find it
         if not post_id and data.get('post_id'):
              post = Post.query.filter_by(title=data['post_id']).first()
@@ -263,11 +268,23 @@ def create_interview():
 @api_bp.route('/interviews/<int:interview_id>', methods=['PUT'])
 @jwt_required()
 def update_interview(interview_id):
-    """Update an interview (participant or managing org)."""
+    """Update an interview.
+
+    Managing orgs may update all fields. The candidate may only cancel
+    their own interview (status -> cancelled); ratings, feedback and
+    interviewer assignment are org-only.
+    """
     interview = Interview.query.get_or_404(interview_id)
-    if not _can_see_interview(_me(), interview):
+    me = _me()
+    if not _can_see_interview(me, interview):
         return jsonify({"error": "Forbidden"}), 403
     data = request.get_json()
+    is_manager = _manages_interview(me, interview)
+
+    if not is_manager:
+        # Candidate self-service: cancel only.
+        if set(data.keys()) - {"status"} or data.get("status") != "cancelled":
+            return jsonify({"error": "Forbidden: candidates may only cancel their own interview"}), 403
 
     print(f"Updating interview {interview_id} with data: {data}")
     print(f"Current interview status: {interview.status}")
@@ -373,9 +390,16 @@ def update_interview(interview_id):
 @api_bp.route('/interviews/<int:interview_id>', methods=['DELETE'])
 @jwt_required()
 def delete_interview(interview_id):
-    """Delete an interview (participant or managing org)."""
+    """Delete an interview (managing org, or owner of a personal practice record)."""
     interview = Interview.query.get_or_404(interview_id)
-    if not _can_see_interview(_me(), interview):
+    me = _me()
+    is_manager = _manages_interview(me, interview)
+    is_own_practice = (
+        interview.organization_id is None
+        and me is not None
+        and interview.user_id == me.id
+    )
+    if not (is_manager or is_own_practice):
         return jsonify({"error": "Forbidden"}), 403
     user_id = interview.user_id
     org_id = interview.organization_id

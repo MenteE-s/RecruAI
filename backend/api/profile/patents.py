@@ -93,7 +93,7 @@ def update_patent(patent_id):
 
     # Update other fields
     for key, value in data.items():
-        if key not in ['filing_date', 'grant_date', 'inventors'] and hasattr(patent, key):
+        if key not in ['filing_date', 'grant_date', 'inventors'] and key not in ('id', 'user_id') and hasattr(patent, key):
             setattr(patent, key, value)
 
     db.session.commit()

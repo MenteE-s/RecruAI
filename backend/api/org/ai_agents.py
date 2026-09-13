@@ -2,10 +2,45 @@ from datetime import datetime
 import json
 
 from flask import request, jsonify
+from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from .. import api_bp
 from ...extensions import db
-from ...models import AIInterviewAgent, Organization, Interview
+from ...models import AIInterviewAgent, Organization, Interview, User, TeamMember
+
+
+def _me():
+    try:
+        return User.query.get(int(get_jwt_identity()))
+    except (TypeError, ValueError):
+        return None
+
+
+def _managed_org_ids(user):
+    ids = set()
+    if user.organization_id:
+        ids.add(user.organization_id)
+    for tm in TeamMember.query.filter_by(user_id=user.id).all():
+        ids.add(tm.organization_id)
+    return ids
+
+
+def _manages_org_id(user, org_id):
+    if not user or org_id is None:
+        return False
+    try:
+        return int(org_id) in _managed_org_ids(user)
+    except (TypeError, ValueError):
+        return False
+
+
+def _can_see_interview(user, interview):
+    if not user or not interview:
+        return False
+    if interview.user_id == user.id:
+        return True
+    return (interview.organization_id is not None
+            and interview.organization_id in _managed_org_ids(user))
 
 
 def _build_default_system_prompt(name: str, industry: str) -> str:
@@ -18,8 +53,12 @@ def _build_default_system_prompt(name: str, industry: str) -> str:
     )
 
 @api_bp.route("/organizations/<int:org_id>/ai-agents", methods=["GET"])
+@jwt_required()
 def list_ai_agents(org_id):
-    """Get all AI interview agents for an organization."""
+    """Get all AI interview agents for an organization (managers only)."""
+    user = _me()
+    if not _manages_org_id(user, org_id):
+        return jsonify({"error": "Forbidden for this organization"}), 403
     Organization.query.get_or_404(org_id)
     agents = (
         AIInterviewAgent.query
@@ -30,8 +69,12 @@ def list_ai_agents(org_id):
     return jsonify([agent.to_dict() for agent in agents]), 200
 
 @api_bp.route("/organizations/<int:org_id>/ai-agents", methods=["POST"])
+@jwt_required()
 def create_ai_agent(org_id):
-    """Create a new AI interview agent."""
+    """Create a new AI interview agent (managers only)."""
+    user = _me()
+    if not _manages_org_id(user, org_id):
+        return jsonify({"error": "Forbidden for this organization"}), 403
     Organization.query.get_or_404(org_id)
     payload = request.get_json(silent=True) or {}
 
@@ -59,15 +102,21 @@ def create_ai_agent(org_id):
     return jsonify(agent.to_dict()), 201
 
 @api_bp.route("/ai-agents/<int:agent_id>", methods=["GET"])
+@jwt_required()
 def get_ai_agent(agent_id):
-    """Return a single AI interview agent."""
+    """Return a single AI interview agent (managing org only)."""
     agent = AIInterviewAgent.query.get_or_404(agent_id)
+    if not _manages_org_id(_me(), agent.organization_id):
+        return jsonify({"error": "Forbidden for this organization"}), 403
     return jsonify(agent.to_dict()), 200
 
 @api_bp.route("/ai-agents/<int:agent_id>", methods=["PUT"])
+@jwt_required()
 def update_ai_agent(agent_id):
-    """Update an AI interview agent."""
+    """Update an AI interview agent (managing org only)."""
     agent = AIInterviewAgent.query.get_or_404(agent_id)
+    if not _manages_org_id(_me(), agent.organization_id):
+        return jsonify({"error": "Forbidden for this organization"}), 403
     payload = request.get_json(silent=True) or {}
 
     if "name" in payload:
@@ -90,17 +139,23 @@ def update_ai_agent(agent_id):
     return jsonify(agent.to_dict()), 200
 
 @api_bp.route("/ai-agents/<int:agent_id>", methods=["DELETE"])
+@jwt_required()
 def delete_ai_agent(agent_id):
-    """Delete an AI interview agent"""
+    """Delete an AI interview agent (managing org only)."""
     agent = AIInterviewAgent.query.get_or_404(agent_id)
+    if not _manages_org_id(_me(), agent.organization_id):
+        return jsonify({"error": "Forbidden for this organization"}), 403
     db.session.delete(agent)
     db.session.commit()
     return jsonify({"message": "AI agent deleted"}), 200
 
 @api_bp.route("/ai-agents/<int:agent_id>/test", methods=["POST"])
+@jwt_required()
 def test_ai_agent(agent_id):
-    """Test an AI interview agent with a sample conversation"""
+    """Test an AI interview agent with a sample conversation (managing org only)."""
     agent = AIInterviewAgent.query.get_or_404(agent_id)
+    if not _manages_org_id(_me(), agent.organization_id):
+        return jsonify({"error": "Forbidden for this organization"}), 403
     payload = request.get_json(silent=True) or {}
 
     test_message = payload.get("message", "Hello, I'm here for the interview.")
@@ -146,9 +201,12 @@ def test_ai_agent(agent_id):
 
 # AI Interview execution endpoints
 @api_bp.route("/interviews/<int:interview_id>/ai-start", methods=["POST"])
+@jwt_required()
 def start_ai_interview(interview_id):
-    """Start an AI-powered interview"""
+    """Start an AI-powered interview (participant or managing org)."""
     interview = Interview.query.get_or_404(interview_id)
+    if not _can_see_interview(_me(), interview):
+        return jsonify({"error": "Forbidden"}), 403
 
     if not interview.ai_agent_id:
         return jsonify({"error": "This interview is not assigned to an AI agent"}), 400
@@ -176,9 +234,12 @@ def start_ai_interview(interview_id):
     }), 200
 
 @api_bp.route("/interviews/<int:interview_id>/ai-message", methods=["POST"])
+@jwt_required()
 def send_ai_message(interview_id):
-    """Send a message to the AI interviewer and get response"""
+    """Send a message to the AI interviewer and get response (participant or managing org)."""
     interview = Interview.query.get_or_404(interview_id)
+    if not _can_see_interview(_me(), interview):
+        return jsonify({"error": "Forbidden"}), 403
     payload = request.get_json(silent=True) or {}
 
     candidate_message = payload.get("message", "").strip()
@@ -242,9 +303,12 @@ def send_ai_message(interview_id):
         }), 500
 
 @api_bp.route("/interviews/<int:interview_id>/ai-history", methods=["GET"])
+@jwt_required()
 def get_ai_interview_history(interview_id):
-    """Get the conversation history of an AI interview"""
+    """Get the conversation history of an AI interview (participant or managing org)."""
     interview = Interview.query.get_or_404(interview_id)
+    if not _can_see_interview(_me(), interview):
+        return jsonify({"error": "Forbidden"}), 403
 
     if not interview.ai_agent_id:
         return jsonify({"error": "This interview is not assigned to an AI agent"}), 400
@@ -263,9 +327,13 @@ def get_ai_interview_history(interview_id):
     }), 200
 
 @api_bp.route("/interviews/<int:interview_id>/assign-agent", methods=["POST"])
+@jwt_required()
 def assign_ai_agent_to_interview(interview_id):
-    """Assign an AI agent to an interview"""
+    """Assign an AI agent to an interview (managing org only)."""
     interview = Interview.query.get_or_404(interview_id)
+    user = _me()
+    if interview.organization_id is None or not _manages_org_id(user, interview.organization_id):
+        return jsonify({"error": "Forbidden for this organization"}), 403
     payload = request.get_json(silent=True) or {}
 
     agent_id = payload.get("agent_id")
@@ -290,8 +358,9 @@ def assign_ai_agent_to_interview(interview_id):
     }), 200
 
 @api_bp.route("/ai-test", methods=["GET"])
+@jwt_required()
 def test_ai_service():
-    """Test AI service connection"""
+    """Test AI service connection (authenticated users)."""
     from ...ai_service import test_ai_connection
     result = test_ai_connection()
     return jsonify(result), 200 if result["success"] else 500

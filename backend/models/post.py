@@ -55,5 +55,5 @@ class Post(db.Model):
                 "name": self.organization.name,
                 "profile_image": self.organization.profile_image,
             } if self.organization else None,
-            "organization_details": self.organization.to_dict() if self.organization else None,
+            "organization_details": self.organization.to_public_dict() if self.organization else None,
         }

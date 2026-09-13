@@ -7,6 +7,10 @@ from flask import request
 from sqlalchemy import desc
 from typing import Dict, List, Any, Tuple
 
+# Columns that must never be filterable/sortable via request params.
+# (Secrets and hashes must not be usable as query oracles.)
+BLOCKED_QUERY_FIELDS = frozenset({"password_hash"})
+
 
 class Pagination:
     """Pagination utility class for SQLAlchemy queries"""
@@ -126,6 +130,8 @@ def apply_filters_and_sorting(query, model_class, filters: Dict[str, Any] = None
     # Apply filters
     if filters:
         for field, value in filters.items():
+            if field in BLOCKED_QUERY_FIELDS:
+                continue
             if hasattr(model_class, field) and value is not None:
                 column = getattr(model_class, field)
                 # Handle different filter types
@@ -140,7 +146,7 @@ def apply_filters_and_sorting(query, model_class, filters: Dict[str, Any] = None
                     query = query.filter(column == value)
 
     # Apply sorting
-    if sort_by and hasattr(model_class, sort_by):
+    if sort_by and sort_by not in BLOCKED_QUERY_FIELDS and hasattr(model_class, sort_by):
         column = getattr(model_class, sort_by)
         if sort_order.lower() == 'asc':
             query = query.order_by(column.asc())
@@ -172,6 +178,10 @@ def get_request_filters(model_class) -> Dict[str, Any]:
     for arg, value in request.args.items():
         # Skip pagination and sorting parameters
         if arg in ['page', 'per_page', 'sort_by', 'sort_order']:
+            continue
+
+        # Never allow filtering on sensitive columns
+        if arg in BLOCKED_QUERY_FIELDS:
             continue
 
         # Only include valid model fields

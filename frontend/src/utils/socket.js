@@ -11,14 +11,16 @@ class SocketService {
   connect(token) {
     if (this.socket) return;
 
+    // Auth handshake carries the JWT (never the URL query string, which
+    // would leak the token into server/proxy logs).
     this.socket = io(SOCKET_URL, {
-      query: { token },
+      auth: { token },
       transports: ["websocket"],
       reconnectionAttempts: 5,
     });
 
     this.socket.on("connect", () => {
-      console.log("Connected to Real-Time Bridge (Socket.IO)");
+      // Connected — App.js joins the caller's org room explicitly.
     });
 
     this.socket.on("connect_error", (error) => {

@@ -8,6 +8,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.orm import sessionmaker
 
 from ...extensions import db
+from ...models import User, TeamMember
 from ...rag.tools.supervisor import RAGSupervisor
 from ...rag.tools.ingestor import IngestorTool
 from ...rag.tools.embedder import EmbedderTool
@@ -212,6 +213,10 @@ def ingest_text():
             return jsonify({'error': 'Content is required'}), 400
 
         content = data['content']
+        if not isinstance(content, str) or not content.strip():
+            return jsonify({'error': 'Content must be a non-empty string'}), 400
+        if len(content) > 200000:
+            return jsonify({'error': 'Content too large (max 200k characters)'}), 400
         metadata = data.get('metadata', {})
         chunking_strategy = data.get('chunking_strategy', 'semantic')
 
@@ -273,7 +278,9 @@ def ingest_file():
         # Save file temporarily (would need proper file handling)
         # For now, just process as text if it's a text file
         if file.filename.endswith(('.txt', '.md')):
-            content = file.read().decode('utf-8')
+            content = file.read(2 * 1024 * 1024 + 1).decode('utf-8', errors='replace')
+            if len(content) > 2 * 1024 * 1024:
+                return jsonify({'error': 'File too large (max 2MB)'}), 400
 
             metadata = {
                 'filename': file.filename,
@@ -356,8 +363,19 @@ def health_check():
 @rag_bp.route('/clear-cache', methods=['POST'])
 @jwt_required()
 def clear_cache():
-    """Clear embedding cache"""
+    """Clear embedding cache (organization accounts only — global effect)."""
     try:
+        try:
+            me = User.query.get(int(get_jwt_identity()))
+        except (TypeError, ValueError):
+            me = None
+        if not me:
+            return jsonify({'error': 'User not found'}), 404
+        manages_any = bool(me.organization_id) or (
+            TeamMember.query.filter_by(user_id=me.id).first() is not None
+        )
+        if me.role != "organization" and not manages_any:
+            return jsonify({'error': 'Forbidden: organization account required'}), 403
         embedder.clear_cache()
         return jsonify({'success': True, 'message': 'Cache cleared'})
 

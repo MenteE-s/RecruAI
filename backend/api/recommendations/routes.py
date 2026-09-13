@@ -9,8 +9,30 @@ from sqlalchemy.orm import sessionmaker
 
 from ...extensions import db
 from ...recommendations.tools.supervisor import RecommendationSupervisor
-from ...models import User, SavedJob, AIInterviewAgent, Organization
+from ...models import User, SavedJob, AIInterviewAgent, Organization, Post, TeamMember
 from ...utils.kafka_service import kafka_service
+
+
+def _managed_org_ids(user):
+    ids = set()
+    if user.organization_id:
+        ids.add(user.organization_id)
+    for tm in TeamMember.query.filter_by(user_id=user.id).all():
+        ids.add(tm.organization_id)
+    return ids
+
+
+def _is_hiring_user(user):
+    """Only organization-side users may browse other candidates."""
+    return user.role == "organization" or bool(_managed_org_ids(user))
+
+
+def _owns_job(user, job_id):
+    try:
+        post = Post.query.get(int(job_id))
+    except (TypeError, ValueError):
+        return False
+    return post is not None and post.organization_id in _managed_org_ids(user)
 
 
 logger = logging.getLogger(__name__)
@@ -40,6 +62,10 @@ def recommend_candidates(job_id):
         user = User.query.get(current_user_id)
         if not user:
             return jsonify({'error': 'User not found'}), 404
+        if not _is_hiring_user(user):
+            return jsonify({'error': 'Forbidden: organization account required'}), 403
+        if not _owns_job(user, job_id):
+            return jsonify({'error': 'Forbidden for this job'}), 403
 
         # Get query parameters
         top_k = request.args.get('top_k', 10, type=int)
@@ -135,6 +161,10 @@ def recommend_agents(job_id):
         user = User.query.get(current_user_id)
         if not user:
             return jsonify({'error': 'User not found'}), 404
+        if not _is_hiring_user(user):
+            return jsonify({'error': 'Forbidden: organization account required'}), 403
+        if not _owns_job(user, job_id):
+            return jsonify({'error': 'Forbidden for this job'}), 403
 
         # Get query parameters
         top_k = request.args.get('top_k', 5, type=int)
@@ -172,6 +202,8 @@ def search_profiles():
         user = User.query.get(current_user_id)
         if not user:
             return jsonify({'error': 'User not found'}), 404
+        if not _is_hiring_user(user):
+            return jsonify({'error': 'Forbidden: organization account required'}), 403
 
         data = request.get_json()
         if not data or not data.get('query'):
@@ -231,6 +263,8 @@ def explain_candidate():
         data = request.get_json()
         if not data or not data.get('user_id') or not data.get('query'):
             return jsonify({'error': 'user_id and query are required'}), 400
+        if str(data['user_id']) != str(user.id) and not _is_hiring_user(user):
+            return jsonify({'error': 'Forbidden: organization account required'}), 403
 
         supervisor = get_supervisor()
         result = supervisor.explain_candidate(
@@ -253,6 +287,12 @@ def explain_candidate():
 def get_candidate_profile(user_id):
     """Get enriched candidate profile with skills, experience, education."""
     try:
+        current_user_id = get_jwt_identity()
+        me = User.query.get(current_user_id)
+        if not me:
+            return jsonify({'error': 'User not found'}), 404
+        if str(user_id) != str(me.id) and not _is_hiring_user(me):
+            return jsonify({'error': 'Forbidden: organization account required'}), 403
         supervisor = get_supervisor()
         result = supervisor.get_candidate_profile(user_id=user_id)
         if result:
@@ -276,6 +316,10 @@ def compare_candidate_job():
         data = request.get_json()
         if not data or not data.get('candidate_id') or not data.get('job_id'):
             return jsonify({'error': 'candidate_id and job_id are required'}), 400
+        if str(data['candidate_id']) != str(user.id) and not _is_hiring_user(user):
+            return jsonify({'error': 'Forbidden: organization account required'}), 403
+        if not _owns_job(user, data['job_id']):
+            return jsonify({'error': 'Forbidden for this job'}), 403
 
         supervisor = get_supervisor()
         result = supervisor.compare_candidate_with_job(
@@ -339,6 +383,8 @@ def embed_job(job_id):
         data = request.get_json()
         if not data:
             return jsonify({'error': 'Job data is required'}), 400
+        if not _owns_job(user, job_id):
+            return jsonify({'error': 'Forbidden for this job'}), 403
 
         supervisor = get_supervisor()
 
@@ -372,6 +418,18 @@ def embed_agent(agent_id):
         data = request.get_json()
         if not data:
             return jsonify({'error': 'Agent data is required'}), 400
+
+        try:
+            agent = AIInterviewAgent.query.get(int(agent_id))
+        except (TypeError, ValueError):
+            agent = None
+        if not agent:
+            return jsonify({'error': 'Agent not found'}), 404
+        if agent.organization_id is None:
+            if agent.owner_user_id != user.id:
+                return jsonify({'error': 'Forbidden for this agent'}), 403
+        elif agent.organization_id not in _managed_org_ids(user):
+            return jsonify({'error': 'Forbidden for this organization'}), 403
 
         supervisor = get_supervisor()
 

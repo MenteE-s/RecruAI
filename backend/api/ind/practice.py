@@ -1,5 +1,6 @@
 from datetime import timedelta, datetime
 from flask import Blueprint, jsonify, request
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from ...extensions import db
 from ...models import Interview, AIInterviewAgent, User
 from ...utils.kafka_service import KafkaService
@@ -8,16 +9,17 @@ api_bp = Blueprint('ind_practice', __name__)
 
 
 @api_bp.route('/practice/sessions', methods=['POST'])
+@jwt_required()
 def create_practice_session():
     payload = request.get_json() or {}
-    user_id = payload.get('user_id')
+    try:
+        user_id = int(get_jwt_identity())
+    except (TypeError, ValueError):
+        return jsonify({'error': 'Invalid user identity'}), 400
     duration_minutes = max(int(payload.get('duration_minutes', 15)), 15)
     title = payload.get('title') or 'Practice Interview'
     description = payload.get('description', '')
     interview_type = payload.get('interview_type', 'text')
-
-    if not user_id:
-        return jsonify({'error': 'user_id required'}), 400
 
     # get or create personal agent
     agent = AIInterviewAgent.query.filter_by(owner_user_id=user_id).first()

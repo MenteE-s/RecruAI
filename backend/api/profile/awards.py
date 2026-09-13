@@ -69,7 +69,7 @@ def update_award(award_id):
 
     # Update other fields
     for key, value in data.items():
-        if key != 'date' and hasattr(award, key):
+        if key != 'date' and key not in ('id', 'user_id') and hasattr(award, key):
             setattr(award, key, value)
 
     db.session.commit()

@@ -212,9 +212,19 @@ def get_public_profile(slug):
     if not profile.show_projects:
         user_data['projects'] = []
 
-    # Include profile sections
+    # Include profile sections, honoring the same visibility flags as above.
+    _section_visibility = {
+        "experience": profile.show_experience,
+        "education": profile.show_education,
+        "skills": profile.show_skills,
+        "projects": profile.show_projects,
+    }
     profile_sections = ProfileSection.query.filter_by(user_id=user.id).order_by(ProfileSection.order_index).all()
-    user_data['profile_sections'] = [section.to_dict() for section in profile_sections]
+    user_data['profile_sections'] = [
+        section.to_dict()
+        for section in profile_sections
+        if _section_visibility.get(section.section_type, True)
+    ]
 
     return jsonify({
         'success': True,

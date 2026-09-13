@@ -59,12 +59,17 @@ def register():
         if not organization_name:
             log_security_event("missing_org_name", ip_address=request.remote_addr, email=email)
             return jsonify({"error": "organization_name is required for organization signups"}), 400
+        # Security: never attach a new signup to an existing organization —
+        # that would grant the stranger Admin rights over someone else's org.
+        # Joining an existing org is only possible via team invitation.
         org = Organization.query.filter_by(name=organization_name).first()
-        if not org:
-            org = Organization(name=organization_name)
-            db.session.add(org)
-            # flush so org.id is available
-            db.session.flush()
+        if org:
+            log_security_event("org_name_taken", ip_address=request.remote_addr, email=email)
+            return jsonify({"error": "An organization with this name already exists. Ask an admin to invite you instead."}), 400
+        org = Organization(name=organization_name)
+        db.session.add(org)
+        # flush so org.id is available
+        db.session.flush()
         user.organization = org
 
     try:

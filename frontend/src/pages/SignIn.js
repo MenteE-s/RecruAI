@@ -101,9 +101,6 @@ export default function SignIn() {
       });
       // prefer SPA navigation but fall back to full reload if SPA route doesn't take
       navigate("/dashboard", { replace: true });
-      // debug helper: log server response
-      // eslint-disable-next-line no-console
-      console.log("login response", data);
       if (typeof window !== "undefined") {
         // small delay: if SPA navigation didn't change the path (protected route may redirect),
         // force a hard navigation to help surface errors in the network tab.
