@@ -107,23 +107,24 @@ def create_app(config_object: object | None = None):
 	with app.app_context():
 		from .api import sockets
 
-	# Initialize Kafka service
-	try:
-		from .utils.kafka_service import KafkaService
-		kafka = KafkaService()
-		print(f"Kafka initialized with servers: {kafka.bootstrap_servers}")
+	# Initialize Kafka service (only if enabled)
+	if os.getenv("KAFKA_ENABLED", "0") == "1" or app.config.get("KAFKA_ENABLED", False):
+		try:
+			from .utils.kafka_service import KafkaService
+			kafka = KafkaService()
+			print(f"Kafka initialized with servers: {kafka.bootstrap_servers}")
 
-		# Start background consumer for Socket.IO bridging
-		from .utils.kafka_consumer import KafkaConsumerService
-		consumer = KafkaConsumerService(
-			bootstrap_servers=kafka.bootstrap_servers,
-			group_id='recruai-broadcast-group',
-			topics=[kafka.default_topic]
-		)
-		consumer.start(app, callback_map={}) # Add specific handlers if needed
-		print(f"Kafka Consumer started for real-time broadcasts on topic: {kafka.default_topic}")
-	except Exception as e:
-		print(f"Warning: Could not initialize Kafka: {e}")
+			# Start background consumer for Socket.IO bridging
+			from .utils.kafka_consumer import KafkaConsumerService
+			consumer = KafkaConsumerService(
+				bootstrap_servers=kafka.bootstrap_servers,
+				group_id='recruai-broadcast-group',
+				topics=[kafka.default_topic]
+			)
+			consumer.start(app, callback_map={}) # Add specific handlers if needed
+			print(f"Kafka Consumer started for real-time broadcasts on topic: {kafka.default_topic}")
+		except Exception as e:
+			print(f"Warning: Could not initialize Kafka: {e}")
 
 	# Initialize AI providers
 	try:

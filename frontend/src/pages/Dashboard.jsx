@@ -7,7 +7,9 @@ import {
   FiActivity,
   FiTrendingUp,
   FiDollarSign,
+  FiBell,
 } from "react-icons/fi";
+import { Link } from "react-router-dom";
 
 export default function Dashboard() {
   return (
@@ -24,7 +26,11 @@ export default function Dashboard() {
                 Welcome back — here's what's happening.
               </p>
             </div>
-            <div className="hidden md:flex items-center space-x-4">
+            <div className="hidden md:flex items-center space-x-3">
+              <Link to="/notifications" className="relative p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors" aria-label="Notifications">
+                <FiBell className="w-5 h-5" />
+                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+              </Link>
               <button className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded text-sm">
                 Invite team
               </button>

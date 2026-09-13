@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
 import Card from "../../components/ui/Card";
@@ -168,11 +168,13 @@ export default function BrowseOrganizations() {
                   <div className="flex items-center">
                     <div className="flex-shrink-0 h-12 w-12">
                       {org.profile_image ? (
-                        <img
-                          src={getUploadUrl(org.profile_image)}
-                          alt={`${org.name} profile`}
-                          className="h-12 w-12 rounded-lg object-cover border-2 border-gray-200"
-                        />
+                        <Link to={`/organization/profile/${org.id}`} className="h-12 w-12 block">
+                          <img
+                            src={getUploadUrl(org.profile_image)}
+                            alt={`${org.name} profile`}
+                            className="h-12 w-12 rounded-lg object-cover border-2 border-gray-200 hover:border-blue-300 transition-colors"
+                          />
+                        </Link>
                       ) : (
                         <div className="h-12 w-12 rounded-lg bg-green-700 flex items-center justify-center">
                           <FiBriefcase size={20} className="text-white" />

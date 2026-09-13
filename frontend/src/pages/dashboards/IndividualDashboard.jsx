@@ -13,7 +13,9 @@ import {
   FiActivity,
   FiTrendingUp,
   FiZap,
+  FiBell,
 } from "react-icons/fi";
+import { Link } from "react-router-dom";
 
 export default function IndividualDashboard() {
   const navigate = useNavigate();
@@ -82,6 +84,10 @@ export default function IndividualDashboard() {
               <h1 className="text-3xl md:text-[2rem] font-bold leading-tight mt-1">Your job search, at a glance</h1>
               <p className="text-gray-300 mt-2 max-w-xl text-sm md:text-[15px]">Track interviews, applications, and saved roles — all in one place.</p>
               <div className="mt-5 flex flex-wrap gap-2">
+                <Link to="/notifications" className="inline-flex items-center gap-2 px-4 py-2.5 bg-white/10 border border-white/20 text-white text-sm font-medium hover:bg-white/15 transition-colors rounded-full relative">
+                  <FiBell className="w-4 h-4" /> Notifications
+                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse border-2 border-gray-900" />
+                </Link>
                 <button onClick={() => navigate("/jobs")} className="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-gray-900 text-sm font-medium hover:bg-gray-100 transition-colors"><FiBriefcase className="w-4 h-4" /> Browse jobs</button>
                 <button onClick={() => navigate("/practice")} className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/10 border border-white/20 text-white text-sm font-medium hover:bg-white/15 transition-colors"><FiTarget className="w-4 h-4" /> Practice</button>
               </div>

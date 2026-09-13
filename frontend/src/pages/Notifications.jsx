@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import socketService from "../utils/socket";
 import { getBackendUrl, verifyTokenWithServer, getSidebarItems } from "../utils/auth";
@@ -19,6 +20,7 @@ import {
 } from "react-icons/fi";
 
 export default function Notifications() {
+  const navigate = useNavigate();
   const role = typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
   const plan = typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
   const sidebarItems = getSidebarItems(role, plan);
@@ -157,6 +159,14 @@ export default function Notifications() {
     } catch (error) {
       console.error("Error bulk marking as read:", error);
     }
+  };
+
+  const getNotificationLink = (n) => {
+    if (n.type?.includes("interview") && n.related_interview_id) return `/interviews/${n.related_interview_id}`;
+    if ((n.type === "profile_favorited" || n.type === "profile_viewed") && n.related_user_id) return `/profile`;
+    if (n.related_organization_id) return `/organization/profile/${n.related_organization_id}`;
+    if (n.type?.includes("interview")) return `/interviews/upcoming`;
+    return null;
   };
 
   const getNotificationIcon = (type) => {
@@ -318,7 +328,11 @@ export default function Notifications() {
           filteredBySearch.map((notification) => (
             <div
               key={notification.id}
-              className={`group relative bg-white border hover:shadow-sm transition-all ${!notification.is_read ? "border-l-4 border-l-blue-600 border-y border-r border-y-gray-200 border-r-gray-200" : "border-gray-200 hover:border-gray-300"} `}
+              onClick={() => {
+                const link = getNotificationLink(notification);
+                if (link) navigate(link);
+              }}
+              className={`group relative bg-white border hover:shadow-sm transition-all cursor-pointer ${!notification.is_read ? "border-l-4 border-l-blue-600 border-y border-r border-y-gray-200 border-r-gray-200" : "border-gray-200 hover:border-gray-300"}`}
             >
               <div className="p-4 flex gap-4">
                 <div className={`hidden sm:flex w-10 h-10 items-center justify-center border shrink-0 ${!notification.is_read ? "bg-blue-50 border-blue-200" : "bg-gray-50 border-gray-200"}`}>{getNotificationIcon(notification.type)}</div>
@@ -335,37 +349,37 @@ export default function Notifications() {
                     </div>
                     <div className="hidden md:flex items-center gap-1 shrink-0">
                       {!notification.is_read && (
-                        <button onClick={() => markAsRead(notification.id)} className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-200" title="Mark as read">
+                        <button onClick={(e) => { e.stopPropagation(); markAsRead(notification.id); }} className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-200" title="Mark as read">
                           <FiEye className="w-4 h-4" />
                         </button>
                       )}
-                      <button onClick={() => favoriteNotification(notification.id)} className={`p-2 border ${notification.is_favorited ? "text-amber-600 bg-amber-50 border-amber-200" : "text-gray-400 hover:text-amber-600 hover:bg-amber-50 border-transparent hover:border-amber-200"}`} title="Favorite">
+                      <button onClick={(e) => { e.stopPropagation(); favoriteNotification(notification.id); }} className={`p-2 border ${notification.is_favorited ? "text-amber-600 bg-amber-50 border-amber-200" : "text-gray-400 hover:text-amber-600 hover:bg-amber-50 border-transparent hover:border-amber-200"}`} title="Favorite">
                         <FiStar className={`w-4 h-4 ${notification.is_favorited ? "fill-amber-500" : ""}`} />
                       </button>
                       {filters.archived ? (
-                        <button onClick={() => unarchiveNotification(notification.id)} className="p-2 text-green-600 hover:bg-green-50 border border-transparent hover:border-green-200" title="Unarchive">
+                        <button onClick={(e) => { e.stopPropagation(); unarchiveNotification(notification.id); }} className="p-2 text-green-600 hover:bg-green-50 border border-transparent hover:border-green-200" title="Unarchive">
                           <FiInbox className="w-4 h-4" />
                         </button>
                       ) : (
-                        <button onClick={() => archiveNotification(notification.id)} className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-50 border border-transparent hover:border-gray-200" title="Archive">
+                        <button onClick={(e) => { e.stopPropagation(); filters.archived ? unarchiveNotification(notification.id) : archiveNotification(notification.id); }} className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-50 border border-transparent hover:border-gray-200" title="Archive">
                           <FiArchive className="w-4 h-4" />
                         </button>
                       )}
-                      <button onClick={() => deleteNotification(notification.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200" title="Delete">
+                      <button onClick={(e) => { e.stopPropagation(); deleteNotification(notification.id); }} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200" title="Delete">
                         <FiTrash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
                   <div className="mt-3 flex md:hidden flex-wrap gap-2">
                     {!notification.is_read && (
-                      <button onClick={() => markAsRead(notification.id)} className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 bg-blue-600 text-white font-medium">
+                      <button onClick={(e) => { e.stopPropagation(); markAsRead(notification.id); }} className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 bg-blue-600 text-white font-medium">
                         <FiEye className="w-3.5 h-3.5" /> Mark read
                       </button>
                     )}
-                    <button onClick={() => favoriteNotification(notification.id)} className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 border font-medium ${notification.is_favorited ? "bg-amber-50 text-amber-700 border-amber-200" : "bg-white text-gray-600 border-gray-200"}`}>
+                    <button onClick={(e) => { e.stopPropagation(); favoriteNotification(notification.id); }} className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 border font-medium ${notification.is_favorited ? "bg-amber-50 text-amber-700 border-amber-200" : "bg-white text-gray-600 border-gray-200"}`}>
                       <FiStar className={`w-3.5 h-3.5 ${notification.is_favorited ? "fill-amber-500" : ""}`} /> {notification.is_favorited ? "Favorited" : "Favorite"}
                     </button>
-                    <button onClick={() => (filters.archived ? unarchiveNotification(notification.id) : archiveNotification(notification.id))} className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 bg-white border border-gray-200 text-gray-600 font-medium">
+                    <button onClick={(e) => { e.stopPropagation(); filters.archived ? unarchiveNotification(notification.id) : archiveNotification(notification.id); }} className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 bg-white border border-gray-200 text-gray-600 font-medium">
                       {filters.archived ? <FiInbox className="w-3.5 h-3.5" /> : <FiArchive className="w-3.5 h-3.5" />} {filters.archived ? "Unarchive" : "Archive"}
                     </button>
                   </div>

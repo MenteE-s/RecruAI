@@ -493,7 +493,7 @@ export default function BrowseJobs() {
               const applied = appliedJobs.has(job.id);
               const saved = savedJobs.has(job.id);
               return (
-                <div key={job.id} className="group bg-white border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all">
+                <div key={job.id} onClick={() => navigate(`/jobs/${job.id}`)} className="group bg-white border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all cursor-pointer">
                   <div className="p-5">
                     <div className="flex gap-4">
                       {job.organization?.profile_image ? (
@@ -536,12 +536,12 @@ export default function BrowseJobs() {
                         {applied ? (
                           <button disabled className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-green-50 text-green-700 border border-green-200 text-sm font-medium cursor-not-allowed"><FiCheckCircle className="w-4 h-4" /> Applied</button>
                         ) : (
-                          <button onClick={() => { setSelectedJob(job); setShowApplyConfirm(true); }} className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors">Apply now</button>
+                          <button onClick={(e) => { e.stopPropagation(); setSelectedJob(job); setShowApplyConfirm(true); }} className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors">Apply now</button>
                         )}
                         {saved ? (
-                          <button onClick={() => fetch(`${getBackendUrl()}/api/saved-jobs/check?post_id=${job.id}`).then((r) => r.json()).then((d) => { if (d.saved_id) handleUnsaveJob(d.saved_id); })} className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-gray-900 text-white text-sm font-medium hover:bg-black transition-colors"><FiBookmark className="w-4 h-4 fill-white" /> Saved</button>
+                          <button onClick={(e) => { e.stopPropagation(); fetch(`${getBackendUrl()}/api/saved-jobs/check?post_id=${job.id}`).then((r) => r.json()).then((d) => { if (d.saved_id) handleUnsaveJob(d.saved_id); }) }} className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-gray-900 text-white text-sm font-medium hover:bg-black transition-colors"><FiBookmark className="w-4 h-4 fill-white" /> Saved</button>
                         ) : (
-                          <button onClick={() => handleSaveJob(job.id)} className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white text-gray-700 border border-gray-200 text-sm font-medium hover:bg-gray-50 transition-colors"><FiBookmark className="w-4 h-4" /> Save</button>
+                          <button onClick={(e) => { e.stopPropagation(); handleSaveJob(job.id) }} className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white text-gray-700 border border-gray-200 text-sm font-medium hover:bg-gray-50 transition-colors"><FiBookmark className="w-4 h-4" /> Save</button>
                         )}
                         <Link to={`/jobs/${job.id}`} className="md:hidden inline-flex items-center justify-center px-4 py-2 text-xs font-medium text-blue-600 hover:text-blue-700">View details →</Link>
                       </div>
@@ -550,12 +550,12 @@ export default function BrowseJobs() {
                       {applied ? (
                         <button disabled className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-green-50 text-green-700 border border-green-200 text-sm font-medium cursor-not-allowed"><FiCheckCircle className="w-4 h-4" /> Applied</button>
                       ) : (
-                        <button onClick={() => { setSelectedJob(job); setShowApplyConfirm(true); }} className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700">Apply</button>
+                        <button onClick={(e) => { e.stopPropagation(); setSelectedJob(job); setShowApplyConfirm(true); }} className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700">Apply</button>
                       )}
                       {saved ? (
-                          <button onClick={() => fetch(`${getBackendUrl()}/api/saved-jobs/check?post_id=${job.id}`).then((r) => r.json()).then((d) => { if (d.saved_id) handleUnsaveJob(d.saved_id); })} className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-gray-900 text-white text-sm font-medium"><FiBookmark className="w-4 h-4 fill-white" /> Saved</button>
+                          <button onClick={(e) => { e.stopPropagation(); fetch(`${getBackendUrl()}/api/saved-jobs/check?post_id=${job.id}`).then((r) => r.json()).then((d) => { if (d.saved_id) handleUnsaveJob(d.saved_id); }) }} className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-gray-900 text-white text-sm font-medium"><FiBookmark className="w-4 h-4 fill-white" /> Saved</button>
                       ) : (
-                        <button onClick={() => handleSaveJob(job.id)} className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white border border-gray-200 text-gray-700 text-sm font-medium"><FiBookmark className="w-4 h-4" /> Save</button>
+                        <button onClick={(e) => { e.stopPropagation(); handleSaveJob(job.id) }} className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white border border-gray-200 text-gray-700 text-sm font-medium"><FiBookmark className="w-4 h-4" /> Save</button>
                       )}
                     </div>
                   </div>

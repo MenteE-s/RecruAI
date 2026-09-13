@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import IndividualNavbar from "../../components/layout/IndividualNavbar";
 import Card from "../../components/ui/Card";
@@ -303,9 +303,9 @@ export default function JobDetails() {
                 </div>
                 <h1 className="text-3xl md:text-[2rem] font-bold leading-tight">{job.title}</h1>
                 {job.organization?.id ? (
-                  <button onClick={() => navigate(`/organization/profile/${job.organization.id}`)} className="text-blue-200 mt-1 text-sm md:text-[15px] hover:text-white hover:underline transition-colors">
+                  <Link to={`/organization/profile/${job.organization.id}`} className="text-blue-200 mt-1 text-sm md:text-[15px] hover:text-white hover:underline transition-colors">
                     {job.organization?.name || "Unknown organization"}
-                  </button>
+                  </Link>
                 ) : (
                   <p className="text-blue-200 mt-1 text-sm md:text-[15px]">{job.organization?.name || "Unknown organization"}</p>
                 )}

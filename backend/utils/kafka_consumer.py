@@ -112,7 +112,7 @@ class KafkaConsumerService:
                 
         except Exception as e:
             logger.error(f"Error broadcasting to Socket.IO: {e}")
-            self.running = False
+            # Do NOT stop the consumer for a broadcast error; continue processing messages
 
 def handle_interview_event(app, data):
     """Example handler for interview events."""

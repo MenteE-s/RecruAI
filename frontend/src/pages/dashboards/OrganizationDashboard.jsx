@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import { getSidebarItems, getBackendUrl, getAuthHeaders } from "../../utils/auth";
 import { FiUsers, FiBarChart2, FiBriefcase, FiBell, FiFileText, FiMessageSquare, FiTrendingUp, FiChevronRight } from "react-icons/fi";
@@ -57,6 +57,10 @@ export default function OrganizationDashboard() {
               <h1 className="text-3xl md:text-[2rem] font-bold leading-tight mt-1">{user?.organization ? `${user.organization}` : "Organization dashboard"}</h1>
               <p className="text-gray-300 mt-2 max-w-xl text-sm md:text-[15px]">Manage your team, requisitions, and hiring pipeline.</p>
               <div className="mt-4 hidden md:flex gap-2">
+                <Link to="/notifications" className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 border border-white/20 text-white text-sm font-medium hover:bg-white/15 transition-colors rounded-full relative">
+                  <FiBell className="w-4 h-4" /> Notifications
+                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse border-2 border-gray-900" />
+                </Link>
                 <button onClick={() => navigate("/organization/team")} className="px-4 py-2 bg-white text-gray-900 text-sm font-medium hover:bg-gray-100 transition-colors">Invite members</button>
                 <button onClick={() => navigate("/organization/jobs")} className="px-4 py-2 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors">New campaign</button>
               </div>
