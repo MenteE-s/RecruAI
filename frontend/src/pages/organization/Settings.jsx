@@ -19,6 +19,7 @@ import {
   FiPlus,
   FiTarget,
   FiMail,
+  FiEdit2,
 } from "react-icons/fi";
 
 export default function OrganizationSettings() {
@@ -144,6 +145,43 @@ export default function OrganizationSettings() {
     return "bg-gray-50 text-gray-600 border-gray-200";
   };
 
+  const [editingMemberId, setEditingMemberId] = useState(null);
+  const [editRole, setEditRole] = useState("Member");
+  const [roleBusy, setRoleBusy] = useState(false);
+
+  const handleSaveRole = async (member) => {
+    if (!organization) return;
+    const isSelf = user && member.user_id === user.id;
+    const adminCount = teamMembers.filter((m) => m.role === "Admin").length;
+    // Safety: never leave the org without an Admin.
+    if (isSelf && member.role === "Admin" && editRole !== "Admin" && adminCount <= 1) {
+      setTeamMsg({ type: "error", text: "You are the last Admin. Promote someone else before changing your role." });
+      return;
+    }
+    setRoleBusy(true);
+    try {
+      const res = await fetch(`${getBackendUrl()}/api/organizations/${organization.id}/team-members/${member.id}`, {
+        method: "PUT",
+        headers: getAuthHeaders({ "Content-Type": "application/json" }),
+        credentials: "include",
+        body: JSON.stringify({ role: editRole }),
+      });
+      const result = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setTeamMsg({ type: "error", text: result.error || "Failed to update role." });
+        return;
+      }
+      setTeamMembers((prev) => prev.map((m) => (m.id === member.id ? result : m)));
+      setEditingMemberId(null);
+      setTeamMsg({ type: "success", text: "Member role updated." });
+    } catch (err) {
+      console.error("Failed to update role:", err);
+      setTeamMsg({ type: "error", text: "Network error. Please try again." });
+    } finally {
+      setRoleBusy(false);
+    }
+  };
+
   const handleEmailSave = async (e) => {
     e.preventDefault();
     setEmailSaving(true);
@@ -190,7 +228,8 @@ export default function OrganizationSettings() {
     }
   };
 
-  const handleProfileUpdate = async (e) => {    e.preventDefault();
+  const handleProfileUpdate = async (e) => {
+    e.preventDefault();
     if (!organization) return;
     setSaving(true);
     try {
@@ -428,6 +467,7 @@ export default function OrganizationSettings() {
             ) : (
               teamMembers.map((member) => {
                 const isSelf = user && member.user_id === user.id;
+                const isEditing = editingMemberId === member.id;
                 return (
                   <div key={member.id} className="flex items-center justify-between gap-3 p-4 border border-gray-200 hover:bg-gray-50">
                     <div className="min-w-0">
@@ -437,14 +477,42 @@ export default function OrganizationSettings() {
                       </p>
                       <p className="text-xs text-gray-500 truncate">{member.user?.email}</p>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className={`text-xs border px-2 py-1 ${roleBadge(member.role)}`}>{member.role}</span>
-                      {!isSelf && (
-                        <button onClick={() => handleRemoveMember(member)} title="Remove from team" className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200">
-                          <FiTrash2 className="w-4 h-4" />
+                    {isEditing ? (
+                      <div className="flex items-center gap-2 shrink-0">
+                        <select
+                          value={editRole}
+                          onChange={(e) => setEditRole(e.target.value)}
+                          className="px-2 py-1.5 bg-white border border-gray-200 text-xs focus:outline-none focus:border-blue-500"
+                        >
+                          <option value="Member">Member</option>
+                          <option value="Manager">Manager</option>
+                          <option value="HR">HR</option>
+                          <option value="Admin">Admin</option>
+                        </select>
+                        <button onClick={() => handleSaveRole(member)} disabled={roleBusy} className="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium hover:bg-blue-700 disabled:opacity-50">
+                          {roleBusy ? "Saving…" : "Save"}
                         </button>
-                      )}
-                    </div>
+                        <button onClick={() => setEditingMemberId(null)} className="px-3 py-1.5 bg-white border border-gray-200 text-xs font-medium text-gray-700 hover:bg-gray-50">
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className={`text-xs border px-2 py-1 ${roleBadge(member.role)}`}>{member.role}</span>
+                        <button
+                          onClick={() => { setEditingMemberId(member.id); setEditRole(member.role); setTeamMsg(null); }}
+                          title="Edit role"
+                          className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-200"
+                        >
+                          <FiEdit2 className="w-4 h-4" />
+                        </button>
+                        {!isSelf && (
+                          <button onClick={() => handleRemoveMember(member)} title="Remove from team" className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200">
+                            <FiTrash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })
