@@ -28,16 +28,28 @@ export default function OrganizationSettings() {
   const [organization, setOrganization] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [emailForm, setEmailForm] = useState({ accountEmail: "", contactEmail: "", contactName: "" });
+  const [emailSaving, setEmailSaving] = useState(false);
+  const [emailMsg, setEmailMsg] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const userData = await verifyTokenWithServer();
         setUser(userData);
+        let orgData = null;
         if (userData && userData.organization_id) {
           const orgRes = await fetch(`${getBackendUrl()}/api/organizations/${userData.organization_id}`, { headers: getAuthHeaders() });
-          if (orgRes.ok) setOrganization(await orgRes.json());
+          if (orgRes.ok) {
+            orgData = await orgRes.json();
+            setOrganization(orgData);
+          }
         }
+        setEmailForm({
+          accountEmail: userData?.email || "",
+          contactEmail: orgData?.contact_email || "",
+          contactName: orgData?.contact_name || "",
+        });
       } catch (err) {
         console.error("Failed to fetch data:", err);
       } finally {
@@ -46,6 +58,52 @@ export default function OrganizationSettings() {
     };
     fetchData();
   }, []);
+
+  const handleEmailSave = async (e) => {
+    e.preventDefault();
+    setEmailSaving(true);
+    setEmailMsg(null);
+    try {
+      // 1) Account email (login + notifications for this user)
+      const meRes = await fetch(`${getBackendUrl()}/api/auth/me`, {
+        method: "PUT",
+        headers: getAuthHeaders({ "Content-Type": "application/json" }),
+        credentials: "include",
+        body: JSON.stringify({ email: emailForm.accountEmail.trim() }),
+      });
+      const meResult = await meRes.json().catch(() => ({}));
+      if (!meRes.ok) {
+        setEmailMsg({ type: "error", text: meResult.error || "Failed to update account email." });
+        return;
+      }
+      setUser(meResult.user);
+
+      // 2) Organization contact email (shown to candidates)
+      if (organization) {
+        const orgRes = await fetch(`${getBackendUrl()}/api/organizations/${organization.id}`, {
+          method: "PUT",
+          headers: getAuthHeaders({ "Content-Type": "application/json" }),
+          credentials: "include",
+          body: JSON.stringify({
+            contact_email: emailForm.contactEmail.trim(),
+            contact_name: emailForm.contactName.trim(),
+          }),
+        });
+        const orgResult = await orgRes.json().catch(() => ({}));
+        if (!orgRes.ok) {
+          setEmailMsg({ type: "error", text: orgResult.error || "Account email saved, but failed to update organization contact email." });
+          return;
+        }
+        setOrganization(orgResult);
+      }
+      setEmailMsg({ type: "success", text: "Email details updated successfully." });
+    } catch (err) {
+      console.error("Failed to update email details:", err);
+      setEmailMsg({ type: "error", text: "Network error. Please try again." });
+    } finally {
+      setEmailSaving(false);
+    }
+  };
 
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
@@ -112,6 +170,65 @@ export default function OrganizationSettings() {
       </div>
 
       <div className="space-y-6">
+        {/* Email details */}
+        <div className="bg-white border border-gray-200">
+          <div className="px-6 py-4 border-b border-gray-100">
+            <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2"><FiMail className="w-4 h-4 text-gray-500" /> Email details</h3>
+            <p className="text-sm text-gray-500 mt-1">Your login email, plus the contact email candidates see on your organization profile.</p>
+          </div>
+          <form onSubmit={handleEmailSave} className="p-6 space-y-4">
+            {emailMsg && (
+              <div className={`px-4 py-3 text-sm border ${emailMsg.type === "success" ? "bg-green-50 border-green-200 text-green-700" : "bg-red-50 border-red-200 text-red-700"}`}>
+                {emailMsg.text}
+              </div>
+            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1.5">Account email</label>
+                <div className="relative">
+                  <FiMail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <input
+                    type="email"
+                    required
+                    value={emailForm.accountEmail}
+                    onChange={(e) => setEmailForm((p) => ({ ...p, accountEmail: e.target.value }))}
+                    placeholder="you@company.com"
+                    className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white"
+                  />
+                </div>
+                <p className="text-xs text-gray-400 mt-1">Used for login and account notifications.</p>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1.5">Organization contact email</label>
+                <div className="relative">
+                  <FiMail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <input
+                    type="email"
+                    value={emailForm.contactEmail}
+                    onChange={(e) => setEmailForm((p) => ({ ...p, contactEmail: e.target.value }))}
+                    placeholder="careers@company.com"
+                    className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white"
+                  />
+                </div>
+                <p className="text-xs text-gray-400 mt-1">Shown to candidates on your public profile.</p>
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-xs font-medium text-gray-600 mb-1.5">Contact name</label>
+                <input
+                  type="text"
+                  value={emailForm.contactName}
+                  onChange={(e) => setEmailForm((p) => ({ ...p, contactName: e.target.value }))}
+                  placeholder="Hiring team"
+                  className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white"
+                />
+              </div>
+            </div>
+            <button type="submit" disabled={emailSaving} className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50">
+              {emailSaving ? "Saving…" : "Save email details"}
+            </button>
+          </form>
+        </div>
+
         {/* Organization Profile */}
         <div className="bg-white border border-gray-200">
           <div className="px-6 py-4 border-b border-gray-100">

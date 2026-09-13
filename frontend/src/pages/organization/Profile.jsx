@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import {
   getSidebarItems,
@@ -11,6 +11,7 @@ import {
   FiX,
   FiEdit2,
   FiBriefcase,
+  FiMapPin,
   FiUsers,
   FiTarget,
   FiEye,
@@ -21,6 +22,9 @@ import {
   FiUpload,
   FiGlobe,
   FiAward,
+  FiDollarSign,
+  FiArrowRight,
+  FiTag,
 } from "react-icons/fi";
 
 const Modal = ({ isOpen, onClose, children }) => {
@@ -88,6 +92,8 @@ export default function OrganizationProfile() {
   const role = typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
   const plan = typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
   const sidebarItems = getSidebarItems(role, plan);
+  const [posts, setPosts] = useState([]);
+  const [postsLoading, setPostsLoading] = useState(false);
   const [profileData, setProfileData] = useState({ name: "", description: "", website: "", company_size: "", industry: "", mission: "", vision: "", social_media_links: [], profile_image: "", banner_image: "", subscription_status: null });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -115,6 +121,19 @@ export default function OrganizationProfile() {
       } finally { setLoading(false); }
     };
     loadProfileData();
+  }, [orgId]);
+
+  useEffect(() => {
+    if (!orgId) return;
+    const fetchPosts = async () => {
+      setPostsLoading(true);
+      try {
+        const res = await fetch(`${getBackendUrl()}/api/organizations/${orgId}/posts`, { credentials: "include", headers: getAuthHeaders() });
+        if (res.ok) setPosts(await res.json());
+      } catch (e) { console.error("Failed to load posts:", e); }
+      finally { setPostsLoading(false); }
+    };
+    fetchPosts();
   }, [orgId]);
 
   const saveBasicInfo = async (data) => {
@@ -379,6 +398,70 @@ export default function OrganizationProfile() {
           </div>
         </div>
       </div>
+
+        {/* Open jobs & openings */}
+        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+          <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-gray-50 to-white">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-blue-100 text-blue-600 flex items-center justify-center rounded-lg shadow-sm">
+                <FiBriefcase className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-gray-900 leading-tight">Open jobs & openings</h3>
+                <p className="text-xs text-gray-500 mt-0.5">Active positions from this organization</p>
+              </div>
+            </div>
+            <span className="text-xs font-semibold bg-blue-600 text-white px-3 py-1 rounded-full shadow-sm">{posts.length} open</span>
+          </div>
+          <div className="divide-y divide-gray-100">
+            {postsLoading ? (
+              <div className="flex justify-center items-center py-10"><div className="animate-spin h-8 w-8 border-3 border-blue-200 border-t-blue-600 rounded-full" /></div>
+            ) : posts.length === 0 ? (
+              <div className="text-center py-12 px-6">
+                <div className="w-16 h-16 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm">
+                  <FiBriefcase className="w-8 h-8 text-blue-300" />
+                </div>
+                <h4 className="text-base font-semibold text-gray-900">No open positions</h4>
+                <p className="text-sm text-gray-500 mt-1">This organization has no active job posts at the moment.</p>
+              </div>
+            ) : (
+              posts.map((post) => {
+                const deadlineSoon = post.application_deadline ? (new Date(post.application_deadline) - new Date()) / (1000 * 60 * 60 * 24) <= 7 && (new Date(post.application_deadline) - new Date()) / (1000 * 60 * 60 * 24) >= 0 : false;
+                return (
+                  <Link key={post.id} to={`/jobs/${post.id}`} className="block hover:bg-gradient-to-r hover:from-blue-50/30 hover:to-indigo-50/20 transition-all duration-200 group/card">
+                    <div className="p-5 flex flex-col md:flex-row md:items-start gap-4 md:gap-6">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <h4 className="text-base font-bold text-gray-900 group-hover/card:text-blue-700 transition-colors truncate">{post.title}</h4>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide shadow-sm ${post.status === "active" ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-gray-50 text-gray-500 border border-gray-200"}`}>{post.status || "active"}</span>
+                          {deadlineSoon && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 shadow-sm">Closing soon</span>}
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500 mb-2">
+                          <span className="inline-flex items-center gap-1 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded-full text-gray-700 font-medium"><FiTag className="w-3 h-3" /> {post.category || "General"}</span>
+                          <span className="inline-flex items-center gap-1 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-full text-blue-700 font-medium"><FiBriefcase className="w-3 h-3" /> {post.employment_type || "Full-time"}</span>
+                        </div>
+                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
+                          {post.location && <span className="flex items-center gap-1"><FiMapPin className="w-3 h-3 text-gray-400" /> {post.location}</span>}
+                          {(post.salary_min || post.salary_max) && <span className="flex items-center gap-1 font-medium text-emerald-600"><FiDollarSign className="w-3 h-3" /> {post.salary_currency || "USD"}{post.salary_min ? new Intl.NumberFormat().format(post.salary_min) : ""}{post.salary_max ? " - " + new Intl.NumberFormat().format(post.salary_max) : ""}</span>}
+                        </div>
+                      </div>
+                      <div className="flex md:flex-col md:items-end gap-2 md:gap-1 shrink-0 md:w-44">
+                        {post.application_deadline && (
+                          <p className={`text-xs font-medium ${deadlineSoon ? "text-amber-600" : "text-gray-500"}`}>
+                            Apply by {new Date(post.application_deadline).toLocaleDateString()}
+                          </p>
+                        )}
+                        <span className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-xs font-semibold rounded-lg shadow-sm shadow-blue-600/20 cursor-pointer hover:bg-blue-700 transition-colors active:scale-[0.98]">
+                          View details <FiArrowRight className="w-3 h-3" />
+                        </span>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })
+            )}
+          </div>
+        </div>
 
       {editingSection === "basic" && (
         <Modal isOpen={true} onClose={() => setEditingSection(null)}>

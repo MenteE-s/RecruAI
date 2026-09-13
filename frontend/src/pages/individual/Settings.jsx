@@ -25,6 +25,9 @@ export default function Settings() {
   const sidebarItems = getSidebarItems(role, plan);
   const [userId, setUserId] = useState(null);
   const [userData, setUserData] = useState(null);
+  const [emailForm, setEmailForm] = useState({ email: "", name: "", phone: "", location: "" });
+  const [emailSaving, setEmailSaving] = useState(false);
+  const [emailMsg, setEmailMsg] = useState(null);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -32,8 +35,14 @@ export default function Settings() {
         const response = await fetch(`${getBackendUrl()}/api/auth/me`, { credentials: "include", headers: getAuthHeaders() });
         if (response.ok) {
           const data = await response.json();
-          setUserId(data.id);
+          setUserId(data.user?.id ?? null);
           setUserData(data.user);
+          setEmailForm({
+            email: data.user?.email || "",
+            name: data.user?.name || "",
+            phone: data.user?.phone || "",
+            location: data.user?.location || "",
+          });
         }
       } catch (error) {
         console.error("Error fetching user:", error);
@@ -41,6 +50,37 @@ export default function Settings() {
     };
     fetchUser();
   }, []);
+
+  const handleEmailSave = async (e) => {
+    e.preventDefault();
+    setEmailSaving(true);
+    setEmailMsg(null);
+    try {
+      const response = await fetch(`${getBackendUrl()}/api/auth/me`, {
+        method: "PUT",
+        headers: getAuthHeaders({ "Content-Type": "application/json" }),
+        credentials: "include",
+        body: JSON.stringify({
+          email: emailForm.email.trim(),
+          name: emailForm.name.trim(),
+          phone: emailForm.phone.trim(),
+          location: emailForm.location.trim(),
+        }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (response.ok) {
+        setUserData(result.user);
+        setEmailMsg({ type: "success", text: "Email details updated successfully." });
+      } else {
+        setEmailMsg({ type: "error", text: result.error || "Failed to update email details." });
+      }
+    } catch (error) {
+      console.error("Error updating email details:", error);
+      setEmailMsg({ type: "error", text: "Network error. Please try again." });
+    } finally {
+      setEmailSaving(false);
+    }
+  };
 
   const isPaid = userData?.subscription_status?.is_paid_active;
   const isTrial = userData?.subscription_status?.is_trial_active;
@@ -82,6 +122,70 @@ export default function Settings() {
       </div>
 
       <div className="space-y-6">
+        {/* Email details */}
+        <div className="bg-white border border-gray-200">
+          <div className="px-6 py-4 border-b border-gray-100">
+            <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2"><FiMail className="w-4 h-4 text-gray-500" /> Email details</h3>
+            <p className="text-sm text-gray-500 mt-1">Your account email and contact details. Job alerts and interview updates go to this email.</p>
+          </div>
+          <form onSubmit={handleEmailSave} className="p-6 space-y-4">
+            {emailMsg && (
+              <div className={`px-4 py-3 text-sm border ${emailMsg.type === "success" ? "bg-green-50 border-green-200 text-green-700" : "bg-red-50 border-red-200 text-red-700"}`}>
+                {emailMsg.text}
+              </div>
+            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="md:col-span-2">
+                <label className="block text-xs font-medium text-gray-600 mb-1.5">Email address</label>
+                <div className="relative">
+                  <FiMail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <input
+                    type="email"
+                    required
+                    value={emailForm.email}
+                    onChange={(e) => setEmailForm((p) => ({ ...p, email: e.target.value }))}
+                    placeholder="you@example.com"
+                    className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1.5">Full name</label>
+                <input
+                  type="text"
+                  value={emailForm.name}
+                  onChange={(e) => setEmailForm((p) => ({ ...p, name: e.target.value }))}
+                  placeholder="Your name"
+                  className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1.5">Phone</label>
+                <input
+                  type="tel"
+                  value={emailForm.phone}
+                  onChange={(e) => setEmailForm((p) => ({ ...p, phone: e.target.value }))}
+                  placeholder="+92 300 1234567"
+                  className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-xs font-medium text-gray-600 mb-1.5">Location</label>
+                <input
+                  type="text"
+                  value={emailForm.location}
+                  onChange={(e) => setEmailForm((p) => ({ ...p, location: e.target.value }))}
+                  placeholder="City, Country"
+                  className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white"
+                />
+              </div>
+            </div>
+            <button type="submit" disabled={emailSaving} className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50">
+              {emailSaving ? "Saving…" : "Save email details"}
+            </button>
+          </form>
+        </div>
+
         {/* Current Plan */}
         <div className="bg-white border border-gray-200">
           <div className="px-6 py-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">

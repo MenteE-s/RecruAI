@@ -226,14 +226,21 @@ export default function BrowseOrganizations() {
                   )}
                 </div>
 
-                <div className="flex justify-end">
+                <div className="flex gap-2">
                   <button
                     onClick={() => navigate(`/organization/profile/${org.id}`)}
-                    className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                    className="inline-flex items-center px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                   >
-                    <FiEye className="mr-2" size={16} />
-                    View Profile
+                    <FiEye className="mr-1.5" size={14} />
+                    Profile
                   </button>
+                  <a
+                    href="/jobs"
+                    className="inline-flex items-center px-3 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-black focus:ring-2 focus:ring-gray-900 focus:ring-offset-2 transition-colors"
+                  >
+                    <FiBriefcase className="mr-1.5" size={14} />
+                    Openings
+                  </a>
                 </div>
               </div>
             </Card>
