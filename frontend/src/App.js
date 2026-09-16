@@ -40,6 +40,7 @@ import ResumeBuilder from "./pages/individual/ResumeBuilder";
 import JobAlerts from "./pages/individual/JobAlerts";
 import CareerCoaching from "./pages/individual/CareerCoaching";
 import JobDetails from "./pages/individual/JobDetails";
+import MyNetwork from "./pages/individual/MyNetwork";
 import PracticeDashboard from "./pages/individual/PracticeDashboard";
 import PracticeRoom from "./pages/individual/PracticeRoom";
 import IndividualAIAgents from "./pages/individual/AIAgents";
@@ -73,6 +74,15 @@ import socketService from "./utils/socket";
 function InterviewAnalysisRedirect() {
   const { interviewId } = useParams();
   return <Navigate to={`/interviews/${interviewId}/analysis`} replace />;
+}
+
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    document.querySelectorAll("main").forEach((el) => el.scrollTo(0, 0));
+  }, [pathname]);
+  return null;
 }
 
 function AuthVerifier() {
@@ -124,7 +134,7 @@ function App() {
     <Router>
       <ToastProvider>
         <AuthVerifier />
-        <Routes>
+        <ScrollToTop /><Routes>
           {/* Public Routes */}
           <Route path="/" element={<RecruAILanding />} />
           <Route path="/register" element={<Register />} />
@@ -147,6 +157,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <DashboardSwitcher />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/network"
+            element={
+              <ProtectedRoute>
+                <MyNetwork />
               </ProtectedRoute>
             }
           />

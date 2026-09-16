@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
+import FollowButton from "../../components/ui/FollowButton";
 import {
   getSidebarItems,
   getUploadUrl,
@@ -312,9 +313,10 @@ export default function OrganizationProfile() {
               </div>
               <p className="text-sm text-gray-600 mt-1 line-clamp-2">{profileData.description || "No description yet"}</p>
               {profileData.website && <a href={profileData.website} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 mt-1"><FiGlobe className="w-3.5 h-3.5" />{profileData.website}</a>}
-              <div className="mt-3 flex flex-wrap gap-1.5">
+              <div className="mt-3 flex flex-wrap items-center gap-1.5">
                 {profileData.industry && <span className="text-xs bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-1 flex items-center gap-1"><FiBriefcase className="w-3 h-3" />{profileData.industry}</span>}
                 {profileData.company_size && <span className="text-xs bg-gray-50 text-gray-700 border border-gray-200 px-2.5 py-1 flex items-center gap-1"><FiUsers className="w-3 h-3" />{profileData.company_size}</span>}
+                {!canEdit && orgId && <FollowButton orgId={parseInt(orgId)} />}
               </div>
             </div>
           </div>

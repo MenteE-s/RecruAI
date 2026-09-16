@@ -1,6 +1,6 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
-import { getCurrentUser, getUploadUrl } from "../../utils/auth";
+import { getCurrentUser, getUploadUrl, getBackendUrl, getAuthHeaders } from "../../utils/auth";
 import SignOutButton from "../ui/SignOutButton";
 import {
   FiHome,
@@ -16,25 +16,47 @@ import {
   FiFileText,
   FiTrendingUp,
   FiClock,
+  FiUsers,
 } from "react-icons/fi";
 
 export default function Header({ sidebarItems = [] }) {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [headerUser, setHeaderUser] = useState(null);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const dropdownRef = useRef(null);
+
+  // Real unread notification count — refreshed on every navigation
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`${getBackendUrl()}/api/notifications/stats`, {
+          credentials: "include",
+          headers: getAuthHeaders(),
+        });
+        if (!cancelled && res.ok) {
+          const data = await res.json();
+          setUnreadCount(Number(data.unread) || 0);
+        }
+      } catch {
+        // leave previous count on network errors
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [location.pathname]);
+
   const navItems = [
     { name: "Home", link: "/dashboard", icon: FiHome },
-    { name: "Notifications", link: "/notifications", icon: FiBell, badge: 1 },
-    { name: "Settings", link: "/settings", icon: FiSettings },
+    { name: "My Network", link: "/network", icon: FiUsers },
+    { name: "Notifications", link: "/notifications", icon: FiBell, badge: unreadCount > 0 ? unreadCount : null },
   ];
 
   const isActive = (link) => {
     return location.pathname === link || location.pathname.startsWith(link + "/");
   };
-
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [headerUser, setHeaderUser] = useState(null);
-  const dropdownRef = useRef(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -107,8 +129,8 @@ export default function Header({ sidebarItems = [] }) {
               <div className="relative">
                 <item.icon className="w-4 h-4" />
                 {item.badge ? (
-                  <span className="absolute -top-1 -right-1.5 w-3.5 h-3.5 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
-                    {item.badge}
+                  <span className="absolute -top-1 -right-2 min-w-[14px] h-3.5 px-0.5 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                    {item.badge > 99 ? "99+" : item.badge}
                   </span>
                 ) : null}
               </div>

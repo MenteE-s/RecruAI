@@ -7,6 +7,7 @@ from .interview_decision_history import InterviewDecisionHistory
 from .post import Post
 from .application import Application
 from .saved_job import SavedJob
+from .company_follow import CompanyFollow
 from .message import Message
 from .profile_section import ProfileSection
 from .experience import Experience
@@ -52,6 +53,7 @@ __all__ = [
     "Post",
     "Application",
     "SavedJob",
+    "CompanyFollow",
     "Message",
     "ProfileSection",
     "Experience",

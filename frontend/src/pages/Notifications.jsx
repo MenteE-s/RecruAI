@@ -10,13 +10,11 @@ import {
   FiArchive,
   FiTrash2,
   FiStar,
-  FiFilter,
   FiCheckCircle,
   FiClock,
   FiInbox,
   FiX,
   FiSearch,
-  FiArrowRight,
 } from "react-icons/fi";
 
 export default function Notifications() {
@@ -30,8 +28,24 @@ export default function Notifications() {
   const [totalPages, setTotalPages] = useState(1);
   const [stats, setStats] = useState({ total: 0, unread: 0, archived: 0, favorited: 0 });
   const [filters, setFilters] = useState({ archived: false, read: "all", favorited: false });
-  const [showFilters, setShowFilters] = useState(false);
   const [search, setSearch] = useState("");
+
+  const fetchStats = async () => {
+    try {
+      const response = await fetch(`${getBackendUrl()}/api/notifications/stats`, { credentials: "include" });
+      if (response.ok) {
+        const data = await response.json();
+        setStats({
+          total: Number(data.total) || 0,
+          unread: Number(data.unread) || 0,
+          archived: Number(data.archived) || 0,
+          favorited: Number(data.favorited) || 0,
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching notification stats:", error);
+    }
+  };
 
   useEffect(() => {
     fetchNotifications();
@@ -39,8 +53,8 @@ export default function Notifications() {
     const handleNewNotification = (data) => {
       const newNotif = data.data;
       if (newNotif) {
-        setNotifications((prev) => [newNotif, ...prev]);
-        setStats((prev) => ({ ...prev, total: prev.total + 1, unread: prev.unread + 1 }));
+        setNotifications((prev) => (prev.some((n) => n.id === newNotif.id) ? prev : [newNotif, ...prev]));
+        fetchStats(); // server is the source of truth for counts
       }
     };
     socketService.on("notification_created", handleNewNotification);
@@ -69,15 +83,6 @@ export default function Notifications() {
       console.error("Error fetching notifications:", error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchStats = async () => {
-    try {
-      const response = await fetch(`${getBackendUrl()}/api/notifications/stats`, { credentials: "include" });
-      if (response.ok) setStats(await response.json());
-    } catch (error) {
-      console.error("Error fetching notification stats:", error);
     }
   };
 
@@ -174,13 +179,13 @@ export default function Notifications() {
       case "interview_scheduled":
       case "interview_cancelled":
       case "interview_passed":
-        return <FiClock className="h-5 w-5 text-blue-600" />;
+        return <FiClock className="w-4 h-4 text-blue-600" />;
       case "profile_favorited":
-        return <FiStar className="h-5 w-5 text-amber-600" />;
+        return <FiStar className="w-4 h-4 text-amber-600" />;
       case "profile_viewed":
-        return <FiEye className="h-5 w-5 text-green-600" />;
+        return <FiEye className="w-4 h-4 text-green-600" />;
       default:
-        return <FiBell className="h-5 w-5 text-gray-600" />;
+        return <FiBell className="w-4 h-4 text-gray-500" />;
     }
   };
 
@@ -188,6 +193,14 @@ export default function Notifications() {
     setFilters((prev) => ({ ...prev, [filterType]: value }));
     setCurrentPage(1);
   };
+
+  const clearAll = () => {
+    setFilters({ archived: false, read: "all", favorited: false });
+    setSearch("");
+    setCurrentPage(1);
+  };
+
+  const hasActiveFilters = filters.archived || filters.favorited || filters.read !== "all" || search;
 
   const filteredBySearch = notifications.filter((n) => {
     if (!search) return true;
@@ -198,16 +211,10 @@ export default function Notifications() {
   if (loading) {
     return (
       <DashboardLayout sidebarItems={sidebarItems}>
-        <div className="space-y-4 mt-6">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-[320px] bg-gray-200 animate-pulse rounded-lg" />
-            <div className="h-9 w-24 bg-gray-100 animate-pulse rounded" />
-          </div>
-          <div className="bg-white border border-gray-200 p-4">
-            <div className="h-10 bg-gray-100 rounded animate-pulse" />
-          </div>
+        <div className="w-full max-w-3xl mx-auto space-y-2.5">
+          <div className="h-8 w-48 bg-gray-200 animate-pulse rounded-lg" />
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-24 bg-white border border-gray-200 animate-pulse" />
+            <div key={i} className="h-20 bg-white border border-gray-200 rounded-lg animate-pulse" />
           ))}
         </div>
       </DashboardLayout>
@@ -216,177 +223,163 @@ export default function Notifications() {
 
   return (
     <DashboardLayout sidebarItems={sidebarItems}>
-      {/* Filter */}
-      <div className="flex items-center gap-3 mb-4 mt-6">
-        <div className="relative flex-1 max-w-xl min-w-[260px]">
-          <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-          <input type="text" placeholder="Search notifications…" value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-10 pr-9 py-2.5 bg-white border border-gray-200 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
-          {search && (<button onClick={() => setSearch("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 rounded text-gray-500"><FiX className="w-4 h-4" /></button>)}
-        </div>
-        <div className="flex items-center gap-2 text-xs text-gray-500 shrink-0">
-          <FiBell className="w-3.5 h-3.5" />
-          <span>{notifications.length} shown</span>
-          {search && (<button onClick={() => setSearch("")} className="text-blue-600 hover:text-blue-700 font-medium ml-1">Clear</button>)}
-        </div>
-      </div>
-      <div className="bg-white border border-gray-200 p-4 mb-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <button onClick={() => setShowFilters(!showFilters)} className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border transition-colors ${showFilters ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"}`}>
-              <FiFilter className="w-4 h-4" /> Filters {showFilters ? <FiX className="w-3.5 h-3.5" /> : null}
+      <div className="w-full max-w-3xl mx-auto space-y-2.5">
+        {/* Title + accurate counts */}
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <h1 className="text-base font-bold text-gray-900 tracking-tight">Notifications</h1>
+            <p className="text-[11px] text-gray-500 mt-0.5">
+              {stats.total} total · {stats.unread} unread
+              {stats.archived > 0 ? ` · ${stats.archived} archived` : ""}
+            </p>
+          </div>
+          {notifications.some((n) => !n.is_read) && (
+            <button onClick={bulkMarkAsRead} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition-colors rounded-full shrink-0">
+              <FiCheckCircle className="w-3.5 h-3.5" /> Mark all read
             </button>
-            {filteredBySearch.length !== notifications.length && <span className="text-xs text-gray-500">{filteredBySearch.length} filtered by search</span>}
-            <div className="hidden sm:flex items-center gap-1.5 ml-2">
-              <button onClick={() => handleFilterChange("read", "all")} className={`px-3 py-1.5 text-xs font-medium border ${filters.read === "all" ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-600 border-gray-200"}`}>All</button>
-              <button onClick={() => handleFilterChange("read", "unread")} className={`px-3 py-1.5 text-xs font-medium border ${filters.read === "unread" ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-600 border-gray-200"}`}>Unread</button>
-              <button onClick={() => handleFilterChange("read", "read")} className={`px-3 py-1.5 text-xs font-medium border ${filters.read === "read" ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-600 border-gray-200"}`}>Read</button>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {notifications.some((n) => !n.is_read) && (
-              <button onClick={bulkMarkAsRead} className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors">
-                <FiCheckCircle className="w-4 h-4" /> Mark all read
-              </button>
-            )}
-          </div>
+          )}
         </div>
-        {showFilters && (
-          <div className="mt-4 pt-4 border-t border-gray-100 grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1.5">Read status</label>
-              <select value={filters.read} onChange={(e) => handleFilterChange("read", e.target.value)} className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 text-sm text-gray-900 focus:outline-none focus:border-blue-500 focus:bg-white">
-                <option value="all">All notifications</option>
-                <option value="read">Read only</option>
-                <option value="unread">Unread only</option>
-              </select>
-            </div>
-            <label className="flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 cursor-pointer hover:bg-white">
-              <input type="checkbox" checked={filters.archived} onChange={(e) => handleFilterChange("archived", e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
-              <span className="text-sm text-gray-700 flex items-center gap-1.5"><FiArchive className="w-4 h-4 text-gray-500" /> Show archived</span>
-            </label>
-            <label className="flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 cursor-pointer hover:bg-white">
-              <input type="checkbox" checked={filters.favorited} onChange={(e) => handleFilterChange("favorited", e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
-              <span className="text-sm text-gray-700 flex items-center gap-1.5"><FiStar className="w-4 h-4 text-amber-500" /> Favorites only</span>
-            </label>
-          </div>
-        )}
-      </div>
 
-      {/* List */}
-      <div className="space-y-2">
+        {/* Search */}
+        <div className="relative">
+          <FiSearch className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 w-3.5 h-3.5" />
+          <input
+            type="text"
+            placeholder="Search notifications…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-8 pr-8 py-1.5 bg-white border border-gray-200 rounded-lg text-xs text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-500 shadow-sm"
+          />
+          {search && (
+            <button onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 rounded text-gray-500">
+              <FiX className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+
+        {/* Filter pills */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {[
+            { label: "All", value: "all" },
+            { label: `Unread${stats.unread > 0 ? ` (${stats.unread})` : ""}`, value: "unread" },
+            { label: "Read", value: "read" },
+          ].map((p) => (
+            <button
+              key={p.value}
+              onClick={() => handleFilterChange("read", p.value)}
+              className={`px-2.5 py-1 text-[11px] font-semibold rounded-full border transition-colors ${
+                filters.read === p.value
+                  ? "bg-gray-900 text-white border-gray-900"
+                  : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
+          <button
+            onClick={() => handleFilterChange("favorited", !filters.favorited)}
+            className={`px-2.5 py-1 text-[11px] font-semibold rounded-full border transition-colors ${
+              filters.favorited ? "bg-amber-100 text-amber-700 border-amber-200" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+            }`}
+          >
+            ★ Starred{filters.favorited && stats.favorited > 0 ? ` (${stats.favorited})` : ""}
+          </button>
+          <button
+            onClick={() => handleFilterChange("archived", !filters.archived)}
+            className={`px-2.5 py-1 text-[11px] font-semibold rounded-full border transition-colors ${
+              filters.archived ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+            }`}
+          >
+            Archived
+          </button>
+          {hasActiveFilters && (
+            <button onClick={clearAll} className="text-[11px] font-medium text-blue-600 hover:underline px-1">
+              Clear
+            </button>
+          )}
+        </div>
+
+        {/* List */}
         {filteredBySearch.length === 0 ? (
-          <div className="bg-white border border-gray-200 p-12 text-center">
-            <div className="w-14 h-14 bg-gray-100 flex items-center justify-center mx-auto mb-4">
-              <FiInbox className="w-7 h-7 text-gray-400" />
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900">No notifications</h3>
-            <p className="text-sm text-gray-500 mt-1 max-w-md mx-auto">{filters.archived || filters.favorited || filters.read !== "all" || search ? "No notifications match your filters or search." : "You’re all caught up! New notifications will appear here."}</p>
-            {(filters.archived || filters.favorited || filters.read !== "all" || search) && (
-              <button
-                onClick={() => {
-                  setFilters({ archived: false, read: "all", favorited: false });
-                  setSearch("");
-                  setShowFilters(false);
-                }}
-                className="mt-5 inline-flex items-center gap-2 bg-gray-900 text-white px-5 py-2.5 text-sm font-medium hover:bg-black transition-colors"
-              >
-                Clear filters <FiArrowRight className="w-4 h-4" />
+          <div className="bg-white border border-gray-200 rounded-lg p-8 text-center shadow-sm">
+            <FiInbox className="w-7 h-7 text-gray-300 mx-auto mb-2" />
+            <h3 className="text-sm font-semibold text-gray-900">No notifications</h3>
+            <p className="text-xs text-gray-500 mt-0.5">
+              {hasActiveFilters ? "Nothing matches your filters." : "You're all caught up!"}
+            </p>
+            {hasActiveFilters && (
+              <button onClick={clearAll} className="mt-3 px-3 py-1.5 bg-gray-900 text-white text-xs font-medium hover:bg-black rounded-full transition-colors">
+                Clear filters
               </button>
             )}
           </div>
         ) : (
-          filteredBySearch.map((notification) => (
+          filteredBySearch.map((n) => (
             <div
-              key={notification.id}
+              key={n.id}
               onClick={() => {
-                const link = getNotificationLink(notification);
+                const link = getNotificationLink(n);
                 if (link) navigate(link);
               }}
-              className={`group relative bg-white border hover:shadow-sm transition-all cursor-pointer ${!notification.is_read ? "border-l-4 border-l-blue-600 border-y border-r border-y-gray-200 border-r-gray-200" : "border-gray-200 hover:border-gray-300"}`}
+              className={`bg-white border rounded-lg shadow-sm p-3 flex gap-2.5 cursor-pointer hover:shadow transition-shadow ${
+                !n.is_read ? "border-blue-200" : "border-gray-200"
+              }`}
             >
-              <div className="p-4 flex gap-4">
-                <div className={`hidden sm:flex w-10 h-10 items-center justify-center border shrink-0 ${!notification.is_read ? "bg-blue-50 border-blue-200" : "bg-gray-50 border-gray-200"}`}>{getNotificationIcon(notification.type)}</div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className={`text-[15px] font-semibold leading-tight ${!notification.is_read ? "text-gray-900" : "text-gray-800"}`}>{notification.title}</h3>
-                        {!notification.is_read && <span className="text-xs bg-blue-600 text-white px-2 py-0.5">New</span>}
-                        {notification.is_favorited && <span className="inline-flex items-center gap-1 text-xs text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5"><FiStar className="w-3 h-3 fill-amber-500" /> Favorited</span>}
-                      </div>
-                      <p className="text-sm text-gray-600 mt-1 leading-relaxed">{notification.message}</p>
-                      <p className="text-xs text-gray-500 mt-2">{formatDate(notification.created_at)}</p>
-                    </div>
-                    <div className="hidden md:flex items-center gap-1 shrink-0">
-                      {!notification.is_read && (
-                        <button onClick={(e) => { e.stopPropagation(); markAsRead(notification.id); }} className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-200" title="Mark as read">
-                          <FiEye className="w-4 h-4" />
-                        </button>
-                      )}
-                      <button onClick={(e) => { e.stopPropagation(); favoriteNotification(notification.id); }} className={`p-2 border ${notification.is_favorited ? "text-amber-600 bg-amber-50 border-amber-200" : "text-gray-400 hover:text-amber-600 hover:bg-amber-50 border-transparent hover:border-amber-200"}`} title="Favorite">
-                        <FiStar className={`w-4 h-4 ${notification.is_favorited ? "fill-amber-500" : ""}`} />
-                      </button>
-                      {filters.archived ? (
-                        <button onClick={(e) => { e.stopPropagation(); unarchiveNotification(notification.id); }} className="p-2 text-green-600 hover:bg-green-50 border border-transparent hover:border-green-200" title="Unarchive">
-                          <FiInbox className="w-4 h-4" />
-                        </button>
-                      ) : (
-                        <button onClick={(e) => { e.stopPropagation(); filters.archived ? unarchiveNotification(notification.id) : archiveNotification(notification.id); }} className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-50 border border-transparent hover:border-gray-200" title="Archive">
-                          <FiArchive className="w-4 h-4" />
-                        </button>
-                      )}
-                      <button onClick={(e) => { e.stopPropagation(); deleteNotification(notification.id); }} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200" title="Delete">
-                        <FiTrash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                  <div className="mt-3 flex md:hidden flex-wrap gap-2">
-                    {!notification.is_read && (
-                      <button onClick={(e) => { e.stopPropagation(); markAsRead(notification.id); }} className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 bg-blue-600 text-white font-medium">
-                        <FiEye className="w-3.5 h-3.5" /> Mark read
-                      </button>
-                    )}
-                    <button onClick={(e) => { e.stopPropagation(); favoriteNotification(notification.id); }} className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 border font-medium ${notification.is_favorited ? "bg-amber-50 text-amber-700 border-amber-200" : "bg-white text-gray-600 border-gray-200"}`}>
-                      <FiStar className={`w-3.5 h-3.5 ${notification.is_favorited ? "fill-amber-500" : ""}`} /> {notification.is_favorited ? "Favorited" : "Favorite"}
-                    </button>
-                    <button onClick={(e) => { e.stopPropagation(); filters.archived ? unarchiveNotification(notification.id) : archiveNotification(notification.id); }} className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 bg-white border border-gray-200 text-gray-600 font-medium">
-                      {filters.archived ? <FiInbox className="w-3.5 h-3.5" /> : <FiArchive className="w-3.5 h-3.5" />} {filters.archived ? "Unarchive" : "Archive"}
-                    </button>
-                  </div>
+              <div className={`w-8 h-8 rounded-md flex items-center justify-center border shrink-0 ${!n.is_read ? "bg-blue-50 border-blue-200" : "bg-gray-50 border-gray-200"}`}>
+                {getNotificationIcon(n.type)}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  {!n.is_read && <span className="w-1.5 h-1.5 rounded-full bg-blue-600 shrink-0" />}
+                  <h3 className="text-[13px] font-semibold text-gray-900 leading-tight truncate">{n.title}</h3>
+                  {n.is_favorited && <FiStar className="w-3 h-3 text-amber-500 fill-amber-500 shrink-0" />}
                 </div>
+                <p className="text-xs text-gray-600 leading-snug line-clamp-2 mt-0.5">{n.message}</p>
+                <p className="text-[11px] text-gray-400 mt-1">{formatDate(n.created_at)}</p>
+              </div>
+              <div className="flex md:flex-col flex-row items-center gap-0.5 shrink-0">
+                {!n.is_read && (
+                  <button onClick={(e) => { e.stopPropagation(); markAsRead(n.id); }} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md" title="Mark as read">
+                    <FiEye className="w-3.5 h-3.5" />
+                  </button>
+                )}
+                <button
+                  onClick={(e) => { e.stopPropagation(); favoriteNotification(n.id); }}
+                  className={`p-1.5 rounded-md ${n.is_favorited ? "text-amber-500 hover:bg-amber-50" : "text-gray-300 hover:text-amber-500 hover:bg-amber-50"}`}
+                  title="Star"
+                >
+                  <FiStar className={`w-3.5 h-3.5 ${n.is_favorited ? "fill-amber-500" : ""}`} />
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); filters.archived ? unarchiveNotification(n.id) : archiveNotification(n.id); }}
+                  className="p-1.5 text-gray-300 hover:text-gray-600 hover:bg-gray-100 rounded-md"
+                  title={filters.archived ? "Unarchive" : "Archive"}
+                >
+                  {filters.archived ? <FiInbox className="w-3.5 h-3.5" /> : <FiArchive className="w-3.5 h-3.5" />}
+                </button>
+                <button onClick={(e) => { e.stopPropagation(); deleteNotification(n.id); }} className="p-1.5 text-gray-300 hover:text-red-600 hover:bg-red-50 rounded-md" title="Delete">
+                  <FiTrash2 className="w-3.5 h-3.5" />
+                </button>
               </div>
             </div>
           ))
         )}
-      </div>
 
-      {totalPages > 1 && (
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-8 pt-6 border-t border-gray-200">
-          <span className="text-sm text-gray-600">Page {currentPage} of {totalPages}</span>
-          <div className="flex items-center gap-2">
-            <button onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-4 py-2 border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium text-gray-700 flex items-center gap-2">
-              Previous
-            </button>
-            <div className="flex items-center gap-1">
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                let pageNum;
-                if (totalPages <= 5) pageNum = i + 1;
-                else if (currentPage <= 3) pageNum = i + 1;
-                else if (currentPage >= totalPages - 2) pageNum = totalPages - 4 + i;
-                else pageNum = currentPage - 2 + i;
-                return (
-                  <button key={pageNum} onClick={() => setCurrentPage(pageNum)} className={`w-9 h-9 flex items-center justify-center text-sm font-medium border ${currentPage === pageNum ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"}`}>
-                    {pageNum}
-                  </button>
-                );
-              })}
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between pt-1">
+            <span className="text-[11px] text-gray-500">Page {currentPage} of {totalPages}</span>
+            <div className="flex items-center gap-1.5">
+              <button onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-3 py-1.5 bg-white border border-gray-200 rounded-md text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                Prev
+              </button>
+              <button onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="px-3 py-1.5 bg-white border border-gray-200 rounded-md text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                Next
+              </button>
             </div>
-            <button onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="px-4 py-2 border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium text-gray-700 flex items-center gap-2">
-              Next
-            </button>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </DashboardLayout>
   );
 }

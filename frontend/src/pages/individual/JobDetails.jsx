@@ -352,7 +352,7 @@ export default function JobDetails() {
                 onClick={() => setShowApplyConfirm(true)}
                 className="px-4 py-1.5 bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors rounded-full"
               >
-                Easy Apply
+                MenteE Apply
               </button>
             )}
             <button
@@ -446,6 +446,16 @@ export default function JobDetails() {
 
           {/* Right rail */}
           <div className="space-y-3">
+            {/* What is MenteE Apply */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg shadow-sm p-4">
+              <h2 className="text-[13px] font-semibold text-blue-900">What is MenteE Apply?</h2>
+              <p className="text-xs text-blue-800 leading-relaxed mt-1.5">
+                One-click apply with your RecruAI profile — no forms, no re-typing. Your profile,
+                resume, and contact details go straight to the hiring team, and you can track the
+                application under Applied jobs.
+              </p>
+            </div>
+
             {/* Job overview */}
             <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
               <h2 className="text-[13px] font-semibold text-gray-900">Job details</h2>
