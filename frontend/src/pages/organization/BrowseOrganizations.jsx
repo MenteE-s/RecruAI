@@ -235,7 +235,7 @@ export default function BrowseOrganizations() {
                     Profile
                   </button>
                   <a
-                    href="/jobs"
+                    href="/dashboard"
                     className="inline-flex items-center px-3 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-black focus:ring-2 focus:ring-gray-900 focus:ring-offset-2 transition-colors"
                   >
                     <FiBriefcase className="mr-1.5" size={14} />

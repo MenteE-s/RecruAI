@@ -437,11 +437,11 @@ export default function Profile() {
   if (loading) {
     return (
       <DashboardLayout NavbarComponent={IndividualNavbar} sidebarItems={sidebarItems}>
-        <div className="flex justify-center items-center py-12">
+        <div className="flex justify-center items-center py-8">
           <div className="animate-pulse">
-            <div className="text-gray-500 mb-4">Loading profile...</div>
-            <div className="w-64 h-4 bg-gray-200 rounded mb-2"></div>
-            <div className="w-48 h-4 bg-gray-200 rounded"></div>
+            <div className="text-gray-500 mb-2">Loading profile...</div>
+            <div className="w-48 h-3 bg-gray-200 rounded mb-1"></div>
+            <div className="w-40 h-3 bg-gray-200 rounded"></div>
           </div>
         </div>
       </DashboardLayout>
@@ -474,7 +474,7 @@ export default function Profile() {
   return (
     <DashboardLayout NavbarComponent={IndividualNavbar} sidebarItems={sidebarItems}>
       {error && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg">
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg">
           <div className="flex items-center justify-between">
             <span>{error}</span>
             <button onClick={() => setError(null)} className="text-red-700 hover:text-red-900">×</button>
@@ -484,7 +484,7 @@ export default function Profile() {
 
       <ProfileBanner userData={userData} onBannerUpload={handleBannerUpload} uploadingBanner={uploadingBanner} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <div className="lg:col-span-1">
           <ProfileSidebar
             userData={userData}
@@ -506,7 +506,7 @@ export default function Profile() {
           />
         </div>
 
-        <div className="lg:col-span-3">
+        <div className="lg:col-span-3 p-4">
           {tabContent[activeTab]}
         </div>
       </div>

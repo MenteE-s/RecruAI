@@ -121,8 +121,11 @@ export default function SavedJobs() {
   if (loading) {
     return (
       <DashboardLayout sidebarItems={sidebarItems}>
-        <div className="space-y-4">
-          <div className="rounded-2xl bg-gray-900 h-44 animate-pulse" />
+        <div className="space-y-4 mt-6">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-[320px] bg-gray-200 animate-pulse rounded-lg" />
+            <div className="h-9 w-24 bg-gray-100 animate-pulse rounded" />
+          </div>
           {[1, 2, 3].map((i) => (
             <div key={i} className="bg-white border border-gray-200 p-5 animate-pulse">
               <div className="h-5 bg-gray-100 w-1/3 mb-3" />
@@ -136,54 +139,29 @@ export default function SavedJobs() {
 
   return (
     <DashboardLayout sidebarItems={sidebarItems}>
-      {/* Hero */}
-      <div className="relative overflow-hidden rounded-2xl bg-gray-900 text-white mb-6">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-transparent to-indigo-600/20" />
-        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3" />
-        <div className="relative p-6 md:p-8">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-            <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 border border-white/20 text-xs font-medium tracking-wide mb-3">
-                <FiBookmark className="w-3.5 h-3.5" />
-                SAVED
-              </div>
-              <h1 className="text-3xl md:text-[2rem] font-bold leading-tight">Saved jobs</h1>
-              <p className="text-gray-300 mt-2 max-w-xl text-sm md:text-[15px]">Jobs you’ve bookmarked for later. Apply when you’re ready or remove ones you no longer need.</p>
-              <div className="mt-5 relative max-w-xl">
-                <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <input
-                  type="text"
-                  placeholder="Search saved jobs by title or company…"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="w-full pl-10 pr-9 py-3 bg-white text-gray-900 placeholder-gray-400 border-0 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                />
-                {search && (
-                  <button onClick={() => setSearch("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 rounded text-gray-500">
-                    <FiX className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
-            </div>
-            <div className="grid grid-cols-3 gap-3 lg:w-[340px]">
-              <div className="bg-white/10 backdrop-blur border border-white/10 p-4 text-center">
-                <p className="text-2xl font-bold">{savedJobs.length}</p>
-                <p className="text-xs text-gray-300 mt-1">Saved</p>
-              </div>
-              <div className="bg-white/10 backdrop-blur border border-white/10 p-4 text-center">
-                <p className="text-2xl font-bold">{appliedSavedCount}</p>
-                <p className="text-xs text-gray-300 mt-1">Applied</p>
-              </div>
-              <div className="bg-white/10 backdrop-blur border border-white/10 p-4 text-center">
-                <p className="text-2xl font-bold">{savedJobs.length - appliedSavedCount}</p>
-                <p className="text-xs text-gray-300 mt-1">Pending</p>
-              </div>
-              <div className="col-span-3 bg-white text-gray-900 p-3 flex items-center justify-between">
-                <span className="text-sm font-medium">{filtered.length} shown</span>
-                <button onClick={() => navigate("/jobs")} className="text-sm font-semibold text-blue-600 hover:text-blue-700">Browse all jobs →</button>
-              </div>
-            </div>
-          </div>
+      {/* Filter */}
+      <div className="flex items-center gap-3 mb-4 mt-6">
+        <div className="relative flex-1 max-w-xl">
+          <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <input
+            type="text"
+            placeholder="Search saved jobs by title or company…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-10 pr-9 py-2.5 bg-white border border-gray-200 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          />
+          {search && (
+            <button onClick={() => setSearch("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 rounded text-gray-500">
+              <FiX className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+        <div className="flex items-center gap-2 text-xs text-gray-500 shrink-0">
+          <FiBookmark className="w-3.5 h-3.5" />
+          <span>{filtered.length} of {savedJobs.length} shown</span>
+          {search && (
+            <button onClick={() => setSearch("")} className="text-blue-600 hover:text-blue-700 font-medium ml-1">Clear</button>
+          )}
         </div>
       </div>
 
@@ -198,7 +176,7 @@ export default function SavedJobs() {
             {search ? (
               <button onClick={() => setSearch("")} className="inline-flex items-center gap-2 bg-gray-900 text-white px-5 py-2.5 text-sm font-medium hover:bg-black transition-colors"><FiX className="w-4 h-4" /> Clear search</button>
             ) : (
-              <button onClick={() => navigate("/jobs")} className="inline-flex items-center gap-2 bg-gray-900 text-white px-5 py-2.5 text-sm font-medium hover:bg-black transition-colors">Browse jobs <FiArrowRight className="w-4 h-4" /></button>
+              <button onClick={() => navigate("/dashboard")} className="inline-flex items-center gap-2 bg-gray-900 text-white px-5 py-2.5 text-sm font-medium hover:bg-black transition-colors">Browse jobs <FiArrowRight className="w-4 h-4" /></button>
             )}
             <Link to="/jobs/saved" className="hidden" />
           </div>

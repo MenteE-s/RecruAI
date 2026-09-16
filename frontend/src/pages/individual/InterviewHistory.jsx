@@ -178,30 +178,6 @@ export default function InterviewHistory() {
         </div>
       )}
 
-      {/* Hero */}
-      <div className="relative overflow-hidden rounded-2xl bg-gray-900 text-white mb-6">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-transparent to-indigo-600/20" />
-        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3" />
-        <div className="relative p-6 md:p-8">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-            <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 border border-white/20 text-xs font-medium tracking-wide mb-3"><FiAward className="w-3.5 h-3.5" /> PERFORMANCE</div>
-              <h1 className="text-3xl md:text-[2rem] font-bold leading-tight">Interview history</h1>
-              <p className="text-gray-300 mt-2 max-w-xl text-sm md:text-[15px]">Review past interviews, decisions, and analytics to improve your next performance.</p>
-              <div className="mt-4 flex gap-2">
-                <button onClick={() => setActiveTab("history")} className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === "history" ? "bg-white text-gray-900" : "bg-white/10 text-white border border-white/20 hover:bg-white/15"}`}>History</button>
-                <button onClick={() => setActiveTab("analytics")} className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === "analytics" ? "bg-white text-gray-900" : "bg-white/10 text-white border border-white/20 hover:bg-white/15"}`}>Analytics</button>
-              </div>
-            </div>
-            <div className="grid grid-cols-3 gap-3 lg:w-[380px]">
-              <div className="bg-white/10 backdrop-blur border border-white/10 p-4 text-center"><p className="text-2xl font-bold">{interviews.length}</p><p className="text-xs text-gray-300 mt-1">Interviews</p></div>
-              <div className="bg-green-500/20 backdrop-blur border border-green-400/20 p-4 text-center"><p className="text-2xl font-bold text-green-300">{passedCount}</p><p className="text-xs text-green-200 mt-1">Passed</p></div>
-              <div className="bg-blue-500/20 backdrop-blur border border-blue-400/20 p-4 text-center"><p className="text-2xl font-bold text-blue-200">{avgScore}</p><p className="text-xs text-blue-200 mt-1">Avg score</p></div>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Tabs - secondary for mobile */}
       <div className="mb-6 flex gap-2 lg:hidden">
         <button onClick={() => setActiveTab("history")} className={`flex-1 py-2.5 text-sm font-medium border ${activeTab === "history" ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-600 border-gray-200"}`}>History</button>
@@ -210,7 +186,7 @@ export default function InterviewHistory() {
 
       {activeTab === "history" ? (
         interviews.length === 0 ? (
-          <div className="bg-white border border-gray-200 p-12 text-center">
+          <div className="mt-6 bg-white border border-gray-200 p-12 text-center">
             <div className="w-14 h-14 bg-gray-100 flex items-center justify-center mx-auto mb-4"><FiCalendar className="w-7 h-7 text-gray-400" /></div>
             <h3 className="text-lg font-semibold text-gray-900">No interview history</h3>
             <p className="text-sm text-gray-500 mt-1 max-w-md mx-auto">You haven’t completed any interviews yet. Your history will appear here after you finish a session.</p>

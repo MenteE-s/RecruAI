@@ -1,228 +1,654 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
-import { getSidebarItems, verifyTokenWithServer, getBackendUrl } from "../../utils/auth";
-import { formatDate } from "../../utils/timezone";
+import { getSidebarItems, getBackendUrl, getAuthHeaders, getUploadUrl, getCurrentUserId } from "../../utils/auth";
+import { useToast } from "../../components/ui/ToastContext";
 import {
   FiBriefcase,
-  FiCalendar,
-  FiCheckCircle,
+  FiMapPin,
   FiBookmark,
-  FiArrowRight,
-  FiTarget,
-  FiActivity,
-  FiTrendingUp,
-  FiZap,
-  FiBell,
+  FiCheckCircle,
+  FiClock,
+  FiMail,
 } from "react-icons/fi";
-import { Link } from "react-router-dom";
+
+function getJobCountry(location) {
+  if (!location) return "Unknown";
+  const parts = location.split(",").map((s) => s.trim()).filter(Boolean);
+  return parts.length > 1 ? parts[parts.length - 1] : parts[0] || "Unknown";
+}
+
+function formatDate(dateString) {
+  if (!dateString) return "N/A";
+  return new Date(dateString).toLocaleDateString();
+}
+
+function getCompanyInitials(name) {
+  if (!name) return "CO";
+  return name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+}
+
+function formatSalary(min, max, currency) {
+  if (!min && !max) return null;
+  const cur = currency || "$";
+  if (min && max) return `${cur}${Number(min).toLocaleString()} - ${cur}${Number(max).toLocaleString()}`;
+  return `${cur}${Number(min || max).toLocaleString()}`;
+}
+
+function truncateText(text, max = 110) {
+  if (!text) return "";
+  return text.length > max ? text.slice(0, max).trim() + "…" : text;
+}
 
 export default function IndividualDashboard() {
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const role = typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
   const plan = typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
   const sidebarItems = getSidebarItems(role, plan);
-  const [interviews, setInterviews] = useState([]);
-  const [stats, setStats] = useState({ totalInterviews: 0, completedInterviews: 0, passedInterviews: 0, upcomingInterviews: 0, appliedJobs: 0, savedJobs: 0 });
+
+  const [userData, setUserData] = useState(null);
+  const [jobs, setJobs] = useState([]);
+  const [savedJobs, setSavedJobs] = useState(new Set());
+  const [appliedJobs, setAppliedJobs] = useState(new Set());
   const [loading, setLoading] = useState(true);
-  const [userName, setUserName] = useState("");
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [filters, setFilters] = useState({ location: "", country: "", time: "" });
+  const [showApplyConfirm, setShowApplyConfirm] = useState(false);
+  const [selectedJob, setSelectedJob] = useState(null);
 
-  useEffect(() => { fetchInterviews(); }, []);
+  const PER_PAGE = 10;
 
-  const fetchInterviews = async () => {
-    try {
-      const user = await verifyTokenWithServer();
-      const userId = user?.id;
-      if (!userId) { setLoading(false); return; }
-      if (user && user.name) setUserName(user.name.split(" ")[0]);
-      const [interviewsRes, appliedRes, savedRes] = await Promise.all([
-        fetch(`${getBackendUrl()}/api/interviews?user_id=${userId}`, { credentials: "include" }),
-        fetch(`${getBackendUrl()}/api/applied-jobs/user/${userId}`, { credentials: "include" }),
-        fetch(`${getBackendUrl()}/api/saved-jobs/user/${userId}`, { credentials: "include" }),
-      ]);
-      let interviewsData = [], appliedData = [], savedData = [];
-      if (interviewsRes.ok) {
-        const data = await interviewsRes.json();
-        interviewsData = data.data || [];
-        setInterviews(interviewsData.slice(0, 5));
+  const fetchJobsPage = async (page) => {
+    const jobsRes = await fetch(`${getBackendUrl()}/api/posts?status=active&per_page=${PER_PAGE}&page=${page}`, {
+      credentials: "include",
+      headers: getAuthHeaders(),
+    });
+    if (!jobsRes.ok) return { list: [], more: false };
+    const data = await jobsRes.json();
+    const list = data.data || [];
+    const pagination = data.pagination || {};
+    const more = pagination.has_next ?? list.length === PER_PAGE;
+    return { list, more };
+  };
+
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      try {
+        // Current user (real data)
+        const userRes = await fetch(`${getBackendUrl()}/api/auth/me`, {
+          credentials: "include",
+          headers: getAuthHeaders(),
+        });
+        if (userRes.ok) {
+          const data = await userRes.json();
+          setUserData(data.user || null);
+        }
+
+        // Real jobs from database (posts table, status=active), page 1
+        const { list, more } = await fetchJobsPage(1);
+        setJobs(list);
+        setHasMore(more);
+
+        const userId = await getCurrentUserId();
+        if (userId) {
+          // Saved jobs (real)
+          try {
+            const savedRes = await fetch(`${getBackendUrl()}/api/saved-jobs/user/${userId}`, {
+              credentials: "include",
+              headers: getAuthHeaders(),
+            });
+            if (savedRes.ok) {
+              const data = await savedRes.json();
+              const list = Array.isArray(data) ? data : data.data || [];
+              setSavedJobs(new Set(list.map((s) => s.post_id)));
+            }
+          } catch {}
+
+          // Applied jobs (real)
+          try {
+            const appliedRes = await fetch(`${getBackendUrl()}/api/applications/user/${userId}`, {
+              credentials: "include",
+              headers: getAuthHeaders(),
+            });
+            if (appliedRes.ok) {
+              const data = await appliedRes.json();
+              const list = Array.isArray(data) ? data : data.data || [];
+              setAppliedJobs(new Set(list.map((a) => a.post_id)));
+            }
+          } catch {}
+        }
+      } catch (e) {
+        console.error("Error loading dashboard:", e);
+      } finally {
+        setLoading(false);
       }
-      if (appliedRes.ok) appliedData = await appliedRes.json();
-      if (savedRes.ok) savedData = await savedRes.json();
-      setStats({
-        totalInterviews: interviewsData.length,
-        completedInterviews: interviewsData.filter((i) => i.status === "completed" || i.status === "cancelled").length,
-        passedInterviews: interviewsData.filter((i) => ["passed", "second_round", "third_round"].includes(i.final_decision)).length,
-        upcomingInterviews: interviewsData.filter((i) => ["scheduled", "in_progress"].includes(i.status)).length,
-        appliedJobs: Array.isArray(appliedData) ? appliedData.length : appliedData.data?.length || 0,
-        savedJobs: Array.isArray(savedData) ? savedData.length : 0,
+    };
+    loadData();
+  }, []);
+
+  const handleSaveJob = async (postId) => {
+    try {
+      const res = await fetch(`${getBackendUrl()}/api/saved-jobs`, {
+        method: "POST",
+        headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ post_id: postId }),
       });
-    } catch (error) {
-      console.error("Error fetching data:", error);
-    } finally {
-      setLoading(false);
+      if (res.ok) {
+        setSavedJobs((prev) => new Set([...prev, postId]));
+        showToast({ message: "Job saved successfully!", type: "success" });
+      } else {
+        showToast({ message: "Failed to save job", type: "error" });
+      }
+    } catch {
+      showToast({ message: "Failed to save job", type: "error" });
     }
   };
 
-  const getStatusMeta = (interview) => {
-    if (interview.final_decision === "passed") return { label: "Passed", color: "bg-green-50 text-green-700 border-green-200" };
-    if (interview.final_decision === "failed") return { label: "Not selected", color: "bg-red-50 text-red-700 border-red-200" };
-    if (interview.status === "in_progress") return { label: "In progress", color: "bg-amber-50 text-amber-700 border-amber-200" };
-    if (interview.status === "completed") return { label: "Completed", color: "bg-blue-50 text-blue-700 border-blue-200" };
-    return { label: "Scheduled", color: "bg-gray-50 text-gray-700 border-gray-200" };
+  const handleApplyJob = async (postId) => {
+    try {
+      const res = await fetch(`${getBackendUrl()}/api/applications`, {
+        method: "POST",
+        headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ post_id: postId, cover_letter: "", resume_url: "" }),
+      });
+      if (res.ok) {
+        setAppliedJobs((prev) => new Set([...prev, postId]));
+        setShowApplyConfirm(false);
+        setSelectedJob(null);
+        showToast({ message: "Application submitted successfully!", type: "success", position: "center" });
+      } else {
+        showToast({ message: "Failed to submit application", type: "error" });
+      }
+    } catch {
+      showToast({ message: "Failed to submit application", type: "error" });
+    }
   };
+
+  const handleShowMore = async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    try {
+      const nextPage = Math.floor(jobs.length / PER_PAGE) + 1;
+      const { list, more } = await fetchJobsPage(nextPage);
+      const seen = new Set(jobs.map((j) => j.id));
+      setJobs((prev) => [...prev, ...list.filter((j) => !seen.has(j.id))]);
+      setHasMore(more);
+    } catch (e) {
+      console.error("Error loading more jobs:", e);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
+  const userName = userData?.name || "You";
+  const userTitle = userData?.title || userData?.headline || "Member · RecruAI";
+  const userLocation = userData?.location || "Unknown";
+  const userImage = userData?.profile_picture ? getUploadUrl(userData.profile_picture) : null;
+  const userCover = userData?.banner ? getUploadUrl(userData.banner) : null;
+
+  const uniqueLocations = useMemo(() => {
+    const vals = jobs.map((j) => j.location).filter(Boolean);
+    return [...new Set(vals)].sort();
+  }, [jobs]);
+
+  const uniqueCountries = useMemo(() => {
+    const vals = jobs.map((j) => getJobCountry(j.location)).filter(Boolean);
+    return [...new Set(vals)].sort();
+  }, [jobs]);
+
+  const activeFilterCount = [filters.location, filters.country, filters.time].filter(Boolean).length;
+  const clearFilters = () => setFilters({ location: "", country: "", time: "" });
+
+  const filteredJobs = useMemo(() => {
+    return jobs.filter((j) => {
+      if (filters.location && j.location !== filters.location) return false;
+      if (filters.country && getJobCountry(j.location) !== filters.country) return false;
+      if (filters.time && j.created_at) {
+        const ageMs = Date.now() - new Date(j.created_at).getTime();
+        const days = ageMs / (1000 * 60 * 60 * 24);
+        if (filters.time === "24h" && days > 1) return false;
+        if (filters.time === "7d" && days > 7) return false;
+        if (filters.time === "30d" && days > 30) return false;
+      }
+      return true;
+    });
+  }, [jobs, filters]);
+
+  const isDeadlineSoon = (deadline) => {
+    if (!deadline) return false;
+    const diff = (new Date(deadline) - new Date()) / (1000 * 60 * 60 * 24);
+    return diff >= 0 && diff <= 3;
+  };
+
+  const timeAgo = (dateString) => {
+    if (!dateString) return "Recently";
+    const mins = Math.floor((Date.now() - new Date(dateString).getTime()) / 60000);
+    if (mins < 60) return `${Math.max(mins, 1)}m ago`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    if (days < 7) return `${days}d ago`;
+    if (days < 30) return `${Math.floor(days / 7)}w ago`;
+    return formatDate(dateString);
+  };
+
+  // Right rail — all derived from real loaded jobs
+  const recentJobs = useMemo(() => {
+    return [...jobs]
+      .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
+      .slice(0, 5);
+  }, [jobs]);
+
+  const popularJobs = useMemo(() => {
+    // In-demand first: closing soon, then newest
+    return [...jobs]
+      .sort((a, b) => {
+        const da = a.application_deadline ? new Date(a.application_deadline).getTime() : Infinity;
+        const db = b.application_deadline ? new Date(b.application_deadline).getTime() : Infinity;
+        if (da !== db) return da - db;
+        return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+      })
+      .slice(0, 5);
+  }, [jobs]);
+
+  const topCompanies = useMemo(() => {
+    const map = new Map();
+    jobs.forEach((j) => {
+      const name = j.organization?.name || "Unknown organization";
+      const key = j.organization?.id ?? name;
+      if (!map.has(key)) {
+        map.set(key, {
+          id: j.organization?.id || null,
+          name,
+          image: j.organization?.profile_image || null,
+          count: 0,
+        });
+      }
+      map.get(key).count += 1;
+    });
+    return [...map.values()].sort((a, b) => b.count - a.count).slice(0, 5);
+  }, [jobs]);
 
   return (
     <DashboardLayout sidebarItems={sidebarItems}>
-      {/* Hero */}
-      <div className="relative overflow-hidden rounded-2xl bg-gray-900 text-white mb-6">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-transparent to-indigo-600/20" />
-        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3" />
-        <div className="relative p-6 md:p-8">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-            <div>
-              <p className="text-sm text-blue-200">Welcome back{userName ? `, ${userName}` : ""} 👋</p>
-              <h1 className="text-3xl md:text-[2rem] font-bold leading-tight mt-1">Your job search, at a glance</h1>
-              <p className="text-gray-300 mt-2 max-w-xl text-sm md:text-[15px]">Track interviews, applications, and saved roles — all in one place.</p>
-              <div className="mt-5 flex flex-wrap gap-2">
-                <Link to="/notifications" className="inline-flex items-center gap-2 px-4 py-2.5 bg-white/10 border border-white/20 text-white text-sm font-medium hover:bg-white/15 transition-colors rounded-full relative">
-                  <FiBell className="w-4 h-4" /> Notifications
-                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse border-2 border-gray-900" />
-                </Link>
-                <button onClick={() => navigate("/jobs")} className="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-gray-900 text-sm font-medium hover:bg-gray-100 transition-colors"><FiBriefcase className="w-4 h-4" /> Browse jobs</button>
-                <button onClick={() => navigate("/practice")} className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/10 border border-white/20 text-white text-sm font-medium hover:bg-white/15 transition-colors"><FiTarget className="w-4 h-4" /> Practice</button>
-              </div>
-            </div>
-            <div className="grid grid-cols-3 gap-3 lg:w-[380px]">
-              <div className="bg-white/10 backdrop-blur border border-white/10 p-4 text-center">
-                <p className="text-2xl font-bold">{stats.upcomingInterviews}</p>
-                <p className="text-xs text-gray-300 mt-1">Upcoming</p>
-              </div>
-              <div className="bg-white/10 backdrop-blur border border-white/10 p-4 text-center">
-                <p className="text-2xl font-bold">{stats.appliedJobs}</p>
-                <p className="text-xs text-gray-300 mt-1">Applied</p>
-              </div>
-              <div className="bg-blue-500/20 backdrop-blur border border-blue-400/20 p-4 text-center">
-                <p className="text-2xl font-bold text-blue-200">{stats.passedInterviews}</p>
-                <p className="text-xs text-blue-200 mt-1">Passed</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        {[
-          { label: "Total interviews", value: stats.totalInterviews, icon: FiActivity, color: "text-blue-600 bg-blue-50 border-blue-100" },
-          { label: "Completed", value: stats.completedInterviews, icon: FiCheckCircle, color: "text-green-600 bg-green-50 border-green-100" },
-          { label: "Upcoming", value: stats.upcomingInterviews, icon: FiCalendar, color: "text-amber-600 bg-amber-50 border-amber-100" },
-          { label: "Applied jobs", value: stats.appliedJobs, icon: FiBriefcase, color: "text-purple-600 bg-purple-50 border-purple-100" },
-        ].map((stat) => {
-          const Icon = stat.icon;
-          return (
-            <div key={stat.label} className="bg-white border border-gray-200 p-4 flex items-center gap-3">
-              <div className={`w-10 h-10 flex items-center justify-center border ${stat.color}`}><Icon className="w-5 h-5" /></div>
-              <div>
-                <p className="text-xl font-bold text-gray-900">{loading ? "—" : stat.value}</p>
-                <p className="text-xs text-gray-500">{stat.label}</p>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Recent Interviews */}
-        <div className="lg:col-span-2 bg-white border border-gray-200">
-          <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-gray-900">Recent interviews</h2>
-            {interviews.length > 0 && (
-              <button onClick={() => navigate("/interviews/history")} className="text-xs font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1">
-                View all <FiArrowRight className="w-3.5 h-3.5" />
-              </button>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 lg:gap-4 w-full max-w-5xl mx-auto justify-center">
+        {/* Left column — Contact / profile card (real data, compact) */}
+        <aside className="lg:col-span-3 space-y-3 order-2 lg:order-1">
+          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+            {userCover ? (
+              <img src={userCover} alt="Cover" className="w-full h-14 object-cover" />
+            ) : (
+              <div className="h-14 bg-gradient-to-br from-blue-600/20 via-indigo-400/10 to-purple-500/20" />
             )}
+            <div className="px-3 pb-3 relative">
+              {userImage ? (
+                <img
+                  src={userImage}
+                  alt={userName}
+                  className="w-10 h-10 rounded-full border-2 border-white shadow -mt-5 mb-1.5 object-cover bg-gray-100"
+                />
+              ) : (
+                <div className="w-10 h-10 rounded-full border-2 border-white shadow -mt-5 mb-1.5 bg-blue-600 text-white flex items-center justify-center text-sm font-bold">
+                  {userName.charAt(0).toUpperCase()}
+                </div>
+              )}
+              <h2 className="text-sm font-bold text-gray-900 leading-tight truncate">{userName}</h2>
+              <p className="text-[11px] text-gray-500 mt-0.5 leading-snug line-clamp-1">{userTitle}</p>
+              <div className="flex items-center gap-1 text-[11px] text-gray-400 mt-0.5">
+                <FiMapPin className="w-3 h-3" /> <span className="truncate">{userLocation}</span>
+              </div>
+              <span className="inline-block mt-1.5 text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200 px-2 py-px rounded-full">
+                {plan ? plan.toUpperCase() : "FREE"}
+              </span>
+              {/* Contact info */}
+              <div className="mt-2.5 pt-2.5 border-t border-gray-100 space-y-1.5">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Contact</p>
+                {userData?.email && (
+                  <p className="flex items-center gap-1.5 text-[11px] text-gray-600 truncate">
+                    <FiMail className="w-3 h-3 text-gray-400 shrink-0" />
+                    <span className="truncate">{userData.email}</span>
+                  </p>
+                )}
+                <p className="flex items-center gap-1.5 text-[11px] text-gray-600">
+                  <FiMapPin className="w-3 h-3 text-gray-400 shrink-0" />
+                  <span className="truncate">{userLocation}</span>
+                </p>
+                <button
+                  onClick={() => navigate("/profile")}
+                  className="text-[11px] font-semibold text-blue-600 hover:underline px-0 py-0.5"
+                >
+                  View full profile →
+                </button>
+              </div>
+            </div>
+            <div className="border-t border-gray-100 px-3 py-2 flex gap-5">
+              <div className="text-center">
+                <p className="text-sm font-extrabold text-gray-900 leading-none">{loading ? "—" : appliedJobs.size}</p>
+                <p className="text-[10px] text-gray-400 mt-0.5">Applied</p>
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-extrabold text-gray-900 leading-none">{loading ? "—" : savedJobs.size}</p>
+                <p className="text-[10px] text-gray-400 mt-0.5">Saved</p>
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-extrabold text-gray-900 leading-none">{jobs.length}</p>
+                <p className="text-[10px] text-gray-400 mt-0.5">Live</p>
+              </div>
+            </div>
           </div>
+
+          <div className="bg-white border border-gray-200 rounded-xl px-3 py-2.5 shadow-sm">
+            <h3 className="text-xs font-bold text-gray-900">Activity</h3>
+          </div>
+        </aside>
+
+        {/* Middle column — Jobs feed */}
+        <main className="lg:col-span-6 order-1 lg:order-2">
+          <div className="w-full space-y-2.5">
+          <div className="flex items-center gap-2 justify-between">
+            <div className="min-w-0">
+              <h1 className="text-base font-bold text-gray-900 tracking-tight leading-tight">Latest Jobs</h1>
+              <p className="text-[11px] text-gray-500 leading-tight">{filteredJobs.length} openings · from database</p>
+            </div>
+          </div>
+
+          {/* Filters — location / country / posted time */}
+          <div className="grid grid-cols-3 gap-1.5">
+            <select
+              value={filters.location}
+              onChange={(e) => setFilters((p) => ({ ...p, location: e.target.value }))}
+              className="w-full px-2 py-1.5 bg-white border border-gray-200 rounded-lg text-xs text-gray-700 focus:outline-none focus:border-blue-500 shadow-sm truncate"
+            >
+              <option value="">All locations</option>
+              {uniqueLocations.map((loc) => (
+                <option key={loc} value={loc}>{loc}</option>
+              ))}
+            </select>
+            <select
+              value={filters.country}
+              onChange={(e) => setFilters((p) => ({ ...p, country: e.target.value }))}
+              className="w-full px-2 py-1.5 bg-white border border-gray-200 rounded-lg text-xs text-gray-700 focus:outline-none focus:border-blue-500 shadow-sm truncate"
+            >
+              <option value="">All countries</option>
+              {uniqueCountries.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+            <select
+              value={filters.time}
+              onChange={(e) => setFilters((p) => ({ ...p, time: e.target.value }))}
+              className="w-full px-2 py-1.5 bg-white border border-gray-200 rounded-lg text-xs text-gray-700 focus:outline-none focus:border-blue-500 shadow-sm truncate"
+            >
+              <option value="">Any time</option>
+              <option value="24h">Last 24 hours</option>
+              <option value="7d">Last 7 days</option>
+              <option value="30d">Last 30 days</option>
+            </select>
+          </div>
+          {activeFilterCount > 0 && (
+            <button onClick={clearFilters} className="text-[11px] font-medium text-blue-600 hover:underline self-start px-1">
+              Clear filters ({activeFilterCount})
+            </button>
+          )}
+
           {loading ? (
-            <div className="p-6 flex justify-center"><div className="animate-spin h-8 w-8 border-2 border-gray-200 border-t-blue-600 rounded-full" /></div>
-          ) : interviews.length === 0 ? (
-            <div className="p-12 text-center">
-              <div className="w-12 h-12 bg-gray-100 flex items-center justify-center mx-auto mb-3"><FiCalendar className="w-6 h-6 text-gray-400" /></div>
-              <p className="text-sm font-medium text-gray-900">No interviews yet</p>
-              <p className="text-xs text-gray-500 mt-1">Start applying to see your interviews here</p>
-              <button onClick={() => navigate("/jobs")} className="mt-4 text-sm font-medium text-blue-600 hover:text-blue-700">Browse jobs →</button>
+            <div className="bg-white border border-gray-200 rounded-xl p-5 text-center shadow-sm">
+              <div className="animate-spin h-5 w-5 border-2 border-gray-200 border-t-blue-600 rounded-full mx-auto" />
+              <p className="text-[11px] text-gray-500 mt-2">Loading jobs…</p>
+            </div>
+          ) : filteredJobs.length === 0 ? (
+            <div className="bg-white border border-gray-200 rounded-xl p-5 text-center shadow-sm">
+              <FiBriefcase className="w-6 h-6 text-gray-300 mx-auto mb-2" />
+              <h3 className="text-sm font-semibold text-gray-900">No jobs found</h3>
+              <p className="text-xs text-gray-500 mt-0.5">
+                {jobs.length === 0
+                  ? "No active openings in the database yet."
+                  : "No openings match these filters."}
+              </p>
+              {jobs.length > 0 && (
+                <button
+                  onClick={clearFilters}
+                  className="mt-3 inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-xs font-medium hover:bg-blue-700 transition-colors rounded-lg"
+                >
+                  Clear filters
+                </button>
+              )}
             </div>
           ) : (
-            <div className="divide-y divide-gray-100">
-              {interviews.map((interview) => {
-                const meta = getStatusMeta(interview);
-                return (
-                  <button key={interview.id} onClick={() => navigate(`/interviews/${interview.id}/analysis`)} className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors text-left">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-8 h-8 bg-gray-900 text-white flex items-center justify-center text-xs font-bold shrink-0">{interview.title?.[0] || "I"}</div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">{interview.title}</p>
-                        <p className="text-xs text-gray-500 truncate">{interview.organization} • Round {interview.current_round}</p>
+            filteredJobs.map((job) => {
+              const salary = formatSalary(job.salary_min, job.salary_max, job.salary_currency);
+              const soon = isDeadlineSoon(job.application_deadline);
+              const applied = appliedJobs.has(job.id);
+              const saved = savedJobs.has(job.id);
+              const orgName = job.organization?.name || "Unknown organization";
+              return (
+                <article
+                  key={job.id}
+                  onClick={() => navigate(`/jobs/${job.id}`)}
+                  className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden hover:shadow hover:border-gray-300 transition-all cursor-pointer"
+                >
+                  <div className="p-3">
+                    <div className="flex items-start gap-2">
+                      {job.organization?.profile_image ? (
+                        <img
+                          src={getUploadUrl(job.organization.profile_image)}
+                          alt={orgName}
+                          className="w-8 h-8 rounded-md object-cover border border-gray-200 bg-gray-100 shrink-0"
+                        />
+                      ) : (
+                        <div className="w-8 h-8 bg-gray-900 text-white rounded-md flex items-center justify-center text-[11px] font-bold shrink-0">
+                          {getCompanyInitials(orgName)}
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <h4 className="text-[11px] font-medium text-gray-500 truncate">{orgName}</h4>
+                          <span className="text-[11px] text-gray-300">· {job.created_at ? formatDate(job.created_at) : "New"}</span>
+                          {applied && (
+                            <span className="inline-flex items-center gap-0.5 text-[10px] bg-green-50 text-green-700 border border-green-200 px-1.5 py-px rounded">
+                              <FiCheckCircle className="w-2.5 h-2.5" /> Applied
+                            </span>
+                          )}
+                          {soon && !applied && (
+                            <span className="inline-flex items-center gap-0.5 text-[10px] bg-amber-50 text-amber-700 border border-amber-200 px-1.5 py-px rounded">
+                              <FiClock className="w-2.5 h-2.5" /> Closing soon
+                            </span>
+                          )}
+                        </div>
+                        <h2 className="text-[13px] font-semibold text-gray-900 leading-tight mt-0.5 line-clamp-1">{job.title}</h2>
+                        <p className="text-xs text-gray-500 leading-snug mt-0.5 line-clamp-1">{truncateText(job.description) || "No description."}</p>
+
+                        <div className="flex flex-wrap gap-1 mt-1.5">
+                          {job.location && (
+                            <span className="inline-flex items-center gap-1 text-[11px] text-gray-600">
+                              <FiMapPin className="w-3 h-3 text-gray-400" /> {job.location}
+                            </span>
+                          )}
+                          {job.employment_type && (
+                            <span className="text-[11px] text-gray-300">·</span>
+                          )}
+                          {job.employment_type && (
+                            <span className="text-[11px] text-gray-600">{job.employment_type}</span>
+                          )}
+                          {job.category && (
+                            <span className="text-[11px] text-blue-600 bg-blue-50 border border-blue-100 px-1.5 py-px rounded">{job.category}</span>
+                          )}
+                          {salary && (
+                            <span className="text-[11px] text-emerald-700 font-medium">{salary}</span>
+                          )}
+                          {job.application_deadline && (
+                            <span className="text-[11px] text-gray-400">· due {formatDate(job.application_deadline)}</span>
+                          )}
+                        </div>
                       </div>
                     </div>
-                    <div className="text-right shrink-0 ml-4">
-                      <span className={`inline-flex text-xs font-medium border px-2 py-0.5 ${meta.color}`}>{meta.label}</span>
-                      <p className="text-xs text-gray-400 mt-1">{formatDate(interview.scheduled_at)}</p>
+
+                    <div className="flex gap-1.5 mt-2 pt-2 border-t border-gray-50">
+                      {applied ? (
+                        <button disabled className="inline-flex items-center gap-1 px-2.5 py-1 bg-green-50 text-green-700 border border-green-200 text-[11px] font-medium rounded-md cursor-not-allowed">
+                          <FiCheckCircle className="w-3 h-3" /> Applied
+                        </button>
+                      ) : (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setSelectedJob(job); setShowApplyConfirm(true); }}
+                          className="inline-flex items-center px-2.5 py-1 bg-blue-600 text-white text-[11px] font-medium hover:bg-blue-700 transition-colors rounded-md"
+                        >
+                          Apply
+                        </button>
+                      )}
+                      {saved ? (
+                        <button disabled className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-100 text-gray-500 text-[11px] font-medium rounded-md cursor-default">
+                          <FiBookmark className="w-3 h-3 fill-gray-400" /> Saved
+                        </button>
+                      ) : (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleSaveJob(job.id); }}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 bg-white border border-gray-200 text-gray-600 text-[11px] font-medium hover:bg-gray-50 transition-colors rounded-md"
+                        >
+                          <FiBookmark className="w-3 h-3" /> Save
+                        </button>
+                      )}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); navigate(`/jobs/${job.id}`); }}
+                        className="ml-auto text-[11px] text-blue-600 font-medium hover:underline px-1 py-1"
+                      >
+                        Details →
+                      </button>
                     </div>
-                  </button>
-                );
-              })}
-            </div>
+                  </div>
+                </article>
+              );
+            })
           )}
-        </div>
 
-        <div className="space-y-6">
-          {/* Progress */}
-          <div className="bg-white border border-gray-200 p-5">
-            <h3 className="text-sm font-semibold text-gray-900">Your progress</h3>
-            <div className="mt-4 space-y-4">
-              <div>
-                <div className="flex justify-between text-xs mb-1.5"><span className="text-gray-600">Success rate</span><span className="font-medium text-gray-900">{stats.completedInterviews ? Math.round((stats.passedInterviews / stats.completedInterviews) * 100) : 0}%</span></div>
-                <div className="h-1.5 bg-gray-100"><div className="h-1.5 bg-green-600" style={{ width: `${stats.completedInterviews ? Math.round((stats.passedInterviews / stats.completedInterviews) * 100) : 0}%` }} /></div>
-              </div>
-              <div>
-                <div className="flex justify-between text-xs mb-1.5"><span className="text-gray-600">Applications</span><span className="font-medium text-gray-900">{stats.appliedJobs}</span></div>
-                <div className="h-1.5 bg-gray-100"><div className="h-1.5 bg-blue-600" style={{ width: `${Math.min(stats.appliedJobs * 10, 100)}%` }} /></div>
-              </div>
-              <div>
-                <div className="flex justify-between text-xs mb-1.5"><span className="text-gray-600">Saved jobs</span><span className="font-medium text-gray-900">{stats.savedJobs}</span></div>
-                <div className="h-1.5 bg-gray-100"><div className="h-1.5 bg-purple-600" style={{ width: `${Math.min(stats.savedJobs * 15, 100)}%` }} /></div>
-              </div>
+          {!loading && hasMore && (
+            <button
+              onClick={handleShowMore}
+              disabled={loadingMore}
+              className="w-full py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors shadow-sm disabled:opacity-60"
+            >
+              {loadingMore ? "Loading…" : "Show more jobs"}
+            </button>
+          )}
+          </div>
+        </main>
+
+        {/* Right column — discovery rail (real data, compact) */}
+        <aside className="lg:col-span-3 space-y-3 order-3">
+          {/* Recent jobs */}
+          <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-3">
+            <h3 className="text-xs font-bold text-gray-900">Recent jobs</h3>
+            <div className="mt-1 divide-y divide-gray-100">
+              {recentJobs.length === 0 && (
+                <p className="text-[11px] text-gray-400 py-2">No openings yet.</p>
+              )}
+              {recentJobs.map((j) => (
+                <button
+                  key={`recent-${j.id}`}
+                  onClick={() => navigate(`/jobs/${j.id}`)}
+                  className="w-full text-left py-2 group"
+                >
+                  <p className="text-xs font-semibold text-gray-900 group-hover:text-blue-600 group-hover:underline leading-tight line-clamp-1">
+                    {j.title}
+                  </p>
+                  <p className="text-[11px] text-gray-400 truncate mt-0.5">
+                    {j.organization?.name || "Unknown"} · {timeAgo(j.created_at)}
+                  </p>
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* Quick Access */}
-          <div className="bg-white border border-gray-200 p-5">
-            <h3 className="text-sm font-semibold text-gray-900">Quick access</h3>
-            <div className="mt-3 space-y-1">
-              {[
-                { icon: FiCalendar, label: "Upcoming interviews", count: stats.upcomingInterviews, link: "/interviews/upcoming" },
-                { icon: FiBookmark, label: "Saved jobs", count: stats.savedJobs, link: "/jobs/saved" },
-                { icon: FiCheckCircle, label: "Applied jobs", count: stats.appliedJobs, link: "/jobs/applied" },
-                { icon: FiZap, label: "AI practice", link: "/practice" },
-              ].map((item) => {
-                const Icon = item.icon;
-                return (
-                  <button key={item.label} onClick={() => navigate(item.link)} className="w-full flex items-center justify-between p-2.5 hover:bg-gray-50 transition-colors text-left">
-                    <span className="flex items-center gap-2.5 text-sm text-gray-700"><Icon className="w-4 h-4 text-gray-400" />{item.label}</span>
-                    {item.count !== undefined && <span className="text-xs font-medium bg-gray-100 text-gray-600 px-2 py-0.5">{item.count}</span>}
-                  </button>
-                );
-              })}
+          {/* Popular jobs — closing soon first, then newest */}
+          <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-3">
+            <h3 className="text-xs font-bold text-gray-900">Popular jobs</h3>
+            <p className="text-[10px] text-gray-400">In demand · closing soon</p>
+            <div className="mt-1 divide-y divide-gray-100">
+              {popularJobs.length === 0 && (
+                <p className="text-[11px] text-gray-400 py-2">No openings yet.</p>
+              )}
+              {popularJobs.map((j) => (
+                <button
+                  key={`popular-${j.id}`}
+                  onClick={() => navigate(`/jobs/${j.id}`)}
+                  className="w-full text-left py-2 group"
+                >
+                  <p className="text-xs font-semibold text-gray-900 group-hover:text-blue-600 group-hover:underline leading-tight line-clamp-1">
+                    {j.title}
+                  </p>
+                  <p className="text-[11px] text-gray-400 truncate mt-0.5">
+                    {j.organization?.name || "Unknown"}
+                    {j.application_deadline ? ` · Apply by ${formatDate(j.application_deadline)}` : ""}
+                  </p>
+                </button>
+              ))}
             </div>
           </div>
 
-          <div className="bg-blue-600 text-white p-5">
-            <h3 className="text-sm font-semibold flex items-center gap-2"><FiTrendingUp className="w-4 h-4" /> Keep going</h3>
-            <p className="text-sm text-blue-50 mt-1">You’ve completed {stats.completedInterviews} interviews. Practice more to boost your pass rate.</p>
-            <button onClick={() => navigate("/practice")} className="mt-3 w-full bg-white text-blue-600 py-2.5 text-sm font-medium hover:bg-blue-50 transition-colors">Practice now</button>
+          {/* Most hiring companies */}
+          <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-3">
+            <h3 className="text-xs font-bold text-gray-900">Most hiring</h3>
+            <p className="text-[10px] text-gray-400">Companies with most openings</p>
+            <div className="mt-1 divide-y divide-gray-100">
+              {topCompanies.length === 0 && (
+                <p className="text-[11px] text-gray-400 py-2">No companies yet.</p>
+              )}
+              {topCompanies.map((c) => (
+                <button
+                  key={`top-${c.id ?? c.name}`}
+                  onClick={() => c.id && navigate(`/organization/profile/${c.id}`)}
+                  disabled={!c.id}
+                  title={c.id ? `View ${c.name}` : c.name}
+                  className={`w-full flex items-center gap-2 py-2 text-left ${c.id ? "group cursor-pointer" : "cursor-default"}`}
+                >
+                  {c.image ? (
+                    <img
+                      src={getUploadUrl(c.image)}
+                      alt={c.name}
+                      className="w-7 h-7 rounded-md object-cover border border-gray-200 shrink-0"
+                    />
+                  ) : (
+                    <div className="w-7 h-7 rounded-md bg-gray-900 text-white flex items-center justify-center text-[10px] font-bold shrink-0">
+                      {getCompanyInitials(c.name)}
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-xs font-semibold text-gray-900 truncate ${c.id ? "group-hover:text-blue-600 group-hover:underline" : ""}`}>{c.name}</p>
+                    <p className="text-[11px] text-gray-400">{c.count} open role{c.count === 1 ? "" : "s"}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        </aside>
       </div>
+
+      {showApplyConfirm && selectedJob && (
+        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white max-w-sm w-full border border-gray-200 shadow-xl rounded-lg overflow-hidden">
+            <div className="px-4 pt-4">
+              <h3 className="text-sm font-semibold text-gray-900">Apply for this role?</h3>
+              <p className="text-xs text-gray-600 mt-1.5">
+                Apply for <span className="font-semibold text-gray-900">{selectedJob.title}</span> at{" "}
+                <span className="font-semibold text-gray-900">{selectedJob.organization?.name}</span>?
+              </p>
+            </div>
+            <div className="px-4 py-3 flex gap-2">
+              <button onClick={() => handleApplyJob(selectedJob.id)} className="flex-1 bg-blue-600 text-white py-1.5 text-xs font-medium hover:bg-blue-700 transition-colors rounded-md">
+                Yes, apply
+              </button>
+              <button onClick={() => { setShowApplyConfirm(false); setSelectedJob(null); }} className="px-4 py-1.5 bg-white border border-gray-200 text-xs font-medium text-gray-700 hover:bg-gray-50 rounded-md">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 }

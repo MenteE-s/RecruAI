@@ -1,5 +1,4 @@
-import { useState } from "react";
-import Sidebar from "./Sidebar";
+import Header from "./Header";
 import DashboardFooter from "../../components/layout/DashboardFooter";
 
 export default function DashboardLayout({
@@ -7,43 +6,16 @@ export default function DashboardLayout({
   NavbarComponent,
   sidebarItems,
 }) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  // Desktop collapse (persisted); mobile drawer state stays separate.
-  const [collapsed, setCollapsed] = useState(() => {
-    try {
-      return localStorage.getItem("sidebarCollapsed") === "1";
-    } catch {
-      return false;
-    }
-  });
-
-  const toggleCollapse = () => {
-    setCollapsed((c) => {
-      try {
-        localStorage.setItem("sidebarCollapsed", c ? "0" : "1");
-      } catch {
-        /* storage unavailable */
-      }
-      return !c;
-    });
-  };
-
   return (
-    <div className="h-screen bg-gray-50 flex overflow-hidden">
-      <Sidebar
-        open={sidebarOpen}
-        toggleSidebar={() => setSidebarOpen(!sidebarOpen)}
-        collapsed={collapsed}
-        onToggleCollapse={toggleCollapse}
-        items={sidebarItems}
-      />
+    <div className="min-h-screen bg-gray-50 flex flex-col overflow-hidden">
+      <Header sidebarItems={sidebarItems} />
 
-      <div className="flex flex-col flex-1 h-screen overflow-hidden">
-        <main className="flex-1 p-4 md:p-6 overflow-y-auto scroll-smooth">
+      <main className="flex-1 overflow-y-auto overflow-x-hidden scroll-smooth px-3 md:px-4 py-3">
+        <div className="w-full max-w-5xl mx-auto">
           {children}
-        </main>
-        <DashboardFooter />
-      </div>
+        </div>
+      </main>
+      <DashboardFooter />
     </div>
   );
 }

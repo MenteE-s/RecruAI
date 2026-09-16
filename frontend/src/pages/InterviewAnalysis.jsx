@@ -152,9 +152,9 @@ const InterviewAnalysis = () => {
         }
         sidebarItems={sidebarItems}
       >
-        <div className="flex justify-center items-center py-12">
+        <div className="flex justify-center items-center py-8">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-3"></div>
             <p className="text-gray-600">Loading interview analysis...</p>
           </div>
         </div>
@@ -170,15 +170,15 @@ const InterviewAnalysis = () => {
         }
         sidebarItems={sidebarItems}
       >
-        <div className="max-w-4xl mx-auto p-6">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-            <div className="text-red-500 text-4xl mb-4">⚠️</div>
-            <h2 className="text-xl font-semibold text-red-800 mb-2">
+        <div className="max-w-4xl mx-auto p-4">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+            <div className="text-red-500 text-3xl mb-3">⚠️</div>
+            <h2 className="text-lg font-semibold text-red-800 mb-2">
               {error || "Interview not found"}
             </h2>
             <button
               onClick={() => navigate("/dashboard")}
-              className="mt-4 px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+              className="mt-3 px-5 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
             >
               Return to Dashboard
             </button>
@@ -195,10 +195,10 @@ const InterviewAnalysis = () => {
       }
       sidebarItems={sidebarItems}
     >
-      <div className="max-w-6xl mx-auto p-6 space-y-6">
+      <div className="max-w-6xl mx-auto p-4 space-y-4">
         {/* Header */}
         <div
-          className={`rounded-xl p-6 text-white ${
+          className={`rounded-xl p-4 text-white ${
             userRole === "organization"
               ? "bg-gradient-to-br from-yellow-600/90 via-amber-600/80 to-purple-700/70"
               : "bg-gradient-to-br from-indigo-600/90 via-purple-600/80 to-cyan-700/70"
@@ -206,7 +206,7 @@ const InterviewAnalysis = () => {
         >
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold mb-2">Interview Analysis</h1>
+              <h1 className="text-xl font-bold mb-2">Interview Analysis</h1>
               <p className="text-blue-100">{interview.title}</p>
             </div>
             <div className="text-right">
@@ -229,7 +229,7 @@ const InterviewAnalysis = () => {
         {/* Interview Overview */}
         <Card>
           <h2 className="text-xl font-semibold mb-4">Interview Overview</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <div className="text-sm text-gray-600">Date & Time</div>
               <div className="font-medium">
@@ -389,7 +389,7 @@ const InterviewAnalysis = () => {
                 </Card>
 
                 {/* Strengths and Improvements */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Card>
                     <h2 className="text-xl font-semibold mb-4 text-green-600">
                       💪 Key Strengths
@@ -437,7 +437,7 @@ const InterviewAnalysis = () => {
                   <h2 className="text-xl font-semibold mb-4">
                     Interview Metrics
                   </h2>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="text-center">
                       <div className="text-2xl font-bold text-blue-600">
                         {analysis.actual_duration_minutes ||

@@ -31,7 +31,7 @@ export default function Sidebar({ open, toggleSidebar, items = [], collapsed = f
         <button
           onClick={() => handleNavClick(item)}
           title={collapsed ? item.name : undefined}
-          className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 ${
+          className={`w-full flex items-center gap-2 px-2 py-1 rounded-lg text-xs font-medium transition-all duration-150 ${
             collapsed ? "md:justify-center md:px-0" : ""
           } ${
             active
@@ -40,7 +40,7 @@ export default function Sidebar({ open, toggleSidebar, items = [], collapsed = f
           }`}
         >
           <item.icon
-            className={`w-5 h-5 shrink-0 ${active ? "text-white" : "text-gray-400"}`}
+            className={`w-4 h-4 shrink-0 ${active ? "text-white" : "text-gray-400"}`}
           />
           <span className={collapsed ? "md:hidden" : ""}>{item.name}</span>
         </button>
@@ -60,7 +60,7 @@ export default function Sidebar({ open, toggleSidebar, items = [], collapsed = f
   };
 
   const Separator = () => (
-    <div className="border-t border-gray-200 my-3" />
+    <div className="border-t border-gray-200 my-2" />
   );
 
   return (
@@ -68,7 +68,7 @@ export default function Sidebar({ open, toggleSidebar, items = [], collapsed = f
       {/* Mobile hamburger */}
       <button
         onClick={toggleSidebar}
-        className="md:hidden fixed top-4 left-4 z-30 p-2 rounded-lg bg-white shadow-md border border-gray-200"
+        className="md:hidden fixed top-4 left-4 z-30 p-1 rounded-lg bg-white shadow-md border border-gray-200"
       >
         <FiMenu className="h-5 w-5 text-gray-600" />
       </button>
@@ -83,20 +83,20 @@ export default function Sidebar({ open, toggleSidebar, items = [], collapsed = f
 
       {/* Sidebar */}
       <aside
-        className={`fixed md:relative inset-y-0 left-0 z-40 w-64 ${
-          collapsed ? "md:w-20" : "md:w-64"
+        className={`fixed md:relative inset-y-0 left-0 z-40 w-48 ${
+          collapsed ? "md:w-16" : "md:w-48"
         } md:shrink-0 bg-white border-r border-gray-200 transform ${
           open ? "translate-x-0" : "-translate-x-full"
         } md:translate-x-0 transition-all duration-200 ease-in-out h-screen flex flex-col`}
       >
         {/* Brand */}
-        <div className={`px-5 py-5 flex items-center gap-2.5 ${collapsed ? "md:justify-center md:px-0" : ""}`}>
+        <div className={`px-3 py-3 flex items-center gap-2 ${collapsed ? "md:justify-center md:px-0" : ""}`}>
           <img
             src="/mentee-logo.png"
             alt="MenteE Logo"
-            className="w-8 h-8 rounded-lg object-contain shrink-0"
+            className="w-6 h-6 rounded-lg object-contain shrink-0"
           />
-          <span className={`text-lg font-bold text-gray-900 ${collapsed ? "md:hidden" : ""}`}>RecruAI</span>
+          <span className={`text-sm font-medium text-gray-900 ${collapsed ? "md:hidden" : ""}`}>RecruAI</span>
           {onToggleCollapse && (
             <button
               onClick={onToggleCollapse}
@@ -158,12 +158,12 @@ export default function Sidebar({ open, toggleSidebar, items = [], collapsed = f
         </nav>
 
         {/* Bottom section - Settings & Sign Out */}
-        <div className="px-3 py-3 border-t border-gray-200">
+        <div className="px-2 py-2 border-t border-gray-200">
           {settingsItem && (
             <button
               onClick={() => handleNavClick(settingsItem)}
               title={collapsed ? "Settings" : undefined}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 ${
+              className={`w-full flex items-center gap-2 px-2 py-1 rounded-lg text-xs font-medium transition-all duration-150 ${
                 collapsed ? "md:justify-center md:px-0" : ""
               } ${
                 isActive(settingsItem.link)

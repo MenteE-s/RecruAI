@@ -317,10 +317,13 @@ const ShareableProfiles = () => {
   if (loading) {
     return (
       <DashboardLayout sidebarItems={sidebarItems}>
-        <div className="space-y-4">
-          <div className="rounded-2xl bg-gray-900 h-44 animate-pulse" />
+        <div className="space-y-4 mt-6">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-[320px] bg-gray-200 animate-pulse rounded-lg" />
+            <div className="h-9 w-24 bg-gray-100 animate-pulse rounded" />
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[1, 2, 3].map((i) => <div key={i} className="bg-white border border-gray-200 h-64 animate-pulse" />)}
+            {[1, 2, 3].map((i) => <div key={i} className="bg-white border border-gray-200 h-48 animate-pulse" />)}
           </div>
         </div>
       </DashboardLayout>
@@ -332,40 +335,15 @@ const ShareableProfiles = () => {
 
   return (
     <DashboardLayout sidebarItems={sidebarItems}>
-      {/* Hero */}
-      <div className="relative overflow-hidden rounded-2xl bg-gray-900 text-white mb-6">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-transparent to-indigo-600/20" />
-        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3" />
-        <div className="relative p-6 md:p-8">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-            <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 border border-white/20 text-xs font-medium tracking-wide mb-3">
-                <FiShare2 className="w-3.5 h-3.5" />
-                SHAREABLE
-              </div>
-              <h1 className="text-3xl md:text-[2rem] font-bold leading-tight">Shareable profiles</h1>
-              <p className="text-gray-300 mt-2 max-w-xl text-sm md:text-[15px]">Create public links to share your profile with recruiters. Control what’s visible and track views.</p>
-            </div>
-            <div className="flex flex-col gap-3 lg:w-[380px]">
-              <div className="grid grid-cols-3 gap-3">
-                <div className="bg-white/10 backdrop-blur border border-white/10 p-4 text-center">
-                  <p className="text-2xl font-bold">{profiles.length}</p>
-                  <p className="text-xs text-gray-300 mt-1">Profiles</p>
-                </div>
-                <div className="bg-white/10 backdrop-blur border border-white/10 p-4 text-center">
-                  <p className="text-2xl font-bold">{publicCount}</p>
-                  <p className="text-xs text-gray-300 mt-1">Public</p>
-                </div>
-                <div className="bg-blue-500/20 backdrop-blur border border-blue-400/20 p-4 text-center">
-                  <p className="text-2xl font-bold text-blue-200">{totalViews}</p>
-                  <p className="text-xs text-blue-200 mt-1">Views</p>
-                </div>
-              </div>
-              <button onClick={() => setShowCreateModal(true)} className="w-full inline-flex items-center justify-center gap-2 bg-white text-gray-900 px-5 py-3 text-sm font-medium hover:bg-gray-100 transition-colors">
-                <FiPlus className="w-4 h-4" /> Create profile
-              </button>
-            </div>
-          </div>
+      {/* Filter */}
+      <div className="flex items-center gap-3 mb-4 mt-6">
+        <div className="relative flex-1 max-w-xl min-w-[260px]">
+          <FiShare2 className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <span className="w-full block pl-10 pr-3 py-2.5 bg-white border border-gray-200 text-sm text-gray-700 font-medium">Shareable profiles</span>
+        </div>
+        <div className="flex items-center gap-2 text-xs text-gray-500 shrink-0">
+          <span>{profiles.length} profiles</span>
+          <button onClick={() => setShowCreateModal(true)} className="text-blue-600 hover:text-blue-700 font-medium ml-1">New</button>
         </div>
       </div>
 

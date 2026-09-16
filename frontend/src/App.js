@@ -35,7 +35,6 @@ import UpcomingInterviews from "./pages/individual/UpcomingInterviews";
 import InterviewHistory from "./pages/individual/InterviewHistory";
 import SavedJobs from "./pages/individual/SavedJobs";
 import AppliedJobs from "./pages/individual/AppliedJobs";
-import BrowseJobs from "./pages/individual/BrowseJobs";
 import Analytics from "./pages/individual/Analytics";
 import ResumeBuilder from "./pages/individual/ResumeBuilder";
 import JobAlerts from "./pages/individual/JobAlerts";
@@ -183,14 +182,7 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/jobs"
-            element={
-              <ProtectedRoute>
-                <BrowseJobs />
-              </ProtectedRoute>
-            }
-          />
+          <Route path="/jobs" element={<Navigate to="/dashboard" replace />} />
           <Route
             path="/jobs/:id"
             element={

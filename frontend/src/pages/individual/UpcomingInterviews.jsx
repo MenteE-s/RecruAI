@@ -167,48 +167,8 @@ export default function UpcomingInterviews() {
         </div>
       )}
 
-      {/* Hero */}
-      <div className="relative overflow-hidden rounded-2xl bg-gray-900 text-white mb-6">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-transparent to-indigo-600/20" />
-        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3" />
-        <div className="relative p-6 md:p-8">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-            <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 border border-white/20 text-xs font-medium tracking-wide mb-3">
-                <FiCalendar className="w-3.5 h-3.5" />
-                INTERVIEWS
-              </div>
-              <h1 className="text-3xl md:text-[2rem] font-bold leading-tight">Upcoming interviews</h1>
-              <p className="text-gray-300 mt-2 max-w-xl text-sm md:text-[15px]">Your scheduled sessions, prep materials, and join links — all in one place.</p>
-              <div className="mt-5 flex gap-2">
-                <button onClick={() => navigate("/interviews/history")} className="bg-white text-gray-900 px-4 py-2 text-sm font-medium hover:bg-gray-100 transition-colors">View history</button>
-                <button onClick={() => navigate("/jobs")} className="bg-white/10 backdrop-blur border border-white/20 text-white px-4 py-2 text-sm font-medium hover:bg-white/15 transition-colors">Browse jobs</button>
-              </div>
-            </div>
-            <div className="grid grid-cols-3 gap-3 lg:w-[380px]">
-              <div className="bg-white/10 backdrop-blur border border-white/10 p-4 text-center">
-                <p className="text-2xl font-bold">{stats.total}</p>
-                <p className="text-xs text-gray-300 mt-1">Total</p>
-              </div>
-              <div className="bg-green-500/20 backdrop-blur border border-green-400/20 p-4 text-center">
-                <p className="text-2xl font-bold text-green-300">{stats.joinable}</p>
-                <p className="text-xs text-green-200 mt-1">Joinable</p>
-              </div>
-              <div className="bg-blue-500/20 backdrop-blur border border-blue-400/20 p-4 text-center">
-                <p className="text-2xl font-bold text-blue-200">{stats.startingSoon}</p>
-                <p className="text-xs text-blue-200 mt-1">Starting soon</p>
-              </div>
-              <div className="col-span-3 bg-white text-gray-900 p-3 flex items-center justify-between">
-                <span className="text-sm font-medium flex items-center gap-2"><FiClock className="w-4 h-4 text-gray-500" /> Next up: {filteredInterviews[0] ? getRelativeTime(filteredInterviews[0].scheduled_at) : "—"}</span>
-                <span className="text-xs text-gray-500">{stats.scheduled} scheduled</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Filter */}
-      <div className="bg-white border border-gray-200 p-4 mb-6 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+      <div className="flex items-center gap-3 mb-4 mt-6">
         <div className="relative flex-1 max-w-xl">
           <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
           <input
@@ -216,7 +176,7 @@ export default function UpcomingInterviews() {
             placeholder="Filter by title, ID, organization, position…"
             value={filterText}
             onChange={(e) => setFilterText(e.target.value)}
-            className="w-full pl-10 pr-9 py-2.5 bg-gray-50 border border-gray-200 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:bg-white"
+            className="w-full pl-10 pr-9 py-2.5 bg-white border border-gray-200 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
           />
           {filterText && (
             <button onClick={() => setFilterText("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 rounded text-gray-500">
@@ -224,16 +184,18 @@ export default function UpcomingInterviews() {
             </button>
           )}
         </div>
-        <div className="flex items-center gap-2 text-xs text-gray-500">
+        <div className="flex items-center gap-2 text-xs text-gray-500 shrink-0">
           <FiFilter className="w-3.5 h-3.5" />
-          {filteredInterviews.length} of {interviews.length} shown
-          {filterText && <button onClick={() => setFilterText("")} className="text-blue-600 hover:text-blue-700 font-medium ml-1">Clear filter</button>}
+          <span>{filteredInterviews.length} of {interviews.length}</span>
+          {filterText && (
+            <button onClick={() => setFilterText("")} className="text-blue-600 hover:text-blue-700 font-medium ml-1">Clear</button>
+          )}
         </div>
       </div>
 
       {/* List */}
       {filteredInterviews.length === 0 ? (
-        <div className="bg-white border border-gray-200 p-12 text-center">
+        <div className="bg-white border border-gray-200 p-3">
           <div className="w-14 h-14 bg-gray-100 flex items-center justify-center mx-auto mb-4">
             <FiCalendar className="w-7 h-7 text-gray-400" />
           </div>
@@ -244,14 +206,14 @@ export default function UpcomingInterviews() {
               <button onClick={() => setFilterText("")} className="inline-flex items-center gap-2 bg-gray-900 text-white px-5 py-2.5 text-sm font-medium hover:bg-black transition-colors"><FiX className="w-4 h-4" /> Clear filter</button>
             ) : (
               <>
-                <button onClick={() => navigate("/jobs")} className="inline-flex items-center gap-2 bg-gray-900 text-white px-5 py-2.5 text-sm font-medium hover:bg-black transition-colors">Browse jobs <FiArrowRight className="w-4 h-4" /></button>
+                <button onClick={() => navigate("/dashboard")} className="inline-flex items-center gap-2 bg-gray-900 text-white px-5 py-2.5 text-sm font-medium hover:bg-black transition-colors">Browse jobs <FiArrowRight className="w-4 h-4" /></button>
                 <button onClick={() => navigate("/interviews/history")} className="inline-flex items-center gap-2 bg-white border border-gray-200 text-gray-700 px-5 py-2.5 text-sm font-medium hover:bg-gray-50">View history</button>
               </>
             )}
           </div>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {filteredInterviews.map((interview) => {
             const typeMeta = getInterviewTypeMeta(interview.interview_type);
             const TypeIcon = typeMeta.icon;
@@ -269,7 +231,7 @@ export default function UpcomingInterviews() {
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
                             <h3 className="text-[15px] font-semibold text-gray-900 leading-tight">{interview.title}</h3>
-                            {interview.current_round && <span className="text-xs bg-blue-600 text-white px-2 py-0.5">Round {interview.current_round}</span>}
+                            {interview.current_round && <span className="text-xs bg-blue-600 text-white px-1.5 py-0.5">Round {interview.current_round}</span>}
                             {getStatusBadge(interview)}
                           </div>
                           <p className="text-sm text-gray-600 mt-1 flex flex-wrap items-center gap-1.5">
@@ -305,7 +267,7 @@ export default function UpcomingInterviews() {
                       <button onClick={() => navigate(`/interviews/${interview.id}`)} className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white text-gray-700 border border-gray-200 text-sm font-medium hover:bg-gray-50 transition-colors">Prepare <FiArrowRight className="w-4 h-4" /></button>
                     </div>
                   </div>
-                  <div className="mt-4 flex lg:hidden gap-2">
+                  <div className="mt-2 flex lg:hidden gap-2">
                     {canJoin ? (
                       <button onClick={() => navigate(`/interview/${interview.id}`)} className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700"><FiPlayCircle className="w-4 h-4" /> {joinText}</button>
                     ) : (

@@ -12,7 +12,6 @@ import {
   FiSettings,
   FiCheckCircle,
   FiHome,
-  FiBriefcase,
   FiCpu,
   FiLink,
   FiLogOut,
@@ -159,7 +158,6 @@ export function getSidebarItems(role, plan) {
       return [
         { name: "Dashboard", link: "/dashboard", icon: FiHome, section: "main" },
         { name: "Profile", link: "/profile", icon: FiUser, section: "main" },
-        { name: "Jobs", link: "/jobs", icon: FiBriefcase, section: "main" },
         {
           name: "Upcoming Interviews",
           link: "/interviews/upcoming",
@@ -194,10 +192,9 @@ export function getSidebarItems(role, plan) {
      } else {
        // pro - same as trial now (all features visible)
        return [
-         { name: "Dashboard", link: "/dashboard", icon: FiHome, section: "main" },
-         { name: "Profile", link: "/profile", icon: FiUser, section: "main" },
-         { name: "Jobs", link: "/jobs", icon: FiBriefcase, section: "main" },
-         {
+          { name: "Dashboard", link: "/dashboard", icon: FiHome, section: "main" },
+          { name: "Profile", link: "/profile", icon: FiUser, section: "main" },
+          {
            name: "Upcoming Interviews",
            link: "/interviews/upcoming",
            icon: FiCalendar,

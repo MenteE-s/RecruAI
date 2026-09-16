@@ -1,6 +1,6 @@
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import { getSidebarItems } from "../../utils/auth";
-import { FiBell, FiMapPin, FiBriefcase, FiClock, FiEye, FiBookmark, FiMail, FiSmartphone, FiCalendar, FiZap, FiSettings, FiPlus } from "react-icons/fi";
+import { FiBell, FiMapPin, FiBriefcase, FiClock, FiEye, FiBookmark, FiMail, FiSmartphone, FiCalendar, FiZap, FiSettings, FiPlus, FiSearch, FiX } from "react-icons/fi";
 
 export default function JobAlerts() {
   const role = typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
@@ -9,35 +9,15 @@ export default function JobAlerts() {
 
   return (
     <DashboardLayout sidebarItems={sidebarItems}>
-      {/* Hero */}
-      <div className="relative overflow-hidden rounded-2xl bg-gray-900 text-white mb-6">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-transparent to-indigo-600/20" />
-        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3" />
-        <div className="relative p-6 md:p-8">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-            <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 border border-white/20 text-xs font-medium tracking-wide mb-3">
-                <FiBell className="w-3.5 h-3.5" />
-                ALERTS
-              </div>
-              <h1 className="text-3xl md:text-[2rem] font-bold leading-tight">Job alerts</h1>
-              <p className="text-gray-300 mt-2 max-w-xl text-sm md:text-[15px]">Get notified instantly when roles matching your preferences go live.</p>
-            </div>
-            <div className="grid grid-cols-3 gap-3 lg:w-[380px]">
-              <div className="bg-white/10 backdrop-blur border border-white/10 p-4 text-center">
-                <p className="text-2xl font-bold">2</p>
-                <p className="text-xs text-gray-300 mt-1">Active</p>
-              </div>
-              <div className="bg-blue-500/20 backdrop-blur border border-blue-400/20 p-4 text-center">
-                <p className="text-2xl font-bold text-blue-200">12</p>
-                <p className="text-xs text-blue-200 mt-1">Matches today</p>
-              </div>
-              <div className="bg-white/10 backdrop-blur border border-white/10 p-4 text-center">
-                <p className="text-2xl font-bold">✓</p>
-                <p className="text-xs text-gray-300 mt-1">Enabled</p>
-              </div>
-            </div>
-          </div>
+      {/* Filter */}
+      <div className="flex items-center gap-3 mb-4 mt-6">
+        <div className="relative flex-1 max-w-xl min-w-[260px]">
+          <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <span className="w-full block pl-10 pr-3 py-2.5 bg-white border border-gray-200 text-sm text-gray-700 font-medium">Job alert settings</span>
+        </div>
+        <div className="flex items-center gap-2 text-xs text-gray-500 shrink-0">
+          <FiBell className="w-3.5 h-3.5" />
+          <span>Active alerts: 2</span>
         </div>
       </div>
 

@@ -4,26 +4,69 @@ import { getSidebarItems, getBackendUrl, getAuthHeaders } from "../../utils/auth
 import TimezoneSelector from "../../components/ui/TimezoneSelector";
 import PaymentMethods from "../../components/ui/PaymentMethods";
 import {
-  FiSettings,
-  FiCreditCard,
-  FiClock,
-  FiAlertTriangle,
-  FiCheckCircle,
-  FiXCircle,
+  FiUser,
   FiAward,
-  FiZap,
-  FiShield,
+  FiCreditCard,
   FiBell,
+  FiSliders,
+  FiShield,
   FiMail,
   FiGlobe,
+  FiClock,
+  FiCheckCircle,
+  FiXCircle,
+  FiChevronRight,
+  FiAlertTriangle,
   FiTrash2,
+  FiZap,
   FiArrowRight,
 } from "react-icons/fi";
+
+const SECTIONS = [
+  { id: "account", label: "Account", icon: FiUser },
+  { id: "plan", label: "Subscription", icon: FiAward },
+  { id: "billing", label: "Billing", icon: FiCreditCard },
+  { id: "notifications", label: "Notifications", icon: FiBell },
+  { id: "preferences", label: "Preferences", icon: FiSliders },
+  { id: "security", label: "Security", icon: FiShield },
+];
+
+function Row({ icon: Icon, title, desc, right, onClick }) {
+  const Inner = (
+    <>
+      <div className="flex gap-2.5 min-w-0 flex-1">
+        {Icon && (
+          <div className="w-7 h-7 bg-gray-50 border border-gray-200 rounded-md flex items-center justify-center shrink-0">
+            <Icon className="w-3.5 h-3.5 text-gray-500" />
+          </div>
+        )}
+        <div className="min-w-0">
+          <p className="text-[13px] font-semibold text-gray-900 leading-tight">{title}</p>
+          {desc && <p className="text-xs text-gray-500 mt-0.5 leading-snug">{desc}</p>}
+        </div>
+      </div>
+      <div className="flex items-center gap-2 shrink-0">
+        {right}
+        {onClick && <FiChevronRight className="w-4 h-4 text-gray-300" />}
+      </div>
+    </>
+  );
+  const cls = "w-full flex items-center justify-between gap-3 py-3 text-left";
+  return onClick ? (
+    <button onClick={onClick} className={`${cls} hover:bg-gray-50 -mx-2 px-2 rounded-md transition-colors`}>
+      {Inner}
+    </button>
+  ) : (
+    <div className={cls}>{Inner}</div>
+  );
+}
 
 export default function Settings() {
   const role = typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
   const plan = typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
   const sidebarItems = getSidebarItems(role, plan);
+  const [active, setActive] = useState("account");
+  const [expanded, setExpanded] = useState(null);
   const [userId, setUserId] = useState(null);
   const [userData, setUserData] = useState(null);
   const [emailForm, setEmailForm] = useState({ email: "", name: "", phone: "", location: "" });
@@ -71,9 +114,9 @@ export default function Settings() {
       const result = await response.json().catch(() => ({}));
       if (response.ok) {
         setUserData(result.user);
-        setEmailMsg({ type: "success", text: "Email details updated successfully." });
+        setEmailMsg({ type: "success", text: "Contact details updated." });
       } else {
-        setEmailMsg({ type: "error", text: result.error || "Failed to update email details." });
+        setEmailMsg({ type: "error", text: result.error || "Failed to update." });
       }
     } catch (error) {
       console.error("Error updating email details:", error);
@@ -83,240 +126,250 @@ export default function Settings() {
     }
   };
 
+  const toggle = (key) => setExpanded((prev) => (prev === key ? null : key));
+
   const isPaid = userData?.subscription_status?.is_paid_active;
   const isTrial = userData?.subscription_status?.is_trial_active;
   const status = userData?.subscription_status;
   const trialEnd = status?.trial_start_date ? new Date(new Date(status.trial_start_date).getTime() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString() : null;
 
+  const inputCls = "w-full px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded-md text-[13px] text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:bg-white";
+  const labelCls = "block text-[11px] font-medium text-gray-500 mb-1";
+
   return (
     <DashboardLayout sidebarItems={sidebarItems}>
-      {/* Hero */}
-      <div className="relative overflow-hidden rounded-2xl bg-gray-900 text-white mb-6">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-transparent to-indigo-600/20" />
-        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3" />
-        <div className="relative p-6 md:p-8">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-            <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 border border-white/20 text-xs font-medium tracking-wide mb-3">
-                <FiSettings className="w-3.5 h-3.5" />
-                SETTINGS
-              </div>
-              <h1 className="text-3xl md:text-[2rem] font-bold leading-tight">Account settings</h1>
-              <p className="text-gray-300 mt-2 max-w-xl text-sm md:text-[15px]">Manage your plan, billing, and preferences.</p>
-            </div>
-            <div className="grid grid-cols-3 gap-3 lg:w-[380px]">
-              <div className={`p-4 text-center border backdrop-blur ${isPaid ? "bg-green-500/20 border-green-400/20" : "bg-white/10 border-white/10"}`}>
-                <p className={`text-lg font-bold ${isPaid ? "text-green-300" : "text-white"}`}>{isPaid ? "Pro" : isTrial ? "Trial" : "Free"}</p>
-                <p className={`text-xs mt-1 ${isPaid ? "text-green-200" : "text-gray-300"}`}>Plan</p>
-              </div>
-              <div className="bg-white/10 backdrop-blur border border-white/10 p-4 text-center">
-                <p className="text-lg font-bold">{status?.tokens_used?.toLocaleString() || "0"}</p>
-                <p className="text-xs text-gray-300 mt-1">Tokens</p>
-              </div>
-              <div className="bg-white/10 backdrop-blur border border-white/10 p-4 text-center">
-                <p className="text-lg font-bold">{isTrial && trialEnd ? trialEnd.split("/")[0] : isPaid ? "∞" : "—"}</p>
-                <p className="text-xs text-gray-300 mt-1">{isTrial ? "Trial ends" : "Status"}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <div className="w-full max-w-3xl mx-auto">
+        <h1 className="text-base font-bold text-gray-900 tracking-tight">Settings</h1>
+        <p className="text-[11px] text-gray-500 mt-0.5 mb-3">Manage your account, plan, and preferences.</p>
 
-      <div className="space-y-6">
-        {/* Email details */}
-        <div className="bg-white border border-gray-200">
-          <div className="px-6 py-4 border-b border-gray-100">
-            <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2"><FiMail className="w-4 h-4 text-gray-500" /> Email details</h3>
-            <p className="text-sm text-gray-500 mt-1">Your account email and contact details. Job alerts and interview updates go to this email.</p>
-          </div>
-          <form onSubmit={handleEmailSave} className="p-6 space-y-4">
-            {emailMsg && (
-              <div className={`px-4 py-3 text-sm border ${emailMsg.type === "success" ? "bg-green-50 border-green-200 text-green-700" : "bg-red-50 border-red-200 text-red-700"}`}>
-                {emailMsg.text}
-              </div>
-            )}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="md:col-span-2">
-                <label className="block text-xs font-medium text-gray-600 mb-1.5">Email address</label>
-                <div className="relative">
-                  <FiMail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <input
-                    type="email"
-                    required
-                    value={emailForm.email}
-                    onChange={(e) => setEmailForm((p) => ({ ...p, email: e.target.value }))}
-                    placeholder="you@example.com"
-                    className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1.5">Full name</label>
-                <input
-                  type="text"
-                  value={emailForm.name}
-                  onChange={(e) => setEmailForm((p) => ({ ...p, name: e.target.value }))}
-                  placeholder="Your name"
-                  className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1.5">Phone</label>
-                <input
-                  type="tel"
-                  value={emailForm.phone}
-                  onChange={(e) => setEmailForm((p) => ({ ...p, phone: e.target.value }))}
-                  placeholder="+92 300 1234567"
-                  className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white"
-                />
-              </div>
-              <div className="md:col-span-2">
-                <label className="block text-xs font-medium text-gray-600 mb-1.5">Location</label>
-                <input
-                  type="text"
-                  value={emailForm.location}
-                  onChange={(e) => setEmailForm((p) => ({ ...p, location: e.target.value }))}
-                  placeholder="City, Country"
-                  className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white"
-                />
-              </div>
-            </div>
-            <button type="submit" disabled={emailSaving} className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50">
-              {emailSaving ? "Saving…" : "Save email details"}
-            </button>
-          </form>
-        </div>
-
-        {/* Current Plan */}
-        <div className="bg-white border border-gray-200">
-          <div className="px-6 py-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2"><FiAward className="w-4 h-4 text-gray-500" /> Current plan</h3>
-                {isPaid && <span className="text-xs font-bold bg-green-600 text-white px-2 py-0.5">ACTIVE</span>}
-                {isTrial && !isPaid && <span className="text-xs font-bold bg-amber-500 text-white px-2 py-0.5">TRIAL</span>}
-              </div>
-              <p className="text-2xl font-bold text-gray-900 mt-2 capitalize flex items-center gap-2">
-                {isPaid ? "Pro" : isTrial ? "Trial" : "Free"} <span className="text-sm font-normal text-gray-500">plan</span>
-                {isPaid && <span className="inline-flex items-center gap-1 text-xs bg-green-50 text-green-700 border border-green-200 px-2 py-1"><span className="w-1.5 h-1.5 bg-green-600 rounded-full animate-pulse" /> Premium</span>}
-              </p>
-              <p className="text-sm text-gray-500 mt-1 flex items-center gap-1.5"><FiZap className="w-3.5 h-3.5 text-blue-500" />Tokens used: <span className="font-medium text-gray-700">{status?.tokens_used?.toLocaleString() || "0"}</span></p>
-              <p className="text-sm text-gray-600 mt-2 max-w-xl">{isPaid ? "Full access to all premium features and analytics" : isTrial ? `Trial active — ${status?.features_accessible?.includes("all") ? "full features" : "limited features"}` : "Limited features with basic interview tools"}</p>
-              {isTrial && isPaid === false && trialEnd && <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 inline-flex items-center gap-1.5 px-2.5 py-1 mt-2"><FiClock className="w-3.5 h-3.5" /> Trial expires: {trialEnd}</p>}
-            </div>
-            {!isPaid && <button className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors shrink-0">Upgrade to Pro <FiArrowRight className="w-4 h-4" /></button>}
-          </div>
-        </div>
-
-        {/* Plan Comparison */}
-        <div className="bg-white border border-gray-200 p-6">
-          <h3 className="text-sm font-semibold text-gray-900">Available plans</h3>
-          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className={`border p-5 ${!isPaid ? "border-amber-400 bg-amber-50/50" : "border-gray-200 bg-white"}`}>
-              <div className="flex items-center justify-between">
-                <h4 className="text-sm font-semibold text-gray-900">Trial</h4>
-                {!isPaid && <span className="text-xs bg-amber-500 text-white px-2 py-1 font-medium">Current</span>}
-              </div>
-              <p className="text-2xl font-bold text-gray-900 mt-2">Free</p>
-              <ul className="mt-3 space-y-1.5 text-sm text-gray-600">
-                <li className="flex gap-2"><FiCheckCircle className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" /> Profile management</li>
-                <li className="flex gap-2"><FiCheckCircle className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" /> Interview scheduling</li>
-                <li className="flex gap-2"><FiCheckCircle className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" /> Basic job tracking</li>
-                <li className="flex gap-2"><FiXCircle className="w-4 h-4 text-gray-300 shrink-0 mt-0.5" /> Limited analytics</li>
-              </ul>
-            </div>
-            <div className={`border p-5 ${isPaid ? "border-green-500 bg-green-50/50" : "border-gray-200 bg-white"}`}>
-              <div className="flex items-center justify-between">
-                <h4 className="text-sm font-semibold text-gray-900 flex items-center gap-2">Pro {isPaid && <span className="text-xs bg-green-600 text-white px-2 py-0.5">ACTIVE</span>}</h4>
-                <span className="text-xs text-gray-500">Most popular</span>
-              </div>
-              <p className="text-2xl font-bold text-gray-900 mt-2">$9.99<span className="text-sm font-normal text-gray-500">/month</span></p>
-              <ul className="mt-3 space-y-1.5 text-sm text-gray-600">
-                <li className="flex gap-2"><FiCheckCircle className="w-4 h-4 text-green-600 shrink-0 mt-0.5" /> Everything in Trial</li>
-                <li className="flex gap-2"><FiCheckCircle className="w-4 h-4 text-green-600 shrink-0 mt-0.5" /> Advanced analytics</li>
-                <li className="flex gap-2"><FiCheckCircle className="w-4 h-4 text-green-600 shrink-0 mt-0.5" /> Resume builder & job alerts</li>
-                <li className="flex gap-2"><FiCheckCircle className="w-4 h-4 text-green-600 shrink-0 mt-0.5" /> Career coaching & unlimited interviews</li>
-              </ul>
-              {isPaid ? <span className="inline-flex mt-4 text-xs bg-green-600 text-white px-3 py-1.5 font-medium">Current plan</span> : <button className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700">Upgrade now <FiArrowRight className="w-4 h-4" /></button>}
-            </div>
-          </div>
-        </div>
-
-        {/* Payment Methods */}
-        <div className="bg-white border border-gray-200 p-6">
-          <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2"><FiCreditCard className="w-4 h-4 text-gray-500" /> Payment methods</h3>
-          <div className="mt-4"><PaymentMethods storageKey="recruai_cards_individual" /></div>
-        </div>
-
-        {/* Billing History */}
-        <div className="bg-white border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2"><FiClock className="w-4 h-4 text-gray-500" /> Billing history</h3>
-          </div>
-          <div className="mt-4 text-center py-6 border border-dashed border-gray-200 rounded-lg">
-            <FiClock className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-            <p className="text-sm text-gray-500">No invoices yet</p>
-            <p className="text-xs text-gray-400 mt-1">Your billing history will appear here</p>
-          </div>
-        </div>
-
-        {/* Preferences */}
-        <div className="bg-white border border-gray-200 p-6">
-          <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2"><FiBell className="w-4 h-4 text-gray-500" /> Account preferences</h3>
-          <div className="mt-4 divide-y divide-gray-100">
-            {[
-              { title: "Email notifications", desc: "Receive updates about your account and interviews", defaultChecked: true, icon: FiMail },
-              { title: "Marketing emails", desc: "Receive tips and product updates", defaultChecked: false, icon: FiGlobe },
-              { title: "Data analytics", desc: "Help improve our service with usage analytics", defaultChecked: true, icon: FiShield },
-            ].map((pref) => {
-              const Icon = pref.icon;
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+          {/* Left category nav */}
+          <nav className="md:col-span-4 bg-white border border-gray-200 rounded-lg shadow-sm p-1.5 h-fit md:sticky md:top-14">
+            {SECTIONS.map((s) => {
+              const Icon = s.icon;
+              const isActive = active === s.id;
               return (
-                <div key={pref.title} className="flex items-center justify-between py-4">
-                  <div className="flex gap-3">
-                    <div className="w-8 h-8 bg-gray-50 border border-gray-200 flex items-center justify-center shrink-0"><Icon className="w-4 h-4 text-gray-500" /></div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{pref.title}</p>
-                      <p className="text-xs text-gray-500">{pref.desc}</p>
-                    </div>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" defaultChecked={pref.defaultChecked} className="sr-only peer" />
-                    <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:w-4 after:h-4 after:transition-all peer-checked:after:translate-x-4"></div>
-                  </label>
-                </div>
+                <button
+                  key={s.id}
+                  onClick={() => setActive(s.id)}
+                  className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-[13px] transition-colors ${
+                    isActive ? "bg-blue-50 text-blue-700 font-semibold" : "text-gray-600 hover:bg-gray-50"
+                  }`}
+                >
+                  <Icon className={`w-4 h-4 shrink-0 ${isActive ? "text-blue-600" : "text-gray-400"}`} />
+                  {s.label}
+                  {s.id === "plan" && (
+                    <span className={`ml-auto text-[10px] font-bold px-1.5 py-px rounded ${isPaid ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>
+                      {isPaid ? "PRO" : isTrial ? "TRIAL" : "FREE"}
+                    </span>
+                  )}
+                </button>
               );
             })}
-          </div>
-        </div>
+          </nav>
 
-        {/* Timezone */}
-        <div className="bg-white border border-gray-200 p-6">
-          <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2"><FiGlobe className="w-4 h-4 text-gray-500" /> Timezone settings</h3>
-          <p className="text-sm text-gray-500 mt-1">Set your timezone to ensure interview times are displayed correctly.</p>
-          <div className="mt-4"><TimezoneSelector userId={userId} showCurrentTime={true} /></div>
-        </div>
+          {/* Right content panel */}
+          <div className="md:col-span-8 bg-white border border-gray-200 rounded-lg shadow-sm px-4 py-1.5 h-fit">
+            {active === "account" && (
+              <div className="divide-y divide-gray-100">
+                <Row
+                  icon={FiMail}
+                  title="Contact info"
+                  desc="Email, name, phone, and location. Job alerts go to this email."
+                  onClick={() => toggle("contact")}
+                />
+                {expanded === "contact" && (
+                  <form onSubmit={handleEmailSave} className="pb-4 space-y-2.5">
+                    {emailMsg && (
+                      <div className={`px-3 py-2 text-xs rounded-md border ${emailMsg.type === "success" ? "bg-green-50 border-green-200 text-green-700" : "bg-red-50 border-red-200 text-red-700"}`}>
+                        {emailMsg.text}
+                      </div>
+                    )}
+                    <div>
+                      <label className={labelCls}>Email address</label>
+                      <input type="email" required value={emailForm.email} onChange={(e) => setEmailForm((p) => ({ ...p, email: e.target.value }))} placeholder="you@example.com" className={inputCls} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2.5">
+                      <div>
+                        <label className={labelCls}>Full name</label>
+                        <input type="text" value={emailForm.name} onChange={(e) => setEmailForm((p) => ({ ...p, name: e.target.value }))} placeholder="Your name" className={inputCls} />
+                      </div>
+                      <div>
+                        <label className={labelCls}>Phone</label>
+                        <input type="tel" value={emailForm.phone} onChange={(e) => setEmailForm((p) => ({ ...p, phone: e.target.value }))} placeholder="+92 300 1234567" className={inputCls} />
+                      </div>
+                    </div>
+                    <div>
+                      <label className={labelCls}>Location</label>
+                      <input type="text" value={emailForm.location} onChange={(e) => setEmailForm((p) => ({ ...p, location: e.target.value }))} placeholder="City, Country" className={inputCls} />
+                    </div>
+                    <button type="submit" disabled={emailSaving} className="px-3.5 py-1.5 bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 disabled:opacity-50 rounded-full transition-colors">
+                      {emailSaving ? "Saving…" : "Save changes"}
+                    </button>
+                  </form>
+                )}
+                <Row
+                  icon={FiGlobe}
+                  title="Timezone"
+                  desc="Interview times display in this timezone."
+                  onClick={() => toggle("tz")}
+                />
+                {expanded === "tz" && (
+                  <div className="pb-4">
+                    <TimezoneSelector userId={userId} showCurrentTime={true} />
+                  </div>
+                )}
+                <Row
+                  icon={FiUser}
+                  title="Profile"
+                  desc="Edit your public candidate profile."
+                  right={<span className="text-xs font-semibold text-blue-600">Open</span>}
+                  onClick={() => (window.location.href = "/profile")}
+                />
+              </div>
+            )}
 
-        {/* Danger Zone */}
-        <div className="border border-red-200 bg-white">
-          <div className="bg-red-50 px-6 py-3 border-b border-red-200 flex items-center gap-2">
-            <FiAlertTriangle className="w-4 h-4 text-red-600" />
-            <h3 className="text-sm font-semibold text-red-700">Danger zone</h3>
-          </div>
-          <div className="p-6 space-y-3">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 border border-red-100 bg-red-50/50">
-              <div>
-                <p className="text-sm font-medium text-gray-900">Cancel subscription</p>
-                <p className="text-xs text-gray-600">End your subscription and downgrade to trial plan</p>
+            {active === "plan" && (
+              <div className="divide-y divide-gray-100">
+                <Row
+                  icon={FiAward}
+                  title="Current plan"
+                  desc={`${isPaid ? "Pro — full access" : isTrial ? "Trial — limited features" : "Free — basic tools"} · ${status?.tokens_used?.toLocaleString() || "0"} tokens used${isTrial && trialEnd ? ` · expires ${trialEnd}` : ""}`}
+                  right={
+                    isPaid ? (
+                      <span className="text-[10px] font-bold bg-green-100 text-green-700 px-1.5 py-0.5 rounded">ACTIVE</span>
+                    ) : (
+                      <span className="text-[10px] font-bold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">TRIAL</span>
+                    )
+                  }
+                />
+                <div className="py-3 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div className={`border rounded-lg p-3 ${!isPaid ? "border-amber-400 bg-amber-50/40" : "border-gray-200"}`}>
+                    <div className="flex items-center justify-between">
+                      <p className="text-[13px] font-semibold text-gray-900">Trial</p>
+                      {!isPaid && <span className="text-[10px] font-bold bg-amber-500 text-white px-1.5 py-px rounded">Current</span>}
+                    </div>
+                    <p className="text-lg font-bold text-gray-900 mt-1">Free</p>
+                    <ul className="mt-2 space-y-1 text-xs text-gray-600">
+                      <li className="flex gap-1.5"><FiCheckCircle className="w-3.5 h-3.5 text-gray-400 shrink-0 mt-px" /> Profile management</li>
+                      <li className="flex gap-1.5"><FiCheckCircle className="w-3.5 h-3.5 text-gray-400 shrink-0 mt-px" /> Interview scheduling</li>
+                      <li className="flex gap-1.5"><FiCheckCircle className="w-3.5 h-3.5 text-gray-400 shrink-0 mt-px" /> Basic job tracking</li>
+                      <li className="flex gap-1.5"><FiXCircle className="w-3.5 h-3.5 text-gray-300 shrink-0 mt-px" /> Limited analytics</li>
+                    </ul>
+                  </div>
+                  <div className={`border rounded-lg p-3 ${isPaid ? "border-green-500 bg-green-50/40" : "border-gray-200"}`}>
+                    <div className="flex items-center justify-between">
+                      <p className="text-[13px] font-semibold text-gray-900">Pro</p>
+                      {isPaid
+                        ? <span className="text-[10px] font-bold bg-green-600 text-white px-1.5 py-px rounded">Active</span>
+                        : <span className="text-[10px] text-gray-400">Most popular</span>}
+                    </div>
+                    <p className="text-lg font-bold text-gray-900 mt-1">$9.99<span className="text-xs font-normal text-gray-500">/mo</span></p>
+                    <ul className="mt-2 space-y-1 text-xs text-gray-600">
+                      <li className="flex gap-1.5"><FiCheckCircle className="w-3.5 h-3.5 text-green-600 shrink-0 mt-px" /> Everything in Trial</li>
+                      <li className="flex gap-1.5"><FiCheckCircle className="w-3.5 h-3.5 text-green-600 shrink-0 mt-px" /> Advanced analytics</li>
+                      <li className="flex gap-1.5"><FiCheckCircle className="w-3.5 h-3.5 text-green-600 shrink-0 mt-px" /> Resume builder & job alerts</li>
+                      <li className="flex gap-1.5"><FiCheckCircle className="w-3.5 h-3.5 text-green-600 shrink-0 mt-px" /> Coaching & unlimited interviews</li>
+                    </ul>
+                    {isPaid
+                      ? <span className="inline-block mt-2.5 text-[11px] font-semibold bg-green-600 text-white px-2.5 py-1 rounded-full">Current plan</span>
+                      : <button className="mt-2.5 inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 rounded-full transition-colors">Upgrade <FiArrowRight className="w-3.5 h-3.5" /></button>}
+                  </div>
+                </div>
+                <div className="py-3 flex items-center gap-1.5 text-xs text-gray-500">
+                  <FiZap className="w-3.5 h-3.5 text-blue-500" />
+                  Tokens used: <span className="font-semibold text-gray-700">{status?.tokens_used?.toLocaleString() || "0"}</span>
+                </div>
               </div>
-              <button className="px-4 py-2 bg-white border border-red-200 text-sm font-medium text-red-600 hover:bg-red-50 shrink-0">Cancel</button>
-            </div>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 border border-red-200 bg-red-50">
-              <div>
-                <p className="text-sm font-medium text-gray-900 flex items-center gap-2"><FiTrash2 className="w-4 h-4 text-red-600" /> Delete account</p>
-                <p className="text-xs text-gray-600">Permanently delete your account and all data</p>
+            )}
+
+            {active === "billing" && (
+              <div className="divide-y divide-gray-100">
+                <div className="py-3">
+                  <p className="text-[13px] font-semibold text-gray-900 mb-2">Payment methods</p>
+                  <PaymentMethods storageKey="recruai_cards_individual" />
+                </div>
+                <div className="py-3">
+                  <p className="text-[13px] font-semibold text-gray-900">Billing history</p>
+                  <div className="mt-2 text-center py-5 border border-dashed border-gray-200 rounded-lg">
+                    <FiClock className="w-6 h-6 text-gray-300 mx-auto mb-1.5" />
+                    <p className="text-xs text-gray-500">No invoices yet</p>
+                  </div>
+                </div>
               </div>
-              <button className="px-4 py-2 bg-red-600 text-white text-sm font-medium hover:bg-red-700 shrink-0">Delete</button>
-            </div>
+            )}
+
+            {active === "notifications" && (
+              <div className="divide-y divide-gray-100">
+                {[
+                  { title: "Email notifications", desc: "Account and interview updates", on: true, icon: FiMail },
+                  { title: "Job alerts", desc: "New openings matching your profile", on: true, icon: FiBell },
+                  { title: "Marketing emails", desc: "Tips and product updates", on: false, icon: FiGlobe },
+                ].map((pref) => {
+                  const Icon = pref.icon;
+                  return (
+                    <div key={pref.title} className="flex items-center justify-between gap-3 py-3">
+                      <div className="flex gap-2.5 min-w-0">
+                        <div className="w-7 h-7 bg-gray-50 border border-gray-200 rounded-md flex items-center justify-center shrink-0">
+                          <Icon className="w-3.5 h-3.5 text-gray-500" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[13px] font-semibold text-gray-900 leading-tight">{pref.title}</p>
+                          <p className="text-xs text-gray-500 mt-0.5">{pref.desc}</p>
+                        </div>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                        <input type="checkbox" defaultChecked={pref.on} className="sr-only peer" />
+                        <div className="w-9 h-5 rounded-full bg-gray-200 peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:w-4 after:h-4 after:transition-all peer-checked:after:translate-x-4"></div>
+                      </label>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {active === "preferences" && (
+              <div className="divide-y divide-gray-100">
+                <div className="py-3">
+                  <p className="text-[13px] font-semibold text-gray-900">Timezone</p>
+                  <p className="text-xs text-gray-500 mt-0.5 mb-2">Interview times display in this timezone.</p>
+                  <TimezoneSelector userId={userId} showCurrentTime={true} />
+                </div>
+                <div className="flex items-center justify-between gap-3 py-3">
+                  <div className="min-w-0">
+                    <p className="text-[13px] font-semibold text-gray-900 leading-tight">Data analytics</p>
+                    <p className="text-xs text-gray-500 mt-0.5">Help improve the service with usage analytics</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                    <input type="checkbox" defaultChecked className="sr-only peer" />
+                    <div className="w-9 h-5 rounded-full bg-gray-200 peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:w-4 after:h-4 after:transition-all peer-checked:after:translate-x-4"></div>
+                  </label>
+                </div>
+              </div>
+            )}
+
+            {active === "security" && (
+              <div className="divide-y divide-gray-100">
+                <Row
+                  icon={FiAlertTriangle}
+                  title="Cancel subscription"
+                  desc="End subscription, downgrade to trial plan."
+                  right={<button className="px-3 py-1 bg-white border border-red-200 text-xs font-semibold text-red-600 hover:bg-red-50 rounded-full transition-colors">Cancel</button>}
+                />
+                <div className="py-3">
+                  <div className="flex items-center gap-3 p-3 border border-red-200 bg-red-50/60 rounded-lg">
+                    <div className="w-7 h-7 bg-white border border-red-200 rounded-md flex items-center justify-center shrink-0">
+                      <FiTrash2 className="w-3.5 h-3.5 text-red-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-semibold text-gray-900 leading-tight">Delete account</p>
+                      <p className="text-xs text-gray-500 mt-0.5">Permanently delete your account and all data</p>
+                    </div>
+                    <button className="px-3 py-1 bg-red-600 text-white text-xs font-semibold hover:bg-red-700 rounded-full shrink-0 transition-colors">Delete</button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
