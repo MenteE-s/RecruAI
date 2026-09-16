@@ -21,9 +21,14 @@ logger = logging.getLogger(__name__)
 
 # Cache TTL defaults (in seconds)
 CACHE_TTL = {
+    "auth_me": 90,             # 90s — hot path, called per navigation; frontend also caches 90s
     "user_profile": 300,       # 5 min
     "job_listings": 600,       # 10 min
+    "job_details": 300,        # 5 min
+    "saved_jobs": 60,          # 60s — per-user id sets for dashboard
+    "user_applications": 60,   # 60s — per-user id sets for dashboard
     "org_details": 300,        # 5 min
+    "org_listings": 600,       # 10 min
     "agent_config": 900,       # 15 min
     "general": 120,            # 2 min
 }
@@ -175,10 +180,21 @@ def cached(resource: str, ttl: Optional[int] = None, key_func: Optional[Callable
 
 # ---- Cache invalidation helpers ----
 
+def invalidate_auth_cache(user_id: int) -> None:
+    """Invalidate the short-TTL /auth/me entry for a user."""
+    try:
+        cache_delete(_build_key("auth_me", f"user_{user_id}"))
+    except Exception:
+        pass
+
+
 def invalidate_user_cache(user_id: int) -> None:
     """Invalidate all cached data for a specific user."""
+    invalidate_auth_cache(user_id)
     cache_delete_pattern(f"user_profile:*{user_id}*")
     cache_delete_pattern(f"users:*{user_id}*")
+    cache_delete_pattern(f"saved_jobs:*{user_id}*")
+    cache_delete_pattern(f"user_applications:*{user_id}*")
 
 
 def invalidate_job_cache(job_id: Optional[int] = None) -> None:

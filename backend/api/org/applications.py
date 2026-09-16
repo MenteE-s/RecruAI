@@ -6,6 +6,14 @@ from ...models import Application, Post, Interview, TeamMember, User
 from sqlalchemy import func
 from ...utils.pagination import Pagination, get_pagination_params, paginated_response, apply_filters_and_sorting, get_request_filters, get_sorting_params
 from ...utils.kafka_service import kafka_service as kafka
+from ...utils.cache import (
+    invalidate_job_cache,
+    cache_get,
+    cache_set,
+    cache_delete_pattern,
+    _build_key,
+    CACHE_TTL,
+)
 from datetime import datetime
 
 
@@ -107,7 +115,14 @@ def create_application():
     )
     db.session.add(application)
     db.session.commit()
-    
+
+    # Application counts on job cards must refresh + per-user dashboard cache
+    invalidate_job_cache(application.post_id)
+    try:
+        cache_delete_pattern(f"user_applications:*{user_id}*")
+    except Exception:
+        pass
+
     # Emit Kafka event for application creation
     kafka.emit_event('application_created', {
         'application_id': application.id,
@@ -131,6 +146,22 @@ def list_user_applications(user_id):
     # Get pagination parameters
     page, per_page = get_pagination_params()
 
+    # Cache only the default dashboard shape (no extra filters/sorts) so
+    # filtered views never serve stale cross-filter data.
+    use_cache = (
+        not request.args.get("sort_by")
+        and not request.args.get("sort_order")
+        and len([k for k in request.args.keys() if k not in ("page", "per_page")]) == 0
+    )
+    cache_key = _build_key("user_applications", f"user_{user_id}:p{page}:n{per_page}")
+    if use_cache:
+        try:
+            hit = cache_get(cache_key)
+            if hit is not None:
+                return jsonify(hit), 200
+        except Exception:
+            pass
+
     # Get filters from request (excluding user_id since it's in URL)
     filters = get_request_filters(Application)
     filters['user_id'] = user_id  # Force user_id filter
@@ -147,8 +178,14 @@ def list_user_applications(user_id):
     # Apply pagination
     pagination_result = Pagination(query, page=page, per_page=per_page).paginate()
 
+    payload = paginated_response(pagination_result['items'], pagination_result['pagination'])
+    if use_cache:
+        try:
+            cache_set(cache_key, payload, CACHE_TTL.get("user_applications", 60))
+        except Exception:
+            pass
     # Return paginated response
-    return jsonify(paginated_response(pagination_result['items'], pagination_result['pagination'])), 200
+    return jsonify(payload), 200
 
 @api_bp.route("/applications/post/<int:post_id>", methods=["GET"])
 @jwt_required()

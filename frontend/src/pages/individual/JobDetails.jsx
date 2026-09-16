@@ -14,6 +14,8 @@ import {
   FiCalendar,
   FiBookmark,
   FiCheckCircle,
+  FiEye,
+  FiUsers,
 } from "react-icons/fi";
 
 function timeAgo(dateString) {
@@ -67,6 +69,8 @@ export default function JobDetails() {
       if (response.ok) {
         const data = await response.json();
         setJob(data);
+        // Record this detail view (fire-and-forget)
+        fetch(`${getBackendUrl()}/api/posts/${id}/view`, { method: "POST" }).catch(() => {});
       } else {
         showToast({
           message: "Job not found",
@@ -322,6 +326,14 @@ export default function JobDetails() {
               <p className="text-[11px] text-gray-400 mt-0.5">
                 {job.category ? `${job.category} · ` : ""}Posted {timeAgo(job.created_at)}
                 {job.status === "active" ? " · Actively hiring" : ` · ${job.status}`}
+              </p>
+              <p className="text-[11px] text-gray-400 mt-0.5 flex items-center gap-3">
+                <span className="inline-flex items-center gap-1">
+                  <FiEye className="w-3 h-3" /> {job.view_count ?? 0} view{(job.view_count ?? 0) === 1 ? "" : "s"}
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <FiUsers className="w-3 h-3" /> {job.application_count ?? 0} applicant{(job.application_count ?? 0) === 1 ? "" : "s"}
+                </span>
               </p>
             </div>
           </div>

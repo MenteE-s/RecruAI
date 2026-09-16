@@ -4,6 +4,7 @@ from .. import api_bp
 from ...extensions import db
 from ...models import SavedJob
 from ...utils.kafka_service import KafkaService
+from ...utils.cache import cache_get, cache_set, cache_delete, _build_key, CACHE_TTL
 
 
 def _identity():
@@ -31,6 +32,10 @@ def save_job():
     saved_job = SavedJob(user_id=user_id, post_id=post_id)
     db.session.add(saved_job)
     db.session.commit()
+    try:
+        cache_delete(_build_key("saved_jobs", f"user_{user_id}"))
+    except Exception:
+        pass
     
     # Emit Kafka event for job saved
     try:
@@ -56,6 +61,10 @@ def unsave_job(saved_id):
     
     db.session.delete(saved_job)
     db.session.commit()
+    try:
+        cache_delete(_build_key("saved_jobs", f"user_{user_id}"))
+    except Exception:
+        pass
     
     # Emit Kafka event for job unsaved
     try:
@@ -74,8 +83,20 @@ def unsave_job(saved_id):
 def list_saved_jobs(user_id):
     if _identity() != user_id:
         return jsonify({"error": "Forbidden"}), 403
+    cache_key = _build_key("saved_jobs", f"user_{user_id}")
+    try:
+        hit = cache_get(cache_key)
+        if hit is not None:
+            return jsonify(hit), 200
+    except Exception:
+        pass
     saved_jobs = SavedJob.query.filter_by(user_id=user_id).order_by(SavedJob.saved_at.desc()).all()
-    return jsonify([sj.to_dict() for sj in saved_jobs]), 200
+    payload = [sj.to_dict() for sj in saved_jobs]
+    try:
+        cache_set(cache_key, payload, CACHE_TTL.get("saved_jobs", 60))
+    except Exception:
+        pass
+    return jsonify(payload), 200
 
 @api_bp.route("/saved-jobs/check", methods=["GET"])
 @jwt_required()

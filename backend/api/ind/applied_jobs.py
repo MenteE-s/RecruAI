@@ -4,6 +4,7 @@ from .. import api_bp
 from ...extensions import db
 from ...models import Application
 from ...utils.kafka_service import kafka_service
+from ...utils.cache import cache_get, cache_set, cache_delete_pattern, _build_key, CACHE_TTL
 from datetime import datetime
 
 
@@ -19,8 +20,20 @@ def _identity():
 def list_applied_jobs(user_id):
     if _identity() != user_id:
         return jsonify({"error": "Forbidden"}), 403
+    cache_key = _build_key("user_applications", f"applied_user_{user_id}")
+    try:
+        hit = cache_get(cache_key)
+        if hit is not None:
+            return jsonify(hit), 200
+    except Exception:
+        pass
     applications = Application.query.filter_by(user_id=user_id).order_by(Application.applied_at.desc()).all()
-    return jsonify([app.to_dict() for app in applications]), 200
+    payload = [app.to_dict() for app in applications]
+    try:
+        cache_set(cache_key, payload, CACHE_TTL.get("user_applications", 60))
+    except Exception:
+        pass
+    return jsonify(payload), 200
 
 @api_bp.route("/applied-jobs/<int:application_id>", methods=["GET"])
 @jwt_required()
@@ -47,6 +60,10 @@ def cancel_application(application_id):
         application.pipeline_stage = "withdrawn"
         application.updated_at = datetime.utcnow()
         db.session.commit()
+        try:
+            cache_delete_pattern(f"user_applications:*{application.user_id}*")
+        except Exception:
+            pass
         
         # Emit Kafka event for application withdrawn
         try:

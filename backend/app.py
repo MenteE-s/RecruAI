@@ -137,16 +137,29 @@ def create_app(config_object: object | None = None):
 		import traceback
 		traceback.print_exc()
 
-	# Security: Initialize rate limiter
+	# Security: Initialize rate limiter (Redis-backed when available so
+	# limits are shared across workers; falls back to memory otherwise).
 	try:
 		from flask_limiter import Limiter
 		from flask_limiter.util import get_remote_address
-		limiter = Limiter(
-			app=app,
-			key_func=get_remote_address,
-			storage_uri=app.config.get('RATELIMIT_STORAGE_URL', "memory://"),
-			strategy=app.config.get('RATELIMIT_STRATEGY', "fixed-window")
-		)
+		storage_uri = app.config.get('RATELIMIT_STORAGE_URL', "memory://")
+		if (not storage_uri or storage_uri == "memory://") and app.config.get("REDIS_ENABLED"):
+			storage_uri = app.config.get("REDIS_URL", "redis://127.0.0.1:6379/0")
+		try:
+			limiter = Limiter(
+				app=app,
+				key_func=get_remote_address,
+				storage_uri=storage_uri,
+				strategy=app.config.get('RATELIMIT_STRATEGY', "fixed-window")
+			)
+		except Exception as e:
+			print(f"Warning: Redis rate-limit storage unavailable ({e}); using memory://")
+			limiter = Limiter(
+				app=app,
+				key_func=get_remote_address,
+				storage_uri="memory://",
+				strategy=app.config.get('RATELIMIT_STRATEGY', "fixed-window")
+			)
 	except ImportError:
 		print("Warning: Flask-Limiter not installed. Rate limiting disabled.")
 		limiter = None

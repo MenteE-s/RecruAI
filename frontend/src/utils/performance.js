@@ -13,11 +13,10 @@ export const VirtualizedList = ({
   // Ensure items is always an array
   const safeItems = useMemo(() => (Array.isArray(items) ? items : []), [items]);
 
-  const itemData = useMemo(() => {
-    const data = { items: safeItems, renderItem };
-    console.log("VirtualizedList itemData:", data);
-    return data;
-  }, [safeItems, renderItem]);
+  const itemData = useMemo(
+    () => ({ items: safeItems, renderItem }),
+    [safeItems, renderItem]
+  );
 
   if (!safeItems || safeItems.length === 0) {
     return (

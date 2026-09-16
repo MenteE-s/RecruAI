@@ -11,6 +11,7 @@ from ...extensions import db
 from ...models import User
 from ...utils.security import log_security_event, sanitize_input
 from ...utils.kafka_service import kafka_service
+from ...utils.cache import cache_get, cache_set, invalidate_auth_cache, _build_key, CACHE_TTL
 
 @api_bp.route("/auth/login", methods=["POST"])
 def login():
@@ -84,13 +85,29 @@ def get_me():
     uid = get_jwt_identity()
     try:
         user_id = int(uid)
-        user = User.query.get(user_id)
-        if not user:
-            return jsonify({"error": "user not found"}), 404
     except (ValueError, TypeError):
         return jsonify({"error": "invalid user identity"}), 400
 
-    return jsonify({"user": user.to_dict()}), 200
+    # Hot path: frontend calls this on every navigation. Short-TTL Redis cache
+    # (90s) with graceful fallback to DB when Redis is unavailable.
+    cache_key = _build_key("auth_me", f"user_{user_id}")
+    try:
+        hit = cache_get(cache_key)
+        if hit is not None:
+            return jsonify(hit), 200
+    except Exception:
+        pass
+
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"error": "user not found"}), 404
+
+    payload = {"user": user.to_dict()}
+    try:
+        cache_set(cache_key, payload, CACHE_TTL.get("auth_me", 90))
+    except Exception:
+        pass
+    return jsonify(payload), 200
 
 @api_bp.route("/auth/me", methods=["PUT"])
 @jwt_required()
@@ -142,6 +159,10 @@ def update_me():
 
     try:
         db.session.commit()
+        try:
+            invalidate_auth_cache(user.id)
+        except Exception:
+            pass
         log_security_event("user_profile_updated", user_id=user.id, ip_address=request.remote_addr, details={"fields_updated": list(data.keys())})
         return jsonify({"user": user.to_dict()}), 200
     except Exception as e:

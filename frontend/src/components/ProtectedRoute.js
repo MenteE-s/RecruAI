@@ -1,10 +1,10 @@
 // src/components/ProtectedRoute.js
 import { Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { getAuthHeaders, getBackendUrl } from "../utils/auth";
+import { verifyTokenWithServer } from "../utils/auth";
 
-// ProtectedRoute now performs a lightweight token validation with the backend
-// If a token exists we call /api/auth/me to verify it and refresh the stored role.
+// Uses the shared short-TTL cached /api/auth/me (single-flight) so mounting
+// N protected routes does not fan out N network verifies.
 export default function ProtectedRoute({ children }) {
   const [checking, setChecking] = useState(true);
   const [ok, setOk] = useState(false);
@@ -13,41 +13,10 @@ export default function ProtectedRoute({ children }) {
     let cancelled = false;
 
     (async () => {
-      const token = localStorage.getItem("access_token");
-      if (!token) {
-        if (!cancelled) {
-          setChecking(false);
-          setOk(false);
-        }
-        return;
-      }
-
       try {
-        const res = await fetch(`${getBackendUrl()}/api/auth/me`, {
-          credentials: "include",
-          headers: getAuthHeaders(),
-        });
-        console.log("/api/auth/me status:", res.status);
-        if (!res.ok) {
-          localStorage.removeItem("access_token");
-          localStorage.removeItem("isAuthenticated");
-          localStorage.removeItem("authRole");
-          if (!cancelled) setOk(false);
-        } else {
-          const data = await res.json();
-          if (!cancelled) {
-            localStorage.setItem("isAuthenticated", "true");
-            if (data.user && data.user.role) {
-              localStorage.setItem("authRole", data.user.role);
-            }
-            setOk(true);
-          }
-        }
-      } catch (err) {
-        console.error("/api/auth/me network error:", err);
-        localStorage.removeItem("access_token");
-        localStorage.removeItem("isAuthenticated");
-        localStorage.removeItem("authRole");
+        const user = await verifyTokenWithServer();
+        if (!cancelled) setOk(!!user);
+      } catch {
         if (!cancelled) setOk(false);
       } finally {
         if (!cancelled) setChecking(false);
@@ -59,7 +28,12 @@ export default function ProtectedRoute({ children }) {
     };
   }, []);
 
-  if (checking) return null;
+  if (checking)
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin h-6 w-6 border-2 border-gray-200 border-t-blue-600 rounded-full" />
+      </div>
+    );
   if (!ok) return <Navigate to="/signin" replace />;
   return children;
 }

@@ -76,74 +76,106 @@ export function getUploadUrl(relativePath) {
   return `${backendUrl}/${cleanPath}`;
 }
 
-export async function verifyTokenWithServer() {
-  try {
-    if (typeof window === "undefined") return null;
+// Short-TTL in-memory cache for /api/auth/me to dedupe the 3-4x per-navigation
+// waterfall (AuthVerifier + ProtectedRoute + page-level fetch). Single-flight
+// so concurrent mounters share one network request. Backend also caches in Redis.
+const AUTH_ME_TTL_MS = 90 * 1000;
+let cachedMeUser = null;
+let cachedMeAt = 0;
+let inFlightMe = null;
 
-    // With cookie-based auth we don't need to send Authorization header.
-    // Ensure cookies are sent by including credentials.
-    const res = await fetch(`${getBackendUrl()}/api/auth/me`, {
-      method: "GET",
-      credentials: "include",
-      headers: getAuthHeaders(),
-    });
-    if (!res.ok) {
-      // clear stale auth
-      localStorage.removeItem("access_token");
-      localStorage.removeItem("isAuthenticated");
-      localStorage.removeItem("authRole");
-      return null;
-    }
-    const data = await res.json();
-    if (data && data.user) {
+function isMeCacheFresh() {
+  return cachedMeUser && Date.now() - cachedMeAt < AUTH_ME_TTL_MS;
+}
+
+function storeMeUser(user) {
+  cachedMeUser = user || null;
+  cachedMeAt = Date.now();
+  try {
+    if (user) {
       localStorage.setItem("isAuthenticated", "true");
-      if (data.user.role) localStorage.setItem("authRole", data.user.role);
-      if (data.user.plan) localStorage.setItem("authPlan", data.user.plan);
-      return data.user;
+      if (user.role) localStorage.setItem("authRole", user.role);
+      if (user.plan) localStorage.setItem("authPlan", user.plan);
     }
-    return null;
-  } catch (err) {
-    // network or other error - clear local auth to avoid false-positive
-    try {
-      localStorage.removeItem("access_token");
-      localStorage.removeItem("isAuthenticated");
-      localStorage.removeItem("authRole");
-    } catch (e) {
-      // ignore
-    }
-    return null;
+  } catch {
+    // ignore storage errors
   }
 }
 
-export function clearLocalAuth() {
+function clearStoredAuth() {
   try {
     localStorage.removeItem("access_token");
     localStorage.removeItem("isAuthenticated");
     localStorage.removeItem("authRole");
     localStorage.removeItem("authPlan");
-  } catch (e) {
+  } catch {
     // ignore
   }
-  cachedMeUser = null;
 }
 
-let cachedMeUser = null;
-
-/** Current signed-in user via /api/auth/me (cached per page load). Never hardcode ids. */
-export async function getCurrentUser() {
-  if (cachedMeUser) return cachedMeUser;
-  try {
-    const res = await fetch(`${getBackendUrl()}/api/auth/me`, {
-      credentials: "include",
-      headers: getAuthHeaders(),
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
-    cachedMeUser = data?.user || null;
-    return cachedMeUser;
-  } catch {
+async function fetchMeFromServer() {
+  const res = await fetch(`${getBackendUrl()}/api/auth/me`, {
+    method: "GET",
+    credentials: "include",
+    headers: getAuthHeaders(),
+  });
+  if (res.status === 401 || res.status === 403) {
+    // Auth actually rejected — clear stale local state.
+    clearStoredAuth();
+    storeMeUser(null);
+    cachedMeAt = Date.now();
     return null;
   }
+  if (!res.ok) {
+    // 404/5xx: do NOT log the user out; keep previous cache if any.
+    if (cachedMeUser) return cachedMeUser;
+    return null;
+  }
+  const data = await res.json();
+  if (data && data.user) {
+    storeMeUser(data.user);
+    return data.user;
+  }
+  return cachedMeUser || null;
+}
+
+export async function verifyTokenWithServer({ forceRefresh = false } = {}) {
+  try {
+    if (typeof window === "undefined") return null;
+    if (!forceRefresh && isMeCacheFresh()) return cachedMeUser;
+    if (!forceRefresh && inFlightMe) return inFlightMe;
+    // No token at all: skip network entirely.
+    try {
+      if (!localStorage.getItem("access_token")) {
+        // Cookie-only sessions may have no localStorage token; still allow
+        // one check per page load, but dedupe via in-flight + TTL.
+        if (isMeCacheFresh()) return cachedMeUser;
+      }
+    } catch {
+      // ignore
+    }
+    inFlightMe = fetchMeFromServer();
+    const user = await inFlightMe;
+    return user;
+  } catch (err) {
+    // Transient network failure: keep the user signed in with stale cache.
+    if (cachedMeUser) return cachedMeUser;
+    return null;
+  } finally {
+    inFlightMe = null;
+  }
+}
+
+export function clearLocalAuth() {
+  clearStoredAuth();
+  cachedMeUser = null;
+  cachedMeAt = 0;
+  inFlightMe = null;
+}
+
+/** Current signed-in user via /api/auth/me (short-TTL cached). Never hardcode ids. */
+export async function getCurrentUser({ forceRefresh = false } = {}) {
+  return verifyTokenWithServer({ forceRefresh });
 }
 
 /** Current user id, or null when signed out. */

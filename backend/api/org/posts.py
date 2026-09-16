@@ -299,3 +299,24 @@ def list_posts():
 def get_post(post_id):
     post = Post.query.get_or_404(post_id)
     return jsonify(post.to_dict())
+
+
+@api_bp.route("/posts/<int:post_id>/view", methods=["POST"])
+def record_post_view(post_id):
+    """Record one detail view for a post (called by the job details page).
+
+    Kept separate from GET /posts/<id> so cached detail responses don't
+    swallow view increments.
+    """
+    post = Post.query.get_or_404(post_id)
+    try:
+        Post.query.filter_by(id=post.id).update(
+            {Post.view_count: Post.view_count + 1},
+            synchronize_session=False,
+        )
+        db.session.commit()
+        # Refresh cached detail + listings so counts update promptly
+        invalidate_job_cache(post.id)
+    except Exception:
+        db.session.rollback()
+    return jsonify({"post_id": post.id}), 200

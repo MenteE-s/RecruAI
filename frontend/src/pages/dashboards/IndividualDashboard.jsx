@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
-import { getSidebarItems, getBackendUrl, getAuthHeaders, getUploadUrl, getCurrentUserId } from "../../utils/auth";
+import { getSidebarItems, getBackendUrl, getAuthHeaders, getUploadUrl, getCurrentUser } from "../../utils/auth";
 import { useToast } from "../../components/ui/ToastContext";
 import {
   FiBriefcase,
@@ -10,6 +10,8 @@ import {
   FiCheckCircle,
   FiClock,
   FiMail,
+  FiEye,
+  FiUsers,
 } from "react-icons/fi";
 
 function getJobCountry(location) {
@@ -74,59 +76,69 @@ export default function IndividualDashboard() {
   };
 
   useEffect(() => {
+    let cancelled = false;
     const loadData = async () => {
       setLoading(true);
       try {
-        // Current user (real data)
-        const userRes = await fetch(`${getBackendUrl()}/api/auth/me`, {
-          credentials: "include",
-          headers: getAuthHeaders(),
-        });
-        if (userRes.ok) {
-          const data = await userRes.json();
-          setUserData(data.user || null);
-        }
+        // Parallel: user (shared cached /me single-flight) + jobs page 1.
+        // Previously user -> jobs -> saved -> applied were sequential awaits.
+        const [user, jobsPage] = await Promise.all([
+          getCurrentUser().catch(() => null),
+          fetchJobsPage(1).catch(() => ({ list: [], more: false })),
+        ]);
+        if (cancelled) return;
+        if (user) setUserData(user);
+        setJobs(jobsPage.list);
+        setHasMore(jobsPage.more);
+        const userId = user?.id || null;
 
-        // Real jobs from database (posts table, status=active), page 1
-        const { list, more } = await fetchJobsPage(1);
-        setJobs(list);
-        setHasMore(more);
-
-        const userId = await getCurrentUserId();
         if (userId) {
-          // Saved jobs (real)
-          try {
-            const savedRes = await fetch(`${getBackendUrl()}/api/saved-jobs/user/${userId}`, {
-              credentials: "include",
-              headers: getAuthHeaders(),
-            });
-            if (savedRes.ok) {
-              const data = await savedRes.json();
-              const list = Array.isArray(data) ? data : data.data || [];
-              setSavedJobs(new Set(list.map((s) => s.post_id)));
-            }
-          } catch {}
-
-          // Applied jobs (real)
-          try {
-            const appliedRes = await fetch(`${getBackendUrl()}/api/applications/user/${userId}`, {
-              credentials: "include",
-              headers: getAuthHeaders(),
-            });
-            if (appliedRes.ok) {
-              const data = await appliedRes.json();
-              const list = Array.isArray(data) ? data : data.data || [];
-              setAppliedJobs(new Set(list.map((a) => a.post_id)));
-            }
-          } catch {}
+          // Saved + applied in parallel; backend caches both in Redis (60s).
+          const [savedList, appliedList] = await Promise.all([
+            (async () => {
+              try {
+                const savedRes = await fetch(`${getBackendUrl()}/api/saved-jobs/user/${userId}`, {
+                  credentials: "include",
+                  headers: getAuthHeaders(),
+                });
+                if (!savedRes.ok) return [];
+                const data = await savedRes.json();
+                return Array.isArray(data) ? data : data.data || [];
+              } catch {
+                return [];
+              }
+            })(),
+            (async () => {
+              try {
+                const appliedRes = await fetch(
+                  `${getBackendUrl()}/api/applications/user/${userId}`,
+                  {
+                    credentials: "include",
+                    headers: getAuthHeaders(),
+                  }
+                );
+                if (!appliedRes.ok) return [];
+                const data = await appliedRes.json();
+                return Array.isArray(data) ? data : data.data || [];
+              } catch {
+                return [];
+              }
+            })(),
+          ]);
+          if (cancelled) return;
+          setSavedJobs(new Set(savedList.map((s) => s.post_id)));
+          setAppliedJobs(new Set(appliedList.map((a) => a.post_id)));
         }
       } catch (e) {
         console.error("Error loading dashboard:", e);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
     loadData();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleSaveJob = async (postId) => {
@@ -158,6 +170,9 @@ export default function IndividualDashboard() {
       });
       if (res.ok) {
         setAppliedJobs((prev) => new Set([...prev, postId]));
+        // Reflect the new application immediately on the card
+        setJobs((prev) => prev.map((j) => (j.id === postId ? { ...j, application_count: (j.application_count ?? 0) + 1 } : j)));
+        setSelectedJob((prev) => (prev && prev.id === postId ? { ...prev, application_count: (prev.application_count ?? 0) + 1 } : prev));
         setShowApplyConfirm(false);
         setSelectedJob(null);
         showToast({ message: "Application submitted successfully!", type: "success", position: "center" });
@@ -484,6 +499,14 @@ export default function IndividualDashboard() {
                           {job.application_deadline && (
                             <span className="text-[11px] text-gray-400">· due {formatDate(job.application_deadline)}</span>
                           )}
+                        </div>
+                        <div className="flex items-center gap-3 mt-1.5 text-[11px] text-gray-400">
+                          <span className="inline-flex items-center gap-1">
+                            <FiEye className="w-3 h-3" /> {job.view_count ?? 0} view{(job.view_count ?? 0) === 1 ? "" : "s"}
+                          </span>
+                          <span className="inline-flex items-center gap-1">
+                            <FiUsers className="w-3 h-3" /> {job.application_count ?? 0} applicant{(job.application_count ?? 0) === 1 ? "" : "s"}
+                          </span>
                         </div>
                       </div>
                     </div>

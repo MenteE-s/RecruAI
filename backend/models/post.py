@@ -1,5 +1,7 @@
 from datetime import datetime
 
+from sqlalchemy import func
+
 from ..extensions import db
 
 
@@ -19,10 +21,23 @@ class Post(db.Model):
     requirements = db.Column(db.Text, nullable=True)  # JSON string of requirements
     application_deadline = db.Column(db.Date, nullable=True)
     status = db.Column(db.String(20), default="active")  # active, inactive, closed
+    view_count = db.Column(db.Integer, nullable=False, server_default="0", default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     organization = db.relationship("Organization", back_populates="posts")
+
+    def application_count(self):
+        """Real number of applications for this post (indexed COUNT query)."""
+        from .application import Application
+        if not self.id:
+            return 0
+        return (
+            db.session.query(func.count(Application.id))
+            .filter(Application.post_id == self.id)
+            .scalar()
+            or 0
+        )
 
     def to_dict(self):
         import json
@@ -47,6 +62,8 @@ class Post(db.Model):
             "requirements": requirements_list,
             "application_deadline": self.application_deadline.isoformat() if self.application_deadline else None,
             "status": self.status,
+            "view_count": self.view_count or 0,
+            "application_count": self.application_count(),
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
             "organization_id": self.organization_id,
