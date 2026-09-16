@@ -4,6 +4,7 @@ import DashboardLayout from "../../components/layout/DashboardLayout";
 import IndividualNavbar from "../../components/layout/IndividualNavbar";
 import { getSidebarItems, getBackendUrl, getUploadUrl, getCurrentUserId } from "../../utils/auth";
 import { useToast } from "../../components/ui/ToastContext";
+import MenteeLoader from "../../components/ui/MenteeLoader";
 import { formatDate } from "../../utils/timezone";
 import {
   FiArrowLeft,
@@ -47,6 +48,7 @@ export default function JobDetails() {
   const [saved, setSaved] = useState(false);
   const [applied, setApplied] = useState(false);
   const [showApplyConfirm, setShowApplyConfirm] = useState(false);
+  const [applying, setApplying] = useState(false);
   const [recommendedJobs, setRecommendedJobs] = useState([]);
 
   useEffect(() => {
@@ -209,6 +211,8 @@ export default function JobDetails() {
   };
 
   const handleApplyJob = async () => {
+    if (applying) return;
+    setApplying(true);
     try {
       const response = await fetch(`${getBackendUrl()}/api/applications`, {
         method: "POST",
@@ -241,6 +245,8 @@ export default function JobDetails() {
         message: "Failed to submit application",
         type: "error",
       });
+    } finally {
+      setApplying(false);
     }
   };
 
@@ -251,7 +257,7 @@ export default function JobDetails() {
         sidebarItems={sidebarItems}
       >
         <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <MenteeLoader size={60} text="Loading job…" />
         </div>
       </DashboardLayout>
     );
@@ -540,9 +546,10 @@ export default function JobDetails() {
             <div className="flex gap-2 mt-4">
               <button
                 onClick={handleApplyJob}
-                className="flex-1 px-4 py-1.5 bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors rounded-full"
+                disabled={applying}
+                className="flex-1 px-4 py-1.5 bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors rounded-full disabled:opacity-70 inline-flex items-center justify-center gap-2"
               >
-                Submit application
+                {applying ? (<><MenteeLoader size={22} text={null} inline /> Applying…</>) : "Submit application"}
               </button>
               <button
                 onClick={() => setShowApplyConfirm(false)}

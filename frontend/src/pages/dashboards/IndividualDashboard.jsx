@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import { getSidebarItems, getBackendUrl, getAuthHeaders, getUploadUrl, getCurrentUser } from "../../utils/auth";
 import { useToast } from "../../components/ui/ToastContext";
+import MenteeLoader from "../../components/ui/MenteeLoader";
 import {
   FiBriefcase,
   FiMapPin,
@@ -59,6 +60,7 @@ export default function IndividualDashboard() {
   const [filters, setFilters] = useState({ location: "", country: "", time: "" });
   const [showApplyConfirm, setShowApplyConfirm] = useState(false);
   const [selectedJob, setSelectedJob] = useState(null);
+  const [applying, setApplying] = useState(false);
 
   const PER_PAGE = 10;
 
@@ -161,6 +163,8 @@ export default function IndividualDashboard() {
   };
 
   const handleApplyJob = async (postId) => {
+    if (applying) return;
+    setApplying(true);
     try {
       const res = await fetch(`${getBackendUrl()}/api/applications`, {
         method: "POST",
@@ -181,6 +185,8 @@ export default function IndividualDashboard() {
       }
     } catch {
       showToast({ message: "Failed to submit application", type: "error" });
+    } finally {
+      setApplying(false);
     }
   };
 
@@ -413,8 +419,7 @@ export default function IndividualDashboard() {
 
           {loading ? (
             <div className="bg-white border border-gray-200 rounded-xl p-5 text-center shadow-sm">
-              <div className="animate-spin h-5 w-5 border-2 border-gray-200 border-t-blue-600 rounded-full mx-auto" />
-              <p className="text-[11px] text-gray-500 mt-2">Loading jobs…</p>
+              <MenteeLoader size={52} text="Loading jobs…" />
             </div>
           ) : filteredJobs.length === 0 ? (
             <div className="bg-white border border-gray-200 rounded-xl p-5 text-center shadow-sm">
@@ -553,9 +558,9 @@ export default function IndividualDashboard() {
             <button
               onClick={handleShowMore}
               disabled={loadingMore}
-              className="w-full py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors shadow-sm disabled:opacity-60"
+              className="w-full py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors shadow-sm disabled:opacity-60 inline-flex items-center justify-center gap-2"
             >
-              {loadingMore ? "Loading…" : "Show more jobs"}
+              {loadingMore ? (<><MenteeLoader size={20} text={null} inline /> Loading…</>) : "Show more jobs"}
             </button>
           )}
           </div>
@@ -662,8 +667,8 @@ export default function IndividualDashboard() {
               </p>
             </div>
             <div className="px-4 py-3 flex gap-2">
-              <button onClick={() => handleApplyJob(selectedJob.id)} className="flex-1 bg-blue-600 text-white py-1.5 text-xs font-medium hover:bg-blue-700 transition-colors rounded-md">
-                Yes, apply
+              <button onClick={() => handleApplyJob(selectedJob.id)} disabled={applying} className="flex-1 bg-blue-600 text-white py-1.5 text-xs font-medium hover:bg-blue-700 transition-colors rounded-md disabled:opacity-70 inline-flex items-center justify-center gap-2">
+                {applying ? (<><MenteeLoader size={18} text={null} inline /> Applying…</>) : "Yes, apply"}
               </button>
               <button onClick={() => { setShowApplyConfirm(false); setSelectedJob(null); }} className="px-4 py-1.5 bg-white border border-gray-200 text-xs font-medium text-gray-700 hover:bg-gray-50 rounded-md">
                 Cancel

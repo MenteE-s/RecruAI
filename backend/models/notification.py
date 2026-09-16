@@ -21,6 +21,7 @@ class Notification(db.Model):
     related_organization_id = db.Column(db.Integer, db.ForeignKey("organizations.id"), nullable=True)
     related_interview_id = db.Column(db.Integer, db.ForeignKey("interviews.id"), nullable=True)
     related_application_id = db.Column(db.Integer, db.ForeignKey("applications.id"), nullable=True)
+    related_post_id = db.Column(db.Integer, db.ForeignKey("posts.id"), nullable=True)
 
     # Status fields
     is_read = db.Column(db.Boolean, default=False)
@@ -68,6 +69,60 @@ class Notification(db.Model):
             related_user_id=kwargs.get('related_user_id'),
             related_organization_id=kwargs.get('related_organization_id'),
             related_interview_id=kwargs.get('related_interview_id'),
-            related_application_id=kwargs.get('related_application_id')
+            related_application_id=kwargs.get('related_application_id'),
+            related_post_id=kwargs.get('related_post_id')
         )
         return notification
+
+    def to_dict(self):
+        """Enriched payload: related org (logo/name) and linked job post."""
+        from .organization import Organization
+        from .application import Application
+        from .post import Post
+
+        org = None
+        if self.related_organization_id:
+            org = Organization.query.get(self.related_organization_id)
+
+        post = None
+        if self.related_post_id:
+            post = Post.query.get(self.related_post_id)
+        elif self.related_application_id:
+            app = Application.query.get(self.related_application_id)
+            if app:
+                post = app.post
+
+        return {
+            "id": self.id,
+            "type": self.type,
+            "title": self.title,
+            "message": self.message,
+            "is_read": self.is_read,
+            "is_archived": self.is_archived,
+            "is_favorited": self.is_favorited,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "read_at": self.read_at.isoformat() if self.read_at else None,
+            "related_user_id": self.related_user_id,
+            "related_organization_id": self.related_organization_id,
+            "related_interview_id": self.related_interview_id,
+            "related_application_id": self.related_application_id,
+            "related_post_id": self.related_post_id,
+            "related_entities": {
+                "user_id": self.related_user_id,
+                "organization_id": self.related_organization_id,
+                "interview_id": self.related_interview_id,
+                "application_id": self.related_application_id,
+                "post_id": self.related_post_id,
+            },
+            "organization": {
+                "id": org.id,
+                "name": org.name,
+                "profile_image": org.profile_image,
+            } if org else None,
+            "post": {
+                "id": post.id,
+                "title": post.title,
+                "location": post.location,
+                "employment_type": post.employment_type,
+            } if post else None,
+        }

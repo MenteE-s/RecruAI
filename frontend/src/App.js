@@ -12,6 +12,7 @@ import {
 import "./App.css";
 import { ToastProvider } from "./components/ui/ToastContext";
 import ProtectedRoute from "./components/ProtectedRoute";
+import MenteeLoader from "./components/ui/MenteeLoader";
 
 // Eager only for the tiny shell. Every page below is a separate chunk so the
 // first paint downloads ~1 route instead of all 40+ pages.
@@ -41,6 +42,7 @@ const JobAlerts = lazy(() => import("./pages/individual/JobAlerts"));
 const CareerCoaching = lazy(() => import("./pages/individual/CareerCoaching"));
 const JobDetails = lazy(() => import("./pages/individual/JobDetails"));
 const MyNetwork = lazy(() => import("./pages/individual/MyNetwork"));
+const Interviews = lazy(() => import("./pages/individual/Interviews"));
 const PracticeDashboard = lazy(() => import("./pages/individual/PracticeDashboard"));
 const PracticeRoom = lazy(() => import("./pages/individual/PracticeRoom"));
 const IndividualAIAgents = lazy(() => import("./pages/individual/AIAgents"));
@@ -70,7 +72,7 @@ const InterviewDetail = lazy(() => import("./pages/individual/InterviewDetail"))
 function RouteLoader() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="animate-spin h-6 w-6 border-2 border-gray-200 border-t-blue-600 rounded-full" />
+      <MenteeLoader size={64} />
     </div>
   );
 }
@@ -169,6 +171,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <MyNetwork />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/interviews"
+            element={
+              <ProtectedRoute>
+                <Interviews />
               </ProtectedRoute>
             }
           />

@@ -62,26 +62,8 @@ def get_notifications():
         notifications = pagination_result['items']
         pagination = pagination_result['pagination']
 
-        # Format response
-        notification_data = []
-        for notification in notifications:
-            notification_data.append({
-                "id": notification.id,
-                "type": notification.type,
-                "title": notification.title,
-                "message": notification.message,
-                "is_read": notification.is_read,
-                "is_archived": notification.is_archived,
-                "is_favorited": notification.is_favorited,
-                "created_at": notification.created_at.isoformat() if notification.created_at else None,
-                "read_at": notification.read_at.isoformat() if notification.read_at else None,
-                "related_entities": {
-                    "user_id": notification.related_user_id,
-                    "organization_id": notification.related_organization_id,
-                    "interview_id": notification.related_interview_id,
-                    "application_id": notification.related_application_id,
-                }
-            })
+        # Format response (enriched: org logo + linked job included)
+        notification_data = [notification.to_dict() for notification in notifications]
 
         return paginated_response(notification_data, pagination), 200
 

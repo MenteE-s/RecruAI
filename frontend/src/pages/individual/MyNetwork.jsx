@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import FollowButton from "../../components/ui/FollowButton";
+import MenteeLoader from "../../components/ui/MenteeLoader";
 import { getSidebarItems, getBackendUrl, getAuthHeaders, getUploadUrl } from "../../utils/auth";
 import { getFollows } from "../../utils/follows";
 import { FiBell, FiMapPin, FiBriefcase, FiUsers } from "react-icons/fi";
@@ -115,7 +116,7 @@ export default function MyNetwork() {
 
         {loading ? (
           <div className="bg-white border border-gray-200 rounded-lg p-6 text-center shadow-sm">
-            <div className="animate-spin h-5 w-5 border-2 border-gray-200 border-t-blue-600 rounded-full mx-auto" />
+            <MenteeLoader size={52} text="Loading network…" />
           </div>
         ) : (
           <>
@@ -225,7 +226,15 @@ export default function MyNetwork() {
                 )}
                 {notifications.slice(0, 5).map((n) => (
                   <div key={n.id} className="py-2 flex gap-2">
-                    {!n.is_read && <span className="w-1.5 h-1.5 rounded-full bg-blue-600 mt-1.5 shrink-0" />}
+                    {n.organization?.profile_image ? (
+                      <img src={getUploadUrl(n.organization.profile_image)} alt="" className="w-7 h-7 rounded-md object-cover border border-gray-200 shrink-0" />
+                    ) : n.organization ? (
+                      <div className="w-7 h-7 rounded-md bg-gray-900 text-white flex items-center justify-center text-[10px] font-bold shrink-0">
+                        {(n.organization.name || "?").charAt(0).toUpperCase()}
+                      </div>
+                    ) : !n.is_read ? (
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-600 mt-1.5 shrink-0" />
+                    ) : null}
                     <div className="min-w-0">
                       <p className="text-xs font-semibold text-gray-900 leading-tight truncate">{n.title || "Notification"}</p>
                       <p className="text-[11px] text-gray-500 leading-snug line-clamp-1 mt-px">{n.message || ""}</p>

@@ -3,7 +3,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy import func
 from .. import api_bp
 from ...extensions import db
-from ...models import Post, Organization, User, TeamMember
+from ...models import Post, Organization, User, TeamMember, CompanyFollow, Notification
 import json
 
 
@@ -129,7 +129,30 @@ def create_post():
             'status': post.status,
             'timestamp': datetime.utcnow().isoformat()
         })
-        
+
+        # Notify followers so their notification cards link straight to this job
+        try:
+            follower_ids = [
+                row[0]
+                for row in db.session.query(CompanyFollow.user_id)
+                .filter_by(organization_id=post.organization_id)
+                .all()
+            ]
+            for follower_id in follower_ids:
+                db.session.add(Notification(
+                    user_id=follower_id,
+                    type="new_job_post",
+                    title=f"{org.name} posted a new job",
+                    message=f"{post.title} — tap to view and apply.",
+                    related_organization_id=post.organization_id,
+                    related_post_id=post.id,
+                ))
+            if follower_ids:
+                db.session.commit()
+        except Exception as notify_error:
+            db.session.rollback()
+            print(f"Failed to create follower notifications for post {post.id}: {notify_error}")
+
         return jsonify(post.to_dict()), 201
     except Exception as e:
         db.session.rollback()

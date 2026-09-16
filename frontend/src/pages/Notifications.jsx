@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import socketService from "../utils/socket";
-import { getBackendUrl, verifyTokenWithServer, getSidebarItems } from "../utils/auth";
+import { getBackendUrl, verifyTokenWithServer, getSidebarItems, getUploadUrl } from "../utils/auth";
 import { formatDate } from "../utils/timezone";
 import {
   FiBell,
@@ -166,10 +166,22 @@ export default function Notifications() {
     }
   };
 
+  const rel = (n) => n.related_entities || {};
+  const orgOf = (n) => n.organization || null;
+  const postOf = (n) => n.post || null;
+
+  const BROADCAST_TYPES = ["announcement", "promotion", "promo", "info", "system", "welcome"];
+  const isBroadcast = (n) => !orgOf(n) && !postOf(n) && BROADCAST_TYPES.includes(n.type);
+
   const getNotificationLink = (n) => {
-    if (n.type?.includes("interview") && n.related_interview_id) return `/interviews/${n.related_interview_id}`;
-    if ((n.type === "profile_favorited" || n.type === "profile_viewed") && n.related_user_id) return `/profile`;
-    if (n.related_organization_id) return `/organization/profile/${n.related_organization_id}`;
+    const r = rel(n);
+    const postId = postOf(n)?.id ?? r.post_id;
+    if (postId) return `/jobs/${postId}`;
+    const orgId = orgOf(n)?.id ?? r.organization_id;
+    if (orgId) return `/organization/profile/${orgId}`;
+    const interviewId = r.interview_id;
+    if (n.type?.includes("interview") && interviewId) return `/interviews/${interviewId}`;
+    if ((n.type === "profile_favorited" || n.type === "profile_viewed") && r.user_id) return `/profile`;
     if (n.type?.includes("interview")) return `/interviews/upcoming`;
     return null;
   };
@@ -314,7 +326,11 @@ export default function Notifications() {
             )}
           </div>
         ) : (
-          filteredBySearch.map((n) => (
+          filteredBySearch.map((n) => {
+            const org = orgOf(n);
+            const post = postOf(n);
+            const broadcast = isBroadcast(n);
+            return (
             <div
               key={n.id}
               onClick={() => {
@@ -325,9 +341,27 @@ export default function Notifications() {
                 !n.is_read ? "border-blue-200" : "border-gray-200"
               }`}
             >
-              <div className={`w-8 h-8 rounded-md flex items-center justify-center border shrink-0 ${!n.is_read ? "bg-blue-50 border-blue-200" : "bg-gray-50 border-gray-200"}`}>
-                {getNotificationIcon(n.type)}
-              </div>
+              {org?.profile_image ? (
+                <img
+                  src={getUploadUrl(org.profile_image)}
+                  alt={org.name}
+                  className="w-10 h-10 rounded-md object-cover border border-gray-200 shrink-0"
+                />
+              ) : org ? (
+                <div className="w-10 h-10 rounded-md bg-gray-900 text-white flex items-center justify-center text-sm font-bold shrink-0">
+                  {(org.name || "?").charAt(0).toUpperCase()}
+                </div>
+              ) : broadcast ? (
+                <img
+                  src="/mentee-logo.png"
+                  alt="RecruAI"
+                  className="w-10 h-10 rounded-md object-contain border border-blue-100 bg-blue-50 p-1 shrink-0"
+                />
+              ) : (
+                <div className={`w-10 h-10 rounded-md flex items-center justify-center border shrink-0 ${!n.is_read ? "bg-blue-50 border-blue-200" : "bg-gray-50 border-gray-200"}`}>
+                  {getNotificationIcon(n.type)}
+                </div>
+              )}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
                   {!n.is_read && <span className="w-1.5 h-1.5 rounded-full bg-blue-600 shrink-0" />}
@@ -335,7 +369,25 @@ export default function Notifications() {
                   {n.is_favorited && <FiStar className="w-3 h-3 text-amber-500 fill-amber-500 shrink-0" />}
                 </div>
                 <p className="text-xs text-gray-600 leading-snug line-clamp-2 mt-0.5">{n.message}</p>
-                <p className="text-[11px] text-gray-400 mt-1">{formatDate(n.created_at)}</p>
+                <div className="flex items-center gap-2 mt-1 flex-wrap">
+                  <span className="text-[11px] text-gray-400">{formatDate(n.created_at)}</span>
+                  {org && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); if (org.id) navigate(`/organization/profile/${org.id}`); }}
+                      className="text-[11px] font-medium text-gray-500 hover:text-blue-600 hover:underline truncate"
+                    >
+                      {org.name}
+                    </button>
+                  )}
+                  {post && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); navigate(`/jobs/${post.id}`); }}
+                      className="text-[11px] font-semibold text-blue-600 hover:underline"
+                    >
+                      View job →
+                    </button>
+                  )}
+                </div>
               </div>
               <div className="flex md:flex-col flex-row items-center gap-0.5 shrink-0">
                 {!n.is_read && (
@@ -362,7 +414,8 @@ export default function Notifications() {
                 </button>
               </div>
             </div>
-          ))
+            );
+          })
         )}
 
         {/* Pagination */}

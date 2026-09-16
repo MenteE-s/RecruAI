@@ -2,6 +2,7 @@
 import { Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { verifyTokenWithServer } from "../utils/auth";
+import MenteeLoader from "./ui/MenteeLoader";
 
 // Uses the shared short-TTL cached /api/auth/me (single-flight) so mounting
 // N protected routes does not fan out N network verifies.
@@ -31,7 +32,7 @@ export default function ProtectedRoute({ children }) {
   if (checking)
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin h-6 w-6 border-2 border-gray-200 border-t-blue-600 rounded-full" />
+        <MenteeLoader size={64} />
       </div>
     );
   if (!ok) return <Navigate to="/signin" replace />;

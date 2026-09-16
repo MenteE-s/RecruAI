@@ -17,6 +17,7 @@ import {
   FiTrendingUp,
   FiClock,
   FiUsers,
+  FiVideo,
 } from "react-icons/fi";
 
 export default function Header({ sidebarItems = [] }) {
@@ -51,6 +52,7 @@ export default function Header({ sidebarItems = [] }) {
   const navItems = [
     { name: "Home", link: "/dashboard", icon: FiHome },
     { name: "My Network", link: "/network", icon: FiUsers },
+    { name: "Interviews", link: "/interviews", icon: FiVideo },
     { name: "Notifications", link: "/notifications", icon: FiBell, badge: unreadCount > 0 ? unreadCount : null },
   ];
 
@@ -176,10 +178,10 @@ export default function Header({ sidebarItems = [] }) {
                 <button onClick={() => { navigate("/profile"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
                   <FiUser className="w-3.5 h-3.5 text-gray-400" /> Profile
                 </button>
-                <button onClick={() => { navigate("/interviews/upcoming"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
+                <button onClick={() => { navigate("/interviews"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
                   <FiClock className="w-3.5 h-3.5 text-gray-400" /> Upcoming Interviews
                 </button>
-                <button onClick={() => { navigate("/interviews/history"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
+                <button onClick={() => { navigate("/interviews?tab=history"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
                   <FiAward className="w-3.5 h-3.5 text-gray-400" /> Interview History
                 </button>
                 <button onClick={() => { navigate("/interviews/analysis"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
