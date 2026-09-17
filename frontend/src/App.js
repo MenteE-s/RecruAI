@@ -1,5 +1,7 @@
-// src/App.js — code-split + deduped routes for fast initial load.
-import React, { Suspense, lazy, useEffect, useRef } from "react";
+// src/App.js — eager imports: one bundle, instant client-side navigation.
+// (Route-level code-splitting was tried and reverted: per-route chunks put a
+// loading spinner on every first page visit, which felt much slower.)
+import React, { useEffect, useRef } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -12,70 +14,65 @@ import {
 import "./App.css";
 import { ToastProvider } from "./components/ui/ToastContext";
 import ProtectedRoute from "./components/ProtectedRoute";
-import MenteeLoader from "./components/ui/MenteeLoader";
 
-// Eager only for the tiny shell. Every page below is a separate chunk so the
-// first paint downloads ~1 route instead of all 40+ pages.
-const RecruAILanding = lazy(() => import("./pages/RecruAILanding"));
-const Register = lazy(() => import("./pages/Register"));
-const SignIn = lazy(() => import("./pages/SignIn"));
-const ContactUs = lazy(() => import("./pages/ContactUs"));
-const TermsAndConditions = lazy(() => import("./pages/TermsAndConditions"));
-const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
-const Blog = lazy(() => import("./pages/Blog"));
-const Careers = lazy(() => import("./pages/Careers"));
-const SystemStatus = lazy(() => import("./pages/SystemStatus"));
-const Community = lazy(() => import("./pages/Community"));
-const CookiesPolicy = lazy(() => import("./pages/CookiesPolicy"));
-const NotFound = lazy(() => import("./pages/NotFound"));
-const PublicProfile = lazy(() => import("./pages/PublicProfile"));
-const DashboardSwitcher = lazy(() => import("./pages/DashboardSwitcher"));
-const SettingsSwitcher = lazy(() => import("./pages/SettingsSwitcher"));
-const Profile = lazy(() => import("./pages/individual/Profile"));
-const UpcomingInterviews = lazy(() => import("./pages/individual/UpcomingInterviews"));
-const InterviewHistory = lazy(() => import("./pages/individual/InterviewHistory"));
-const SavedJobs = lazy(() => import("./pages/individual/SavedJobs"));
-const AppliedJobs = lazy(() => import("./pages/individual/AppliedJobs"));
-const Analytics = lazy(() => import("./pages/individual/Analytics"));
-const ResumeBuilder = lazy(() => import("./pages/individual/ResumeBuilder"));
-const JobAlerts = lazy(() => import("./pages/individual/JobAlerts"));
-const CareerCoaching = lazy(() => import("./pages/individual/CareerCoaching"));
-const JobDetails = lazy(() => import("./pages/individual/JobDetails"));
-const MyNetwork = lazy(() => import("./pages/individual/MyNetwork"));
-const Interviews = lazy(() => import("./pages/individual/Interviews"));
-const PracticeDashboard = lazy(() => import("./pages/individual/PracticeDashboard"));
-const PracticeRoom = lazy(() => import("./pages/individual/PracticeRoom"));
-const IndividualAIAgents = lazy(() => import("./pages/individual/AIAgents"));
-const ShareableProfiles = lazy(() => import("./pages/individual/ShareableProfiles"));
-const OrganizationProfile = lazy(() => import("./pages/organization/Profile"));
-const Billing = lazy(() => import("./pages/organization/Billing"));
-const BrowseOrganizations = lazy(() => import("./pages/organization/BrowseOrganizations"));
-const HirePeople = lazy(() => import("./pages/organization/HirePeople"));
-const TeamMembers = lazy(() => import("./pages/organization/TeamMembers"));
-const UserProfile = lazy(() => import("./pages/organization/UserProfile"));
-const JobPosts = lazy(() => import("./pages/organization/JobPosts"));
-const JobPostDetails = lazy(() => import("./pages/organization/JobPostDetails"));
-const Candidates = lazy(() => import("./pages/organization/Candidates"));
-const InterviewManagement = lazy(() => import("./pages/organization/InterviewManagement"));
-const InterviewAnalysis = lazy(() => import("./pages/InterviewAnalysis"));
-const Pipeline = lazy(() => import("./pages/organization/Pipeline"));
-const OrganizationAnalytics = lazy(() => import("./pages/organization/OrganizationAnalytics"));
-const Reports = lazy(() => import("./pages/organization/Reports"));
-const Integrations = lazy(() => import("./pages/organization/Integrations"));
-const Insights = lazy(() => import("./pages/organization/Insights"));
-const AIAgents = lazy(() => import("./pages/organization/AIAgents"));
-const CandidateAnalysis = lazy(() => import("./pages/organization/CandidateAnalysis"));
-const InterviewRoom = lazy(() => import("./pages/InterviewRoom"));
-const Notifications = lazy(() => import("./pages/Notifications"));
-const InterviewDetail = lazy(() => import("./pages/individual/InterviewDetail"));
+// Public Pages
+import RecruAILanding from "./pages/RecruAILanding";
+import Register from "./pages/Register";
+import SignIn from "./pages/SignIn";
+import ContactUs from "./pages/ContactUs";
+import TermsAndConditions from "./pages/TermsAndConditions";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import Blog from "./pages/Blog";
+import Careers from "./pages/Careers";
+import SystemStatus from "./pages/SystemStatus";
+import Community from "./pages/Community";
+import CookiesPolicy from "./pages/CookiesPolicy";
+import NotFound from "./pages/NotFound";
+import PublicProfile from "./pages/PublicProfile";
+// Dashboard Pages
+import DashboardSwitcher from "./pages/DashboardSwitcher";
+import SettingsSwitcher from "./pages/SettingsSwitcher";
+import Profile from "./pages/individual/Profile";
+import UpcomingInterviews from "./pages/individual/UpcomingInterviews";
+import InterviewHistory from "./pages/individual/InterviewHistory";
+import SavedJobs from "./pages/individual/SavedJobs";
+import AppliedJobs from "./pages/individual/AppliedJobs";
+import Analytics from "./pages/individual/Analytics";
+import ResumeBuilder from "./pages/individual/ResumeBuilder";
+import JobAlerts from "./pages/individual/JobAlerts";
+import CareerCoaching from "./pages/individual/CareerCoaching";
+import JobDetails from "./pages/individual/JobDetails";
+import MyNetwork from "./pages/individual/MyNetwork";
+import Interviews from "./pages/individual/Interviews";
+import PracticeDashboard from "./pages/individual/PracticeDashboard";
+import PracticeRoom from "./pages/individual/PracticeRoom";
+import IndividualAIAgents from "./pages/individual/AIAgents";
+import ShareableProfiles from "./pages/individual/ShareableProfiles";
+// Organization Pages
+import OrganizationProfile from "./pages/organization/Profile";
+import Billing from "./pages/organization/Billing";
+import BrowseOrganizations from "./pages/organization/BrowseOrganizations";
+import HirePeople from "./pages/organization/HirePeople";
+import TeamMembers from "./pages/organization/TeamMembers";
+import UserProfile from "./pages/organization/UserProfile";
+import JobPosts from "./pages/organization/JobPosts";
+import JobPostDetails from "./pages/organization/JobPostDetails";
+import Candidates from "./pages/organization/Candidates";
+import InterviewManagement from "./pages/organization/InterviewManagement";
+import InterviewAnalysis from "./pages/InterviewAnalysis";
+import Pipeline from "./pages/organization/Pipeline";
+import OrganizationAnalytics from "./pages/organization/OrganizationAnalytics";
+import Reports from "./pages/organization/Reports";
+import Integrations from "./pages/organization/Integrations";
+import Insights from "./pages/organization/Insights";
+import AIAgents from "./pages/organization/AIAgents";
+import CandidateAnalysis from "./pages/organization/CandidateAnalysis";
+import InterviewRoom from "./pages/InterviewRoom";
+import Notifications from "./pages/Notifications";
+import InterviewDetail from "./pages/individual/InterviewDetail";
 
-function RouteLoader() {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <MenteeLoader size={64} />
-    </div>
-  );
-}
+import { verifyTokenWithServer } from "./utils/auth";
+import socketService from "./utils/socket";
 
 function InterviewAnalysisRedirect() {
   const { interviewId } = useParams();
@@ -104,8 +101,6 @@ function AuthVerifier() {
     let mounted = true;
     (async () => {
       try {
-        const { verifyTokenWithServer } = await import("./utils/auth");
-        const socketService = (await import("./utils/socket")).default;
         const user = await verifyTokenWithServer();
         if (!mounted || !user) return;
         const token = localStorage.getItem("access_token");
@@ -142,7 +137,6 @@ function App() {
       <ToastProvider>
         <AuthVerifier />
         <ScrollToTop />
-        <Suspense fallback={<RouteLoader />}>
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<RecruAILanding />} />
@@ -175,18 +169,18 @@ function App() {
             }
           />
           <Route
-            path="/interviews"
-            element={
-              <ProtectedRoute>
-                <Interviews />
-              </ProtectedRoute>
-            }
-          />
-          <Route
             path="/notifications"
             element={
               <ProtectedRoute>
                 <Notifications />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/interviews"
+            element={
+              <ProtectedRoute>
+                <Interviews />
               </ProtectedRoute>
             }
           />
@@ -508,7 +502,6 @@ function App() {
           {/* 404 Route - must be last */}
           <Route path="*" element={<NotFound />} />
         </Routes>
-        </Suspense>
       </ToastProvider>
     </Router>
   );

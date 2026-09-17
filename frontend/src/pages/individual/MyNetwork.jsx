@@ -132,7 +132,7 @@ export default function MyNetwork() {
                       className="w-full flex items-center gap-2.5 py-2 text-left group"
                     >
                       {j.organization?.profile_image ? (
-                        <img src={getUploadUrl(j.organization.profile_image)} alt="" className="w-8 h-8 rounded-md object-cover border border-gray-200 shrink-0" />
+                        <img src={getUploadUrl(j.organization.profile_image)} alt="" loading="lazy" decoding="async" className="w-8 h-8 rounded-md object-cover border border-gray-200 shrink-0" />
                       ) : (
                         <div className="w-8 h-8 rounded-md bg-gray-900 text-white flex items-center justify-center text-[11px] font-bold shrink-0">
                           {initials(j.organization?.name)}
@@ -169,7 +169,7 @@ export default function MyNetwork() {
                       <div key={f.id} className="border border-gray-200 rounded-lg p-3">
                         <div className="flex items-center gap-2.5">
                           {org.profile_image ? (
-                            <img src={getUploadUrl(org.profile_image)} alt={org.name} className="w-9 h-9 rounded-md object-cover border border-gray-200 shrink-0" />
+                            <img src={getUploadUrl(org.profile_image)} alt={org.name} loading="lazy" decoding="async" className="w-9 h-9 rounded-md object-cover border border-gray-200 shrink-0" />
                           ) : (
                             <div className="w-9 h-9 rounded-md bg-gray-900 text-white flex items-center justify-center text-xs font-bold shrink-0">
                               {initials(org.name)}
@@ -227,7 +227,7 @@ export default function MyNetwork() {
                 {notifications.slice(0, 5).map((n) => (
                   <div key={n.id} className="py-2 flex gap-2">
                     {n.organization?.profile_image ? (
-                      <img src={getUploadUrl(n.organization.profile_image)} alt="" className="w-7 h-7 rounded-md object-cover border border-gray-200 shrink-0" />
+                      <img src={getUploadUrl(n.organization.profile_image)} alt="" loading="lazy" decoding="async" className="w-7 h-7 rounded-md object-cover border border-gray-200 shrink-0" />
                     ) : n.organization ? (
                       <div className="w-7 h-7 rounded-md bg-gray-900 text-white flex items-center justify-center text-[10px] font-bold shrink-0">
                         {(n.organization.name || "?").charAt(0).toUpperCase()}
@@ -253,7 +253,7 @@ export default function MyNetwork() {
                   {discover.map((c) => (
                     <div key={`discover-${c.id}`} className="flex items-center gap-2.5 py-2">
                       {c.image ? (
-                        <img src={getUploadUrl(c.image)} alt={c.name} className="w-8 h-8 rounded-md object-cover border border-gray-200 shrink-0" />
+                        <img src={getUploadUrl(c.image)} alt={c.name} loading="lazy" decoding="async" className="w-8 h-8 rounded-md object-cover border border-gray-200 shrink-0" />
                       ) : (
                         <div className="w-8 h-8 rounded-md bg-gray-900 text-white flex items-center justify-center text-[11px] font-bold shrink-0">
                           {initials(c.name)}

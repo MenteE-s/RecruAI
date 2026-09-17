@@ -1,8 +1,9 @@
-from flask import request, jsonify, make_response
+from flask import request, jsonify, make_response, current_app
 from flask_jwt_extended import (
     create_access_token,
     jwt_required,
     get_jwt_identity,
+    get_jwt,
     set_access_cookies,
     unset_jwt_cookies,
 )
@@ -11,7 +12,14 @@ from ...extensions import db
 from ...models import User
 from ...utils.security import log_security_event, sanitize_input
 from ...utils.kafka_service import kafka_service
-from ...utils.cache import cache_get, cache_set, invalidate_auth_cache, _build_key, CACHE_TTL
+from ...utils.cache import (
+    cache_get,
+    cache_set,
+    invalidate_auth_cache,
+    block_jti,
+    _build_key,
+    CACHE_TTL,
+)
 
 @api_bp.route("/auth/login", methods=["POST"])
 def login():
@@ -73,6 +81,23 @@ def logout():
         try:
             kafka_service.emit_event("user_logout", {"user_id": int(uid), "ip": request.remote_addr})
         except:
+            pass
+        # Security: revoke this token so it cannot be replayed until its
+        # natural expiry. Without this, a logged-out (or stolen) JWT stays
+        # valid for up to JWT_ACCESS_TOKEN_EXPIRES.
+        try:
+            jti = get_jwt().get("jti")
+            exp = current_app.config.get("JWT_ACCESS_TOKEN_EXPIRES")
+            try:
+                ttl = int(exp.total_seconds())
+            except (AttributeError, TypeError, ValueError):
+                ttl = CACHE_TTL.get("jwt_blocklist", 7200)
+            block_jti(jti, max(ttl, 60))
+        except Exception:
+            pass
+        try:
+            invalidate_auth_cache(int(uid))
+        except (TypeError, ValueError):
             pass
 
     resp = make_response(jsonify({"msg": "logged out"}), 200)

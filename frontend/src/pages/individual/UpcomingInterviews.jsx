@@ -122,17 +122,6 @@ export default function UpcomingInterviews() {
     );
   });
 
-  const stats = {
-    total: interviews.length,
-    joinable: interviews.filter(canJoinInterview).length,
-    startingSoon: interviews.filter((i) => {
-      const sd = new Date(i.scheduled_at_iso || i.scheduled_at);
-      const diff = (sd - new Date()) / 60000;
-      return diff > 0 && diff <= 15 && i.status !== "completed" && i.status !== "cancelled";
-    }).length,
-    scheduled: interviews.filter((i) => i.status !== "completed" && i.status !== "cancelled").length,
-  };
-
   if (loading) {
     return (
       <DashboardLayout sidebarItems={sidebarItems}>

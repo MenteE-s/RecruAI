@@ -330,9 +330,6 @@ const ShareableProfiles = () => {
     );
   }
 
-  const publicCount = profiles.filter((p) => p.is_public).length;
-  const totalViews = profiles.reduce((sum, p) => sum + (p.view_count || 0), 0);
-
   return (
     <DashboardLayout sidebarItems={sidebarItems}>
       {/* Filter */}

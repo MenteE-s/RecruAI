@@ -96,6 +96,19 @@ def create_app(config_object: object | None = None):
 	def missing_token_callback(error):
 		return jsonify({"error": "Authorization token is missing", "code": "authorization_required"}), 401
 
+	@jwt.token_in_blocklist_loader
+	def check_if_token_revoked(jwt_header, jwt_payload):
+		# Logged-out tokens are revoked in Redis (fail-open when Redis is down).
+		try:
+			from .utils.cache import is_jti_blocked
+			return is_jti_blocked(jwt_payload.get("jti"))
+		except Exception:
+			return False
+
+	@jwt.revoked_token_loader
+	def revoked_token_callback(jwt_header, jwt_payload):
+		return jsonify({"error": "Token has been revoked", "code": "token_revoked"}), 401
+
 	# Initialize Redis cache
 	try:
 		from .extensions import init_redis
@@ -213,14 +226,18 @@ def create_app(config_object: object | None = None):
 	app.register_blueprint(api_bp, url_prefix="/api")
 
 	# Security: Apply rate limiting to auth endpoints (must be after blueprint registration)
+	# NOTE: the blueprint is named "api", so endpoints are "api.<view>" —
+	# "api_bp.<view>" matches nothing and would silently disable the limit.
 	if limiter:
-		limiter.limit("10 per minute")(app.view_functions.get('api_bp.login', lambda: None))
-		limiter.limit("5 per minute")(app.view_functions.get('api_bp.register', lambda: None))
-		limiter.limit("100 per minute")(app.view_functions.get('api_bp.get_me', lambda: None))
+		limiter.limit("10 per minute")(app.view_functions.get('api.login', lambda: None))
+		limiter.limit("5 per minute")(app.view_functions.get('api.register', lambda: None))
+		limiter.limit("100 per minute")(app.view_functions.get('api.get_me', lambda: None))
+		# Unauthenticated public-profile views write an analytics row per hit
+		limiter.limit("60 per minute")(app.view_functions.get('api.get_public_profile', lambda: None))
 		# Spam-prone writes + expensive search
-		limiter.limit("30 per minute")(app.view_functions.get('api_bp.create_post', lambda: None))
-		limiter.limit("30 per minute")(app.view_functions.get('api_bp.create_application', lambda: None))
-		limiter.limit("30 per minute")(app.view_functions.get('api_bp.create_system_issue', lambda: None))
+		limiter.limit("30 per minute")(app.view_functions.get('api.create_post', lambda: None))
+		limiter.limit("30 per minute")(app.view_functions.get('api.create_application', lambda: None))
+		limiter.limit("30 per minute")(app.view_functions.get('api.create_system_issue', lambda: None))
 		limiter.limit("60 per minute")(app.view_functions.get('recommendations.search_profiles', lambda: None))
 
 	# Register practice AI agents blueprint separately to avoid circular imports

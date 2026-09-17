@@ -39,7 +39,7 @@ class Post(db.Model):
             or 0
         )
 
-    def to_dict(self):
+    def to_dict(self, application_count=None):
         import json
         requirements_list = []
         if self.requirements:
@@ -63,7 +63,7 @@ class Post(db.Model):
             "application_deadline": self.application_deadline.isoformat() if self.application_deadline else None,
             "status": self.status,
             "view_count": self.view_count or 0,
-            "application_count": self.application_count(),
+            "application_count": application_count if application_count is not None else self.application_count(),
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
             "organization_id": self.organization_id,
@@ -74,3 +74,22 @@ class Post(db.Model):
             } if self.organization else None,
             "organization_details": self.organization.to_public_dict() if self.organization else None,
         }
+
+
+def application_counts(post_ids):
+    """Batch application counts for many posts in one GROUP BY query.
+
+    Listing endpoints serialize N posts per page; calling application_count()
+    per post is N COUNT queries. Pass the result into to_dict().
+    """
+    from .application import Application
+    ids = [i for i in post_ids if i is not None]
+    if not ids:
+        return {}
+    rows = (
+        db.session.query(Application.post_id, func.count(Application.id))
+        .filter(Application.post_id.in_(ids))
+        .group_by(Application.post_id)
+        .all()
+    )
+    return {post_id: count for post_id, count in rows}

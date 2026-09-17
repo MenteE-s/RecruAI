@@ -1,6 +1,6 @@
 from functools import wraps
 from flask import jsonify
-from flask_jwt_extended import verify_jwt_in_request, get_jwt, get_jwt_identity
+from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
 
 
 from ..models import User
@@ -38,23 +38,28 @@ def require_auth(fn):
 
 
 def organization_required(fn):
-    """Decorator to ensure the incoming request has a JWT with role=="organization".
+    """Decorator to ensure the caller is currently an organization account.
 
-    Use this on backend endpoints that return or mutate organization-scoped data.
-    It relies on the `role` claim being present in the JWT (we set it at login/registration).
+    Security: the role is re-read from the database at the decision point,
+    never trusted from the JWT `role` claim alone — claims stay valid until
+    token expiry, so a demoted user would otherwise keep org-only access
+    (e.g. POST /api/users) for up to JWT_ACCESS_TOKEN_EXPIRES.
     """
 
     @wraps(fn)
     def wrapper(*args, **kwargs):
-        # Ensure there's a valid JWT first
+        # Ensure there's a valid JWT first (revocation included)
         try:
             verify_jwt_in_request()
         except Exception:
             return jsonify({"error": "missing or invalid token"}), 401
 
-        claims = get_jwt()
-        role = claims.get("role")
-        if role != "organization":
+        uid = get_jwt_identity()
+        try:
+            user = User.query.get(int(uid))
+        except (TypeError, ValueError):
+            return jsonify({"error": "invalid user identity"}), 400
+        if not user or user.role != "organization":
             return jsonify({"error": "forbidden: organization membership required"}), 403
 
         return fn(*args, **kwargs)

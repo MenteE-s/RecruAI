@@ -7,7 +7,6 @@ import {
   FiCalendar,
   FiClock,
   FiBriefcase,
-  FiAward,
   FiTrendingUp,
   FiBarChart2,
   FiCheckCircle,
@@ -162,9 +161,6 @@ export default function InterviewHistory() {
       </DashboardLayout>
     );
   }
-
-  const passedCount = interviews.filter((i) => i.final_decision === "passed" || (i.status === "completed" && i.rating >= 4)).length;
-  const avgScore = analytics?.average_scores?.overall?.toFixed(1) || (interviews.length ? (interviews.reduce((a, b) => a + (b.rating || 0), 0) / interviews.length).toFixed(1) : "—");
 
   return (
     <DashboardLayout sidebarItems={sidebarItems}>

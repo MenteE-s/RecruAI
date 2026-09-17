@@ -22,6 +22,7 @@ from datetime import datetime
 from ...utils.pagination import Pagination, get_pagination_params, paginated_response, apply_filters_and_sorting, get_request_filters, get_sorting_params
 from ...utils.kafka_service import kafka_service as kafka
 from ...utils.cache import cached, invalidate_job_cache
+from ...models.post import application_counts
 
 
 def _parse_salary(value):
@@ -33,9 +34,22 @@ def _parse_salary(value):
         raise ValueError("Invalid salary value")
 
 @api_bp.route("/organizations/<int:org_id>/posts", methods=["GET"])
+@jwt_required(optional=True)
 def list_posts_for_org(org_id):
     org = Organization.query.get_or_404(org_id)
-    return jsonify([p.to_dict() for p in org.posts])
+    posts = org.posts
+    # Security: inactive/closed postings are visible only to the org's own
+    # managers (the JobPosts management page needs them). Public and
+    # unrelated callers see the same active-only surface as GET /api/posts.
+    try:
+        uid = get_jwt_identity()
+        caller = User.query.get(int(uid)) if uid is not None else None
+        if not _can_manage_org(caller, org_id):
+            posts = [p for p in posts if p.status == "active"]
+    except (TypeError, ValueError):
+        posts = [p for p in posts if p.status == "active"]
+    counts = application_counts([p.id for p in posts])
+    return jsonify([p.to_dict(application_count=counts.get(p.id, 0)) for p in posts])
 
 @api_bp.route("/posts", methods=["POST"])
 @jwt_required()
@@ -314,8 +328,11 @@ def list_posts():
     # Apply pagination
     pagination_result = Pagination(query, page=page, per_page=per_page).paginate()
 
-    # Return paginated response
-    return jsonify(paginated_response(pagination_result['items'], pagination_result['pagination'])), 200
+    # Batch application counts: one GROUP BY instead of one COUNT per post.
+    items = pagination_result['items']
+    counts = application_counts([p.id for p in items])
+    data = [p.to_dict(application_count=counts.get(p.id, 0)) for p in items]
+    return jsonify({"data": data, "pagination": pagination_result['pagination']}), 200
 
 @api_bp.route("/posts/<int:post_id>", methods=["GET"])
 @cached("job_details", ttl=300, key_func=lambda post_id: f"post_{post_id}")

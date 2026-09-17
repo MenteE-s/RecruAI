@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
-import { getSidebarItems, getBackendUrl, getAuthHeaders } from "../../utils/auth";
+import { getSidebarItems, getBackendUrl, getAuthHeaders, getCurrentUser } from "../../utils/auth";
 import TimezoneSelector from "../../components/ui/TimezoneSelector";
 import PaymentMethods from "../../components/ui/PaymentMethods";
 import {
@@ -74,25 +74,29 @@ export default function Settings() {
   const [emailMsg, setEmailMsg] = useState(null);
 
   useEffect(() => {
+    let cancelled = false;
     const fetchUser = async () => {
       try {
-        const response = await fetch(`${getBackendUrl()}/api/auth/me`, { credentials: "include", headers: getAuthHeaders() });
-        if (response.ok) {
-          const data = await response.json();
-          setUserId(data.user?.id ?? null);
-          setUserData(data.user);
-          setEmailForm({
-            email: data.user?.email || "",
-            name: data.user?.name || "",
-            phone: data.user?.phone || "",
-            location: data.user?.location || "",
-          });
-        }
+        // Shared short-TTL cache: no extra /me round-trip when the dashboard
+        // or route guard already fetched it this minute.
+        const user = await getCurrentUser();
+        if (cancelled || !user) return;
+        setUserId(user?.id ?? null);
+        setUserData(user);
+        setEmailForm({
+          email: user?.email || "",
+          name: user?.name || "",
+          phone: user?.phone || "",
+          location: user?.location || "",
+        });
       } catch (error) {
         console.error("Error fetching user:", error);
       }
     };
     fetchUser();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleEmailSave = async (e) => {
@@ -114,6 +118,8 @@ export default function Settings() {
       const result = await response.json().catch(() => ({}));
       if (response.ok) {
         setUserData(result.user);
+        // Refresh the shared cache so other pages show the new details at once.
+        getCurrentUser({ forceRefresh: true }).catch(() => {});
         setEmailMsg({ type: "success", text: "Contact details updated." });
       } else {
         setEmailMsg({ type: "error", text: result.error || "Failed to update." });
