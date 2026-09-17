@@ -229,7 +229,7 @@ export default function HirePeople() {
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-3">
                             <div className="shrink-0">
-                              {candidate.profile_picture ? <img src={getUploadUrl(candidate.profile_picture)} alt="" className="w-9 h-9 rounded-full object-cover border border-gray-200" /> : <div className="w-9 h-9 rounded-full bg-gray-900 text-white flex items-center justify-center text-sm font-bold">{(candidate.name || "?")[0].toUpperCase()}</div>}
+                              {candidate.profile_picture ? <img src={getUploadUrl(candidate.profile_picture)} alt="" loading="lazy" decoding="async" className="w-9 h-9 rounded-full object-cover border border-gray-200" /> : <div className="w-9 h-9 rounded-full bg-gray-900 text-white flex items-center justify-center text-sm font-bold">{(candidate.name || "?")[0].toUpperCase()}</div>}
                             </div>
                             <div>
                               <p className="text-sm font-medium text-gray-900">{candidate.name || "Anonymous"}</p>

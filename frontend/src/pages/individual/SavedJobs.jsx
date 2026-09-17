@@ -116,8 +116,6 @@ export default function SavedJobs() {
     });
   }, [savedJobs, search]);
 
-  const appliedSavedCount = savedJobs.filter((sj) => sj.post && appliedJobs.has(sj.post.id)).length;
-
   if (loading) {
     return (
       <DashboardLayout sidebarItems={sidebarItems}>

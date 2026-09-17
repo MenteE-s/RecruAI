@@ -70,7 +70,6 @@ export default function Analytics() {
     );
   }
 
-  const overall = analytics?.average_scores?.overall;
   const hasData = analytics && analytics.total_interviews > 0;
 
   return (

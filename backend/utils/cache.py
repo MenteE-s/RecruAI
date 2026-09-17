@@ -30,6 +30,7 @@ CACHE_TTL = {
     "org_details": 300,        # 5 min
     "org_listings": 600,       # 10 min
     "agent_config": 900,       # 15 min
+    "jwt_blocklist": 7200,     # 2h — matches JWT_ACCESS_TOKEN_EXPIRES default
     "general": 120,            # 2 min
 }
 
@@ -186,6 +187,25 @@ def invalidate_auth_cache(user_id: int) -> None:
         cache_delete(_build_key("auth_me", f"user_{user_id}"))
     except Exception:
         pass
+
+
+def block_jti(jti: str, ttl: Optional[int] = None) -> None:
+    """Revoke a JWT by ID until it would naturally expire (fail-open)."""
+    try:
+        if jti:
+            cache_set(_build_key("jwt_blocklist", jti), {"revoked": True}, ttl or CACHE_TTL.get("jwt_blocklist", 7200))
+    except Exception:
+        pass
+
+
+def is_jti_blocked(jti: Optional[str]) -> bool:
+    """True when the given JWT ID is on the revocation list."""
+    if not jti:
+        return False
+    try:
+        return cache_get(_build_key("jwt_blocklist", jti)) is not None
+    except Exception:
+        return False
 
 
 def invalidate_user_cache(user_id: int) -> None:

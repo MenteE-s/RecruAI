@@ -5,6 +5,7 @@ import {
   getSidebarItems,
   getBackendUrl,
   getAuthHeaders,
+  getCurrentUser,
 } from "../../utils/auth";
 
 
@@ -93,14 +94,9 @@ export default function Profile() {
   useEffect(() => {
     const loadUserData = async () => {
       try {
-        const response = await fetch(`${getBackendUrl()}/api/auth/me`, {
-          credentials: "include",
-          headers: getAuthHeaders(),
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setUserData(data.user);
-        }
+        // Shared cache: reuses the /me this session already fetched.
+        const user = await getCurrentUser();
+        if (user) setUserData(user);
       } catch (error) {
         console.error("Error loading user data:", error);
       }
@@ -332,6 +328,8 @@ export default function Profile() {
       if (response.ok) {
         const data = await response.json();
         setUserData(data.user);
+        // Refresh the shared cache so other pages show the new details at once.
+        getCurrentUser({ forceRefresh: true }).catch(() => {});
         setEditingItem(null);
         setError(null);
       } else {

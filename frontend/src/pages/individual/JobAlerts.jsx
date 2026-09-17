@@ -1,6 +1,6 @@
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import { getSidebarItems } from "../../utils/auth";
-import { FiBell, FiMapPin, FiBriefcase, FiClock, FiEye, FiBookmark, FiMail, FiSmartphone, FiCalendar, FiZap, FiSettings, FiPlus, FiSearch, FiX } from "react-icons/fi";
+import { FiBell, FiMapPin, FiBriefcase, FiClock, FiEye, FiBookmark, FiMail, FiSmartphone, FiCalendar, FiZap, FiSettings, FiPlus, FiSearch } from "react-icons/fi";
 
 export default function JobAlerts() {
   const role = typeof window !== "undefined" ? localStorage.getItem("authRole") : null;

@@ -201,7 +201,11 @@ def create_user():
 
 @api_bp.route("/users/<int:user_id>/full-profile", methods=["GET"])
 @jwt_required()
-@cached("user_profile", ttl=300, key_func=lambda user_id: f"user_{user_id}")
+# Security: the view enforces a per-requester relationship check, so the
+# requester must be part of the cache key. A target-only key would serve one
+# requester's authorized response to an unrelated requester on a cache HIT
+# (the HIT path returns before the view body runs).
+@cached("user_profile", ttl=300, key_func=lambda user_id: f"{get_jwt_identity()}:user_{user_id}")
 def get_user_full_profile(user_id):
     """Full profile: the user themselves, or a hiring manager whose org has
     an application or interview relationship with that user."""

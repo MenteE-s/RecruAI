@@ -61,6 +61,7 @@ export default function IndividualDashboard() {
   const [showApplyConfirm, setShowApplyConfirm] = useState(false);
   const [selectedJob, setSelectedJob] = useState(null);
   const [applying, setApplying] = useState(false);
+  const [nextInterview, setNextInterview] = useState(null);
 
   const PER_PAGE = 10;
 
@@ -82,16 +83,36 @@ export default function IndividualDashboard() {
     const loadData = async () => {
       setLoading(true);
       try {
-        // Parallel: user (shared cached /me single-flight) + jobs page 1.
+        // Parallel: user (shared cached /me single-flight) + jobs page 1 + next interview.
         // Previously user -> jobs -> saved -> applied were sequential awaits.
-        const [user, jobsPage] = await Promise.all([
+        const [user, jobsPage, upcomingList] = await Promise.all([
           getCurrentUser().catch(() => null),
           fetchJobsPage(1).catch(() => ({ list: [], more: false })),
+          (async () => {
+            try {
+              const ivRes = await fetch(`${getBackendUrl()}/api/interviews/upcoming`, {
+                credentials: "include",
+                headers: getAuthHeaders(),
+              });
+              if (!ivRes.ok) return [];
+              const ivData = await ivRes.json();
+              return ivData.interviews || [];
+            } catch {
+              return [];
+            }
+          })(),
         ]);
         if (cancelled) return;
         if (user) setUserData(user);
         setJobs(jobsPage.list);
         setHasMore(jobsPage.more);
+        const next = (upcomingList || [])
+          .filter((iv) => iv.status !== "cancelled" && iv.status !== "completed")
+          .map((iv) => ({ ...iv, _at: new Date(iv.scheduled_at_iso || iv.scheduled_at).getTime() }))
+          .filter((iv) => !Number.isNaN(iv._at))
+          .sort((a, b) => a._at - b._at)
+          .filter((iv) => iv._at >= Date.now() - 2 * 60 * 60 * 1000)[0] || null;
+        setNextInterview(next);
         const userId = user?.id || null;
 
         if (userId) {
@@ -258,6 +279,17 @@ export default function IndividualDashboard() {
     return formatDate(dateString);
   };
 
+  const countdownTo = (ts) => {
+    const diffMs = ts - Date.now();
+    if (diffMs <= 0) return "Now";
+    const mins = Math.floor(diffMs / 60000);
+    if (mins < 60) return `in ${mins}m`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `in ${hours}h${mins % 60 ? ` ${mins % 60}m` : ""}`;
+    const days = Math.floor(hours / 24);
+    return `in ${days}d${hours % 24 ? ` ${hours % 24}h` : ""}`;
+  };
+
   // Right rail — all derived from real loaded jobs
   const recentJobs = useMemo(() => {
     return [...jobs]
@@ -364,7 +396,57 @@ export default function IndividualDashboard() {
           </div>
 
           <div className="bg-white border border-gray-200 rounded-xl px-3 py-2.5 shadow-sm">
-            <h3 className="text-xs font-bold text-gray-900">Activity</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-bold text-gray-900">Next interview</h3>
+              <button onClick={() => navigate("/interviews")} className="text-[11px] font-semibold text-blue-600 hover:underline">
+                All →
+              </button>
+            </div>
+            {loading ? (
+              <p className="text-[11px] text-gray-400 mt-1.5">Loading…</p>
+            ) : nextInterview ? (
+              <button onClick={() => navigate(`/interviews/${nextInterview.id}`)} className="w-full text-left mt-1.5 group">
+                <p className="text-xs font-semibold text-gray-900 group-hover:text-blue-700 leading-tight truncate">
+                  {nextInterview.title || "Interview"}
+                </p>
+                <p className="text-[11px] text-gray-500 truncate mt-px">
+                  {nextInterview.organization || ""}
+                </p>
+                <p className="mt-1 inline-block text-[11px] font-bold text-blue-700 bg-blue-50 border border-blue-100 px-1.5 py-px rounded-full">
+                  {countdownTo(nextInterview._at)}
+                </p>
+              </button>
+            ) : (
+              <p className="text-[11px] text-gray-400 mt-1.5">Nothing scheduled.</p>
+            )}
+          </div>
+
+          {/* From MenteE — plain promo links, no card */}
+          <div className="px-1 pt-1">
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">From MenteE</p>
+            <div className="mt-1.5 space-y-1">
+              <a href="https://menteeai.org/products/recruai" target="_blank" rel="noopener noreferrer" className="block text-[11px] font-semibold text-gray-700 hover:text-blue-600 hover:underline leading-snug">
+                RecruAI — AI hiring platform
+              </a>
+              <a href="https://menteeai.org/products/swe" target="_blank" rel="noopener noreferrer" className="block text-[11px] font-semibold text-gray-700 hover:text-blue-600 hover:underline leading-snug">
+                MenteE SWE — terminal AI agent
+              </a>
+              <a href="https://menteeai.org/embed-models" target="_blank" rel="noopener noreferrer" className="block text-[11px] font-semibold text-gray-700 hover:text-blue-600 hover:underline leading-snug">
+                mentee-embed — trilingual AI models
+              </a>
+              <a href="https://menteeai.org/careers" target="_blank" rel="noopener noreferrer" className="block text-[11px] font-semibold text-gray-700 hover:text-blue-600 hover:underline leading-snug">
+                Careers at MenteE
+              </a>
+            </div>
+            <div className="mt-1.5 flex items-center gap-2 text-[11px]">
+              <a href="https://www.linkedin.com/company/menteeai" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-blue-600 hover:underline">LinkedIn</a>
+              <span className="text-gray-200">·</span>
+              <a href="https://x.com/menteeaiorg" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-blue-600 hover:underline">X</a>
+              <span className="text-gray-200">·</span>
+              <a href="https://github.com/MenteE-s/mentee-embeddings" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-blue-600 hover:underline">GitHub</a>
+              <span className="text-gray-200">·</span>
+              <a href="https://menteeai.org/contact" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-blue-600 hover:underline">Contact</a>
+            </div>
           </div>
         </aside>
 
@@ -458,6 +540,8 @@ export default function IndividualDashboard() {
                         <img
                           src={getUploadUrl(job.organization.profile_image)}
                           alt={orgName}
+                          loading="lazy"
+                          decoding="async"
                           className="w-8 h-8 rounded-md object-cover border border-gray-200 bg-gray-100 shrink-0"
                         />
                       ) : (
@@ -570,25 +654,54 @@ export default function IndividualDashboard() {
         <aside className="lg:col-span-3 space-y-3 order-3">
           {/* Recent jobs */}
           <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-3">
-            <h3 className="text-xs font-bold text-gray-900">Recent jobs</h3>
-            <div className="mt-1 divide-y divide-gray-100">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-bold text-gray-900">Recent jobs</h3>
+              <span className="text-[10px] font-semibold text-blue-600 bg-blue-50 border border-blue-100 px-1.5 py-px rounded-full">
+                {recentJobs.length} new
+              </span>
+            </div>
+            <div className="mt-1.5 space-y-1">
               {recentJobs.length === 0 && (
-                <p className="text-[11px] text-gray-400 py-2">No openings yet.</p>
+                <p className="text-[11px] text-gray-400 py-2 text-center">No openings yet.</p>
               )}
-              {recentJobs.map((j) => (
-                <button
-                  key={`recent-${j.id}`}
-                  onClick={() => navigate(`/jobs/${j.id}`)}
-                  className="w-full text-left py-2 group"
-                >
-                  <p className="text-xs font-semibold text-gray-900 group-hover:text-blue-600 group-hover:underline leading-tight line-clamp-1">
-                    {j.title}
-                  </p>
-                  <p className="text-[11px] text-gray-400 truncate mt-0.5">
-                    {j.organization?.name || "Unknown"} · {timeAgo(j.created_at)}
-                  </p>
-                </button>
-              ))}
+              {recentJobs.map((j) => {
+                const isNew = j.created_at && Date.now() - new Date(j.created_at).getTime() < 24 * 60 * 60 * 1000;
+                const orgName = j.organization?.name || "Unknown";
+                return (
+                  <button
+                    key={`recent-${j.id}`}
+                    onClick={() => navigate(`/jobs/${j.id}`)}
+                    className="w-full flex items-center gap-2 p-1.5 -mx-1.5 rounded-lg hover:bg-blue-50/60 text-left group transition-colors"
+                  >
+                    {j.organization?.profile_image ? (
+                      <img
+                        src={getUploadUrl(j.organization.profile_image)}
+                        alt={orgName}
+                        loading="lazy"
+                        decoding="async"
+                        className="w-8 h-8 rounded-lg object-cover border border-gray-200 shrink-0"
+                      />
+                    ) : (
+                      <div className="w-8 h-8 rounded-lg bg-gray-900 text-white flex items-center justify-center text-[11px] font-bold shrink-0">
+                        {getCompanyInitials(orgName)}
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-gray-900 group-hover:text-blue-700 leading-tight truncate">
+                        {j.title}
+                      </p>
+                      <p className="text-[11px] text-gray-400 truncate mt-px">
+                        {orgName} · {timeAgo(j.created_at)}
+                      </p>
+                    </div>
+                    {isNew && (
+                      <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-px rounded-full shrink-0">
+                        NEW
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -638,6 +751,8 @@ export default function IndividualDashboard() {
                     <img
                       src={getUploadUrl(c.image)}
                       alt={c.name}
+                      loading="lazy"
+                      decoding="async"
                       className="w-7 h-7 rounded-md object-cover border border-gray-200 shrink-0"
                     />
                   ) : (
