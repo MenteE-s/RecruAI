@@ -5,8 +5,9 @@ from dotenv import load_dotenv
 # Load backend/.env so imports that evaluate at module import time (like
 # Config.SQLALCHEMY_DATABASE_URI) pick up the DATABASE_URL when CLI or
 # scripts import this module from repo root.
+# Use override=True so backend/.env wins over repo-root .env that Flask auto-loads (which has docker hosts kafka:29092 / redis:6379)
 here = os.path.dirname(os.path.abspath(__file__))
-load_dotenv(os.path.join(here, ".env"))
+load_dotenv(os.path.join(here, ".env"), override=True)
 
 
 class Config:
@@ -15,29 +16,37 @@ class Config:
     DATABASE_URL example: postgresql://user:pass@host:5432/dbname
     """
 
-    # Detect if we're in production (Railway sets RAILWAY_ENVIRONMENT)
-    IS_PRODUCTION = os.getenv("RAILWAY_ENVIRONMENT") is not None or os.getenv("PRODUCTION") == "1"
+    # Detect if we're in production. Set PRODUCTION=1 (or FLASK_ENV=production)
+    # on any VPS/EC2 host; RAILWAY_ENVIRONMENT covers Railway.
+    IS_PRODUCTION = (
+        os.getenv("RAILWAY_ENVIRONMENT") is not None
+        or os.getenv("PRODUCTION") == "1"
+        or os.getenv("IS_PRODUCTION") == "1"
+        or os.getenv("FLASK_ENV") == "production"
+    )
 
     SQLALCHEMY_DATABASE_URI = os.getenv(
         "DATABASE_URL",
         # Local dev default: prefer Postgres at default creds per developer request.
-        "postgresql://postgres:mentee@localhost:5432/recruia",
+        "postgresql://recruai:recruai_pass@localhost:5432/recruai",
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # Security: Strong secret keys required
     SECRET_KEY = os.getenv("SECRET_KEY")
-    if not SECRET_KEY and IS_PRODUCTION:
-        raise ValueError("SECRET_KEY environment variable is required in production")
+    if IS_PRODUCTION:
+        if not SECRET_KEY or SECRET_KEY == "dev-secret-change-in-production":
+            raise ValueError("SECRET_KEY environment variable is required in production")
     elif not SECRET_KEY:
         SECRET_KEY = "dev-secret-change-in-production"  # Better default for dev
 
     # JWT uses its own key, but default to SECRET_KEY when not provided
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", SECRET_KEY)
+    if IS_PRODUCTION and JWT_SECRET_KEY == "dev-secret-change-in-production":
+        raise ValueError("JWT_SECRET_KEY environment variable is required in production")
 
     # Security: Enhanced JWT settings
-    jwt_location = "headers" if IS_PRODUCTION else "cookies"
-    JWT_TOKEN_LOCATION = os.getenv("JWT_TOKEN_LOCATION", jwt_location).split(",")
+    JWT_TOKEN_LOCATION = ["headers", "cookies"]
     JWT_COOKIE_SECURE = os.getenv("JWT_COOKIE_SECURE", "1" if IS_PRODUCTION else "0") == "1"
     JWT_COOKIE_SAMESITE = os.getenv("JWT_COOKIE_SAMESITE", "None" if IS_PRODUCTION else "Lax")
     # Enable CSRF protection in production for additional security
@@ -47,19 +56,35 @@ class Config:
     from datetime import timedelta
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES_HOURS", "2")))  # 2 hours instead of 24
 
+    # Kafka configuration. Toggle with KAFKA_ENABLED=1 (needs a reachable
+    # broker at KAFKA_BOOTSTRAP_SERVERS); default off for small hosts.
+    KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
+    KAFKA_ENABLED = os.getenv("KAFKA_ENABLED", "0") == "1"
+
+    # Redis configuration
+    REDIS_URL = os.getenv(
+        "REDIS_URL",
+        "redis://127.0.0.1:6379/0"
+    )
+    REDIS_ENABLED = os.getenv("REDIS_ENABLED", "1") == "1"
+    REDIS_MAX_CONNECTIONS = int(os.getenv("REDIS_MAX_CONNECTIONS", "20"))
+
     # Security: Request size limits
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max request size
 
     # CORS configuration - auto-detect based on environment
     FRONTEND_ORIGIN = os.getenv(
         "FRONTEND_ORIGIN",
-        "https://recru-ai-lime.vercel.app" if IS_PRODUCTION else "http://localhost:3000"
+        "https://recruai.yourdomain.com" if IS_PRODUCTION else "http://localhost:3000"
     )
 
-    # API configuration
+    # Server port - single source of truth, override via .env PORT
+    PORT = int(os.getenv("PORT", "8000"))
+
+    # API configuration - reads from .env, fallback uses PORT env var (no hardcoded port duplicated)
     API_BASE_URL = os.getenv(
         "API_BASE_URL",
-        "https://recruai-production.up.railway.app" if IS_PRODUCTION else "http://localhost:5000"
+        "https://recruai.yourdomain.com" if IS_PRODUCTION else f"http://localhost:{os.getenv('PORT', '8000')}"
     )
 
     # Security: Rate limiting configuration
@@ -107,7 +132,8 @@ class Config:
 
     @property
     def EMBEDDING_DIMENSIONS(self):
-        return int(os.getenv("EMBEDDING_DIMENSIONS", "1536"))
+        # all-MiniLM-L6-v2 (HF space + pgvector columns) is 384-dim.
+        return int(os.getenv("EMBEDDING_DIMENSIONS", "384"))
 
     @property
     def OPENAI_API_KEY(self):

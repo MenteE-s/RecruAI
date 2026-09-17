@@ -6,6 +6,7 @@ import {
   getSidebarItems,
   getBackendUrl,
   getAuthHeaders,
+  getCurrentUser,
 } from "../../utils/auth";
 
 export default function Reports() {
@@ -25,8 +26,9 @@ export default function Reports() {
 
   const fetchAnalytics = async () => {
     try {
-      // Get organization ID from user context (placeholder for now)
-      const orgId = 1; // TODO: Get from user context
+      const me = await getCurrentUser();
+      const orgId = me?.organization_id;
+      if (!orgId) { setError("No organization found for this user"); setLoading(false); return; }
       const response = await fetch(
         `${getBackendUrl()}/api/organizations/${orgId}/analytics`,
         {
@@ -68,14 +70,14 @@ export default function Reports() {
       sidebarItems={sidebarItems}
     >
       <div className="mb-6">
-        <div className="rounded-2xl p-6 bg-gradient-to-br from-indigo-600/80 via-purple-600/60 to-cyan-500/60 text-white shadow-lg">
+        <div className="rounded-2xl p-6 bg-white border border-gray-200 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold font-display">
-                Interview Analytics
+              <h1 className="text-2xl md:text-3xl font-bold font-display text-gray-900">
+                Reports
               </h1>
-              <p className="mt-1 text-white/90">
-                Comprehensive insights into your recruitment performance
+              <p className="mt-1 text-gray-500">
+                View and generate recruitment reports
               </p>
             </div>
           </div>

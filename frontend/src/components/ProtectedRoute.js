@@ -1,12 +1,11 @@
 // src/components/ProtectedRoute.js
 import { Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { getAuthHeaders } from "../utils/auth";
+import { verifyTokenWithServer } from "../utils/auth";
+import MenteeLoader from "./ui/MenteeLoader";
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "";
-
-// ProtectedRoute now performs a lightweight token validation with the backend
-// If a token exists we call /api/auth/me to verify it and refresh the stored role.
+// Uses the shared short-TTL cached /api/auth/me (single-flight) so mounting
+// N protected routes does not fan out N network verifies.
 export default function ProtectedRoute({ children }) {
   const [checking, setChecking] = useState(true);
   const [ok, setOk] = useState(false);
@@ -15,49 +14,10 @@ export default function ProtectedRoute({ children }) {
     let cancelled = false;
 
     (async () => {
-      // Check if token exists before making the request
-      const token = localStorage.getItem("access_token");
-      if (!token) {
-        if (!cancelled) {
-          setChecking(false);
-          setOk(false);
-        }
-        return;
-      }
-
       try {
-        // rely on HttpOnly cookies; include credentials so browser sends the cookie
-        const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
-          credentials: "include",
-          headers: getAuthHeaders(),
-        });
-        // debug log
-        // eslint-disable-next-line no-console
-        console.log("/api/auth/me status:", res.status);
-        if (!res.ok) {
-          // clear any local flags and let the user sign in again
-          localStorage.removeItem("access_token");
-          localStorage.removeItem("isAuthenticated");
-          localStorage.removeItem("authRole");
-          if (!cancelled) setOk(false);
-        } else {
-          const data = await res.json();
-          if (!cancelled) {
-            // mark authenticated in localStorage
-            localStorage.setItem("isAuthenticated", "true");
-            if (data.user && data.user.role) {
-              localStorage.setItem("authRole", data.user.role);
-            }
-            setOk(true);
-          }
-        }
-      } catch (err) {
-        // network error - be conservative: treat as not authenticated
-        // eslint-disable-next-line no-console
-        console.error("/api/auth/me network error:", err);
-        localStorage.removeItem("access_token");
-        localStorage.removeItem("isAuthenticated");
-        localStorage.removeItem("authRole");
+        const user = await verifyTokenWithServer();
+        if (!cancelled) setOk(!!user);
+      } catch {
         if (!cancelled) setOk(false);
       } finally {
         if (!cancelled) setChecking(false);
@@ -69,7 +29,12 @@ export default function ProtectedRoute({ children }) {
     };
   }, []);
 
-  if (checking) return null; // or a loader component
+  if (checking)
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <MenteeLoader size={64} />
+      </div>
+    );
   if (!ok) return <Navigate to="/signin" replace />;
   return children;
 }

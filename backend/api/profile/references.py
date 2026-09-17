@@ -50,7 +50,7 @@ def update_reference(ref_id):
 
     data = request.get_json()
     for key, value in data.items():
-        if hasattr(reference, key):
+        if key not in ('id', 'user_id') and hasattr(reference, key):
             setattr(reference, key, value)
 
     db.session.commit()

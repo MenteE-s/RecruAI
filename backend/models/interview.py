@@ -66,6 +66,35 @@ class Interview(db.Model):
     def __repr__(self):
         return f"<Interview {self.title}>"
 
+    def _get_interviewers_list(self):
+        import json
+        if not self.interviewers:
+            return []
+        
+        try:
+            val = json.loads(self.interviewers)
+            if isinstance(val, list):
+                # Ensure each element is a dict or string
+                return val
+            return [val] # if it's a single object or string
+        except (ValueError, TypeError, json.JSONDecodeError):
+            # If not valid JSON, it might be a comma-separated list or single name
+            if isinstance(self.interviewers, str):
+                if "," in self.interviewers:
+                    return [{"name": x.strip()} for x in self.interviewers.split(",")]
+                return [{"name": self.interviewers}]
+            return []
+
+    def _get_json_list(self, field_value):
+        import json
+        if not field_value:
+            return []
+        try:
+            val = json.loads(field_value)
+            return val if isinstance(val, list) else [val]
+        except:
+            return [field_value] if isinstance(field_value, str) else []
+
     def to_dict(self):
         import json
         return {
@@ -88,7 +117,7 @@ class Interview(db.Model):
             "status": self.status,
             "feedback": self.feedback,
             "rating": self.rating,
-            "interviewers": json.loads(self.interviewers) if self.interviewers else [],
+            "interviewers": self._get_interviewers_list(),
             "ai_agent_id": self.ai_agent_id,
             "ai_agent": self.ai_agent.to_dict() if self.ai_agent else None,
             "practice_ai_agent_id": self.practice_ai_agent_id,
@@ -103,8 +132,8 @@ class Interview(db.Model):
             "completed_at": self.completed_at.isoformat() if self.completed_at else None,
             "decision_history": [dh.to_dict() for dh in self.decision_history] if self.decision_history else [],
             "analysis_data": self.analysis_data,
-            "strengths": json.loads(self.strengths) if self.strengths else [],
-            "improvements": json.loads(self.improvements) if self.improvements else [],
+            "strengths": self._get_json_list(self.strengths),
+            "improvements": self._get_json_list(self.improvements),
             "organization": self.organization.name if self.organization else None,
             "post_title": self.post.title if self.post else None,
             "user_name": self.user.name if self.user else None,

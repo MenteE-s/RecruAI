@@ -56,6 +56,11 @@ class User(db.Model):
 
     interviews = db.relationship("Interview", back_populates="user", cascade="all, delete-orphan")
 
+    # Referral tracking (lenient — store whatever email is typed; link only on match)
+    referred_by_email = db.Column(db.String(120), nullable=True)
+    referred_by_user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    referred_by = db.relationship("User", remote_side=[id], backref="referrals", foreign_keys=[referred_by_user_id])
+
     def __repr__(self):
         return f"<User {self.email}>"
 
@@ -133,6 +138,9 @@ class User(db.Model):
             "current_company_id": self.current_company_id,
             "hired_date": self.hired_date.isoformat() if self.hired_date else None,
             "onboarded_date": self.onboarded_date.isoformat() if self.onboarded_date else None,
+            # Referral
+            "referred_by_email": self.referred_by_email,
+            "referred_by_user_id": self.referred_by_user_id,
         }
 
     def to_public_dict(self):
@@ -199,6 +207,7 @@ class User(db.Model):
     def track_token_usage(self, provider: str, model: str, tokens: int, operation_type: str):
         """Track token usage for billing/analytics"""
         from backend.models.token_usage import TokenUsage
+        from sqlalchemy import text
 
         # Create token usage record
         usage = TokenUsage(
@@ -210,10 +219,12 @@ class User(db.Model):
         )
         db.session.add(usage)
 
-        # Update user's total token count
-        if self.tokens_used is None:
-            self.tokens_used = 0
-        self.tokens_used += tokens
+        # Increment via raw SQL to avoid session-mismatch issues
+        # (caller may have loaded this User from a different session)
+        db.session.execute(
+            text("UPDATE users SET tokens_used = COALESCE(tokens_used, 0) + :t WHERE id = :id"),
+            {"t": tokens, "id": self.id}
+        )
 
         db.session.commit()
 

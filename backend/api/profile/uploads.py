@@ -7,6 +7,40 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy import desc
 import os
 from werkzeug.utils import secure_filename
+from ...api.notifications.routes import create_profile_notification
+from ...utils.kafka_service import kafka_service as kafka
+from datetime import datetime
+
+
+_ALLOWED_IMAGE_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+_IMAGE_MAGIC = {
+    'png': [b'\x89PNG\r\n\x1a\n'],
+    'jpg': [b'\xff\xd8\xff'],
+    'jpeg': [b'\xff\xd8\xff'],
+    'gif': [b'GIF87a', b'GIF89a'],
+}
+
+
+def _validate_image_upload(file, max_bytes=5 * 1024 * 1024):
+    """Validate an uploaded image. Returns (True, extension) or (False, error)."""
+    name = (file.filename or '').lower()
+    if '.' not in name:
+        return False, 'Invalid file type. Only PNG, JPG, JPEG, and GIF are allowed'
+    ext = name.rsplit('.', 1)[1]
+    if ext not in _ALLOWED_IMAGE_EXTENSIONS:
+        return False, 'Invalid file type. Only PNG, JPG, JPEG, and GIF are allowed'
+    file.seek(0, os.SEEK_END)
+    if file.tell() > max_bytes:
+        file.seek(0)
+        return False, 'File too large. Maximum size is 5MB'
+    file.seek(0)
+    head = file.read(10)
+    file.seek(0)
+    if not any(head.startswith(m) for m in _IMAGE_MAGIC[ext]):
+        return False, 'File content does not match its image type'
+    return True, ext
+
+
 @api_bp.route('/profile/user/<int:user_id>', methods=['GET'])
 @jwt_required()
 def get_user_profile(user_id):
@@ -105,6 +139,29 @@ def get_user_profile(user_id):
             } for tm in hired_team_members
         ]
 
+        # Create notification if organization is viewing individual's profile
+        if (current_user.role == 'organization' and target_user.role == 'individual' and
+            current_user_id_int != user_id):  # Not viewing own profile
+            try:
+                create_profile_notification(
+                    user_id=target_user.id,
+                    notification_type="profile_viewed",
+                    title=f"Profile Viewed by {current_user.organization.name if current_user.organization else 'Organization'}",
+                    message=f"Your profile has been viewed by {current_user.organization.name if current_user.organization else 'an organization'}.",
+                    related_user_id=current_user.id,
+                    related_org_id=current_user.organization_id
+                )
+                
+                # Emit Kafka event for profile view
+                kafka.emit_event('profile_viewed', {
+                    'viewer_id': current_user.id,
+                    'viewer_org_id': current_user.organization_id,
+                    'target_user_id': target_user.id,
+                    'timestamp': datetime.utcnow().isoformat()
+                })
+            except Exception as e:
+                print(f"Failed to create profile view notification: {e}")
+
         return jsonify(profile_data), 200
     except Exception as e:
         import traceback
@@ -135,25 +192,16 @@ def upload_profile_picture():
     if file.filename == '':
         return jsonify({'error': 'No file selected'}), 400
 
-    # Validate file type
-    allowed_extensions = {'png', 'jpg', 'jpeg', 'gif'}
-    if not file.filename.lower().split('.')[-1] in allowed_extensions:
-        return jsonify({'error': 'Invalid file type. Only PNG, JPG, JPEG, and GIF are allowed'}), 400
+    # Validate file type, size, and magic bytes (blocks polyglot/renamed files)
+    valid, ext_or_error = _validate_image_upload(file)
+    if not valid:
+        return jsonify({'error': ext_or_error}), 400
+    unique_filename = f"user_{user_id_int}_profile.{ext_or_error}"
 
-    # Validate file size (max 5MB)
-    file.seek(0, os.SEEK_END)
-    file_size = file.tell()
-    file.seek(0)
-    if file_size > 5 * 1024 * 1024:  # 5MB
-        return jsonify({'error': 'File too large. Maximum size is 5MB'}), 400
-
-    # Secure filename and create unique filename
-    filename = secure_filename(file.filename)
-    extension = filename.rsplit('.', 1)[1].lower()
-    unique_filename = f"user_{user_id_int}_profile.{extension}"
-
-    # Save file
-    upload_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'uploads', 'profile_pictures', unique_filename)
+    # Save file (create the directory on fresh clones/containers)
+    upload_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'uploads', 'profile_pictures')
+    os.makedirs(upload_dir, exist_ok=True)
+    upload_path = os.path.join(upload_dir, unique_filename)
     file.save(upload_path)
 
     # Update user profile picture path
@@ -161,13 +209,21 @@ def upload_profile_picture():
     user.profile_picture = profile_picture_url
     try:
         db.session.commit()
+        
+        # Emit Kafka event for profile picture upload
+        kafka.emit_event('profile_picture_updated', {
+            'user_id': user_id_int,
+            'profile_picture_url': profile_picture_url,
+            'timestamp': datetime.utcnow().isoformat()
+        })
+        
         return jsonify({
             'message': 'Profile picture uploaded successfully',
             'profile_picture': profile_picture_url
         }), 200
     except Exception as e:
         db.session.rollback()
-        return jsonify({"error": f"Failed to update profile picture: {str(e)}"}), 500
+        return jsonify({"error": "Failed to update profile picture"}), 500
 
 
 # Banner Upload endpoint
@@ -193,22 +249,11 @@ def upload_banner():
     if file.filename == '':
         return jsonify({'error': 'No file selected'}), 400
 
-    # Validate file type
-    allowed_extensions = {'png', 'jpg', 'jpeg', 'gif'}
-    if not file.filename.lower().split('.')[-1] in allowed_extensions:
-        return jsonify({'error': 'Invalid file type. Only PNG, JPG, JPEG, and GIF are allowed'}), 400
-
-    # Validate file size (max 5MB)
-    file.seek(0, os.SEEK_END)
-    file_size = file.tell()
-    file.seek(0)
-    if file_size > 5 * 1024 * 1024:  # 5MB
-        return jsonify({'error': 'File too large. Maximum size is 5MB'}), 400
-
-    # Secure filename and create unique filename
-    filename = secure_filename(file.filename)
-    extension = filename.rsplit('.', 1)[1].lower()
-    unique_filename = f"user_{user_id_int}_banner.{extension}"
+    # Validate file type, size, and magic bytes (blocks polyglot/renamed files)
+    valid, ext_or_error = _validate_image_upload(file)
+    if not valid:
+        return jsonify({'error': ext_or_error}), 400
+    unique_filename = f"user_{user_id_int}_banner.{ext_or_error}"
 
     # Create banners directory if it doesn't exist
     banners_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'uploads', 'banners')
@@ -224,10 +269,18 @@ def upload_banner():
     user.banner = banner_url
     try:
         db.session.commit()
+        
+        # Emit Kafka event for banner upload
+        kafka.emit_event('profile_banner_updated', {
+            'user_id': user_id_int,
+            'banner_url': banner_url,
+            'timestamp': datetime.utcnow().isoformat()
+        })
+        
         return jsonify({
             'message': 'Banner uploaded successfully',
             'banner': banner_url
         }), 200
     except Exception as e:
         db.session.rollback()
-        return jsonify({"error": f"Failed to update banner: {str(e)}"}), 500
+        return jsonify({"error": "Failed to update banner"}), 500

@@ -1,12 +1,12 @@
 import os
 from dotenv import load_dotenv
-from flask import Flask, jsonify, send_from_directory
+from flask import Flask, jsonify, send_from_directory, request
 
 # support running as a module (recommended) and as a script
 try:
 	# when used as a package (python -m backend.app or via flask)
 	from .config import Config
-	from .extensions import db, migrate, jwt
+	from .extensions import db, migrate, jwt, socketio
 	from .api import api_bp
 	from .ai_providers import get_ai_provider_manager
 except Exception:
@@ -31,6 +31,7 @@ except Exception:
 	db = backend_extensions.db  # type: ignore
 	migrate = backend_extensions.migrate  # type: ignore
 	jwt = backend_extensions.jwt  # type: ignore
+	socketio = backend_extensions.socketio # type: ignore
 	api_bp = backend_api.api_bp  # type: ignore
 
 	ai_providers_module = importlib.import_module("backend.ai_providers")
@@ -48,7 +49,7 @@ def create_app(config_object: object | None = None):
 	# the repo root still pick up the correct DATABASE_URL.
 	here = os.path.dirname(os.path.abspath(__file__))
 	dotenv_path = os.path.join(here, ".env")
-	load_dotenv(dotenv_path)
+	load_dotenv(dotenv_path, override=True)
 
 	app = Flask(__name__)
 	app.config.from_object(config_object or Config)
@@ -56,9 +57,22 @@ def create_app(config_object: object | None = None):
 	# Security: Set max content length
 	app.config['MAX_CONTENT_LENGTH'] = app.config.get('MAX_CONTENT_LENGTH', 16 * 1024 * 1024)  # 16MB
 
+	# Allowed frontend origins (comma-separated FRONTEND_ORIGIN); single source
+	# used by Flask-CORS and Socket.IO so credentialed requests match.
+	frontend_origin = app.config.get("FRONTEND_ORIGIN", "http://localhost:3000")
+	origins_list = [o.strip().rstrip("/") for o in frontend_origin.split(",") if o.strip()]
+
 	# initialize extensions
 	db.init_app(app)
 	migrate.init_app(app, db)
+
+	# Register pgvector psycopg2 adapter so lists are sent as vector type in queries
+	from sqlalchemy import event
+	from pgvector.psycopg2 import register_vector
+	with app.app_context():
+		@event.listens_for(db.engine, 'connect')
+		def register_pgvector(dbapi_connection, connection_record):
+			register_vector(dbapi_connection)
 	# init JWT (raise if missing so we catch misconfiguration early)
 	# `jwt` is provided by the module-level import/fallback above so avoid
 	# package-relative imports here which break when the module is executed
@@ -67,6 +81,50 @@ def create_app(config_object: object | None = None):
 		raise RuntimeError("JWT extension not available; check backend.extensions")
 
 	jwt.init_app(app)
+	socketio.init_app(app, cors_allowed_origins=origins_list)
+
+	# JWT error handlers - return JSON instead of HTML
+	@jwt.expired_token_loader
+	def expired_token_callback(jwt_header, jwt_payload):
+		return jsonify({"error": "Token has expired", "code": "token_expired"}), 401
+
+	@jwt.invalid_token_loader
+	def invalid_token_callback(error):
+		return jsonify({"error": "Invalid token", "code": "invalid_token"}), 401
+
+	@jwt.unauthorized_loader
+	def missing_token_callback(error):
+		return jsonify({"error": "Authorization token is missing", "code": "authorization_required"}), 401
+
+	# Initialize Redis cache
+	try:
+		from .extensions import init_redis
+		init_redis(app)
+	except Exception as e:
+		print(f"Warning: Could not initialize Redis: {e}")
+
+	# Register socket events
+	with app.app_context():
+		from .api import sockets
+
+	# Initialize Kafka service (only if enabled)
+	if os.getenv("KAFKA_ENABLED", "0") == "1" or app.config.get("KAFKA_ENABLED", False):
+		try:
+			from .utils.kafka_service import KafkaService
+			kafka = KafkaService()
+			print(f"Kafka initialized with servers: {kafka.bootstrap_servers}")
+
+			# Start background consumer for Socket.IO bridging
+			from .utils.kafka_consumer import KafkaConsumerService
+			consumer = KafkaConsumerService(
+				bootstrap_servers=kafka.bootstrap_servers,
+				group_id='recruai-broadcast-group',
+				topics=[kafka.default_topic]
+			)
+			consumer.start(app, callback_map={}) # Add specific handlers if needed
+			print(f"Kafka Consumer started for real-time broadcasts on topic: {kafka.default_topic}")
+		except Exception as e:
+			print(f"Warning: Could not initialize Kafka: {e}")
 
 	# Initialize AI providers
 	try:
@@ -79,16 +137,29 @@ def create_app(config_object: object | None = None):
 		import traceback
 		traceback.print_exc()
 
-	# Security: Initialize rate limiter
+	# Security: Initialize rate limiter (Redis-backed when available so
+	# limits are shared across workers; falls back to memory otherwise).
 	try:
 		from flask_limiter import Limiter
 		from flask_limiter.util import get_remote_address
-		limiter = Limiter(
-			app=app,
-			key_func=get_remote_address,
-			storage_uri=app.config.get('RATELIMIT_STORAGE_URL', "memory://"),
-			strategy=app.config.get('RATELIMIT_STRATEGY', "fixed-window")
-		)
+		storage_uri = app.config.get('RATELIMIT_STORAGE_URL', "memory://")
+		if (not storage_uri or storage_uri == "memory://") and app.config.get("REDIS_ENABLED"):
+			storage_uri = app.config.get("REDIS_URL", "redis://127.0.0.1:6379/0")
+		try:
+			limiter = Limiter(
+				app=app,
+				key_func=get_remote_address,
+				storage_uri=storage_uri,
+				strategy=app.config.get('RATELIMIT_STRATEGY', "fixed-window")
+			)
+		except Exception as e:
+			print(f"Warning: Redis rate-limit storage unavailable ({e}); using memory://")
+			limiter = Limiter(
+				app=app,
+				key_func=get_remote_address,
+				storage_uri="memory://",
+				strategy=app.config.get('RATELIMIT_STRATEGY', "fixed-window")
+			)
 	except ImportError:
 		print("Warning: Flask-Limiter not installed. Rate limiting disabled.")
 		limiter = None
@@ -132,39 +203,25 @@ def create_app(config_object: object | None = None):
 	# enable CORS for API routes so frontend dev server can call /api/*
 	try:
 		from flask_cors import CORS  # type: ignore
-		# Restrict CORS origins to the frontend origin when available. In local
-		# development frontend commonly runs on http://localhost:3000; prefer an
-		# explicit origin over a wildcard to reduce CSRF risk for APIs.
-		frontend_origin = app.config.get("FRONTEND_ORIGIN", "http://localhost:3000")
-		# Support comma-separated list of origins
-		origins_list = [o.strip().rstrip("/") for o in frontend_origin.split(",")]
 		print(f"Setting CORS origins to: {origins_list}", flush=True)
 		CORS(app, origins=origins_list, supports_credentials=True, allow_headers=["Content-Type", "Authorization"], methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"], expose_headers=["Content-Type", "Authorization"])
-
-		# Ensure CORS headers are added to all responses, including errors
-		@app.after_request
-		def add_cors_headers(response):
-			response.headers['Access-Control-Allow-Origin'] = origins_list[0] if origins_list else 'http://localhost:3000'
-			response.headers['Access-Control-Allow-Credentials'] = 'true'
-			response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
-			response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
-			return response
 	except Exception as e:
 		print(f"Failed to configure CORS: {e}", flush=True)
-		# flask-cors not installed or not needed in production
 		pass
-
-	# Security: Apply rate limiting to auth endpoints
-	if limiter:
-		# Authentication endpoints - strict rate limiting
-		limiter.limit("10 per minute")(app.view_functions.get('api_bp.login', lambda: None))
-		limiter.limit("5 per minute")(app.view_functions.get('api_bp.register', lambda: None))
-
-		# General API endpoints - moderate rate limiting
-		limiter.limit("100 per minute")(app.view_functions.get('api_bp.me', lambda: None))
 
 	# register blueprints
 	app.register_blueprint(api_bp, url_prefix="/api")
+
+	# Security: Apply rate limiting to auth endpoints (must be after blueprint registration)
+	if limiter:
+		limiter.limit("10 per minute")(app.view_functions.get('api_bp.login', lambda: None))
+		limiter.limit("5 per minute")(app.view_functions.get('api_bp.register', lambda: None))
+		limiter.limit("100 per minute")(app.view_functions.get('api_bp.get_me', lambda: None))
+		# Spam-prone writes + expensive search
+		limiter.limit("30 per minute")(app.view_functions.get('api_bp.create_post', lambda: None))
+		limiter.limit("30 per minute")(app.view_functions.get('api_bp.create_application', lambda: None))
+		limiter.limit("30 per minute")(app.view_functions.get('api_bp.create_system_issue', lambda: None))
+		limiter.limit("60 per minute")(app.view_functions.get('recommendations.search_profiles', lambda: None))
 
 	# Register practice AI agents blueprint separately to avoid circular imports
 	try:
@@ -177,41 +234,46 @@ def create_app(config_object: object | None = None):
 		except ImportError as e:
 			print(f"Warning: Could not register practice AI agents blueprint: {e}")
 
-	# Error handlers for API routes - return JSON instead of HTML
+	# Register recommendations blueprint (blueprint has own url_prefix='/api/recommendations')
+	try:
+		from .api.recommendations import recommendations_bp
+		app.register_blueprint(recommendations_bp)
+	except ImportError:
+		try:
+			recommendations_module = importlib.import_module("backend.api.recommendations")
+			app.register_blueprint(recommendations_module.recommendations_bp)
+		except ImportError as e:
+			print(f"Warning: Could not register recommendations blueprint: {e}")
+
+	# Error handlers for API routes - return JSON instead of HTML.
+	# Messages are generic on purpose: exception text can leak internals.
 	@app.errorhandler(400)
 	def bad_request(error):
-		return jsonify({"error": "Bad Request", "message": str(error)}), 400
+		return jsonify({"error": "Bad Request"}), 400
 
 	@app.errorhandler(401)
 	def unauthorized(error):
-		return jsonify({"error": "Unauthorized", "message": str(error)}), 401
+		return jsonify({"error": "Unauthorized"}), 401
 
 	@app.errorhandler(403)
 	def forbidden(error):
-		return jsonify({"error": "Forbidden", "message": str(error)}), 403
+		return jsonify({"error": "Forbidden"}), 403
 
 	@app.errorhandler(404)
 	def not_found(error):
-		return jsonify({"error": "Not Found", "message": str(error)}), 404
+		return jsonify({"error": "Not Found"}), 404
 
 	@app.errorhandler(500)
 	def internal_error(error):
-	    response = jsonify({
-	        "error": "Internal Server Error",
-	        "message": str(error)
-	    })
-	    response.headers.add(
-	        "Access-Control-Allow-Origin", "http://localhost:3000"
-	    )
-	    response.headers.add(
-	        "Access-Control-Allow-Credentials", "true"
-	    )
-	    return response, 500
+	    # Flask-CORS already handles ACAO; do not echo origins or errors here.
+	    return jsonify({"error": "Internal Server Error"}), 500
 
-	# Serve uploaded files
+	# Serve uploaded files with MIME-sniffing protection
 	@app.route('/uploads/<path:filename>')
 	def uploaded_file(filename):
-		return send_from_directory(os.path.join(here, 'uploads'), filename)
+		resp = send_from_directory(os.path.join(here, 'uploads'), filename)
+		resp.headers.setdefault("X-Content-Type-Options", "nosniff")
+		return resp
 
 	# Security: set safer cookie flags for session cookies. These defaults help
 	# prevent client-side script access to session cookies and allow enabling
@@ -224,8 +286,9 @@ def create_app(config_object: object | None = None):
 
 	# Warn if secret keys are left as defaults - helpful during development to
 	# avoid accidentally running with weak keys in staging/production.
-	if app.config.get("SECRET_KEY") in (None, "dev-secret") or app.config.get("JWT_SECRET_KEY") in (None, app.config.get("SECRET_KEY")):
-		print("WARNING: SECRET_KEY or JWT_SECRET_KEY appears to be using a default value.\nSet SECRET_KEY and JWT_SECRET_KEY in backend/.env for secure deployments.")
+	# (Config already raises in production; this is a dev-time reminder.)
+	if app.config.get("SECRET_KEY") in (None, "dev-secret-change-in-production"):
+		print("WARNING: SECRET_KEY is using the dev default.\nSet SECRET_KEY and JWT_SECRET_KEY in backend/.env for secure deployments.")
 
 	# Add common security response headers to reduce several classes of attacks.
 	@app.after_request
@@ -243,17 +306,27 @@ def create_app(config_object: object | None = None):
 			response.headers.setdefault("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload")
 		return response
 
-	# debug: log Authorization header for /api/auth/me to help diagnose token issues
-	@app.before_request
-	def log_auth_header():
-		from flask import request
-		if request.path == "/api/auth/me":
-			# print the raw Authorization header (may be None)
-			print("DEBUG: Authorization header:", request.headers.get("Authorization"))
-
 	@app.route("/")
 	def index():
 		return jsonify({"status": "ok", "message": "RecruAI backend running"})
+
+	@app.route("/api/health")
+	def health_check():
+		"""Health check endpoint for Docker container monitoring"""
+		try:
+			# Check database connection
+			from sqlalchemy import text
+			db.session.execute(text("SELECT 1"))
+			db_status = "healthy"
+		except Exception as e:
+			print(f"Health check DB failure: {e}", flush=True)
+			db_status = "unhealthy"
+		
+		return jsonify({
+			"status": "ok" if db_status == "healthy" else "degraded",
+			"timestamp": __import__("datetime").datetime.utcnow().isoformat(),
+			"database": db_status
+		}), 200 if db_status == "healthy" else 503
 
 	# helpful shell context for `flask shell`
 	try:
@@ -361,5 +434,7 @@ def optimize_database():
 
 
 if __name__ == "__main__":
-	# quick dev runner
-	app.run(host="0.0.0.0", port=int(os.getenv("PORT", 5000)), debug=os.getenv("FLASK_DEBUG", "1") == "1")
+	# quick dev runner - PORT read from backend/.env (no hardcoded fallback duplicated).
+	# Debug defaults OFF and is forced off in production; opt in with FLASK_DEBUG=1.
+	_debug = os.getenv("FLASK_DEBUG", "0") == "1" and not app.config.get("IS_PRODUCTION")
+	app.run(host="0.0.0.0", port=app.config.get("PORT", int(os.getenv("PORT", "8000"))), debug=_debug)

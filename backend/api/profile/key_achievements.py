@@ -70,7 +70,7 @@ def update_key_achievement(ka_id):
 
     # Update other fields
     for key, value in data.items():
-        if key != 'date' and hasattr(key_achievement, key):
+        if key != 'date' and key not in ('id', 'user_id') and hasattr(key_achievement, key):
             setattr(key_achievement, key, value)
 
     db.session.commit()

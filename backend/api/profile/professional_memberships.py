@@ -88,7 +88,7 @@ def update_professional_membership(pm_id):
 
     # Update other fields
     for key, value in data.items():
-        if key not in ['start_date', 'end_date'] and hasattr(professional_membership, key):
+        if key not in ['start_date', 'end_date'] and key not in ('id', 'user_id') and hasattr(professional_membership, key):
             setattr(professional_membership, key, value)
 
     db.session.commit()

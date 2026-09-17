@@ -3,6 +3,7 @@ import json
 
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from ...utils.kafka_service import kafka_service as kafka
 
 # Create a separate blueprint for practice AI agents to avoid circular imports
 practice_ai_bp = Blueprint("practice_ai", __name__)
@@ -81,6 +82,15 @@ def create_practice_ai_agent():
     db.session.add(agent)
     db.session.commit()
 
+    # Emit Kafka event for practice AI agent creation
+    kafka.emit_event('practice_ai_agent_created', {
+        'agent_id': agent.id,
+        'user_id': agent.user_id,
+        'name': agent.name,
+        'industry': agent.industry,
+        'timestamp': datetime.utcnow().isoformat()
+    })
+
     return jsonify(agent.to_dict()), 201
 
 
@@ -124,6 +134,15 @@ def update_practice_ai_agent(agent_id):
     agent.updated_at = datetime.utcnow()
     db.session.commit()
 
+    # Emit Kafka event for practice AI agent update
+    kafka.emit_event('practice_ai_agent_updated', {
+        'agent_id': agent.id,
+        'user_id': agent.user_id,
+        'name': agent.name,
+        'industry': agent.industry,
+        'updated_at': agent.updated_at.isoformat()
+    })
+
     return jsonify(agent.to_dict()), 200
 
 
@@ -137,8 +156,17 @@ def delete_practice_ai_agent(agent_id):
     user_id = get_jwt_identity()
     agent = PracticeAIAgent.query.filter_by(id=agent_id, user_id=user_id).first_or_404()
 
+    agent_id_val = agent.id
+    user_id_val = agent.user_id
     db.session.delete(agent)
     db.session.commit()
+
+    # Emit Kafka event for practice AI agent deletion
+    kafka.emit_event('practice_ai_agent_deleted', {
+        'agent_id': agent_id_val,
+        'user_id': user_id_val,
+        'timestamp': datetime.utcnow().isoformat()
+    })
 
     return jsonify({"message": "Practice AI agent deleted successfully"}), 200
 
@@ -173,6 +201,16 @@ def schedule_practice_interview(agent_id):
     )
     db.session.add(interview)
     db.session.commit()
+    
+    # Emit Kafka event for practice interview scheduling
+    kafka.emit_event('practice_interview_scheduled', {
+        'interview_id': interview.id,
+        'user_id': interview.user_id,
+        'agent_id': agent.id,
+        'agent_name': agent.name,
+        'scheduled_at': interview.scheduled_at.isoformat(),
+        'timestamp': datetime.utcnow().isoformat()
+    })
     
     return {
         'id': interview.id,

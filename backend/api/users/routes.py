@@ -1,16 +1,31 @@
 from flask import request, jsonify
+from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from .. import api_bp
+from ..decorators import organization_required
 from ...extensions import db
 from ...models import (
     User, Experience, Education, Skill, Project, Certification,
     Award, Language, VolunteerExperience, Reference, HobbyInterest,
     ProfessionalMembership, Patent, CourseTraining, SocialMediaLink, KeyAchievement,
-    Favorite
+    Favorite, Application, Post, Interview, TeamMember
 )
 from ...utils.timezone_utils import get_timezone_list, is_valid_timezone, get_current_time_info
 from ...utils.security import log_security_event, sanitize_input, validate_email, validate_request_size
 from ...utils.pagination import Pagination, get_pagination_params, paginated_response, apply_filters_and_sorting, get_request_filters, get_sorting_params
+from ...api.notifications.routes import create_profile_notification
+from ...utils.kafka_service import kafka_service
+from ...utils.cache import cached, invalidate_user_cache
+
+
+def _own_id_or_403(user_id):
+    """Caller may act only as themselves; returns None or a 403 tuple."""
+    try:
+        if int(get_jwt_identity()) != int(user_id):
+            return jsonify({"error": "Forbidden"}), 403
+    except (TypeError, ValueError):
+        return jsonify({"error": "Invalid user identity"}), 400
+    return None
 
 
 @api_bp.route("/timezones", methods=["GET"])
@@ -20,8 +35,12 @@ def list_timezones():
 
 
 @api_bp.route("/users/<int:user_id>/timezone", methods=["PUT"])
+@jwt_required()
 def update_user_timezone(user_id):
-    """Update user's timezone preference."""
+    """Update user's timezone preference (own account only)."""
+    denied = _own_id_or_403(user_id)
+    if denied:
+        return denied
     user = User.query.get_or_404(user_id)
 
     try:
@@ -51,6 +70,18 @@ def update_user_timezone(user_id):
 
     log_security_event("timezone_updated", request.remote_addr, user_id, details={"timezone": tz})
 
+    # Emit Kafka event
+    kafka_service.emit_event(
+        "user_updated",
+        {
+            "user_id": user.id,
+            "field": "timezone",
+            "value": tz,
+            "message": f"User {user.name} updated their timezone to {tz}"
+        },
+        user_id=user.id
+    )
+
     return jsonify({
         "message": "Timezone updated",
         "user": user.to_dict(),
@@ -67,8 +98,24 @@ def get_user_current_time(user_id):
 
 
 @api_bp.route("/users", methods=["GET"])
+@jwt_required()
 def list_users():
-    """List users with pagination, filtering, and sorting support"""
+    """List users (organization-side hiring directory).
+
+    Individuals may not dump the user directory; organization accounts and
+    team members may browse candidates.
+    """
+    try:
+        me = User.query.get(int(get_jwt_identity()))
+    except (TypeError, ValueError):
+        return jsonify({"error": "Invalid user identity"}), 400
+    if not me:
+        return jsonify({"error": "user not found"}), 404
+    manages_any = bool(me.organization_id) or (
+        TeamMember.query.filter_by(user_id=me.id).first() is not None
+    )
+    if me.role != "organization" and not manages_any:
+        return jsonify({"error": "Forbidden: organization account required"}), 403
     # Get pagination parameters
     page, per_page = get_pagination_params()
 
@@ -96,6 +143,7 @@ def list_users():
 
 
 @api_bp.route("/users", methods=["POST"])
+@organization_required
 def create_user():
     try:
         payload = request.get_json()
@@ -111,10 +159,14 @@ def create_user():
 
     email = sanitize_input(payload.get("email", ""))
     name = sanitize_input(payload.get("name", ""))
+    role = sanitize_input(payload.get("role", "individual"))
 
     if not email:
         log_security_event("missing_email_create_user", request.remote_addr, None)
         return jsonify({"error": "email required"}), 400
+
+    if role not in ("individual", "organization"):
+        return jsonify({"error": "Invalid role specified"}), 400
 
     # Validate email format
     if not validate_email(email):
@@ -126,16 +178,63 @@ def create_user():
         log_security_event("duplicate_user_creation_attempt", request.remote_addr, None, email=email)
         return jsonify({"error": "email already exists"}), 400
 
-    user = User(email=email, name=name)
+    user = User(email=email, name=name, role=role)
     db.session.add(user)
     db.session.commit()
 
     log_security_event("user_created", request.remote_addr, user.id, email=email)
+
+    # Emit Kafka event
+    kafka_service.emit_event(
+        "user_created",
+        {
+            "user_id": user.id,
+            "email": email,
+            "name": name,
+            "message": f"New user created: {name} ({email})"
+        },
+        user_id=user.id
+    )
+
     return jsonify(user.to_dict()), 201
 
 
 @api_bp.route("/users/<int:user_id>/full-profile", methods=["GET"])
+@jwt_required()
+@cached("user_profile", ttl=300, key_func=lambda user_id: f"user_{user_id}")
 def get_user_full_profile(user_id):
+    """Full profile: the user themselves, or a hiring manager whose org has
+    an application or interview relationship with that user."""
+    try:
+        me_id = int(get_jwt_identity())
+    except (TypeError, ValueError):
+        return jsonify({"error": "Invalid user identity"}), 400
+    me = User.query.get_or_404(me_id)
+    if me.id != int(user_id):
+        managed_ids = set()
+        if me.organization_id:
+            managed_ids.add(me.organization_id)
+        for tm in TeamMember.query.filter_by(user_id=me.id).all():
+            managed_ids.add(tm.organization_id)
+        related = False
+        if managed_ids:
+            related = (
+                Application.query.join(Post, Application.post_id == Post.id)
+                .filter(
+                    Application.user_id == user_id,
+                    Post.organization_id.in_(managed_ids),
+                )
+                .first()
+                is not None
+            ) or (
+                Interview.query.filter(
+                    Interview.user_id == user_id,
+                    Interview.organization_id.in_(managed_ids),
+                ).first()
+                is not None
+            )
+        if not related:
+            return jsonify({"error": "Forbidden"}), 403
     user = User.query.get_or_404(user_id)
 
     # Get all profile data
@@ -164,8 +263,12 @@ def get_user_full_profile(user_id):
 
 
 @api_bp.route("/users/<int:user_id>/toggle-favorite/<int:target_user_id>", methods=["POST"])
+@jwt_required()
 def toggle_favorite(user_id, target_user_id):
-    """Toggle favorite status for a user"""
+    """Toggle favorite status for a user (own list only)."""
+    denied = _own_id_or_403(user_id)
+    if denied:
+        return denied
     # Check if the favorite relationship already exists
     favorite = Favorite.query.filter_by(
         user_id=user_id, 
@@ -176,6 +279,19 @@ def toggle_favorite(user_id, target_user_id):
         # If favorite exists, remove it (unfavorite)
         db.session.delete(favorite)
         db.session.commit()
+
+        # Emit Kafka event
+        kafka_service.emit_event(
+            "favorite_toggled",
+            {
+                "user_id": user_id,
+                "target_user_id": target_user_id,
+                "favorited": False,
+                "message": "User removed from favorites"
+            },
+            user_id=user_id
+        )
+
         return jsonify({
             "favorited": False,
             "message": "User unfavorited successfully"
@@ -192,6 +308,32 @@ def toggle_favorite(user_id, target_user_id):
         )
         db.session.add(favorite)
         db.session.commit()
+
+        # Emit Kafka event
+        kafka_service.emit_event(
+            "favorite_toggled",
+            {
+                "user_id": user_id,
+                "target_user_id": target_user_id,
+                "favorited": True,
+                "message": f"User {target_user.name} added to favorites"
+            },
+            user_id=user_id
+        )
+
+        # Create notification for the favorited user
+        try:
+            create_profile_notification(
+                user_id=target_user.id,
+                notification_type="profile_favorited",
+                title=f"Profile Favorited by {user.name}",
+                message=f"Your profile has been favorited by {user.name} from {user.organization.name if user.organization else 'an organization'}.",
+                related_user_id=user.id,
+                related_org_id=user.organization_id if user.organization else None
+            )
+        except Exception as e:
+            print(f"Failed to create favorite notification: {e}")
+
         return jsonify({
             "favorited": True,
             "message": "User favorited successfully"
@@ -199,8 +341,12 @@ def toggle_favorite(user_id, target_user_id):
 
 
 @api_bp.route("/users/<int:user_id>/favorites", methods=["GET"])
+@jwt_required()
 def get_favorites(user_id):
-    """Get list of favorited users for a specific user"""
+    """Get list of favorited users for a specific user (own list only)."""
+    denied = _own_id_or_403(user_id)
+    if denied:
+        return denied
     user = User.query.get_or_404(user_id)
     
     # Get pagination parameters
@@ -222,8 +368,12 @@ def get_favorites(user_id):
 
 
 @api_bp.route("/users/<int:user_id>/is-favorite/<int:target_user_id>", methods=["GET"])
+@jwt_required()
 def is_favorite(user_id, target_user_id):
-    """Check if a user is favorited by another user"""
+    """Check if a user is favorited by another user (own list only)."""
+    denied = _own_id_or_403(user_id)
+    if denied:
+        return denied
     favorite = Favorite.query.filter_by(
         user_id=user_id,
         target_user_id=target_user_id
@@ -235,11 +385,15 @@ def is_favorite(user_id, target_user_id):
 
 
 @api_bp.route("/users/<int:user_id>/join-position", methods=["POST"])
+@jwt_required()
 def join_position(user_id):
-    """Allow a candidate to join/accept their hired position"""
+    """Allow a candidate to join/accept their hired position (own account only)."""
     from datetime import datetime
     from ...models import Application
 
+    denied = _own_id_or_403(user_id)
+    if denied:
+        return denied
     user = User.query.get_or_404(user_id)
 
     # Check if user is hired
@@ -262,7 +416,43 @@ def join_position(user_id):
 
     db.session.commit()
 
+    # Emit Kafka event
+    kafka_service.emit_event(
+        "user_onboarded",
+        {
+            "user_id": user.id,
+            "name": user.name,
+            "onboarded_date": user.onboarded_date.isoformat() if user.onboarded_date else None,
+            "message": f"User {user.name} has successfully joined their new position"
+        },
+        user_id=user.id
+    )
+
     return jsonify({
         "message": "Successfully joined position",
         "user": user.to_dict()
+    }), 200
+
+
+@api_bp.route("/users/me/referrals", methods=["GET"])
+@jwt_required()
+def get_my_referrals():
+    """List users who were referred by the current user."""
+    user_id = int(get_jwt_identity())
+    me = User.query.get_or_404(user_id)
+
+    referrals = User.query.filter_by(referred_by_user_id=user_id).order_by(User.created_at.desc()).all()
+
+    return jsonify({
+        "total": len(referrals),
+        "referrals": [
+            {
+                "id": r.id,
+                "name": r.name,
+                "email": r.email,
+                "role": r.role,
+                "created_at": r.created_at.isoformat() if r.created_at else None,
+            }
+            for r in referrals
+        ]
     }), 200

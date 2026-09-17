@@ -17,6 +17,11 @@ const InterviewAnalysis = () => {
   const [error, setError] = useState(null);
   const [generatingAnalysis, setGeneratingAnalysis] = useState(false);
 
+  const hasValidAnalysis =
+    analysis &&
+    typeof analysis.overall_score === "number" &&
+    typeof analysis.communication_score === "number";
+
   // Get user role and determine navbar
   const userRole = localStorage.getItem("authRole");
   const userPlan = localStorage.getItem("authPlan");
@@ -26,6 +31,7 @@ const InterviewAnalysis = () => {
     if (interviewId) {
       fetchInterviewData();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [interviewId]);
 
   const fetchInterviewData = async () => {
@@ -59,7 +65,11 @@ const InterviewAnalysis = () => {
 
           if (analysisResponse.ok) {
             const analysisData = await analysisResponse.json();
-            setAnalysis(analysisData);
+            if (analysisData && !analysisData.error) {
+              setAnalysis(analysisData);
+            } else {
+              setAnalysis(null);
+            }
           }
         } catch (analysisError) {
           console.log("Analysis not available yet");
@@ -67,16 +77,25 @@ const InterviewAnalysis = () => {
       }
 
       // Fetch messages
-      const messagesResponse = await fetch(
-        `${getBackendUrl()}/api/interviews/${interviewId}/messages`,
+      const conversationResponse = await fetch(
+        `${getBackendUrl()}/api/interviews/${interviewId}/conversation`,
         {
           credentials: "include",
         }
       );
 
-      if (messagesResponse.ok) {
-        const messagesData = await messagesResponse.json();
-        setMessages(messagesData);
+      if (conversationResponse.ok) {
+        const conversationData = await conversationResponse.json();
+        const transcript = (conversationData?.conversation || []).map((m) => ({
+          id: m.id,
+          content: m.content,
+          message_type: m.sender_type === "agent" ? "ai_response" : "user",
+          created_at: m.created_at,
+          user: {
+            name: m.sender_name || (m.sender_type === "agent" ? "AI" : "User"),
+          },
+        }));
+        setMessages(transcript);
       }
     } catch (error) {
       console.error("Error fetching interview data:", error);
@@ -92,7 +111,7 @@ const InterviewAnalysis = () => {
     setGeneratingAnalysis(true);
     try {
       const response = await fetch(
-        `${getBackendUrl()}/api/interviews/${interviewId}/analyze`,
+        `${getBackendUrl()}/api/interviews/${interviewId}/analyze?force=true`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -133,9 +152,9 @@ const InterviewAnalysis = () => {
         }
         sidebarItems={sidebarItems}
       >
-        <div className="flex justify-center items-center py-12">
+        <div className="flex justify-center items-center py-8">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-3"></div>
             <p className="text-gray-600">Loading interview analysis...</p>
           </div>
         </div>
@@ -151,15 +170,15 @@ const InterviewAnalysis = () => {
         }
         sidebarItems={sidebarItems}
       >
-        <div className="max-w-4xl mx-auto p-6">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-            <div className="text-red-500 text-4xl mb-4">⚠️</div>
-            <h2 className="text-xl font-semibold text-red-800 mb-2">
+        <div className="max-w-4xl mx-auto p-4">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+            <div className="text-red-500 text-3xl mb-3">⚠️</div>
+            <h2 className="text-lg font-semibold text-red-800 mb-2">
               {error || "Interview not found"}
             </h2>
             <button
               onClick={() => navigate("/dashboard")}
-              className="mt-4 px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+              className="mt-3 px-5 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
             >
               Return to Dashboard
             </button>
@@ -176,10 +195,10 @@ const InterviewAnalysis = () => {
       }
       sidebarItems={sidebarItems}
     >
-      <div className="max-w-6xl mx-auto p-6 space-y-6">
+      <div className="max-w-6xl mx-auto p-4 space-y-4">
         {/* Header */}
         <div
-          className={`rounded-xl p-6 text-white ${
+          className={`rounded-xl p-4 text-white ${
             userRole === "organization"
               ? "bg-gradient-to-br from-yellow-600/90 via-amber-600/80 to-purple-700/70"
               : "bg-gradient-to-br from-indigo-600/90 via-purple-600/80 to-cyan-700/70"
@@ -187,7 +206,7 @@ const InterviewAnalysis = () => {
         >
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold mb-2">Interview Analysis</h1>
+              <h1 className="text-xl font-bold mb-2">Interview Analysis</h1>
               <p className="text-blue-100">{interview.title}</p>
             </div>
             <div className="text-right">
@@ -210,7 +229,7 @@ const InterviewAnalysis = () => {
         {/* Interview Overview */}
         <Card>
           <h2 className="text-xl font-semibold mb-4">Interview Overview</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <div className="text-sm text-gray-600">Date & Time</div>
               <div className="font-medium">
@@ -239,9 +258,22 @@ const InterviewAnalysis = () => {
         </Card>
 
         {/* Analysis Section */}
-        {interview.status === "completed" && (
+        {interview.status !== "completed" ? (
+          <Card>
+            <div className="text-center py-8">
+              <div className="text-4xl mb-4">ℹ️</div>
+              <h3 className="text-lg font-semibold mb-2">
+                Analysis Not Available Yet
+              </h3>
+              <p className="text-gray-600">
+                This interview must be marked as <b>completed</b> before
+                analysis can be generated.
+              </p>
+            </div>
+          </Card>
+        ) : (
           <>
-            {!analysis ? (
+            {!hasValidAnalysis ? (
               <Card>
                 <div className="text-center py-8">
                   <div className="text-4xl mb-4">📊</div>
@@ -357,7 +389,7 @@ const InterviewAnalysis = () => {
                 </Card>
 
                 {/* Strengths and Improvements */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Card>
                     <h2 className="text-xl font-semibold mb-4 text-green-600">
                       💪 Key Strengths
@@ -405,7 +437,7 @@ const InterviewAnalysis = () => {
                   <h2 className="text-xl font-semibold mb-4">
                     Interview Metrics
                   </h2>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="text-center">
                       <div className="text-2xl font-bold text-blue-600">
                         {analysis.actual_duration_minutes ||
@@ -493,6 +525,12 @@ const InterviewAnalysis = () => {
 
         {/* Actions */}
         <div className="flex justify-center gap-4">
+          <button
+            onClick={() => navigate(`/interviews/${interviewId}`)}
+            className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+          >
+            Back to Details
+          </button>
           <button
             onClick={() => navigate("/dashboard")}
             className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"

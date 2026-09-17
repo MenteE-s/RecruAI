@@ -36,7 +36,12 @@ class AIService:
         # Check subscription access
         if user:
             from backend.utils.subscription import SubscriptionManager
-            if user.organization:
+            from backend.config import Config
+            
+            # Bypass subscription checks in local development environment
+            if not Config.IS_PRODUCTION:
+                pass # Allow access
+            elif user.organization:
                 if not SubscriptionManager.check_organization_access(user.organization, "ai_chat"):
                     return "Your organization's trial has expired or subscription is inactive. Please upgrade to continue using AI features."
             else:

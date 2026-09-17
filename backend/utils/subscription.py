@@ -140,12 +140,17 @@ def require_subscription(feature: str):
             from flask_jwt_extended import get_jwt_identity
             from backend.models.user import User
             from backend.models.organization import Organization
+            from backend.config import Config
 
             user_id = get_jwt_identity()
             user = User.query.get(user_id)
 
             if not user:
                 return {"error": "User not found"}, 404
+
+            # Bypass subscription checks in local development environment
+            if not Config.IS_PRODUCTION:
+                return f(*args, **kwargs)
 
             # Check access based on user role
             if user.organization:
@@ -179,12 +184,17 @@ def require_interview_access():
         def decorated_function(*args, **kwargs):
             from flask_jwt_extended import get_jwt_identity
             from backend.models.user import User
+            from backend.config import Config
 
             user_id = get_jwt_identity()
             user = User.query.get(user_id)
 
             if not user:
                 return {"error": "User not found"}, 404
+
+            # Bypass interview limits in local development environment
+            if not Config.IS_PRODUCTION:
+                return f(*args, **kwargs)
 
             # Check interview access
             if not SubscriptionManager.can_schedule_interview(user=user, org=user.organization):

@@ -70,7 +70,7 @@ def update_conference(conf_id):
 
     # Update other fields
     for key, value in data.items():
-        if key != 'date' and hasattr(conference, key):
+        if key != 'date' and key not in ('id', 'user_id') and hasattr(conference, key):
             setattr(conference, key, value)
 
     db.session.commit()

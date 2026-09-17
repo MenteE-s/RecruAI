@@ -9,14 +9,15 @@ import json
 from sqlalchemy import Column, Integer, String, Text, DateTime, Float, Index
 from sqlalchemy.ext.declarative import declarative_base
 
-# Try to import VECTOR for pgvector support, fallback to Text if not available
+# Try to import Vector for pgvector support, fallback to Text if not available
 try:
-    from sqlalchemy.dialects.postgresql import VECTOR
+    from pgvector.sqlalchemy import Vector
     HAS_VECTOR = True
 except ImportError:
     HAS_VECTOR = False
-    VECTOR = None
+    Vector = None
 
+from backend.config import Config
 from ..config import RAGConfig
 
 Base = declarative_base()
@@ -124,7 +125,7 @@ class EmbeddingStore(Base):
 
     # Vector embedding (using pgvector if available, otherwise Text for JSON storage)
     if HAS_VECTOR:
-        embedding = Column(VECTOR(RAGConfig.EMBEDDING_DIMENSIONS), nullable=False)
+        embedding = Column(Vector(Config().EMBEDDING_DIMENSIONS), nullable=False)
     else:
         embedding = Column(Text, nullable=False)  # Store as JSON string for now
 

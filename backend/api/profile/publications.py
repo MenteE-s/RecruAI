@@ -58,7 +58,7 @@ def update_publication(pub_id):
 
     # Update other fields
     for key, value in data.items():
-        if key != 'authors' and hasattr(publication, key):
+        if key != 'authors' and key not in ('id', 'user_id') and hasattr(publication, key):
             setattr(publication, key, value)
 
     db.session.commit()

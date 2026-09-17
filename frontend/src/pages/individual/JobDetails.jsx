@@ -1,11 +1,36 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import IndividualNavbar from "../../components/layout/IndividualNavbar";
-import Card from "../../components/ui/Card";
-import { getSidebarItems, getBackendUrl } from "../../utils/auth";
+import { getSidebarItems, getBackendUrl, getUploadUrl, getCurrentUserId } from "../../utils/auth";
 import { useToast } from "../../components/ui/ToastContext";
+import MenteeLoader from "../../components/ui/MenteeLoader";
 import { formatDate } from "../../utils/timezone";
+import {
+  FiArrowLeft,
+  FiMapPin,
+  FiBriefcase,
+  FiClock,
+  FiDollarSign,
+  FiCalendar,
+  FiBookmark,
+  FiCheckCircle,
+  FiEye,
+  FiUsers,
+} from "react-icons/fi";
+
+function timeAgo(dateString) {
+  if (!dateString) return "Recently";
+  const diff = Date.now() - new Date(dateString).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${Math.max(mins, 1)}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  if (days < 30) return `${Math.floor(days / 7)}w ago`;
+  return formatDate(dateString);
+}
 
 export default function JobDetails() {
   const { id } = useParams();
@@ -23,18 +48,21 @@ export default function JobDetails() {
   const [saved, setSaved] = useState(false);
   const [applied, setApplied] = useState(false);
   const [showApplyConfirm, setShowApplyConfirm] = useState(false);
+  const [applying, setApplying] = useState(false);
   const [recommendedJobs, setRecommendedJobs] = useState([]);
 
   useEffect(() => {
     fetchJobDetails();
     checkSavedStatus();
     checkAppliedStatus();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   useEffect(() => {
     if (job) {
       fetchRecommendedJobs();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [job]);
 
   const fetchJobDetails = async () => {
@@ -43,12 +71,14 @@ export default function JobDetails() {
       if (response.ok) {
         const data = await response.json();
         setJob(data);
+        // Record this detail view (fire-and-forget)
+        fetch(`${getBackendUrl()}/api/posts/${id}/view`, { method: "POST" }).catch(() => {});
       } else {
         showToast({
           message: "Job not found",
           type: "error",
         });
-        navigate("/jobs");
+        navigate("/dashboard");
       }
     } catch (error) {
       console.error("Error fetching job details:", error);
@@ -63,9 +93,8 @@ export default function JobDetails() {
 
   const checkSavedStatus = async () => {
     try {
-      const userId = 1; // TODO: Get from user context
       const response = await fetch(
-        `${getBackendUrl()}/api/saved-jobs/check?user_id=${userId}&post_id=${id}`
+        `${getBackendUrl()}/api/saved-jobs/check?post_id=${id}`
       );
       if (response.ok) {
         const data = await response.json();
@@ -78,13 +107,15 @@ export default function JobDetails() {
 
   const checkAppliedStatus = async () => {
     try {
-      const userId = 1; // TODO: Get from user context
+      const userId = await getCurrentUserId();
+      if (!userId) return;
       const response = await fetch(
         `${getBackendUrl()}/api/applications/user/${userId}`
       );
       if (response.ok) {
-        const applications = await response.json();
-        const hasApplied = applications.some(
+        const data = await response.json();
+        const applications = data.data || data;
+        const hasApplied = (Array.isArray(applications) ? applications : []).some(
           (app) => app.post_id === parseInt(id)
         );
         setApplied(hasApplied);
@@ -98,8 +129,8 @@ export default function JobDetails() {
     try {
       const response = await fetch(`${getBackendUrl()}/api/posts`);
       if (response.ok) {
-        const allJobs = await response.json();
-        // Filter jobs: same company or same category, exclude current job, limit to 3
+        const allJobs = (await response.json()).data || [];
+        // Filter jobs: same company or same category, exclude current job, limit to 5
         const recommended = allJobs
           .filter(
             (j) =>
@@ -107,7 +138,7 @@ export default function JobDetails() {
               (j.organization_id === job.organization_id ||
                 j.category === job.category) // Same company or category
           )
-          .slice(0, 3); // Limit to 3 recommendations
+          .slice(0, 5);
         setRecommendedJobs(recommended);
       }
     } catch (error) {
@@ -117,12 +148,11 @@ export default function JobDetails() {
 
   const handleSaveJob = async () => {
     try {
-      const userId = 1; // TODO: Get from user context
       const response = await fetch(`${getBackendUrl()}/api/saved-jobs`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ user_id: userId, post_id: parseInt(id) }),
+        body: JSON.stringify({ post_id: parseInt(id) }),
       });
 
       if (response.ok) {
@@ -148,15 +178,14 @@ export default function JobDetails() {
 
   const handleUnsaveJob = async () => {
     try {
-      const userId = 1; // TODO: Get from user context
       const response = await fetch(
-        `${getBackendUrl()}/api/saved-jobs/check?user_id=${userId}&post_id=${id}`
+        `${getBackendUrl()}/api/saved-jobs/check?post_id=${id}`
       );
       if (response.ok) {
         const data = await response.json();
         if (data.saved_id) {
           const deleteResponse = await fetch(
-            `/api/saved-jobs/${data.saved_id}`,
+            `${getBackendUrl()}/api/saved-jobs/${data.saved_id}`,
             {
               method: "DELETE",
               credentials: "include",
@@ -182,14 +211,14 @@ export default function JobDetails() {
   };
 
   const handleApplyJob = async () => {
+    if (applying) return;
+    setApplying(true);
     try {
-      const userId = 1; // TODO: Get from user context
       const response = await fetch(`${getBackendUrl()}/api/applications`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
-          user_id: userId,
           post_id: parseInt(id),
           cover_letter: "",
           resume_url: "",
@@ -216,6 +245,8 @@ export default function JobDetails() {
         message: "Failed to submit application",
         type: "error",
       });
+    } finally {
+      setApplying(false);
     }
   };
 
@@ -226,7 +257,7 @@ export default function JobDetails() {
         sidebarItems={sidebarItems}
       >
         <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+          <MenteeLoader size={60} text="Loading job…" />
         </div>
       </DashboardLayout>
     );
@@ -239,371 +270,290 @@ export default function JobDetails() {
         sidebarItems={sidebarItems}
       >
         <div className="text-center py-12">
-          <p className="text-gray-500">Job not found</p>
+          <p className="text-sm text-gray-500">Job not found</p>
         </div>
       </DashboardLayout>
     );
   }
+
+  const orgName = job.organization?.name || "Unknown organization";
+  const orgInitial = (job.organization?.name || job.title || "?")[0].toUpperCase();
+  const salary =
+    job.salary_min || job.salary_max
+      ? job.salary_min && job.salary_max
+        ? `${job.salary_currency || "$"}${Number(job.salary_min).toLocaleString()} - ${job.salary_currency || "$"}${Number(job.salary_max).toLocaleString()}`
+        : `${job.salary_currency || "$"}${Number(job.salary_min || job.salary_max).toLocaleString()}`
+      : null;
 
   return (
     <DashboardLayout
       NavbarComponent={IndividualNavbar}
       sidebarItems={sidebarItems}
     >
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="mb-6">
-          <button
-            onClick={() => navigate("/jobs")}
-            className="text-indigo-600 hover:text-indigo-800 mb-4 inline-flex items-center"
-          >
-            ← Back to Jobs
-          </button>
+      {/* Centered narrow column, LinkedIn-style */}
+      <div className="w-full max-w-3xl mx-auto">
+        <button
+          onClick={() => navigate("/dashboard")}
+          className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-gray-900 mb-2"
+        >
+          <FiArrowLeft className="w-3.5 h-3.5" /> Back to dashboard
+        </button>
 
-          <div className="bg-gradient-to-br from-indigo-600/80 via-purple-600/60 to-cyan-500/60 text-white rounded-2xl p-6 shadow-lg">
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <h1 className="text-3xl font-bold mb-2">{job.title}</h1>
-                <p className="text-xl text-white/90 mb-4">
-                  {job.organization?.name}
-                </p>
-
-                <div className="flex flex-wrap gap-4 text-sm">
-                  {job.location && (
-                    <span className="flex items-center gap-1">
-                      📍 {job.location}
-                    </span>
-                  )}
-                  {job.employment_type && (
-                    <span className="flex items-center gap-1">
-                      💼 {job.employment_type}
-                    </span>
-                  )}
-                  {job.category && (
-                    <span className="flex items-center gap-1">
-                      🏷️ {job.category}
-                    </span>
-                  )}
-                  {job.salary_min && job.salary_max && (
-                    <span className="flex items-center gap-1">
-                      💰 ${job.salary_min} - ${job.salary_max}{" "}
-                      {job.salary_currency}
-                    </span>
-                  )}
-                  {job.application_deadline && (
-                    <span className="flex items-center gap-1">
-                      ⏰ Deadline: {formatDate(job.application_deadline)}
-                    </span>
-                  )}
-                </div>
+        {/* Job header card */}
+        <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
+          <div className="flex gap-3">
+            {job.organization?.profile_image ? (
+              <img
+                src={getUploadUrl(job.organization.profile_image)}
+                alt={orgName}
+                className="w-12 h-12 rounded object-cover border border-gray-200 shrink-0"
+              />
+            ) : (
+              <div className="w-12 h-12 rounded bg-gray-800 text-white flex items-center justify-center text-lg font-bold shrink-0">
+                {orgInitial}
               </div>
-
-              <div className="flex flex-col gap-3 ml-6">
-                {applied ? (
-                  <button
-                    disabled
-                    className="px-6 py-3 bg-green-100 text-green-800 rounded-lg cursor-not-allowed font-medium"
-                  >
-                    Applied
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => setShowApplyConfirm(true)}
-                    className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium"
-                  >
-                    Apply Now
-                  </button>
-                )}
-
-                {saved ? (
-                  <button
-                    onClick={handleUnsaveJob}
-                    className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium"
-                  >
-                    Saved
-                  </button>
-                ) : (
-                  <button
-                    onClick={handleSaveJob}
-                    className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium"
-                  >
-                    Save Job
-                  </button>
-                )}
-              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <h1 className="text-[17px] font-semibold text-gray-900 leading-snug">{job.title}</h1>
+              {job.organization?.id ? (
+                <Link
+                  to={`/organization/profile/${job.organization.id}`}
+                  className="text-sm text-blue-600 hover:underline"
+                >
+                  {orgName}
+                </Link>
+              ) : (
+                <p className="text-sm text-blue-600">{orgName}</p>
+              )}
+              <p className="text-xs text-gray-500 mt-0.5">
+                {job.location || "Location not specified"}
+                {job.employment_type ? ` · ${job.employment_type}` : ""}
+              </p>
+              <p className="text-[11px] text-gray-400 mt-0.5">
+                {job.category ? `${job.category} · ` : ""}Posted {timeAgo(job.created_at)}
+                {job.status === "active" ? " · Actively hiring" : ` · ${job.status}`}
+              </p>
+              <p className="text-[11px] text-gray-400 mt-0.5 flex items-center gap-3">
+                <span className="inline-flex items-center gap-1">
+                  <FiEye className="w-3 h-3" /> {job.view_count ?? 0} view{(job.view_count ?? 0) === 1 ? "" : "s"}
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <FiUsers className="w-3 h-3" /> {job.application_count ?? 0} applicant{(job.application_count ?? 0) === 1 ? "" : "s"}
+                </span>
+              </p>
             </div>
+          </div>
+
+          {(salary || job.application_deadline) && (
+            <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2.5 text-xs text-gray-600">
+              {salary && (
+                <span className="inline-flex items-center gap-1">
+                  <FiDollarSign className="w-3.5 h-3.5 text-gray-400" />{salary}
+                </span>
+              )}
+              {job.application_deadline && (
+                <span className="inline-flex items-center gap-1">
+                  <FiCalendar className="w-3.5 h-3.5 text-gray-400" />Apply by {formatDate(job.application_deadline)}
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* LinkedIn-style pill actions */}
+          <div className="flex items-center gap-2 mt-3">
+            {applied ? (
+              <span className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-green-50 text-green-700 border border-green-200 rounded-full text-sm font-semibold">
+                <FiCheckCircle className="w-4 h-4" /> Applied
+              </span>
+            ) : (
+              <button
+                onClick={() => setShowApplyConfirm(true)}
+                className="px-4 py-1.5 bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors rounded-full"
+              >
+                MenteE Apply
+              </button>
+            )}
+            <button
+              onClick={saved ? handleUnsaveJob : handleSaveJob}
+              className={`inline-flex items-center gap-1.5 px-4 py-1.5 text-sm font-semibold rounded-full border transition-colors ${
+                saved
+                  ? "bg-gray-100 text-gray-600 border-gray-300"
+                  : "bg-white text-blue-600 border-blue-600 hover:bg-blue-50"
+              }`}
+            >
+              <FiBookmark className={`w-4 h-4 ${saved ? "fill-gray-400" : ""}`} /> {saved ? "Saved" : "Save"}
+            </button>
           </div>
         </div>
 
-        {/* Job Details */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
-            {/* Description */}
-            <Card>
-              <h3 className="text-xl font-semibold mb-4">Job Description</h3>
-              <div className="prose max-w-none">
-                <p className="text-gray-700 whitespace-pre-line">
-                  {job.description}
-                </p>
-              </div>
-            </Card>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mt-3">
+          {/* Main column */}
+          <div className="lg:col-span-2 space-y-3">
+            {/* About the job */}
+            <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
+              <h2 className="text-[15px] font-semibold text-gray-900">About the job</h2>
+              <p className="text-sm text-gray-700 whitespace-pre-line leading-relaxed mt-2">
+                {job.description || "No description provided."}
+              </p>
+            </div>
 
             {/* Requirements */}
             {job.requirements && job.requirements.length > 0 && (
-              <Card>
-                <h3 className="text-xl font-semibold mb-4">Requirements</h3>
-                <ul className="space-y-2">
+              <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
+                <h2 className="text-[15px] font-semibold text-gray-900">
+                  Requirements <span className="text-xs font-normal text-gray-400">({job.requirements.length})</span>
+                </h2>
+                <ul className="list-disc pl-5 mt-2 space-y-1">
                   {job.requirements.map((req, index) => (
-                    <li key={index} className="flex items-start gap-2">
-                      <span className="text-indigo-600 mt-1">•</span>
-                      <span className="text-gray-700">{req}</span>
-                    </li>
+                    <li key={index} className="text-sm text-gray-700 leading-relaxed">{req}</li>
                   ))}
                 </ul>
-              </Card>
+              </div>
             )}
 
-            {/* Company Info */}
+            {/* About the company */}
             {job.organization_details && (
-              <Card>
-                <h3 className="text-xl font-semibold mb-4">
-                  About {job.organization.name}
-                </h3>
-                <div className="space-y-3">
-                  {job.organization_details.description && (
-                    <p className="text-gray-700">
-                      {job.organization_details.description}
-                    </p>
+              <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
+                <h2 className="text-[15px] font-semibold text-gray-900">About the company</h2>
+                <button
+                  onClick={() => job.organization?.id && navigate(`/organization/profile/${job.organization.id}`)}
+                  disabled={!job.organization?.id}
+                  className="w-full flex items-center gap-2.5 mt-2.5 text-left group"
+                >
+                  {job.organization?.profile_image ? (
+                    <img
+                      src={getUploadUrl(job.organization.profile_image)}
+                      alt={orgName}
+                      className="w-10 h-10 rounded object-cover border border-gray-200 shrink-0"
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded bg-gray-800 text-white flex items-center justify-center text-base font-bold shrink-0">
+                      {orgInitial}
+                    </div>
                   )}
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    {job.organization_details.website && (
-                      <div>
-                        <span className="font-medium">Website:</span>
-                        <a
-                          href={job.organization_details.website}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-indigo-600 hover:text-indigo-800 ml-2"
-                        >
-                          {job.organization_details.website}
-                        </a>
-                      </div>
-                    )}
-                    {job.organization_details.industry && (
-                      <div>
-                        <span className="font-medium">Industry:</span>
-                        <span className="ml-2">
-                          {job.organization_details.industry}
-                        </span>
-                      </div>
-                    )}
-                    {job.organization_details.company_size && (
-                      <div>
-                        <span className="font-medium">Company Size:</span>
-                        <span className="ml-2">
-                          {job.organization_details.company_size}
-                        </span>
-                      </div>
-                    )}
-                    {job.organization_details.location && (
-                      <div>
-                        <span className="font-medium">Location:</span>
-                        <span className="ml-2">
-                          {job.organization_details.location}
-                        </span>
-                      </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-gray-900 group-hover:text-blue-600 group-hover:underline truncate">{orgName}</p>
+                    {(job.organization_details.industry || job.organization_details.location) && (
+                      <p className="text-xs text-gray-500 truncate">
+                        {job.organization_details.industry || ""}
+                        {job.organization_details.industry && job.organization_details.location ? " · " : ""}
+                        {job.organization_details.location || ""}
+                        {job.organization_details.company_size ? ` · ${job.organization_details.company_size}` : ""}
+                      </p>
                     )}
                   </div>
-                </div>
-              </Card>
+                </button>
+                {job.organization_details.description && (
+                  <p className="text-sm text-gray-700 leading-relaxed mt-2.5">
+                    {job.organization_details.description}
+                  </p>
+                )}
+                {job.organization_details.website && (
+                  <a
+                    href={job.organization_details.website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-blue-600 hover:underline mt-2 inline-block break-all"
+                  >
+                    {job.organization_details.website}
+                  </a>
+                )}
+              </div>
             )}
           </div>
 
-          {/* Sidebar */}
-          <div className="space-y-6">
-            <Card>
-              <h3 className="text-lg font-semibold mb-4">Job Details</h3>
-              <div className="space-y-3 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Posted:</span>
-                  <span>{formatDate(job.created_at)}</span>
+          {/* Right rail */}
+          <div className="space-y-3">
+            {/* What is MenteE Apply */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg shadow-sm p-4">
+              <h2 className="text-[13px] font-semibold text-blue-900">What is MenteE Apply?</h2>
+              <p className="text-xs text-blue-800 leading-relaxed mt-1.5">
+                One-click apply with your RecruAI profile — no forms, no re-typing. Your profile,
+                resume, and contact details go straight to the hiring team, and you can track the
+                application under Applied jobs.
+              </p>
+            </div>
+
+            {/* Job overview */}
+            <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
+              <h2 className="text-[13px] font-semibold text-gray-900">Job details</h2>
+              <div className="mt-2 space-y-1.5 text-xs">
+                <div className="flex items-center gap-1.5 text-gray-600">
+                  <FiClock className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                  <span>Posted {formatDate(job.created_at)}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Status:</span>
-                  <span
-                    className={`px-2 py-1 text-xs rounded-full ${
-                      job.status === "active"
-                        ? "bg-green-100 text-green-800"
-                        : job.status === "inactive"
-                        ? "bg-yellow-100 text-yellow-800"
-                        : "bg-red-100 text-red-800"
-                    }`}
-                  >
-                    {job.status}
-                  </span>
-                </div>
+                {job.location && (
+                  <div className="flex items-center gap-1.5 text-gray-600">
+                    <FiMapPin className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                    <span className="truncate">{job.location}</span>
+                  </div>
+                )}
+                {job.employment_type && (
+                  <div className="flex items-center gap-1.5 text-gray-600">
+                    <FiBriefcase className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                    <span>{job.employment_type}</span>
+                  </div>
+                )}
                 {job.application_deadline && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Deadline:</span>
-                    <span>{formatDate(job.application_deadline)}</span>
+                  <div className="flex items-center gap-1.5 text-gray-600">
+                    <FiCalendar className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                    <span>Apply by {formatDate(job.application_deadline)}</span>
                   </div>
                 )}
               </div>
-            </Card>
-          </div>
-        </div>
+            </div>
 
-        {/* Recommended Jobs */}
-        {recommendedJobs.length > 0 && (
-          <div className="mt-8">
-            <Card>
-              <h3 className="text-xl font-semibold mb-6">
-                More Jobs You May Like
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {recommendedJobs.map((recJob) => (
-                  <div
-                    key={recJob.id}
-                    className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
-                    onClick={() => navigate(`/jobs/${recJob.id}`)}
-                  >
-                    <h4 className="font-semibold text-gray-900 mb-1 hover:text-indigo-600">
-                      {recJob.title}
-                    </h4>
-                    <p className="text-sm text-indigo-600 mb-2">
-                      {recJob.organization?.name}
-                    </p>
-                    <div className="flex flex-wrap gap-2 text-xs text-gray-500">
-                      {recJob.location && <span>📍 {recJob.location}</span>}
-                      {recJob.employment_type && (
-                        <span>💼 {recJob.employment_type}</span>
-                      )}
-                      {recJob.salary_min && recJob.salary_max && (
-                        <span>
-                          💰 ${recJob.salary_min}-${recJob.salary_max}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Card>
-          </div>
-        )}
-
-        {/* Promotional Section - Horizontal Layout */}
-        <div className="mt-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Career Coaching Ad */}
-            <div className="bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg p-4 text-white relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-12 h-12 bg-white/10 rounded-full -mr-6 -mt-6"></div>
-              <div className="relative z-10">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-xl">🎯</span>
-                  <span className="text-xs font-medium bg-white/20 px-2 py-1 rounded-full">
-                    SPONSORED
-                  </span>
+            {/* Similar jobs */}
+            {recommendedJobs.length > 0 && (
+              <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
+                <h2 className="text-[13px] font-semibold text-gray-900">Similar jobs</h2>
+                <div className="mt-1 divide-y divide-gray-100">
+                  {recommendedJobs.map((recJob) => (
+                    <button
+                      key={recJob.id}
+                      onClick={() => navigate(`/jobs/${recJob.id}`)}
+                      className="w-full flex gap-2.5 py-2.5 text-left group"
+                    >
+                      <div className="w-9 h-9 rounded bg-gray-800 text-white flex items-center justify-center text-xs font-bold shrink-0">
+                        {(recJob.organization?.name || recJob.title || "?")[0].toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[13px] font-semibold text-gray-900 group-hover:text-blue-600 group-hover:underline leading-tight line-clamp-2">
+                          {recJob.title}
+                        </p>
+                        <p className="text-[11px] text-gray-500 truncate mt-0.5">
+                          {recJob.organization?.name || ""}
+                          {recJob.location ? ` · ${recJob.location}` : ""}
+                        </p>
+                      </div>
+                    </button>
+                  ))}
                 </div>
-                <h4 className="font-bold text-base mb-1">
-                  Ace Your Next Interview
-                </h4>
-                <p className="text-xs text-purple-100 mb-3 leading-tight">
-                  Get personalized coaching from industry experts. 90% success
-                  rate!
-                </p>
-                <button className="bg-white text-purple-600 px-3 py-1.5 rounded-md font-medium hover:bg-gray-50 transition-colors text-xs">
-                  Start Coaching
-                </button>
               </div>
-            </div>
-
-            {/* Resume Builder Ad */}
-            <div className="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg p-4 text-white relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-10 h-10 bg-white/10 rounded-full -mr-5 -mt-5"></div>
-              <div className="relative z-10">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-xl">📄</span>
-                  <span className="text-xs font-medium bg-white/20 px-2 py-1 rounded-full">
-                    FEATURED
-                  </span>
-                </div>
-                <h4 className="font-bold text-base mb-1">
-                  Professional Resume Builder
-                </h4>
-                <p className="text-xs text-emerald-100 mb-3 leading-tight">
-                  Create ATS-friendly resumes in minutes. Stand out from the
-                  crowd!
-                </p>
-                <button className="bg-white text-emerald-600 px-3 py-1.5 rounded-md font-medium hover:bg-gray-50 transition-colors text-xs">
-                  Build Resume
-                </button>
-              </div>
-            </div>
-
-            {/* Job Alerts Ad */}
-            <div className="bg-gradient-to-br from-orange-500 to-red-500 rounded-lg p-4 text-white relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-8 h-8 bg-white/10 rounded-full -mr-4 -mt-4"></div>
-              <div className="relative z-10">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-xl">🔔</span>
-                  <span className="text-xs font-medium bg-white/20 px-2 py-1 rounded-full">
-                    POPULAR
-                  </span>
-                </div>
-                <h4 className="font-bold text-base mb-1">Smart Job Alerts</h4>
-                <p className="text-xs text-orange-100 mb-3 leading-tight">
-                  Never miss a great opportunity. Get notified when jobs match
-                  your skills.
-                </p>
-                <button className="bg-white text-orange-600 px-3 py-1.5 rounded-md font-medium hover:bg-gray-50 transition-colors text-xs">
-                  Set Alerts
-                </button>
-              </div>
-            </div>
-
-            {/* Premium Plan Ad */}
-            <div className="border-2 border-indigo-200 rounded-lg p-4 bg-indigo-50">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-xl">⭐</span>
-                <span className="text-xs font-medium text-indigo-600 bg-indigo-100 px-2 py-1 rounded-full">
-                  PREMIUM
-                </span>
-              </div>
-              <h4 className="font-bold text-gray-900 text-base mb-1">
-                Unlock Premium Features
-              </h4>
-              <ul className="text-xs text-gray-600 mb-3 space-y-0.5">
-                <li>• Advanced job matching</li>
-                <li>• Priority application tracking</li>
-                <li>• Direct recruiter messages</li>
-              </ul>
-              <button className="w-full bg-indigo-600 text-white px-3 py-1.5 rounded-md font-medium hover:bg-indigo-700 transition-colors text-xs">
-                Upgrade to Pro
-              </button>
-            </div>
+            )}
           </div>
         </div>
       </div>
 
       {/* Apply Confirmation Modal */}
       {showApplyConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold mb-4">Confirm Application</h3>
-            <p className="text-gray-600 mb-6">
-              Are you sure you want to apply for <strong>{job.title}</strong> at{" "}
-              <strong>{job.organization?.name}</strong>?
+        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white p-4 max-w-sm w-full border border-gray-200 rounded-lg shadow-xl">
+            <h3 className="text-sm font-semibold text-gray-900">Apply to {orgName}?</h3>
+            <p className="text-xs text-gray-600 mt-1.5">
+              You're applying for <strong className="text-gray-900">{job.title}</strong>.
             </p>
-            <div className="flex gap-3">
+            <div className="flex gap-2 mt-4">
               <button
                 onClick={handleApplyJob}
-                className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+                disabled={applying}
+                className="flex-1 px-4 py-1.5 bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors rounded-full disabled:opacity-70 inline-flex items-center justify-center gap-2"
               >
-                Yes, Apply
+                {applying ? (<><MenteeLoader size={22} text={null} inline /> Applying…</>) : "Submit application"}
               </button>
               <button
                 onClick={() => setShowApplyConfirm(false)}
-                className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+                className="px-4 py-1.5 bg-white border border-gray-300 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors rounded-full"
               >
                 Cancel
               </button>

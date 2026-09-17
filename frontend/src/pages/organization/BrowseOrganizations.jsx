@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
 import Card from "../../components/ui/Card";
@@ -118,13 +118,13 @@ export default function BrowseOrganizations() {
       )}
 
       <div className="mb-6">
-        <div className="rounded-2xl p-6 bg-gradient-to-br from-yellow-600/90 via-amber-600/80 to-purple-700/70 text-white shadow-lg">
+        <div className="rounded-2xl p-6 bg-white border border-gray-200 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold font-display">
+              <h1 className="text-2xl md:text-3xl font-bold font-display text-gray-900">
                 Browse Organizations
               </h1>
-              <p className="mt-1 text-white/90">
+              <p className="mt-1 text-gray-500">
                 Discover companies and explore opportunities
               </p>
             </div>
@@ -168,13 +168,15 @@ export default function BrowseOrganizations() {
                   <div className="flex items-center">
                     <div className="flex-shrink-0 h-12 w-12">
                       {org.profile_image ? (
-                        <img
-                          src={getUploadUrl(org.profile_image)}
-                          alt={`${org.name} profile`}
-                          className="h-12 w-12 rounded-lg object-cover border-2 border-gray-200"
-                        />
+                        <Link to={`/organization/profile/${org.id}`} className="h-12 w-12 block">
+                          <img
+                            src={getUploadUrl(org.profile_image)}
+                            alt={`${org.name} profile`}
+                            className="h-12 w-12 rounded-lg object-cover border-2 border-gray-200 hover:border-blue-300 transition-colors"
+                          />
+                        </Link>
                       ) : (
-                        <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                        <div className="h-12 w-12 rounded-lg bg-green-700 flex items-center justify-center">
                           <FiBriefcase size={20} className="text-white" />
                         </div>
                       )}
@@ -224,14 +226,21 @@ export default function BrowseOrganizations() {
                   )}
                 </div>
 
-                <div className="flex justify-end">
+                <div className="flex gap-2">
                   <button
                     onClick={() => navigate(`/organization/profile/${org.id}`)}
-                    className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                    className="inline-flex items-center px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                   >
-                    <FiEye className="mr-2" size={16} />
-                    View Profile
+                    <FiEye className="mr-1.5" size={14} />
+                    Profile
                   </button>
+                  <a
+                    href="/dashboard"
+                    className="inline-flex items-center px-3 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-black focus:ring-2 focus:ring-gray-900 focus:ring-offset-2 transition-colors"
+                  >
+                    <FiBriefcase className="mr-1.5" size={14} />
+                    Openings
+                  </a>
                 </div>
               </div>
             </Card>

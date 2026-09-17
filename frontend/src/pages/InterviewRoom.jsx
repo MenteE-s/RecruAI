@@ -2,22 +2,31 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import TextInterview from "../components/interviews/TextInterview";
 import { formatDateTime } from "../utils/timezone";
+import socketService from "../utils/socket";
+import { getCurrentUser } from "../utils/auth";
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "";
 
 const InterviewRoom = () => {
   const { interviewId } = useParams();
   const navigate = useNavigate();
+  const [me, setMe] = useState(null);
   const [interview, setInterview] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [interviewMode, setInterviewMode] = useState("auto"); // 'auto' or 'manual' - default to auto for AI responses
+  const [currentThinking, setCurrentThinking] = useState(null);
+  const [showThinking, setShowThinking] = useState(false);
 
   // Get user role and determine if they're interviewer or candidate
   const userRole = localStorage.getItem("authRole");
-  const userId = 1; // TODO: Get from auth context
+  const userId = me?.id || null;
+
+  useEffect(() => {
+    getCurrentUser().then(setMe);
+  }, []);
 
   // Determine if user is interviewer or candidate
   // Organization users are interviewers, individual users are candidates
@@ -30,14 +39,62 @@ const InterviewRoom = () => {
   }, [interviewId]);
 
   useEffect(() => {
-    if (interviewId && interviewId !== "undefined") {
+    if (interviewId && interviewId !== "undefined" && me) {
       fetchInterview();
       loadConversation();
+
+      // Listen for real-time messages
+      const handleNewMessage = (payload) => {
+        const msg = payload.data;
+        if (msg && msg.interview_id === parseInt(interviewId)) {
+          setMessages((prev) => {
+            // Avoid duplicates
+            if (prev.find((m) => m.id === msg.id)) return prev;
+            return [
+              ...prev,
+              {
+                id: msg.id,
+                content: msg.content,
+                sender: msg.sender_name,
+                timestamp: msg.timestamp,
+                type: msg.sender_type,
+                userId: msg.sender_user_id,
+                agentId: msg.sender_agent_id,
+              },
+            ];
+          });
+
+          // If it was an agent response, turn off loading
+          if (msg.sender_type === "agent") {
+            setIsLoading(false);
+          }
+        }
+      };
+
+      // Listen for AI thinking events
+      const handleThinking = (payload) => {
+        const data = payload.data;
+        if (data && data.interview_id === parseInt(interviewId)) {
+          setCurrentThinking(data.thinking_process);
+          setShowThinking(true);
+        }
+      };
+
+      socketService.on("interview_candidate_message", handleNewMessage);
+      socketService.on("interview_agent_response", handleNewMessage);
+      socketService.on("interview_agent_thinking", handleThinking);
+
+      return () => {
+        socketService.off("interview_candidate_message", handleNewMessage);
+        socketService.off("interview_agent_response", handleNewMessage);
+        socketService.off("interview_agent_thinking", handleThinking);
+      };
     } else if (interviewId === "undefined") {
       setError("Invalid interview ID");
       setLoading(false);
     }
-  }, [interviewId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [interviewId, me]);
 
   // Add exit confirmation for ongoing interviews
   useEffect(() => {
@@ -123,6 +180,7 @@ const InterviewRoom = () => {
         clearInterval(intervalId);
       }
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [interview, interviewId]);
 
   const fetchInterview = async () => {
@@ -139,8 +197,7 @@ const InterviewRoom = () => {
         setInterview(data);
 
         // Check if user has access to this interview
-        if (userRole === "organization" && data.organization_id !== 1) {
-          // TODO: Get org ID from context
+        if (userRole === "organization" && me && data.organization_id !== me.organization_id) {
           setError("Access denied");
           return;
         }
@@ -169,6 +226,8 @@ const InterviewRoom = () => {
     }
 
     setIsLoading(true);
+    setCurrentThinking(null);
+    setShowThinking(false);
 
     try {
       // Use the new unified chat endpoint
@@ -180,12 +239,19 @@ const InterviewRoom = () => {
           credentials: "include",
           body: JSON.stringify({
             message: message,
+            enable_thinking: true, // Always enable for better AI
           }),
         }
       );
 
       if (response.ok) {
         const data = await response.json();
+
+        // Handle thinking step if present
+        if (data.thinking_step) {
+          setCurrentThinking(data.thinking_step);
+          setShowThinking(true);
+        }
 
         // Add user message to local state
         const userMessage = {
@@ -204,6 +270,7 @@ const InterviewRoom = () => {
           timestamp: new Date().toISOString(),
           type: "agent",
           agentId: data.agent_id,
+          thinking: data.thinking_step,
         };
 
         setMessages((prev) => [...prev, userMessage, aiMessage]);
@@ -441,6 +508,9 @@ const InterviewRoom = () => {
               onInterviewerResponse={handleInterviewerResponse}
               messages={messages}
               isLoading={isLoading}
+              currentThinking={currentThinking}
+              showThinking={showThinking}
+              setShowThinking={setShowThinking}
             />
           </div>
         );

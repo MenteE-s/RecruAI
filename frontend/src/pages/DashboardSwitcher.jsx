@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import IndividualDashboard from "./dashboards/IndividualDashboard";
 import OrganizationDashboard from "./dashboards/OrganizationDashboard";
+import MenteeLoader from "../components/ui/MenteeLoader";
 
 import { verifyTokenWithServer } from "../utils/auth";
 
@@ -31,7 +32,12 @@ export default function DashboardSwitcher() {
     };
   }, []);
 
-  if (loading) return <div className="p-8">Loading dashboard…</div>;
+  if (loading)
+    return (
+      <div className="min-h-[40vh] flex items-center justify-center">
+        <MenteeLoader size={60} />
+      </div>
+    );
   if (role === "organization") return <OrganizationDashboard />;
   return <IndividualDashboard />;
 }

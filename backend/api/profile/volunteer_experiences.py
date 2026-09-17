@@ -89,7 +89,7 @@ def update_volunteer_experience(ve_id):
 
     # Update other fields
     for key, value in data.items():
-        if key not in ['start_date', 'end_date'] and hasattr(volunteer_experience, key):
+        if key not in ['start_date', 'end_date'] and key not in ('id', 'user_id') and hasattr(volunteer_experience, key):
             setattr(volunteer_experience, key, value)
 
     db.session.commit()

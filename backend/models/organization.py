@@ -65,6 +65,17 @@ class Organization(db.Model):
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
 
+    def to_public_dict(self):
+        """Public-safe org summary for job boards and directories.
+
+        Excludes contact_email/contact_name so public listings cannot be
+        harvested for spam. Use to_dict() only in manager/auth contexts.
+        """
+        d = self.to_dict()
+        d.pop("contact_email", None)
+        d.pop("contact_name", None)
+        return d
+
     # Subscription methods
     def is_trial_active(self) -> bool:
         """Check if organization is still in trial period (7 days)"""
@@ -116,6 +127,7 @@ class Organization(db.Model):
     def track_token_usage(self, provider: str, model: str, tokens: int, operation_type: str):
         """Track token usage for billing/analytics"""
         from backend.models.token_usage import TokenUsage
+        from sqlalchemy import text
 
         # Create token usage record
         usage = TokenUsage(
@@ -127,10 +139,11 @@ class Organization(db.Model):
         )
         db.session.add(usage)
 
-        # Update organization's total token count
-        if self.tokens_used is None:
-            self.tokens_used = 0
-        self.tokens_used += tokens
+        # Increment via raw SQL to avoid session-mismatch issues
+        db.session.execute(
+            text("UPDATE organizations SET tokens_used = COALESCE(tokens_used, 0) + :t WHERE id = :id"),
+            {"t": tokens, "id": self.id}
+        )
 
         db.session.commit()
 

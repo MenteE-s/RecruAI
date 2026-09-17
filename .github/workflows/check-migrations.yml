@@ -1,0 +1,41 @@
+name: Check DB Migrations
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "backend/**"
+
+jobs:
+  check-migrations:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:0.7.0-pg15
+        env:
+          POSTGRES_USER: recruai
+          POSTGRES_PASSWORD: recruai_pass
+          POSTGRES_DB: recruai_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U recruai -d recruai_ci"
+          --health-interval 10s --health-timeout 5s --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r backend/requirements.txt
+      - name: Run migrations
+        env:
+          DATABASE_URL: postgresql://recruai:recruai_pass@localhost:5432/recruai_ci
+        run: |
+          cd backend
+          python -m flask db upgrade
+          python -m flask db heads

@@ -1,10 +1,27 @@
 from flask import request, jsonify
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from sqlalchemy import func
 from .. import api_bp
 from ...extensions import db
-from ...models import Post, Organization
+from ...models import Post, Organization, User, TeamMember, CompanyFollow, Notification
 import json
+
+
+def _can_manage_org(user, org_id):
+    """Caller may mutate this org's posts: own org account or team member."""
+    if not user or not org_id:
+        return False
+    try:
+        org_id = int(org_id)
+    except (TypeError, ValueError):
+        return False
+    if user.role == "organization" and user.organization_id == org_id:
+        return True
+    return TeamMember.query.filter_by(organization_id=org_id, user_id=user.id).first() is not None
 from datetime import datetime
 from ...utils.pagination import Pagination, get_pagination_params, paginated_response, apply_filters_and_sorting, get_request_filters, get_sorting_params
+from ...utils.kafka_service import kafka_service as kafka
+from ...utils.cache import cached, invalidate_job_cache
 
 
 def _parse_salary(value):
@@ -21,6 +38,7 @@ def list_posts_for_org(org_id):
     return jsonify([p.to_dict() for p in org.posts])
 
 @api_bp.route("/posts", methods=["POST"])
+@jwt_required()
 def create_post():
     try:
         payload = request.get_json()
@@ -32,6 +50,13 @@ def create_post():
 
     if not org_id or not title:
         return jsonify({"error": "organization_id and title required"}), 400
+
+    try:
+        caller = User.query.get(int(get_jwt_identity()))
+    except (TypeError, ValueError):
+        caller = None
+    if not _can_manage_org(caller, org_id):
+        return jsonify({"error": "Forbidden for this organization"}), 403
 
     if len(title.strip()) < 3:
         return jsonify({"error": "title must be at least 3 characters"}), 400
@@ -92,17 +117,58 @@ def create_post():
         )
         db.session.add(post)
         db.session.commit()
+        
+        # Invalidate job caches
+        invalidate_job_cache()
+        
+        # Emit Kafka event for post creation
+        kafka.emit_event('job_post_created', {
+            'post_id': post.id,
+            'organization_id': post.organization_id,
+            'title': post.title,
+            'status': post.status,
+            'timestamp': datetime.utcnow().isoformat()
+        })
+
+        # Notify followers so their notification cards link straight to this job
+        try:
+            follower_ids = [
+                row[0]
+                for row in db.session.query(CompanyFollow.user_id)
+                .filter_by(organization_id=post.organization_id)
+                .all()
+            ]
+            for follower_id in follower_ids:
+                db.session.add(Notification(
+                    user_id=follower_id,
+                    type="new_job_post",
+                    title=f"{org.name} posted a new job",
+                    message=f"{post.title} — tap to view and apply.",
+                    related_organization_id=post.organization_id,
+                    related_post_id=post.id,
+                ))
+            if follower_ids:
+                db.session.commit()
+        except Exception as notify_error:
+            db.session.rollback()
+            print(f"Failed to create follower notifications for post {post.id}: {notify_error}")
+
         return jsonify(post.to_dict()), 201
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": f"Failed to save job: {str(e)}"}), 500
 
 @api_bp.route("/posts/<int:post_id>", methods=["PUT"])
+@jwt_required()
 def update_post(post_id):
     post = Post.query.get_or_404(post_id)
 
-    # TODO: Add authentication check - ensure user is part of the organization
-    # For now, allowing all updates
+    try:
+        caller = User.query.get(int(get_jwt_identity()))
+    except (TypeError, ValueError):
+        caller = None
+    if not _can_manage_org(caller, post.organization_id):
+        return jsonify({"error": "Forbidden for this organization"}), 403
 
     payload = request.get_json(silent=True) or {}
 
@@ -161,23 +227,57 @@ def update_post(post_id):
 
     try:
         db.session.commit()
+
+        # Invalidate job caches
+        invalidate_job_cache(post.id)
+        
+        # Emit Kafka event for post update
+        kafka.emit_event('job_post_updated', {
+            'post_id': post.id,
+            'organization_id': post.organization_id,
+            'title': post.title,
+            'status': post.status,
+            'updated_at': datetime.utcnow().isoformat()
+        })
+        
         return jsonify(post.to_dict()), 200
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": f"Failed to update job: {str(e)}"}), 500
 
 @api_bp.route("/posts/<int:post_id>", methods=["DELETE"])
+@jwt_required()
 def delete_post(post_id):
     post = Post.query.get_or_404(post_id)
     try:
+        caller = User.query.get(int(get_jwt_identity()))
+    except (TypeError, ValueError):
+        caller = None
+    if not _can_manage_org(caller, post.organization_id):
+        return jsonify({"error": "Forbidden for this organization"}), 403
+    try:
+        post_id_val = post.id
+        org_id_val = post.organization_id
         db.session.delete(post)
         db.session.commit()
+
+        # Invalidate job caches
+        invalidate_job_cache(post_id_val)
+        
+        # Emit Kafka event for post deletion
+        kafka.emit_event('job_post_deleted', {
+            'post_id': post_id_val,
+            'organization_id': org_id_val,
+            'timestamp': datetime.utcnow().isoformat()
+        })
+        
         return jsonify({"message": "post deleted"}), 200
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": f"Failed to delete job: {str(e)}"}), 500
 
 @api_bp.route("/posts", methods=["GET"])
+@cached("job_listings", ttl=600)
 def list_posts():
     """List posts with pagination, filtering, and sorting support"""
     # Get pagination parameters
@@ -192,6 +292,22 @@ def list_posts():
     # Build base query - only show active posts by default
     query = Post.query.filter(Post.status == 'active')
 
+    # Full-text search over title / requirements / description / category.
+    # (The generic column filters below can't express `search`, so handle it here.)
+    search_text = (request.args.get('search') or '').strip()
+    if search_text:
+        doc = (
+            func.setweight(func.to_tsvector('english', func.coalesce(Post.title, '')), 'A')
+            .op('||')(func.setweight(func.to_tsvector('english', func.coalesce(Post.requirements, '')), 'B'))
+            .op('||')(func.setweight(func.to_tsvector('english', func.coalesce(Post.description, '')), 'C'))
+            .op('||')(func.setweight(func.to_tsvector(
+                'english',
+                func.coalesce(Post.category, '') + ' ' + func.coalesce(Post.location, ''),
+            ), 'D'))
+        )
+        tsq = func.plainto_tsquery('english', search_text[:500])
+        query = query.filter(func.ts_rank(doc, tsq) > 1e-6).order_by(func.ts_rank(doc, tsq).desc())
+
     # Apply filters and sorting
     query = apply_filters_and_sorting(query, Post, filters, sort_by, sort_order)
 
@@ -202,6 +318,28 @@ def list_posts():
     return jsonify(paginated_response(pagination_result['items'], pagination_result['pagination'])), 200
 
 @api_bp.route("/posts/<int:post_id>", methods=["GET"])
+@cached("job_details", ttl=300, key_func=lambda post_id: f"post_{post_id}")
 def get_post(post_id):
     post = Post.query.get_or_404(post_id)
     return jsonify(post.to_dict())
+
+
+@api_bp.route("/posts/<int:post_id>/view", methods=["POST"])
+def record_post_view(post_id):
+    """Record one detail view for a post (called by the job details page).
+
+    Kept separate from GET /posts/<id> so cached detail responses don't
+    swallow view increments.
+    """
+    post = Post.query.get_or_404(post_id)
+    try:
+        Post.query.filter_by(id=post.id).update(
+            {Post.view_count: Post.view_count + 1},
+            synchronize_session=False,
+        )
+        db.session.commit()
+        # Refresh cached detail + listings so counts update promptly
+        invalidate_job_cache(post.id)
+    except Exception:
+        db.session.rollback()
+    return jsonify({"post_id": post.id}), 200

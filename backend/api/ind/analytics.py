@@ -1,13 +1,21 @@
 from flask import request, jsonify
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from .. import api_bp
 from ...extensions import db
 from ...models import InterviewAnalysis, Interview
 import json
+from collections import defaultdict
 from sqlalchemy import desc
 
 @api_bp.route('/users/<int:user_id>/analytics', methods=['GET'])
+@jwt_required()
 def get_user_analytics(user_id):
-    """Get analytics for an individual user (candidate)"""
+    """Get analytics for an individual user (own data only)."""
+    try:
+        if int(get_jwt_identity()) != int(user_id):
+            return jsonify({"error": "Forbidden"}), 403
+    except (TypeError, ValueError):
+        return jsonify({"error": "Invalid user identity"}), 400
     # Get all completed interviews with analysis for this user
     analyses = db.session.query(InterviewAnalysis).join(Interview).filter(
         Interview.user_id == user_id,
@@ -57,12 +65,19 @@ def get_user_analytics(user_id):
     unique_strengths = list(set(all_strengths))
     unique_improvements = list(set(all_improvements))
 
-    # Performance trend (mock data - would sort by date)
+    # Performance trend: average overall score per month, chronological.
+    monthly = defaultdict(list)
+    for analysis in analyses:
+        if analysis.overall_score is None:
+            continue
+        stamp = analysis.created_at or getattr(analysis.interview, "scheduled_at", None)
+        if stamp is None:
+            continue
+        monthly[stamp.strftime("%Y-%m")].append(analysis.overall_score)
     performance_trend = [
-        {"date": "2024-01", "score": 82},
-        {"date": "2024-02", "score": 85},
-        {"date": "2024-03", "score": 88}
-    ]
+        {"date": month, "score": round(sum(scores) / len(scores), 1)}
+        for month, scores in sorted(monthly.items())
+    ][-12:]
 
     return jsonify({
         "total_interviews": total_analyses,

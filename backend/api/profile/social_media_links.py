@@ -48,7 +48,7 @@ def update_social_media_link(sml_id):
 
     data = request.get_json()
     for key, value in data.items():
-        if hasattr(social_media_link, key):
+        if key not in ('id', 'user_id') and hasattr(social_media_link, key):
             setattr(social_media_link, key, value)
 
     db.session.commit()

@@ -10,6 +10,9 @@ class Experience(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     title = db.Column(db.String(255), nullable=False)
     company = db.Column(db.String(255), nullable=False)
+    # LinkedIn-style link to a platform Organization (nullable: free-text
+    # company names without a matching org stay unlinked).
+    organization_id = db.Column(db.Integer, db.ForeignKey("organizations.id"), nullable=True)
     duration = db.Column(db.String(100), nullable=True)
     location = db.Column(db.String(255), nullable=True)
     description = db.Column(db.Text, nullable=True)
@@ -20,13 +23,21 @@ class Experience(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     user = db.relationship("User", backref="experiences")
+    organization = db.relationship("Organization", backref="experiences")
 
     def to_dict(self):
+        org = self.organization
         return {
             "id": self.id,
             "user_id": self.user_id,
             "title": self.title,
             "company": self.company,
+            "organization_id": self.organization_id,
+            "organization": {
+                "id": org.id,
+                "name": org.name,
+                "profile_image": org.profile_image,
+            } if org else None,
             "duration": self.duration,
             "location": self.location,
             "description": self.description,

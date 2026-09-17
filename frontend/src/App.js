@@ -1,97 +1,137 @@
-// src/App.js
-import React, { useEffect } from "react";
+// src/App.js — code-split + deduped routes for fast initial load.
+import React, { Suspense, lazy, useEffect, useRef } from "react";
 import {
   BrowserRouter as Router,
   Routes,
   Route,
+  Navigate,
   useNavigate,
   useLocation,
+  useParams,
 } from "react-router-dom";
 import "./App.css";
 import { ToastProvider } from "./components/ui/ToastContext";
-
-// Public Pages
-import RecruAILanding from "./pages/RecruAILanding";
-import Register from "./pages/Register";
-import SignIn from "./pages/SignIn";
-import ContactUs from "./pages/ContactUs";
-import TermsAndConditions from "./pages/TermsAndConditions";
-import PrivacyPolicy from "./pages/PrivacyPolicy";
-import AboutUs from "./pages/AboutUs";
-import Blog from "./pages/Blog";
-import SystemStatus from "./pages/SystemStatus";
-import Community from "./pages/Community";
-import CookiesPolicy from "./pages/CookiesPolicy";
-import NotFound from "./pages/NotFound";
-import PublicProfile from "./pages/PublicProfile";
 import ProtectedRoute from "./components/ProtectedRoute";
-// Dashboard Pages
-import DashboardSwitcher from "./pages/DashboardSwitcher";
-import SettingsSwitcher from "./pages/SettingsSwitcher";
-import Profile from "./pages/individual/Profile";
-import UpcomingInterviews from "./pages/individual/UpcomingInterviews";
-import InterviewHistory from "./pages/individual/InterviewHistory";
-import SavedJobs from "./pages/individual/SavedJobs";
-import AppliedJobs from "./pages/individual/AppliedJobs";
-import BrowseJobs from "./pages/individual/BrowseJobs";
-import Analytics from "./pages/individual/Analytics";
-import ResumeBuilder from "./pages/individual/ResumeBuilder";
-import JobAlerts from "./pages/individual/JobAlerts";
-import CareerCoaching from "./pages/individual/CareerCoaching";
-import JobDetails from "./pages/individual/JobDetails";
-import PracticeDashboard from "./pages/individual/PracticeDashboard";
-import PracticeRoom from "./pages/individual/PracticeRoom";
-import IndividualAIAgents from "./pages/individual/AIAgents";
-import ShareableProfiles from "./pages/individual/ShareableProfiles";
-// Organization Pages
-import OrganizationProfile from "./pages/organization/Profile";
-import BrowseOrganizations from "./pages/organization/BrowseOrganizations";
-import HirePeople from "./pages/organization/HirePeople";
-import TeamMembers from "./pages/organization/TeamMembers";
-import UserProfile from "./pages/organization/UserProfile";
-import JobPosts from "./pages/organization/JobPosts";
-import Candidates from "./pages/organization/Candidates";
-import InterviewManagement from "./pages/organization/InterviewManagement";
-import InterviewAnalysis from "./pages/InterviewAnalysis";
-import Pipeline from "./pages/organization/Pipeline";
-import OrganizationAnalytics from "./pages/organization/OrganizationAnalytics";
-import Reports from "./pages/organization/Reports";
-import Integrations from "./pages/organization/Integrations";
-import Insights from "./pages/organization/Insights";
-import AIAgents from "./pages/organization/AIAgents";
-import InterviewRoom from "./pages/InterviewRoom";
+import MenteeLoader from "./components/ui/MenteeLoader";
 
-import { verifyTokenWithServer } from "./utils/auth";
+// Eager only for the tiny shell. Every page below is a separate chunk so the
+// first paint downloads ~1 route instead of all 40+ pages.
+const RecruAILanding = lazy(() => import("./pages/RecruAILanding"));
+const Register = lazy(() => import("./pages/Register"));
+const SignIn = lazy(() => import("./pages/SignIn"));
+const ContactUs = lazy(() => import("./pages/ContactUs"));
+const TermsAndConditions = lazy(() => import("./pages/TermsAndConditions"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const Blog = lazy(() => import("./pages/Blog"));
+const Careers = lazy(() => import("./pages/Careers"));
+const SystemStatus = lazy(() => import("./pages/SystemStatus"));
+const Community = lazy(() => import("./pages/Community"));
+const CookiesPolicy = lazy(() => import("./pages/CookiesPolicy"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const PublicProfile = lazy(() => import("./pages/PublicProfile"));
+const DashboardSwitcher = lazy(() => import("./pages/DashboardSwitcher"));
+const SettingsSwitcher = lazy(() => import("./pages/SettingsSwitcher"));
+const Profile = lazy(() => import("./pages/individual/Profile"));
+const UpcomingInterviews = lazy(() => import("./pages/individual/UpcomingInterviews"));
+const InterviewHistory = lazy(() => import("./pages/individual/InterviewHistory"));
+const SavedJobs = lazy(() => import("./pages/individual/SavedJobs"));
+const AppliedJobs = lazy(() => import("./pages/individual/AppliedJobs"));
+const Analytics = lazy(() => import("./pages/individual/Analytics"));
+const ResumeBuilder = lazy(() => import("./pages/individual/ResumeBuilder"));
+const JobAlerts = lazy(() => import("./pages/individual/JobAlerts"));
+const CareerCoaching = lazy(() => import("./pages/individual/CareerCoaching"));
+const JobDetails = lazy(() => import("./pages/individual/JobDetails"));
+const MyNetwork = lazy(() => import("./pages/individual/MyNetwork"));
+const Interviews = lazy(() => import("./pages/individual/Interviews"));
+const PracticeDashboard = lazy(() => import("./pages/individual/PracticeDashboard"));
+const PracticeRoom = lazy(() => import("./pages/individual/PracticeRoom"));
+const IndividualAIAgents = lazy(() => import("./pages/individual/AIAgents"));
+const ShareableProfiles = lazy(() => import("./pages/individual/ShareableProfiles"));
+const OrganizationProfile = lazy(() => import("./pages/organization/Profile"));
+const Billing = lazy(() => import("./pages/organization/Billing"));
+const BrowseOrganizations = lazy(() => import("./pages/organization/BrowseOrganizations"));
+const HirePeople = lazy(() => import("./pages/organization/HirePeople"));
+const TeamMembers = lazy(() => import("./pages/organization/TeamMembers"));
+const UserProfile = lazy(() => import("./pages/organization/UserProfile"));
+const JobPosts = lazy(() => import("./pages/organization/JobPosts"));
+const JobPostDetails = lazy(() => import("./pages/organization/JobPostDetails"));
+const Candidates = lazy(() => import("./pages/organization/Candidates"));
+const InterviewManagement = lazy(() => import("./pages/organization/InterviewManagement"));
+const InterviewAnalysis = lazy(() => import("./pages/InterviewAnalysis"));
+const Pipeline = lazy(() => import("./pages/organization/Pipeline"));
+const OrganizationAnalytics = lazy(() => import("./pages/organization/OrganizationAnalytics"));
+const Reports = lazy(() => import("./pages/organization/Reports"));
+const Integrations = lazy(() => import("./pages/organization/Integrations"));
+const Insights = lazy(() => import("./pages/organization/Insights"));
+const AIAgents = lazy(() => import("./pages/organization/AIAgents"));
+const CandidateAnalysis = lazy(() => import("./pages/organization/CandidateAnalysis"));
+const InterviewRoom = lazy(() => import("./pages/InterviewRoom"));
+const Notifications = lazy(() => import("./pages/Notifications"));
+const InterviewDetail = lazy(() => import("./pages/individual/InterviewDetail"));
+
+function RouteLoader() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <MenteeLoader size={64} />
+    </div>
+  );
+}
+
+function InterviewAnalysisRedirect() {
+  const { interviewId } = useParams();
+  return <Navigate to={`/interviews/${interviewId}/analysis`} replace />;
+}
+
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    document.querySelectorAll("main").forEach((el) => el.scrollTo(0, 0));
+  }, [pathname]);
+  return null;
+}
 
 function AuthVerifier() {
   const navigate = useNavigate();
   const location = useLocation();
+  const didInit = useRef(false);
 
+  // One network verify per page load (cached 90s + single-flight in auth.js).
+  // Previously this ran on EVERY location change -> GET /api/auth/me waterfall.
   useEffect(() => {
+    if (didInit.current) return;
+    didInit.current = true;
     let mounted = true;
     (async () => {
       try {
+        const { verifyTokenWithServer } = await import("./utils/auth");
+        const socketService = (await import("./utils/socket")).default;
         const user = await verifyTokenWithServer();
-        if (!mounted) return;
-        if (user) {
-          // if user hits a public auth page (signin/register), redirect to dashboard
-          // NOTE: we intentionally do NOT redirect from `/` so signed-in users can
-          // still visit the landing page — the navbar will show Dashboard/Sign out.
-          if (
-            location.pathname === "/signin" ||
-            location.pathname === "/register"
-          ) {
-            navigate("/dashboard", { replace: true });
-          }
+        if (!mounted || !user) return;
+        const token = localStorage.getItem("access_token");
+        if (token) {
+          socketService.connect(token);
+          if (user.organization_id) socketService.joinOrg(user.organization_id);
         }
-      } catch (e) {
-        // ignore
+      } catch {
+        // ignore — pages handle their own auth via ProtectedRoute
       }
     })();
     return () => {
       mounted = false;
     };
-  }, [navigate, location]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Cheap client-side redirect, no network: only when we already know auth state.
+  useEffect(() => {
+    if (
+      (location.pathname === "/signin" || location.pathname === "/register") &&
+      localStorage.getItem("isAuthenticated") === "true"
+    ) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [navigate, location.pathname]);
 
   return null;
 }
@@ -101,6 +141,8 @@ function App() {
     <Router>
       <ToastProvider>
         <AuthVerifier />
+        <ScrollToTop />
+        <Suspense fallback={<RouteLoader />}>
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<RecruAILanding />} />
@@ -109,14 +151,11 @@ function App() {
           <Route path="/contact" element={<ContactUs />} />
           <Route path="/terms" element={<TermsAndConditions />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
-          <Route path="/about" element={<AboutUs />} />
           <Route path="/blog" element={<Blog />} />
+          <Route path="/careers" element={<Careers />} />
           <Route path="/status" element={<SystemStatus />} />
           <Route path="/community" element={<Community />} />
           <Route path="/cookies" element={<CookiesPolicy />} />
-
-          {/* Public Profile Route (no auth required) */}
-          <Route path="/:slug" element={<PublicProfile />} />
 
           {/* Protected Routes */}
           <Route
@@ -124,6 +163,30 @@ function App() {
             element={
               <ProtectedRoute>
                 <DashboardSwitcher />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/network"
+            element={
+              <ProtectedRoute>
+                <MyNetwork />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/interviews"
+            element={
+              <ProtectedRoute>
+                <Interviews />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/notifications"
+            element={
+              <ProtectedRoute>
+                <Notifications />
               </ProtectedRoute>
             }
           />
@@ -151,14 +214,7 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/jobs"
-            element={
-              <ProtectedRoute>
-                <BrowseJobs />
-              </ProtectedRoute>
-            }
-          />
+          <Route path="/jobs" element={<Navigate to="/dashboard" replace />} />
           <Route
             path="/jobs/:id"
             element={
@@ -216,18 +272,10 @@ function App() {
             }
           />
           <Route
-            path="/analytics"
+            path="/billing"
             element={
               <ProtectedRoute>
-                <Analytics />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/resume/builder"
-            element={
-              <ProtectedRoute>
-                <ResumeBuilder />
+                <Billing />
               </ProtectedRoute>
             }
           />
@@ -235,7 +283,7 @@ function App() {
             path="/interview/:interviewId/analysis"
             element={
               <ProtectedRoute>
-                <InterviewAnalysis />
+                <InterviewAnalysisRedirect />
               </ProtectedRoute>
             }
           />
@@ -328,10 +376,34 @@ function App() {
             }
           />
           <Route
+            path="/organization/candidate-analysis"
+            element={
+              <ProtectedRoute>
+                <CandidateAnalysis />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/organization/candidate-analysis/:userId"
+            element={
+              <ProtectedRoute>
+                <CandidateAnalysis />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/organization/jobs"
             element={
               <ProtectedRoute>
                 <JobPosts />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/organization/jobs/:id"
+            element={
+              <ProtectedRoute>
+                <JobPostDetails />
               </ProtectedRoute>
             }
           />
@@ -352,10 +424,10 @@ function App() {
             }
           />
           <Route
-            path="/organization/pipeline"
+            path="/organization/billing"
             element={
               <ProtectedRoute>
-                <Pipeline />
+                <Billing />
               </ProtectedRoute>
             }
           />
@@ -364,30 +436,6 @@ function App() {
             element={
               <ProtectedRoute>
                 <OrganizationAnalytics />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/organization/reports"
-            element={
-              <ProtectedRoute>
-                <Reports />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/organization/integrations"
-            element={
-              <ProtectedRoute>
-                <Integrations />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/organization/insights"
-            element={
-              <ProtectedRoute>
-                <Insights />
               </ProtectedRoute>
             }
           />
@@ -404,6 +452,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <InterviewAnalysis />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/interviews/:interviewId"
+            element={
+              <ProtectedRoute>
+                <InterviewDetail />
               </ProtectedRoute>
             }
           />
@@ -447,9 +503,12 @@ function App() {
               </ProtectedRoute>
             }
           />
+          {/* Public profile by slug — kept last so static routes win. */}
+          <Route path="/:slug" element={<PublicProfile />} />
           {/* 404 Route - must be last */}
           <Route path="*" element={<NotFound />} />
         </Routes>
+        </Suspense>
       </ToastProvider>
     </Router>
   );

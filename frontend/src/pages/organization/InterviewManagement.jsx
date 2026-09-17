@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
 import Card from "../../components/ui/Card";
+import { FiPlayCircle, FiCalendar, FiCheckCircle, FiXCircle } from "react-icons/fi";
 import {
   getSidebarItems,
   getBackendUrl,
@@ -43,26 +44,61 @@ const ScheduleInterviewModal = ({
     scheduled_at: "",
     duration_minutes: 60,
     user_id: "",
-    organization_id: organizationId || 1, // Use passed org id or default 1
+    organization_id: organizationId || "", // Synced when org resolves; never default
     post_id: "",
-    interview_type: "video",
+    interview_type: "text",
     location: "",
     meeting_link: "",
     interviewers: [],
+    ai_agent_id: "",
   });
 
   const [posts, setPosts] = useState([]);
+  const [aiAgents, setAiAgents] = useState([]);
+  const [recommendedAgents, setRecommendedAgents] = useState([]);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const fetchRecommendedAgents = useCallback(async (jobId) => {
+    if (!jobId) {
+      setRecommendedAgents([]);
+      return;
+    }
+    try {
+      const response = await fetch(
+        `${getBackendUrl()}/api/recommendations/agents/${jobId}`,
+        {
+          credentials: "include",
+          headers: getAuthHeaders(),
+        }
+      );
+      if (response.ok) {
+        const data = await response.json();
+        setRecommendedAgents(data.recommendations || []);
+      }
+    } catch (error) {
+      console.error("Error fetching recommended agents:", error);
+    }
+  }, []);
+
   useEffect(() => {
     if (isOpen) {
       fetchPosts();
+      fetchAiAgents();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, organizationId]);
+
+  // Fetch recommended agents when job is selected
+  useEffect(() => {
+    if (formData.post_id) {
+      fetchRecommendedAgents(formData.post_id);
+    } else {
+      setRecommendedAgents([]);
+    }
+  }, [formData.post_id, fetchRecommendedAgents]);
 
   useEffect(() => {
     // Normalize formData when org changes
-    setFormData((prev) => ({ ...prev, organization_id: organizationId || 1 }));
+    setFormData((prev) => ({ ...prev, organization_id: organizationId || "" }));
   }, [organizationId]);
 
   const fetchPosts = useCallback(async () => {
@@ -80,10 +116,32 @@ const ScheduleInterviewModal = ({
       );
       if (response.ok) {
         const data = await response.json();
-        setPosts(data.posts || []);
+        setPosts(Array.isArray(data) ? data : (data.posts || []));
       }
     } catch (error) {
       console.error("Error fetching posts:", error);
+    }
+  }, [organizationId]);
+
+  const fetchAiAgents = useCallback(async () => {
+    if (!organizationId) {
+      setAiAgents([]);
+      return;
+    }
+    try {
+      const response = await fetch(
+        `${getBackendUrl()}/api/organizations/${organizationId}/ai-agents`,
+        {
+          credentials: "include",
+          headers: getAuthHeaders(),
+        }
+      );
+      if (response.ok) {
+        const data = await response.json();
+        setAiAgents(Array.isArray(data) ? data : (data.agents || []));
+      }
+    } catch (error) {
+      console.error("Error fetching AI agents:", error);
     }
   }, [organizationId]);
 
@@ -113,7 +171,9 @@ const ScheduleInterviewModal = ({
       location: "",
       meeting_link: "",
       interviewers: [],
+      ai_agent_id: "",
     });
+    setRecommendedAgents([]);
     onClose();
   };
 
@@ -188,7 +248,7 @@ const ScheduleInterviewModal = ({
             >
               <option value="">Select Job Post (Optional)</option>
               {posts.map((post) => (
-                <option key={post.id} value={post.title}>
+                <option key={post.id} value={post.id}>
                   {post.title}
                 </option>
               ))}
@@ -245,6 +305,89 @@ const ScheduleInterviewModal = ({
               className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
               required
             />
+          </div>
+        </div>
+
+        {/* AI Agent Selection */}
+        <div className="mt-6">
+          <label className="block text-sm font-medium text-gray-700 mb-3">
+            AI Interview Agent (Optional)
+          </label>
+
+          {recommendedAgents.length > 0 && (
+            <div className="mb-4">
+              <h4 className="text-sm font-medium text-gray-700 mb-2">
+                ⭐ Recommended Agents
+              </h4>
+              <div className="grid grid-cols-1 gap-3 mb-4">
+                {recommendedAgents.slice(0, 3).map((agent) => (
+                  <div
+                    key={`rec-${agent.agent_id}`}
+                    className="border border-yellow-200 bg-yellow-50 rounded-lg p-3 cursor-pointer hover:bg-yellow-100 transition-colors"
+                    onClick={() =>
+                      setFormData({ ...formData, ai_agent_id: agent.agent_id })
+                    }
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-gray-900">
+                            {agent.agent_name}
+                          </span>
+                          <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">
+                            ⭐ Recommended
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-600">
+                          {agent.industry}
+                        </p>
+                        {agent.explanation && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            {agent.explanation}
+                          </p>
+                        )}
+                      </div>
+                      <input
+                        type="radio"
+                        name="ai_agent"
+                        value={agent.agent_id}
+                        checked={formData.ai_agent_id === agent.agent_id}
+                        onChange={() =>
+                          setFormData({
+                            ...formData,
+                            ai_agent_id: agent.agent_id,
+                          })
+                        }
+                        className="w-4 h-4 text-blue-600"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Select AI Agent
+            </label>
+            <select
+              value={formData.ai_agent_id}
+              onChange={(e) =>
+                setFormData({ ...formData, ai_agent_id: e.target.value })
+              }
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">No AI Agent (Human Interview)</option>
+              {aiAgents.map((agent) => (
+                <option key={agent.id} value={agent.id}>
+                  {agent.name} - {agent.industry}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-500 mt-1">
+              AI agents can conduct automated interviews for this position
+            </p>
           </div>
         </div>
 
@@ -896,8 +1039,8 @@ export default function InterviewManagement() {
 
   const fetchAIAgents = useCallback(async () => {
     try {
-      // TODO: Get organization ID from user context
-      const orgId = organizationId || 1; // Fallback to 1 if missing
+      const orgId = organizationId;
+      if (!orgId) { setAiAgents([]); return; }
       const response = await fetch(
         `${getBackendUrl()}/api/organizations/${orgId}/ai-agents`,
         {
@@ -1691,22 +1834,35 @@ export default function InterviewManagement() {
         </div>
       )}
 
-      <div className="mb-6 flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            Interview Management
-          </h1>
-          <p className="text-gray-600 mt-1">
-            Schedule and manage interviews with candidates.
-          </p>
+      <div className="relative overflow-hidden rounded-2xl bg-gray-900 text-white mb-6">
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-transparent to-indigo-600/20" />
+        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3" />
+        <div className="relative p-6 md:p-8">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 border border-white/20 text-xs font-medium tracking-wide mb-3">INTERVIEWS</div>
+              <h1 className="text-3xl md:text-[2rem] font-bold leading-tight">Interview management</h1>
+              <p className="text-gray-300 mt-2 max-w-xl text-sm md:text-[15px]">Schedule and manage interviews with candidates.</p>
+            </div>
+            <button onClick={() => setShowScheduleModal(true)} className="inline-flex items-center justify-center gap-2 bg-white text-gray-900 px-5 py-3 text-sm font-medium hover:bg-gray-100 self-start lg:self-auto">
+              + Schedule interview
+            </button>
+          </div>
+          <div className="mt-6 grid grid-cols-3 gap-3 max-w-md">
+            <div className="bg-white/10 backdrop-blur border border-white/10 p-3 text-center">
+              <p className="text-xl font-bold">{interviews.length}</p>
+              <p className="text-xs text-gray-300 mt-1">Total</p>
+            </div>
+            <div className="bg-blue-500/20 backdrop-blur border border-blue-400/20 p-3 text-center">
+              <p className="text-xl font-bold text-blue-200">{interviews.filter((i) => i.status === "scheduled").length}</p>
+              <p className="text-xs text-blue-200 mt-1">Scheduled</p>
+            </div>
+            <div className="bg-green-500/20 backdrop-blur border border-green-400/20 p-3 text-center">
+              <p className="text-xl font-bold text-green-200">{interviews.filter((i) => i.status === "completed").length}</p>
+              <p className="text-xs text-green-200 mt-1">Completed</p>
+            </div>
+          </div>
         </div>
-        <button
-          onClick={() => setShowScheduleModal(true)}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center"
-        >
-          <span className="mr-2">+</span>
-          Schedule Interview
-        </button>
       </div>
 
       {/* Selected Interviews Summary */}
@@ -1816,61 +1972,69 @@ export default function InterviewManagement() {
         </div>
 
         {/* Section Visibility Toggles */}
-        <div className="flex flex-wrap gap-4">
-          <label className="flex items-center">
-            <input
-              type="checkbox"
-              checked={showSections.inProgress}
-              onChange={() => toggleSection("inProgress")}
-              className="mr-2"
-            />
-            <span className="text-sm text-orange-700 font-medium">
-              In Progress
-            </span>
-          </label>
-          <label className="flex items-center">
-            <input
-              type="checkbox"
-              checked={showSections.scheduled}
-              onChange={() => toggleSection("scheduled")}
-              className="mr-2"
-            />
-            <span className="text-sm text-gray-700 font-medium">Scheduled</span>
-          </label>
-          <label className="flex items-center">
-            <input
-              type="checkbox"
-              checked={showSections.completed}
-              onChange={() => toggleSection("completed")}
-              className="mr-2"
-            />
-            <span className="text-sm text-green-700 font-medium">
-              Completed
-            </span>
-          </label>
-          <label className="flex items-center">
-            <input
-              type="checkbox"
-              checked={showSections.cancelled}
-              onChange={() => toggleSection("cancelled")}
-              className="mr-2"
-            />
-            <span className="text-sm text-red-700 font-medium">
-              Cancelled/No Show
-            </span>
-          </label>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => toggleSection("inProgress")}
+            className={`flex items-center gap-2 px-3 py-2 text-sm font-medium border transition-colors rounded-none ${
+              showSections.inProgress
+                ? "bg-orange-600 text-white border-orange-600"
+                : "bg-white text-orange-700 border-orange-200 hover:bg-orange-50"
+            }`}
+          >
+            <FiPlayCircle className="w-4 h-4" />
+            In Progress
+          </button>
+          <button
+            onClick={() => toggleSection("scheduled")}
+            className={`flex items-center gap-2 px-3 py-2 text-sm font-medium border transition-colors rounded-none ${
+              showSections.scheduled
+                ? "bg-blue-600 text-white border-blue-600"
+                : "bg-white text-blue-700 border-blue-200 hover:bg-blue-50"
+            }`}
+          >
+            <FiCalendar className="w-4 h-4" />
+            Scheduled
+          </button>
+          <button
+            onClick={() => toggleSection("completed")}
+            className={`flex items-center gap-2 px-3 py-2 text-sm font-medium border transition-colors rounded-none ${
+              showSections.completed
+                ? "bg-green-600 text-white border-green-600"
+                : "bg-white text-green-700 border-green-200 hover:bg-green-50"
+            }`}
+          >
+            <FiCheckCircle className="w-4 h-4" />
+            Completed
+          </button>
+          <button
+            onClick={() => toggleSection("cancelled")}
+            className={`flex items-center gap-2 px-3 py-2 text-sm font-medium border transition-colors rounded-none ${
+              showSections.cancelled
+                ? "bg-red-600 text-white border-red-600"
+                : "bg-white text-red-700 border-red-200 hover:bg-red-50"
+            }`}
+          >
+            <FiXCircle className="w-4 h-4" />
+            Cancelled/No Show
+          </button>
         </div>
       </div>
 
       {/* Section: In Progress Interviews */}
       {showSections.inProgress && (
         <>
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-lg font-semibold text-orange-700">
-              Current/In Progress Interviews ({inProgress.length})
+          <div className="flex items-center gap-3 mb-4">
+            <span className="w-1 h-6 rounded-full bg-orange-500 shrink-0" />
+            <FiPlayCircle className="w-5 h-5 text-orange-600 shrink-0" />
+            <h2 className="text-lg font-semibold text-gray-900 whitespace-nowrap">
+              Current/In Progress Interviews
             </h2>
+            <span className="text-xs font-medium bg-orange-50 text-orange-700 border border-orange-200 px-2 py-0.5 rounded-full shrink-0">
+              {inProgress.length}
+            </span>
+            <div className="flex-1 border-t border-gray-200" />
             {inProgress.length > 0 && (
-              <label className="flex items-center text-sm">
+              <label className="flex items-center text-sm text-gray-600 shrink-0">
                 <input
                   type="checkbox"
                   onChange={(e) =>
@@ -1884,7 +2048,9 @@ export default function InterviewManagement() {
           </div>
           <div className="space-y-4 mb-6">
             {inProgress.length === 0 ? (
-              <div className="text-gray-500">No interviews in progress.</div>
+              <div className="border border-dashed border-gray-300 bg-gray-50/50 px-4 py-6 text-center text-sm text-gray-500">
+                No interviews in progress.
+              </div>
             ) : (
               inProgress.map((interview) => (
                 <Card key={interview.id}>
@@ -1899,12 +2065,18 @@ export default function InterviewManagement() {
       {/* Section: Scheduled Interviews */}
       {showSections.scheduled && (
         <>
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-lg font-semibold text-gray-700">
-              Scheduled Interviews ({scheduled.length})
+          <div className="flex items-center gap-3 mb-4 mt-8">
+            <span className="w-1 h-6 rounded-full bg-blue-500 shrink-0" />
+            <FiCalendar className="w-5 h-5 text-blue-600 shrink-0" />
+            <h2 className="text-lg font-semibold text-gray-900 whitespace-nowrap">
+              Scheduled Interviews
             </h2>
+            <span className="text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded-full shrink-0">
+              {scheduled.length}
+            </span>
+            <div className="flex-1 border-t border-gray-200" />
             {scheduled.length > 0 && (
-              <label className="flex items-center text-sm">
+              <label className="flex items-center text-sm text-gray-600 shrink-0">
                 <input
                   type="checkbox"
                   onChange={(e) => handleSelectAll(scheduled, e.target.checked)}
@@ -1916,7 +2088,9 @@ export default function InterviewManagement() {
           </div>
           <div className="space-y-4 mb-6">
             {scheduled.length === 0 ? (
-              <div className="text-gray-500">No scheduled interviews.</div>
+              <div className="border border-dashed border-gray-300 bg-gray-50/50 px-4 py-6 text-center text-sm text-gray-500">
+                No scheduled interviews.
+              </div>
             ) : (
               scheduled.map((interview) => (
                 <Card key={interview.id}>
@@ -1931,12 +2105,18 @@ export default function InterviewManagement() {
       {/* Section: Completed Interviews */}
       {showSections.completed && (
         <>
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-lg font-semibold text-green-700">
-              Completed Interviews ({completed.length})
+          <div className="flex items-center gap-3 mb-4 mt-8">
+            <span className="w-1 h-6 rounded-full bg-green-500 shrink-0" />
+            <FiCheckCircle className="w-5 h-5 text-green-600 shrink-0" />
+            <h2 className="text-lg font-semibold text-gray-900 whitespace-nowrap">
+              Completed Interviews
             </h2>
+            <span className="text-xs font-medium bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 rounded-full shrink-0">
+              {completed.length}
+            </span>
+            <div className="flex-1 border-t border-gray-200" />
             {completed.length > 0 && (
-              <label className="flex items-center text-sm">
+              <label className="flex items-center text-sm text-gray-600 shrink-0">
                 <input
                   type="checkbox"
                   onChange={(e) => handleSelectAll(completed, e.target.checked)}
@@ -1948,7 +2128,9 @@ export default function InterviewManagement() {
           </div>
           <div className="space-y-4 mb-6">
             {completed.length === 0 ? (
-              <div className="text-gray-500">No completed interviews.</div>
+              <div className="border border-dashed border-gray-300 bg-gray-50/50 px-4 py-6 text-center text-sm text-gray-500">
+                No completed interviews.
+              </div>
             ) : (
               completed.map((interview) => (
                 <Card key={interview.id}>
@@ -1963,12 +2145,18 @@ export default function InterviewManagement() {
       {/* Section: Cancelled/No Show Interviews */}
       {showSections.cancelled && (
         <>
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-lg font-semibold text-red-700">
-              Cancelled/No Show Interviews ({cancelled.length})
+          <div className="flex items-center gap-3 mb-4 mt-8">
+            <span className="w-1 h-6 rounded-full bg-red-500 shrink-0" />
+            <FiXCircle className="w-5 h-5 text-red-600 shrink-0" />
+            <h2 className="text-lg font-semibold text-gray-900 whitespace-nowrap">
+              Cancelled/No Show Interviews
             </h2>
+            <span className="text-xs font-medium bg-red-50 text-red-700 border border-red-200 px-2 py-0.5 rounded-full shrink-0">
+              {cancelled.length}
+            </span>
+            <div className="flex-1 border-t border-gray-200" />
             {cancelled.length > 0 && (
-              <label className="flex items-center text-sm">
+              <label className="flex items-center text-sm text-gray-600 shrink-0">
                 <input
                   type="checkbox"
                   onChange={(e) => handleSelectAll(cancelled, e.target.checked)}
@@ -1980,7 +2168,7 @@ export default function InterviewManagement() {
           </div>
           <div className="space-y-4 mb-6">
             {cancelled.length === 0 ? (
-              <div className="text-gray-500">
+              <div className="border border-dashed border-gray-300 bg-gray-50/50 px-4 py-6 text-center text-sm text-gray-500">
                 No cancelled or no-show interviews.
               </div>
             ) : (
@@ -1993,20 +2181,6 @@ export default function InterviewManagement() {
           </div>
         </>
       )}
-
-      {/* Section: Cancelled Interviews */}
-      <h2 className="text-lg font-semibold text-gray-500 mb-2">
-        Cancelled Interviews
-      </h2>
-      <div className="space-y-4 mb-6">
-        {cancelled.length === 0 ? (
-          <div className="text-gray-500">No cancelled interviews.</div>
-        ) : (
-          cancelled.map((interview) => (
-            <Card key={interview.id}>{renderInterviewCard(interview)}</Card>
-          ))
-        )}
-      </div>
 
       {/* Schedule Interview Modal */}
       <ScheduleInterviewModal

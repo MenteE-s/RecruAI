@@ -1,318 +1,345 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
-import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
-import Card from "../../components/ui/Card";
-import {
-  getSidebarItems,
-  getBackendUrl,
-  getUploadUrl,
-  getAuthHeaders,
-} from "../../utils/auth";
-import { FiUser, FiUsers, FiSearch, FiEye } from "react-icons/fi";
+import { getSidebarItems, getBackendUrl, getUploadUrl, getAuthHeaders } from "../../utils/auth";
+import { useToast } from "../../components/ui/ToastContext";
+import { FiUsers, FiSearch, FiEye, FiChevronDown, FiChevronUp, FiX, FiLoader, FiBriefcase } from "react-icons/fi";
+
+const MATCH_COLORS = {
+  excellent: { badge: "bg-green-50 text-green-700 border-green-200", bar: "bg-green-600", dot: "bg-green-500" },
+  good: { badge: "bg-blue-50 text-blue-700 border-blue-200", bar: "bg-blue-600", dot: "bg-blue-500" },
+  possible: { badge: "bg-amber-50 text-amber-700 border-amber-200", bar: "bg-amber-500", dot: "bg-amber-500" },
+  poor: { badge: "bg-gray-50 text-gray-600 border-gray-200", bar: "bg-gray-300", dot: "bg-gray-400" },
+};
 
 export default function HirePeople() {
   const navigate = useNavigate();
-  const role =
-    typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
-  const plan =
-    typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
+  const { showToast } = useToast();
+  const role = typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
+  const plan = typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
   const sidebarItems = getSidebarItems(role, plan);
-
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [, setError] = useState(null);
+  const [query, setQuery] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
+  const [aiResults, setAiResults] = useState(null);
+  const [searchMode, setSearchMode] = useState(false);
+  const [expandedRow, setExpandedRow] = useState(null);
+  const [explanations, setExplanations] = useState({});
+  const [explainingUser, setExplainingUser] = useState(null);
+  const [empStatusFilter, setEmpStatusFilter] = useState("");
+  const [expFilter, setExpFilter] = useState("");
+  const [planFilter, setPlanFilter] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+  const lastSearchedQuery = useRef("");
+  const [searchTotal, setSearchTotal] = useState(0);
+  const [searchTotalPages, setSearchTotalPages] = useState(1);
+  const lastSearchKey = useRef("");
 
-  // Load all users for hiring
-  const loadUsers = async () => {
-    setLoading(true);
-    setError(null);
-
+  const loadUsers = useCallback(async () => {
+    setLoading(true); setError(null);
     try {
-      const response = await fetch(`${getBackendUrl()}/api/users`, {
-        credentials: "include",
-        headers: getAuthHeaders(),
-      });
+      const res = await fetch(`${getBackendUrl()}/api/users`, { credentials: "include", headers: getAuthHeaders() });
+      if (res.ok) {
+        const result = await res.json();
+        const individuals = (result.data || []).filter((u) => u.role === "individual");
+        setUsers(individuals); setFilteredUsers(individuals);
+      } else { setError("Failed to load users"); showToast("Failed to load candidates", "error"); }
+    } catch { setError("Network error. Please try again."); showToast("Network error. Please try again.", "error"); }
+    finally { setLoading(false); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => { loadUsers(); }, [loadUsers]);
 
-      if (response.ok) {
-        const result = await response.json();
-        // Filter to only show individual users (not organizations)
-        const individualUsers = result.data.filter(
-          (user) => user.role === "individual"
-        );
-        setUsers(individualUsers);
-        setFilteredUsers(individualUsers);
-      } else {
-        setError("Failed to load users");
-      }
-    } catch (err) {
-      console.error("Error loading users:", err);
-      setError("Network error. Please try again.");
-    } finally {
-      setLoading(false);
-    }
+  const parseExpFilter = (v) => {
+    if (!v) return {};
+    const parts = v.split("-").map(Number);
+    const out = {};
+    if (!Number.isNaN(parts[0])) out.min_exp = parts[0];
+    if (parts[1]) out.max_exp = parts[1];
+    return out;
   };
 
-  useEffect(() => {
-    loadUsers();
+  const triggerSearch = useCallback(async (searchQuery, page = 1, filterOverrides = {}) => {
+    if (!searchQuery || !searchQuery.trim()) { setSearchMode(false); setAiResults(null); return; }
+    const emp = filterOverrides.empStatusFilter !== undefined ? filterOverrides.empStatusFilter : empStatusFilter;
+    const exp = filterOverrides.expFilter !== undefined ? filterOverrides.expFilter : expFilter;
+    const pln = filterOverrides.planFilter !== undefined ? filterOverrides.planFilter : planFilter;
+    const key = JSON.stringify({ q: searchQuery, page, emp, exp, pln });
+    if (key === lastSearchKey.current) return;
+    lastSearchKey.current = key;
+    lastSearchedQuery.current = searchQuery;
+    setExplanations({}); setExpandedRow(null); setIsSearching(true); setSearchMode(true); setCurrentPage(page);
+    try {
+      const res = await fetch(`${getBackendUrl()}/api/recommendations/search`, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json", ...getAuthHeaders() }, body: JSON.stringify({ query: searchQuery, top_k: 50, page, per_page: pageSize, min_similarity: 0.15, filters: { employment_status: emp || undefined, plan: pln || undefined, ...parseExpFilter(exp) } }) });
+      if (res.ok) {
+        const data = await res.json();
+        setAiResults(data.results || []);
+        setFilteredUsers(data.results || []);
+        setSearchTotal(data.total || 0);
+        setSearchTotalPages(data.total_pages || 1);
+        setCurrentPage(data.page || page);
+      }
+      else { showToast((await res.json().catch(() => ({}))).error || "Search failed. Try again.", "error"); setSearchMode(false); setAiResults(null); }
+    } catch { showToast("Search request failed. Is the backend running?", "error"); setSearchMode(false); setAiResults(null); }
+    finally { setIsSearching(false); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [empStatusFilter, expFilter, planFilter]);
+
+  const loadExplanation = useCallback(async (userId, searchQuery) => {
+    if (explainingUser) return;
+    setExplainingUser(userId);
+    try {
+      const res = await fetch(`${getBackendUrl()}/api/recommendations/explain`, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json", ...getAuthHeaders() }, body: JSON.stringify({ user_id: userId, query: searchQuery }) });
+      if (res.ok) {
+        const data = await res.json();
+        setExplanations((prev) => ({ ...prev, [userId]: data }));
+      } else showToast("Failed to load AI analysis", "error");
+    } catch { showToast("Network error. Try again.", "error"); }
+    finally { setExplainingUser(null); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Filter users based on search term
   useEffect(() => {
-    if (!searchTerm) {
-      setFilteredUsers(users);
-    } else {
-      const filtered = users.filter(
-        (user) =>
-          user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          user.email?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-      setFilteredUsers(filtered);
+    if (!searchMode) {
+      let list = [...users];
+      if (empStatusFilter) list = list.filter((u) => (u.employment_status || "").toLowerCase() === empStatusFilter.toLowerCase());
+      if (planFilter) list = list.filter((u) => (u.plan || "").toLowerCase() === planFilter.toLowerCase());
+      setFilteredUsers(list);
     }
-  }, [searchTerm, users]);
+  }, [empStatusFilter, planFilter, searchMode, users]);
 
-  // Navigate to user profile
-  const viewUserProfile = (userId) => {
-    navigate(`/organization/user/${userId}`);
+  const totalPages = searchMode ? searchTotalPages : Math.max(1, Math.ceil(filteredUsers.length / pageSize));
+  const paginated = searchMode ? filteredUsers : filteredUsers.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const clearSearch = () => { setQuery(""); setSearchMode(false); setAiResults(null); setExpandedRow(null); setExplanations({}); setSearchTotal(0); setSearchTotalPages(1); lastSearchedQuery.current = ""; lastSearchKey.current = ""; };
+  const viewProfile = (userId) => navigate(`/organization/user/${userId}`);
+  const getUserId = (c) => c.user_id || c.id;
+  const MatchBadge = ({ level, similarity }) => {
+    const colors = MATCH_COLORS[level] || MATCH_COLORS.poor;
+    return (
+      <div className="flex items-center gap-2">
+        <span className={`inline-flex items-center px-2.5 py-1 text-xs font-medium border ${colors.badge}`}>{level.charAt(0).toUpperCase() + level.slice(1)}</span>
+        <div className="hidden sm:flex items-center gap-1.5">
+          <div className="w-14 h-1.5 bg-gray-100 border border-gray-200">
+            <div className={`h-1.5 ${colors.bar}`} style={{ width: `${Math.min(100, (similarity || 0) * 100)}%` }} />
+          </div>
+          <span className="text-xs text-gray-500 w-8">{((similarity || 0) * 100).toFixed(0)}%</span>
+        </div>
+      </div>
+    );
   };
 
   if (loading) {
     return (
-      <DashboardLayout
-        NavbarComponent={OrganizationNavbar}
-        sidebarItems={sidebarItems}
-      >
-        <div className="flex justify-center items-center py-12">
-          <div className="animate-pulse">
-            <div className="text-gray-500 mb-4">Loading users...</div>
-            <div className="w-64 h-4 bg-gray-200 rounded mb-2"></div>
-            <div className="w-48 h-4 bg-gray-200 rounded"></div>
-          </div>
+      <DashboardLayout sidebarItems={sidebarItems}>
+        <div className="space-y-4">
+          <div className="rounded-2xl bg-gray-900 h-48 animate-pulse" />
+          <div className="bg-white border border-gray-200 h-32 animate-pulse" />
+          <div className="bg-white border border-gray-200 h-96 animate-pulse" />
         </div>
       </DashboardLayout>
     );
   }
 
   return (
-    <DashboardLayout
-      NavbarComponent={OrganizationNavbar}
-      sidebarItems={sidebarItems}
-    >
-      {/* Error Message */}
-      {error && (
-        <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <span>{error}</span>
-            </div>
-            <button
-              onClick={() => setError(null)}
-              className="text-red-700 hover:text-red-900"
-            >
-              ×
-            </button>
-          </div>
-        </div>
-      )}
-
-      <div className="mb-8">
-        <div className="rounded-2xl p-8 bg-gradient-to-br from-yellow-600/90 via-amber-600/80 to-purple-700/70 text-white shadow-lg relative overflow-hidden">
-          <div className="absolute inset-0 bg-black/10"></div>
-          <div className="relative">
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <h1 className="text-3xl md:text-4xl font-bold font-display mb-2">
-                  Discover Top Talent
-                </h1>
-                <p className="text-lg text-white/90 mb-4">
-                  Browse through our curated pool of skilled professionals ready
-                  to join your team
-                </p>
-                <div className="flex items-center gap-6 text-sm">
-                  <div className="flex items-center">
-                    <div className="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
-                    <span>{filteredUsers.length} Candidates Available</span>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-2 h-2 bg-blue-400 rounded-full mr-2"></div>
-                    <span>Updated Daily</span>
-                  </div>
-                </div>
-              </div>
-              <div className="hidden md:block">
-                <div className="text-6xl opacity-20">👥</div>
-              </div>
-            </div>
+    <DashboardLayout sidebarItems={sidebarItems}>
+      {/* Hero */}
+      <div className="relative overflow-hidden rounded-2xl bg-gray-900 text-white mb-6">
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-transparent to-indigo-600/20" />
+        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3" />
+        <div className="relative p-6 md:p-8">
+          <h1 className="text-3xl md:text-[2rem] font-bold leading-tight">Discover top talent</h1>
+          <p className="text-gray-300 mt-2 max-w-2xl text-sm md:text-[15px]">Describe the ideal candidate and let AI find the best matches from your talent pool.</p>
+          <div className="mt-4 flex items-center gap-4 text-xs">
+            <span className="inline-flex items-center gap-1.5 bg-white/10 border border-white/20 px-2.5 py-1"><span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />{(searchMode ? searchTotal : filteredUsers.length)} candidates</span>
+            {searchMode && aiResults && <span className="inline-flex items-center gap-1.5 bg-blue-500/20 border border-blue-400/30 px-2.5 py-1 text-blue-200">AI ranked</span>}
           </div>
         </div>
       </div>
 
-      {/* Search and Filters */}
-      <Card className="mb-8 p-6">
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1 relative">
-            <FiSearch className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search by name, email, or skills..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
-            />
+      <div className="bg-white border border-gray-200 mb-6">
+        <div className="p-5 space-y-4">
+          <div className="flex flex-col md:flex-row gap-3">
+            <div className="flex-1 relative">
+              <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <input type="text" placeholder='Try "Senior React developer with Node.js experience"...' value={query} onKeyDown={(e) => { if (e.key === "Enter") triggerSearch(query); }} onChange={(e) => setQuery(e.target.value)} className="w-full pl-10 pr-28 py-3 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white" />
+              {query && <button onClick={clearSearch} className="absolute right-20 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 rounded text-gray-400"><FiX className="w-4 h-4" /></button>}
+              <button onClick={() => triggerSearch(query)} disabled={isSearching || !query.trim()} className="absolute right-1 top-1 bottom-1 px-5 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed">{isSearching ? <FiLoader className="animate-spin w-4 h-4" /> : "Search"}</button>
+            </div>
           </div>
-          <div className="flex gap-3">
-            <select className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
-              <option value="">All Roles</option>
-              <option value="developer">Developer</option>
-              <option value="designer">Designer</option>
-              <option value="manager">Manager</option>
+          {isSearching && <p className="text-sm text-blue-600 flex items-center gap-2"><FiLoader className="animate-spin w-4 h-4" /> AI is analyzing candidates…</p>}
+          {searchMode && aiResults && <div className="flex items-center justify-between text-sm"><span className="text-gray-600">Found {searchTotal} candidates</span><button onClick={clearSearch} className="text-blue-600 hover:text-blue-700 font-medium text-xs">Show all</button></div>}
+          <div className="flex flex-wrap gap-2">
+            <select value={empStatusFilter} onChange={(e) => { const v = e.target.value; setEmpStatusFilter(v); if (searchMode && query.trim()) triggerSearch(query, 1, { empStatusFilter: v }); else setCurrentPage(1); }} className="px-3 py-2 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white">
+              <option value="">All status</option>
+              <option value="unemployed">Unemployed</option>
+              <option value="working">Working</option>
+              <option value="hired">Hired</option>
+              <option value="onboarding">Onboarding</option>
             </select>
-            <select className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
-              <option value="">Experience Level</option>
-              <option value="junior">Junior (0-2 years)</option>
-              <option value="mid">Mid-level (3-5 years)</option>
-              <option value="senior">Senior (5+ years)</option>
+            <select value={expFilter} onChange={(e) => { const v = e.target.value; setExpFilter(v); if (searchMode && query.trim()) triggerSearch(query, 1, { expFilter: v }); else setCurrentPage(1); }} className="px-3 py-2 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white">
+              <option value="">All experience</option>
+              <option value="0-2">Junior (0-2 yrs)</option>
+              <option value="3-5">Mid (3-5 yrs)</option>
+              <option value="5-">Senior (5+ yrs)</option>
+            </select>
+            <select value={planFilter} onChange={(e) => { const v = e.target.value; setPlanFilter(v); if (searchMode && query.trim()) triggerSearch(query, 1, { planFilter: v }); else setCurrentPage(1); }} className="px-3 py-2 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white">
+              <option value="">All plans</option>
+              <option value="trial">Trial</option>
+              <option value="pro">Pro</option>
             </select>
           </div>
         </div>
-        {searchTerm && (
-          <div className="mt-4 flex items-center justify-between">
-            <span className="text-sm text-gray-600">
-              Found {filteredUsers.length} candidate
-              {filteredUsers.length !== 1 ? "s" : ""} matching "{searchTerm}"
-            </span>
-            <button
-              onClick={() => setSearchTerm("")}
-              className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-            >
-              Clear search
-            </button>
-          </div>
-        )}
-      </Card>
+      </div>
 
-      {/* Users Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredUsers.length === 0 ? (
-          <div className="col-span-full">
-            <Card className="text-center py-16">
-              <FiUsers size={64} className="mx-auto text-gray-300 mb-6" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                No Candidates Found
-              </h3>
-              <p className="text-gray-500 text-lg">
-                {searchTerm
-                  ? "Try adjusting your search terms or browse all candidates"
-                  : "No candidates available at the moment"}
-              </p>
-              {searchTerm && (
-                <button
-                  onClick={() => setSearchTerm("")}
-                  className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  Clear Search
-                </button>
-              )}
-            </Card>
+      <div className="bg-white border border-gray-200 overflow-hidden">
+        {paginated.length === 0 ? (
+          <div className="text-center py-16">
+            <div className="w-12 h-12 bg-gray-100 flex items-center justify-center mx-auto mb-3"><FiUsers className="w-6 h-6 text-gray-400" /></div>
+            <h3 className="text-sm font-semibold text-gray-900">No candidates found</h3>
+            <p className="text-xs text-gray-500 mt-1">{query ? "Try a different search query" : "No candidates available at the moment"}</p>
           </div>
         ) : (
-          filteredUsers.map((user) => (
-            <Card
-              key={user.id}
-              className="group hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border-0 shadow-md"
-            >
-              <div className="p-6">
-                {/* Profile Header */}
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center">
-                    <div className="relative">
-                      {user.profile_picture ? (
-                        <img
-                          src={getUploadUrl(user.profile_picture)}
-                          alt={user.name || "Profile"}
-                          className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-md"
-                        />
-                      ) : (
-                        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center border-2 border-white shadow-md">
-                          <span className="text-white font-bold text-xl">
-                            {(user.name || user.email).charAt(0).toUpperCase()}
-                          </span>
-                        </div>
-                      )}
-                      <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
-                        <div className="w-2 h-2 bg-white rounded-full"></div>
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-gray-900 text-white">
+                    <th className="text-left px-4 py-3 font-medium">Candidate</th>
+                    <th className="text-left px-4 py-3 font-medium hidden md:table-cell">Status</th>
+                    <th className="text-left px-4 py-3 font-medium hidden lg:table-cell">Experience</th>
+                    <th className="text-left px-4 py-3 font-medium hidden lg:table-cell">Skills</th>
+                    <th className="text-left px-4 py-3 font-medium">Match</th>
+                    <th className="text-center px-4 py-3 font-medium">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {paginated.map((candidate) => {
+                    const cid = getUserId(candidate);
+                    const isExpanded = expandedRow === cid;
+                    return (
+                      <tr
+                        key={cid}
+                        onClick={() => viewProfile(cid)}
+                        className={`hover:bg-blue-50/50 cursor-pointer ${isExpanded ? "bg-blue-50/30" : ""}`}
+                      >
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            <div className="shrink-0">
+                              {candidate.profile_picture ? <img src={getUploadUrl(candidate.profile_picture)} alt="" className="w-9 h-9 rounded-full object-cover border border-gray-200" /> : <div className="w-9 h-9 rounded-full bg-gray-900 text-white flex items-center justify-center text-sm font-bold">{(candidate.name || "?")[0].toUpperCase()}</div>}
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-gray-900">{candidate.name || "Anonymous"}</p>
+                              <p className="text-xs text-gray-500">{candidate.current_position || "—"}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 hidden md:table-cell">
+                          <span className={`inline-flex px-2 py-1 text-xs font-medium border ${candidate.employment_status === "unemployed" ? "bg-green-50 text-green-700 border-green-200" : candidate.employment_status === "working" || candidate.employment_status === "hired" ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-gray-50 text-gray-600 border-gray-200"}`}>{candidate.employment_status || "unknown"}</span>
+                        </td>
+                        <td className="px-4 py-3 hidden lg:table-cell text-xs text-gray-600">
+                          {candidate.experience_years ? `${candidate.experience_years.toFixed(1)} yrs` : "—"}
+                          {candidate.education_level && <span className="text-gray-400 ml-1">({candidate.education_level.split(" ").slice(0, 2).join(" ")})</span>}
+                        </td>
+                        <td className="px-4 py-3 hidden lg:table-cell">
+                          <div className="flex flex-wrap max-w-[200px] gap-1">
+                            {(() => {
+                              const displaySkills = candidate.matching_skills?.length ? candidate.matching_skills : candidate.skills?.length ? candidate.skills : [];
+                              return displaySkills.slice(0, 3).map((s, i) => <span key={i} className="inline-flex px-2 py-0.5 text-xs bg-blue-50 text-blue-700 border border-blue-200">{s}</span>);
+                            })()}
+                            {candidate.skills_count > 0 && !candidate.matching_skills?.length && !candidate.skills?.length && <span className="text-xs text-gray-500">{candidate.skills_count} skills</span>}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3"><MatchBadge level={candidate.match_level || "possible"} similarity={candidate.similarity || 0} /></td>
+                        <td className="px-4 py-3 text-center">
+                          <div className="flex items-center justify-center gap-1">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                viewProfile(cid);
+                              }}
+                              className="p-1.5 text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-200"
+                              title="View"
+                            >
+                              <FiEye className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/organization/candidate-analysis/${cid}`);
+                              }}
+                              className="p-1.5 text-green-600 hover:bg-green-50 border border-transparent hover:border-green-200"
+                              title="Analysis"
+                            >
+                              <FiBriefcase className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (isExpanded) setExpandedRow(null);
+                                else {
+                                  setExpandedRow(cid);
+                                  loadExplanation(cid, query);
+                                }
+                              }}
+                              className="p-1.5 text-gray-500 hover:bg-gray-100 border border-transparent hover:border-gray-200"
+                            >
+                              {explainingUser === cid ? <FiLoader className="animate-spin w-4 h-4" /> : isExpanded ? <FiChevronUp className="w-4 h-4" /> : <FiChevronDown className="w-4 h-4" />}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            {expandedRow && (
+              <div className="border-t border-gray-200 bg-gray-50 px-6 py-4">
+                {(() => {
+                  const candidate = filteredUsers.find((u) => getUserId(u) === expandedRow);
+                  const explanation = explanations[expandedRow];
+                  if (!candidate) return null;
+                  const level = explanation?.match_level || candidate.match_level || "possible";
+                  const colors = MATCH_COLORS[level] || MATCH_COLORS.poor;
+                  return (
+                    <div className="flex gap-3">
+                      <div className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${colors.dot}`} />
+                      <div>
+                        <p className="text-xs font-semibold text-gray-700 uppercase tracking-wider">AI match analysis</p>
+                        {explanation ? (
+                          <>
+                            <p className="text-sm text-gray-600 mt-1 leading-relaxed">{explanation.explanation}</p>
+                            {explanation.matching_skills?.length > 0 && <div className="mt-2 flex flex-wrap gap-1">{explanation.matching_skills.map((s, i) => <span key={i} className="inline-flex px-2 py-1 text-xs bg-blue-50 text-blue-700 border border-blue-200">{s}</span>)}</div>}
+                          </>
+                        ) : <p className="text-sm text-gray-500 italic mt-1">Loading AI analysis…</p>}
                       </div>
                     </div>
-                    <div className="ml-4">
-                      <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
-                        {user.name || "Anonymous User"}
-                      </h3>
-                      <p className="text-sm text-gray-600">{user.email}</p>
-                      <div className="flex items-center mt-1">
-                        <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            user.role === "individual"
-                              ? "bg-blue-100 text-blue-800"
-                              : "bg-purple-100 text-purple-800"
-                          }`}
-                        >
-                          {user.role === "individual"
-                            ? "👤 Candidate"
-                            : "🏢 Organization"}
-                        </span>
-                        <span
-                          className={`ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            user.plan === "pro"
-                              ? "bg-yellow-100 text-yellow-800"
-                              : "bg-gray-100 text-gray-800"
-                          }`}
-                        >
-                          {user.plan === "pro" ? "⭐ Pro" : "📋 Trial"}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* User Stats */}
-                <div className="grid grid-cols-3 gap-4 mb-4 p-3 bg-gray-50 rounded-lg">
-                  <div className="text-center">
-                    <div className="text-lg font-bold text-gray-900">--</div>
-                    <div className="text-xs text-gray-600">Experience</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-lg font-bold text-gray-900">--</div>
-                    <div className="text-xs text-gray-600">Skills</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-lg font-bold text-gray-900">--</div>
-                    <div className="text-xs text-gray-600">Projects</div>
-                  </div>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => viewUserProfile(user.id)}
-                    className="flex-1 inline-flex items-center justify-center px-4 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 transform hover:scale-105"
-                  >
-                    <FiEye className="mr-2" size={16} />
-                    View Profile
-                  </button>
-                  <button className="inline-flex items-center justify-center px-3 py-2.5 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-all duration-200">
-                    <FiUser size={16} />
-                  </button>
-                </div>
-
-                {/* Last Active */}
-                <div className="mt-3 text-xs text-gray-500 text-center">
-                  Active recently
+                  );
+                })()}
+              </div>
+            )}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-white">
+                <span className="text-xs text-gray-600">Page {currentPage} of {totalPages}</span>
+                <div className="flex gap-1.5">
+                  <button onClick={() => { if (searchMode) triggerSearch(query, Math.max(1, currentPage - 1)); else setCurrentPage((p) => Math.max(1, p - 1)); }} disabled={currentPage === 1} className="px-3 py-1.5 text-sm border border-gray-200 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed">Previous</button>
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum;
+                    if (totalPages <= 5) pageNum = i + 1;
+                    else if (currentPage <= 3) pageNum = i + 1;
+                    else if (currentPage >= totalPages - 2) pageNum = totalPages - 4 + i;
+                    else pageNum = currentPage - 2 + i;
+                    return <button key={pageNum} onClick={() => { if (searchMode) triggerSearch(query, pageNum); else setCurrentPage(pageNum); }} className={`px-3 py-1.5 text-sm border ${currentPage === pageNum ? "bg-gray-900 text-white border-gray-900" : "border-gray-200 hover:bg-gray-50"}`}>{pageNum}</button>;
+                  })}
+                  <button onClick={() => { if (searchMode) triggerSearch(query, Math.min(totalPages, currentPage + 1)); else setCurrentPage((p) => Math.min(totalPages, p + 1)); }} disabled={currentPage === totalPages} className="px-3 py-1.5 text-sm border border-gray-200 hover:bg-gray-50 disabled:opacity-40">Next</button>
                 </div>
               </div>
-            </Card>
-          ))
+            )}
+          </>
         )}
       </div>
     </DashboardLayout>

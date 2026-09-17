@@ -71,7 +71,7 @@ def update_course_training(ct_id):
 
     # Update other fields
     for key, value in data.items():
-        if key != 'completion_date' and hasattr(course_training, key):
+        if key != 'completion_date' and key not in ('id', 'user_id') and hasattr(course_training, key):
             setattr(course_training, key, value)
 
     db.session.commit()
