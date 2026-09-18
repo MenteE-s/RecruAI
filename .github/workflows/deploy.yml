@@ -5,6 +5,11 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+    # Docs-only (or otherwise code-untouched) PRs skip CI entirely
+    paths:
+      - "backend/**"
+      - "frontend/**"
+      - ".github/workflows/deploy.yml"
 
 env:
   DOCKER_COMPOSE_FILE: docker-compose.aws.yml
@@ -16,11 +21,16 @@ env:
 
 jobs:
   # ===========================================================================
-  # PR jobs — validate every PR that targets main
+  # PR job — validate. Runs only for code PRs (see paths filter above).
+  # NOTE: DB migration check lives in check-migrations.yml (no duplicate here).
   # ===========================================================================
   validate:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    # Pushing again to a PR cancels the stale run instead of billing twice
+    concurrency:
+      group: validate-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
     steps:
       - uses: actions/checkout@v4
 
@@ -36,45 +46,6 @@ jobs:
         run: |
           npm ci
           npm run build
-
-  migrations:
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: pgvector/pgvector:0.7.0-pg15
-        env:
-          POSTGRES_USER: recruai
-          POSTGRES_PASSWORD: recruai_pass
-          POSTGRES_DB: recruai_ci
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready -U recruai
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Install dependencies
-        working-directory: backend
-        run: |
-          pip install --upgrade pip
-          pip install -r requirements.txt
-
-      - name: Check migrations apply cleanly
-        working-directory: backend
-        env:
-          DATABASE_URL: postgresql://recruai:recruai_pass@localhost:5432/recruai_ci
-          FLASK_APP: backend.app
-        run: |
-          flask db upgrade
-          flask db heads
 
   # ===========================================================================
   # Deploy job — runs on push to main. Push code, it lands on EC2.
@@ -96,9 +67,36 @@ jobs:
       - name: Verify SSH connection
         run: ssh ${{ env.EC2_USER }}@${{ env.EC2_HOST }} "echo 'Connected to $(hostname)'"
 
+      - name: Bootstrap server prerequisites (idempotent, first run installs Docker)
+        run: |
+          ssh ${{ env.EC2_USER }}@${{ env.EC2_HOST }} "bash -s" << 'BOOTEOF'
+          set -euo pipefail
+          if ! command -v docker >/dev/null 2>&1; then
+            echo 'Installing Docker...'
+            sudo dnf install -y docker git curl
+            sudo systemctl enable --now docker
+            sudo mkdir -p /usr/local/lib/docker/cli-plugins
+            sudo curl -sSL "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" \
+              -o /usr/local/lib/docker/cli-plugins/docker-compose
+            sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+          fi
+          sudo usermod -aG docker ec2-user || true
+          sudo mkdir -p /opt/recruai
+          sudo chown -R ec2-user:ec2-user /opt/recruai
+          if [ -z "$(swapon --show)" ]; then
+            echo 'Creating 2GB swap (mandatory on 2GB box)...'
+            sudo fallocate -l 2G /swapfile
+            sudo chmod 600 /swapfile
+            sudo mkswap /swapfile
+            sudo swapon /swapfile
+            echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+          fi
+          docker --version
+          docker compose version
+          BOOTEOF
+
       - name: Sync code to EC2 (rsync)
         run: |
-          ssh ${{ env.EC2_USER }}@${{ env.EC2_HOST }} "mkdir -p ${{ env.DEPLOY_DIR }}"
           rsync -avz --delete \
             --exclude '.git' \
             --exclude 'node_modules' \
