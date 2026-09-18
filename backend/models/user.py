@@ -52,6 +52,11 @@ class User(db.Model):
     last_login_at = db.Column(db.DateTime, nullable=True)
     password_changed_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    # Email verification (OTP). Accounts created before verification existed
+    # are grandfathered as verified by the migration.
+    email_verified = db.Column(db.Boolean, nullable=False, default=False)
+    email_verified_at = db.Column(db.DateTime, nullable=True)
+
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     interviews = db.relationship("Interview", back_populates="user", cascade="all, delete-orphan")
@@ -141,6 +146,8 @@ class User(db.Model):
             # Referral
             "referred_by_email": self.referred_by_email,
             "referred_by_user_id": self.referred_by_user_id,
+            # Email verification (drives the verified-only gate)
+            "email_verified": bool(self.email_verified),
         }
 
     def to_public_dict(self):

@@ -13,6 +13,7 @@ import {
 } from "react-icons/fi";
 import { useToast } from "../components/ui/ToastContext";
 import { getBackendUrl } from "../utils/auth";
+import OtpVerify from "../components/auth/OtpVerify";
 
 const HIGHLIGHTS = [
   { icon: FiFileText, title: "ATS-optimized CVs", text: "Rewrites that pass screening filters." },
@@ -36,6 +37,7 @@ export default function Register() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [otpStep, setOtpStep] = useState(false);
   const navigate = useNavigate();
   const { showToast } = useToast();
 
@@ -103,6 +105,17 @@ export default function Register() {
         setLoading(false);
         return;
       }
+      // Email-first flow: verify the OTP, then we sign in.
+      if (data.verification_required) {
+        if (data.otp_error) {
+          showToast({ message: data.otp_error, type: "warning", position: "side", duration: 4000 });
+        } else {
+          showToast({ message: "Account created — check your inbox for the code", type: "success", position: "side", duration: 3000 });
+        }
+        setOtpStep(true);
+        setLoading(false);
+        return;
+      }
       // registration success — if backend returned token, sign in immediately
       if (data.access_token) {
         // Store the access token for header-based auth
@@ -138,6 +151,18 @@ export default function Register() {
     }
   }
 
+  const handleVerified = (data) => {
+    if (data.access_token) {
+      localStorage.setItem("access_token", data.access_token);
+    }
+    localStorage.setItem("isAuthenticated", "true");
+    if (data.user && data.user.role) {
+      localStorage.setItem("authRole", data.user.role);
+    }
+    showToast({ message: "Email verified — welcome!", type: "success", position: "side", duration: 2400 });
+    navigate("/dashboard", { replace: true });
+  };
+
   return (
     <div className="min-h-screen bg-white text-neutral-900">
       <div className="grid min-h-screen grid-cols-1 lg:grid-cols-2">
@@ -158,6 +183,10 @@ export default function Register() {
 
           <div className="flex flex-1 items-center justify-center py-10">
             <div className="w-full max-w-md">
+              {otpStep ? (
+                <OtpVerify email={email} onVerified={handleVerified} onBack={() => setOtpStep(false)} />
+              ) : (
+              <>
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-neutral-400">
                 Free forever plan · No credit card required
               </p>
@@ -323,6 +352,8 @@ export default function Register() {
                 </Link>
                 .
               </p>
+              </>
+              )}
             </div>
           </div>
         </div>

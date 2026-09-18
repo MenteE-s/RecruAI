@@ -15,3 +15,4 @@ from . import rag  # noqa: E402, F401
 from . import notifications  # noqa: E402, F401
 from . import billing  # noqa: E402, F401
 # Removed practice_ai_agents import to avoid circular import - registered in app.py instead
+from . import guards  # noqa: E402, F401 - blueprint guards, registered once here

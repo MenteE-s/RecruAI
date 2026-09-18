@@ -3,6 +3,7 @@ import DashboardLayout from "../../components/layout/DashboardLayout";
 import { getSidebarItems, verifyTokenWithServer, getBackendUrl, getAuthHeaders } from "../../utils/auth";
 import TimezoneSelector from "../../components/ui/TimezoneSelector";
 import PaymentMethods from "../../components/ui/PaymentMethods";
+import OtpVerify from "../../components/auth/OtpVerify";
 import {
   FiSettings,
   FiCreditCard,
@@ -39,6 +40,7 @@ export default function OrganizationSettings() {
   const [emailForm, setEmailForm] = useState({ accountEmail: "", contactEmail: "", contactName: "" });
   const [emailSaving, setEmailSaving] = useState(false);
   const [emailMsg, setEmailMsg] = useState(null);
+  const [pendingEmail, setPendingEmail] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -187,21 +189,7 @@ export default function OrganizationSettings() {
     setEmailSaving(true);
     setEmailMsg(null);
     try {
-      // 1) Account email (login + notifications for this user)
-      const meRes = await fetch(`${getBackendUrl()}/api/auth/me`, {
-        method: "PUT",
-        headers: getAuthHeaders({ "Content-Type": "application/json" }),
-        credentials: "include",
-        body: JSON.stringify({ email: emailForm.accountEmail.trim() }),
-      });
-      const meResult = await meRes.json().catch(() => ({}));
-      if (!meRes.ok) {
-        setEmailMsg({ type: "error", text: meResult.error || "Failed to update account email." });
-        return;
-      }
-      setUser(meResult.user);
-
-      // 2) Organization contact email (shown to candidates)
+      // 1) Organization contact email (shown to candidates) saves directly.
       if (organization) {
         const orgRes = await fetch(`${getBackendUrl()}/api/organizations/${organization.id}`, {
           method: "PUT",
@@ -214,10 +202,30 @@ export default function OrganizationSettings() {
         });
         const orgResult = await orgRes.json().catch(() => ({}));
         if (!orgRes.ok) {
-          setEmailMsg({ type: "error", text: orgResult.error || "Account email saved, but failed to update organization contact email." });
+          setEmailMsg({ type: "error", text: orgResult.error || "Failed to update organization contact email." });
           return;
         }
         setOrganization(orgResult);
+      }
+
+      // 2) Account email (login) changes only after proving the NEW address:
+      // send it a code, then apply on verification.
+      const newAccountEmail = emailForm.accountEmail.trim();
+      if (newAccountEmail && user && newAccountEmail !== user.email) {
+        const otpRes = await fetch(`${getBackendUrl()}/api/auth/email/change-request`, {
+          method: "POST",
+          headers: getAuthHeaders({ "Content-Type": "application/json" }),
+          credentials: "include",
+          body: JSON.stringify({ new_email: newAccountEmail }),
+        });
+        const otpResult = await otpRes.json().catch(() => ({}));
+        if (!otpRes.ok) {
+          setEmailMsg({ type: "error", text: otpResult.error || "Could not send a verification code to the new address." });
+          return;
+        }
+        setPendingEmail(newAccountEmail);
+        setEmailMsg({ type: "success", text: `Organization details saved. Enter the code sent to ${newAccountEmail} to change your login email.` });
+        return;
       }
       setEmailMsg({ type: "success", text: "Email details updated successfully." });
     } catch (err) {
@@ -226,6 +234,15 @@ export default function OrganizationSettings() {
     } finally {
       setEmailSaving(false);
     }
+  };
+
+  const handleEmailVerified = (data) => {
+    if (data.user) {
+      setUser(data.user);
+      setEmailForm((p) => ({ ...p, accountEmail: data.user.email || p.accountEmail }));
+    }
+    setPendingEmail(null);
+    setEmailMsg({ type: "success", text: "Login email changed and verified." });
   };
 
   const handleProfileUpdate = async (e) => {
@@ -314,12 +331,12 @@ export default function OrganizationSettings() {
                     type="email"
                     required
                     value={emailForm.accountEmail}
-                    onChange={(e) => setEmailForm((p) => ({ ...p, accountEmail: e.target.value }))}
+                    onChange={(e) => { setEmailForm((p) => ({ ...p, accountEmail: e.target.value })); setPendingEmail(null); }}
                     placeholder="you@company.com"
                     className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white"
                   />
                 </div>
-                <p className="text-xs text-gray-400 mt-1">Used for login and account notifications.</p>
+                <p className="text-xs text-gray-400 mt-1">Used for login and account notifications. Changing it sends a verification code to the new address first.</p>
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1.5">Organization contact email</label>
@@ -349,6 +366,22 @@ export default function OrganizationSettings() {
             <button type="submit" disabled={emailSaving} className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50">
               {emailSaving ? "Saving…" : "Save email details"}
             </button>
+            {pendingEmail && (
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                <OtpVerify
+                  email={user?.email}
+                  displayEmail={pendingEmail}
+                  headline="Confirm your new email"
+                  subline={<>Enter the 6-digit code sent to <span className="font-semibold text-neutral-900">{pendingEmail}</span>. Your current address keeps working until then.</>}
+                  verifyPath="/api/auth/email/change-verify"
+                  requestPath="/api/auth/email/change-request"
+                  getVerifyBody={(code) => ({ new_email: pendingEmail, code })}
+                  getRequestBody={() => ({ new_email: pendingEmail })}
+                  onVerified={handleEmailVerified}
+                  onBack={() => setPendingEmail(null)}
+                />
+              </div>
+            )}
           </form>
         </div>
 

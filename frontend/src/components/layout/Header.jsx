@@ -10,12 +10,10 @@ import {
   FiChevronDown,
   FiUser,
   FiAward,
-  FiBookmark,
-  FiCheckCircle,
+  FiBriefcase,
   FiLink,
   FiFileText,
   FiTrendingUp,
-  FiClock,
   FiUsers,
   FiVideo,
 } from "react-icons/fi";
@@ -178,20 +176,11 @@ export default function Header({ sidebarItems = [] }) {
                 <button onClick={() => { navigate("/profile"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
                   <FiUser className="w-3.5 h-3.5 text-gray-400" /> Profile
                 </button>
-                <button onClick={() => { navigate("/interviews"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
-                  <FiClock className="w-3.5 h-3.5 text-gray-400" /> Upcoming Interviews
-                </button>
-                <button onClick={() => { navigate("/interviews?tab=history"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
-                  <FiAward className="w-3.5 h-3.5 text-gray-400" /> Interview History
-                </button>
                 <button onClick={() => { navigate("/interviews/analysis"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
                   <FiTrendingUp className="w-3.5 h-3.5 text-gray-400" /> Analytics
                 </button>
-                <button onClick={() => { navigate("/jobs/saved"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
-                  <FiBookmark className="w-3.5 h-3.5 text-gray-400" /> Saved Jobs
-                </button>
-                <button onClick={() => { navigate("/jobs/applied"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
-                  <FiCheckCircle className="w-3.5 h-3.5 text-gray-400" /> Applied Jobs
+                <button onClick={() => { navigate("/jobs"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
+                  <FiBriefcase className="w-3.5 h-3.5 text-gray-400" /> Jobs
                 </button>
                 <button onClick={() => { navigate("/jobs/alerts"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
                   <FiBell className="w-3.5 h-3.5 text-gray-400" /> Job Alerts

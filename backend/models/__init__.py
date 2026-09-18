@@ -1,4 +1,5 @@
 from .user import User
+from .email_otp import EmailOtp
 from .organization import Organization
 from .team_member import TeamMember
 from .interview import Interview
@@ -45,6 +46,7 @@ from .agent_embedding import AgentEmbedding
 
 __all__ = [
     "User",
+    "EmailOtp",
     "Organization",
     "TeamMember",
     "Interview",

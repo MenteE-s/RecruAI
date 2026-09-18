@@ -3,6 +3,7 @@ import DashboardLayout from "../../components/layout/DashboardLayout";
 import { getSidebarItems, getBackendUrl, getAuthHeaders, getCurrentUser } from "../../utils/auth";
 import TimezoneSelector from "../../components/ui/TimezoneSelector";
 import PaymentMethods from "../../components/ui/PaymentMethods";
+import OtpVerify from "../../components/auth/OtpVerify";
 import {
   FiUser,
   FiAward,
@@ -99,30 +100,51 @@ export default function Settings() {
     };
   }, []);
 
+  const [pendingEmail, setPendingEmail] = useState(null);
+
   const handleEmailSave = async (e) => {
     e.preventDefault();
     setEmailSaving(true);
     setEmailMsg(null);
     try {
+      // 1) Save name/phone/location (email is handled separately below).
       const response = await fetch(`${getBackendUrl()}/api/auth/me`, {
         method: "PUT",
         headers: getAuthHeaders({ "Content-Type": "application/json" }),
         credentials: "include",
         body: JSON.stringify({
-          email: emailForm.email.trim(),
           name: emailForm.name.trim(),
           phone: emailForm.phone.trim(),
           location: emailForm.location.trim(),
         }),
       });
       const result = await response.json().catch(() => ({}));
-      if (response.ok) {
-        setUserData(result.user);
-        // Refresh the shared cache so other pages show the new details at once.
-        getCurrentUser({ forceRefresh: true }).catch(() => {});
-        setEmailMsg({ type: "success", text: "Contact details updated." });
-      } else {
+      if (!response.ok) {
         setEmailMsg({ type: "error", text: result.error || "Failed to update." });
+        return;
+      }
+      setUserData(result.user);
+      // Refresh the shared cache so other pages show the new details at once.
+      getCurrentUser({ forceRefresh: true }).catch(() => {});
+
+      // 2) Email change needs proof of the NEW address first: send it a code.
+      const newEmail = emailForm.email.trim();
+      if (newEmail && newEmail !== result.user.email) {
+        const otpRes = await fetch(`${getBackendUrl()}/api/auth/email/change-request`, {
+          method: "POST",
+          headers: getAuthHeaders({ "Content-Type": "application/json" }),
+          credentials: "include",
+          body: JSON.stringify({ new_email: newEmail }),
+        });
+        const otpResult = await otpRes.json().catch(() => ({}));
+        if (!otpRes.ok) {
+          setEmailMsg({ type: "error", text: otpResult.error || "Could not send a verification code to the new address." });
+          return;
+        }
+        setPendingEmail(newEmail);
+        setEmailMsg({ type: "success", text: `Details saved. Enter the code sent to ${newEmail} to change your email.` });
+      } else {
+        setEmailMsg({ type: "success", text: "Contact details updated." });
       }
     } catch (error) {
       console.error("Error updating email details:", error);
@@ -130,6 +152,16 @@ export default function Settings() {
     } finally {
       setEmailSaving(false);
     }
+  };
+
+  const handleEmailVerified = (data) => {
+    if (data.user) {
+      setUserData(data.user);
+      setEmailForm((p) => ({ ...p, email: data.user.email || p.email }));
+      getCurrentUser({ forceRefresh: true }).catch(() => {});
+    }
+    setPendingEmail(null);
+    setEmailMsg({ type: "success", text: "Email address changed and verified." });
   };
 
   const toggle = (key) => setExpanded((prev) => (prev === key ? null : key));
@@ -193,8 +225,25 @@ export default function Settings() {
                     )}
                     <div>
                       <label className={labelCls}>Email address</label>
-                      <input type="email" required value={emailForm.email} onChange={(e) => setEmailForm((p) => ({ ...p, email: e.target.value }))} placeholder="you@example.com" className={inputCls} />
+                      <input type="email" required value={emailForm.email} onChange={(e) => { setEmailForm((p) => ({ ...p, email: e.target.value })); setPendingEmail(null); }} placeholder="you@example.com" className={inputCls} />
+                      <p className={labelCls} style={{ marginTop: 4 }}>Changing it sends a verification code to the new address first.</p>
                     </div>
+                    {pendingEmail && (
+                      <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                        <OtpVerify
+                          email={userData?.email}
+                          displayEmail={pendingEmail}
+                          headline="Confirm your new email"
+                          subline={<>Enter the 6-digit code sent to <span className="font-semibold text-neutral-900">{pendingEmail}</span>. Your current address keeps working until then.</>}
+                          verifyPath="/api/auth/email/change-verify"
+                          requestPath="/api/auth/email/change-request"
+                          getVerifyBody={(code) => ({ new_email: pendingEmail, code })}
+                          getRequestBody={() => ({ new_email: pendingEmail })}
+                          onVerified={handleEmailVerified}
+                          onBack={() => setPendingEmail(null)}
+                        />
+                      </div>
+                    )}
                     <div className="grid grid-cols-2 gap-2.5">
                       <div>
                         <label className={labelCls}>Full name</label>
