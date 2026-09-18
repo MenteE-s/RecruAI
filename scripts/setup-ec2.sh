@@ -16,17 +16,24 @@ echo "=== RecruAI EC2 Bootstrap ==="
 
 # ---- 1. System updates & dependencies ----
 dnf update -y
-dnf install -y docker git curl jq
+# NOTE: no 'curl' here — AL2023 preinstalls curl-minimal which conflicts
+# with the full curl package. curl-minimal covers all script needs.
+dnf install -y docker git jq
 
 # ---- 2. Start & enable Docker ----
 systemctl enable --now docker
 usermod -aG docker ec2-user
 
-# ---- 3. Docker Compose v2 plugin ----
+# ---- 3. Docker Compose v2 + Buildx plugins ----
 mkdir -p /usr/local/lib/docker/cli-plugins
 curl -sSL "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" \
   -o /usr/local/lib/docker/cli-plugins/docker-compose
 chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+# Buildx is required for `docker compose build` (not shipped with AL2023 docker)
+BUILDX_VER="$(curl -sSL https://api.github.com/repos/docker/buildx/releases/latest | jq -r .tag_name)"
+curl -sSL "https://github.com/docker/buildx/releases/download/${BUILDX_VER}/buildx-${BUILDX_VER}.linux-amd64" \
+  -o /usr/local/lib/docker/cli-plugins/docker-buildx
+chmod +x /usr/local/lib/docker/cli-plugins/docker-buildx
 
 # ---- 4. Create deploy directory & clone repo ----
 mkdir -p /opt/recruai
