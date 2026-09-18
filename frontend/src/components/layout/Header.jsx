@@ -67,10 +67,13 @@ export default function Header({ sidebarItems = [] }) {
     return () => { cancelled = true; };
   }, []);
 
-  // Close the profile dropdown on any outside click
+  // Close the profile dropdown on any outside click — except clicks inside
+  // the sign-out confirm dialog (a portal outside this subtree; closing here
+  // would unmount it before its click handler fires, swallowing sign-out).
   useEffect(() => {
     if (!dropdownOpen) return;
     const onDown = (e) => {
+      if (e.target.closest && e.target.closest("[data-signout-dialog]")) return;
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         setDropdownOpen(false);
       }
@@ -200,7 +203,7 @@ export default function Header({ sidebarItems = [] }) {
                 </button>
                 <div className="border-t border-gray-100 my-1" />
                 <div className="px-1.5 py-1">
-                  <SignOutButton variant="sidebar" className="text-xs rounded-md" />
+                  <SignOutButton variant="sidebar" className="text-xs rounded-md" onSignedOut={() => setDropdownOpen(false)} />
                 </div>
               </div>
             </div>
