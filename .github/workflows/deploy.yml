@@ -109,7 +109,7 @@ jobs:
             --exclude 'backend/.env' \
             --exclude 'frontend/.env' \
             --exclude 'frontend/build' \
-            --exclude 'mlservices/.venv' \
+            --exclude 'mlservices' \
             ./ ${{ env.EC2_USER }}@${{ env.EC2_HOST }}:${{ env.DEPLOY_DIR }}/
 
       - name: Inject production environment
@@ -238,8 +238,10 @@ jobs:
 
       - name: Clean up old Docker images
         if: always()
+        # Dangling-only prune: '-a --filter until=' compares against image BUILD
+        # date, so it deletes freshly-pulled upstream images (e.g. cp-kafka).
         run: |
-          ssh ${{ env.EC2_USER }}@${{ env.EC2_HOST }} "docker image prune -af --filter 'until=168h'" || true
+          ssh ${{ env.EC2_USER }}@${{ env.EC2_HOST }} "docker image prune -f" || true
 
       - name: Deployment success notification
         if: success()

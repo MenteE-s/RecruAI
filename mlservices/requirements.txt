@@ -1,0 +1,7 @@
+# Local embedding microservice (Gradio + sentence-transformers).
+# Currently UNUSED — the backend uses the EMBEDDING_PROVIDER API instead.
+# Excluded from EC2 deploys; runs only manually for local experiments:
+#   cd mlservices && pip install -r requirements.txt && python app.py
+gradio
+transformers
+torch
