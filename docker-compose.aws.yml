@@ -74,8 +74,10 @@ services:
       PORT: 8000
       FLASK_ENV: production
       IS_PRODUCTION: "1"
-    # Single worker on the 2GB box (image default is -w 2, which starves Kafka)
-    command: ["sh", "-c", "gunicorn -w 1 --threads 4 --bind 0.0.0.0:$${PORT:-8000} backend.app:create_app()"]
+    # Single worker on the 2GB box (image default is -w 2, which starves Kafka).
+    # NOTE: the factory target MUST be single-quoted — bare create_app()
+    # parens are parsed as subshell syntax by sh and the container crash-loops.
+    command: ["sh", "-c", "gunicorn -w 1 --threads 4 --bind 0.0.0.0:$${PORT:-8000} 'backend.app:create_app()'"]
     volumes:
       # Persist user/org uploads outside the container filesystem
       - backend_uploads:/app/backend/uploads
