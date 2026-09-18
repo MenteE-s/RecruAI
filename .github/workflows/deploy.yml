@@ -96,9 +96,36 @@ jobs:
       - name: Verify SSH connection
         run: ssh ${{ env.EC2_USER }}@${{ env.EC2_HOST }} "echo 'Connected to $(hostname)'"
 
+      - name: Bootstrap server prerequisites (idempotent, first run installs Docker)
+        run: |
+          ssh ${{ env.EC2_USER }}@${{ env.EC2_HOST }} "bash -s" << 'BOOTEOF'
+          set -euo pipefail
+          if ! command -v docker >/dev/null 2>&1; then
+            echo 'Installing Docker...'
+            sudo dnf install -y docker git curl
+            sudo systemctl enable --now docker
+            sudo mkdir -p /usr/local/lib/docker/cli-plugins
+            sudo curl -sSL "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" \
+              -o /usr/local/lib/docker/cli-plugins/docker-compose
+            sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+          fi
+          sudo usermod -aG docker ec2-user || true
+          sudo mkdir -p /opt/recruai
+          sudo chown -R ec2-user:ec2-user /opt/recruai
+          if [ -z "$(swapon --show)" ]; then
+            echo 'Creating 2GB swap (mandatory on 2GB box)...'
+            sudo fallocate -l 2G /swapfile
+            sudo chmod 600 /swapfile
+            sudo mkswap /swapfile
+            sudo swapon /swapfile
+            echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+          fi
+          docker --version
+          docker compose version
+          BOOTEOF
+
       - name: Sync code to EC2 (rsync)
         run: |
-          ssh ${{ env.EC2_USER }}@${{ env.EC2_HOST }} "mkdir -p ${{ env.DEPLOY_DIR }}"
           rsync -avz --delete \
             --exclude '.git' \
             --exclude 'node_modules' \
