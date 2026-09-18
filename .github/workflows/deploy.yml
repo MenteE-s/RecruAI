@@ -78,10 +78,20 @@ jobs:
             # binary is sufficient for the download below.
             sudo dnf install -y docker git
             sudo systemctl enable --now docker
+          fi
+          if ! docker compose version >/dev/null 2>&1; then
+            echo 'Installing Compose plugin...'
             sudo mkdir -p /usr/local/lib/docker/cli-plugins
             sudo curl -sSL "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" \
               -o /usr/local/lib/docker/cli-plugins/docker-compose
             sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+          fi
+          if ! docker buildx version >/dev/null 2>&1; then
+            echo 'Installing Buildx plugin (compose builds require it)...'
+            BUILDX_VER="$(curl -sSL https://api.github.com/repos/docker/buildx/releases/latest | jq -r .tag_name)"
+            sudo curl -sSL "https://github.com/docker/buildx/releases/download/${BUILDX_VER}/buildx-${BUILDX_VER}.linux-amd64" \
+              -o /usr/local/lib/docker/cli-plugins/docker-buildx
+            sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-buildx
           fi
           sudo usermod -aG docker ec2-user || true
           sudo mkdir -p /opt/recruai
