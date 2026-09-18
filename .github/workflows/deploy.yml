@@ -73,7 +73,10 @@ jobs:
           set -euo pipefail
           if ! command -v docker >/dev/null 2>&1; then
             echo 'Installing Docker...'
-            sudo dnf install -y docker git curl
+            # NOTE: no 'curl' in this list — AL2023 preinstalls curl-minimal
+            # and the full curl package conflicts with it. curl-minimal's
+            # binary is sufficient for the download below.
+            sudo dnf install -y docker git
             sudo systemctl enable --now docker
             sudo mkdir -p /usr/local/lib/docker/cli-plugins
             sudo curl -sSL "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" \
