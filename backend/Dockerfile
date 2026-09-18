@@ -53,4 +53,6 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD sh -c "curl -f http://localhost:${PORT}/api/health || exit 1"
 
 # Run the application with gunicorn - bind port from .env PORT
-CMD ["sh", "-c", "gunicorn -w 2 --threads 4 --bind 0.0.0.0:${PORT} backend.app:create_app()"]
+# NOTE: factory target must be quoted — bare create_app() parens are
+# parsed as subshell syntax by sh and the container crash-loops.
+CMD ["sh", "-c", "gunicorn -w 2 --threads 4 --bind 0.0.0.0:${PORT} 'backend.app:create_app()'"]
