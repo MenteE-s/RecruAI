@@ -58,7 +58,7 @@ export default function SignOutButton({ variant = "solid", className = "", iconO
 
       {confirmOpen &&
         createPortal(
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
+          <div data-signout-dialog="true" className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
             <div className="bg-white w-full max-w-sm border border-gray-200 p-6">
               <h3 className="text-lg font-semibold text-gray-900">Want to sign out?</h3>
               <p className="text-sm text-gray-600 mt-2">
