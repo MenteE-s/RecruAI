@@ -1,10 +1,10 @@
-from flask import request, jsonify, make_response, current_app
-from flask_jwt_extended import create_access_token, set_access_cookies
+from flask import request, jsonify, current_app
 from .. import api_bp
 from ...extensions import db
 from ...models import User, Organization, TeamMember
 from ...utils.security import log_security_event, sanitize_input, validate_email
 from ...utils.kafka_service import kafka_service
+from .verification import _send_otp
 
 @api_bp.route("/auth/register", methods=["POST"])
 def register():
@@ -117,15 +117,18 @@ def register():
         kafka_service.emit_event("registration_failed", {"email": email, "reason": "internal_error", "error": str(e), "ip": request.remote_addr})
         return jsonify({"error": f"Failed to register user: {str(e)}"}), 500
 
-    # generate an access token on successful registration so frontend can auto-login
-    # include role and organization_id as additional claims so frontend and protected APIs
-    # can make quick decisions without trusting client-sent values
-    additional_claims = {"role": user.role, "organization_id": user.organization_id}
-    # ensure the JWT "sub" (subject) is a string to satisfy the JWT library
-    # and Flask-JWT-Extended expectations
-    access_token = create_access_token(identity=str(user.id), additional_claims=additional_claims)
-    # set token in an HttpOnly cookie for safer storage; also return token in
-    # body for backward compatibility
-    resp = make_response(jsonify({"user": user.to_dict(), "access_token": access_token}), 201)
-    set_access_cookies(resp, access_token)
-    return resp
+    # Email-first flow: no token yet. The account stays unverified until the
+    # OTP step succeeds, which is also when the welcome email goes out.
+    status, otp_payload = _send_otp(user)
+    if status != 200:
+        # Account exists; the client can retry sending the code.
+        return jsonify({
+            "user": user.to_dict(),
+            "verification_required": True,
+            "otp_error": otp_payload.get("error", "Could not send the code."),
+        }), 201
+    return jsonify({
+        "user": user.to_dict(),
+        "verification_required": True,
+        "message": "Account created. Enter the verification code sent to your email.",
+    }), 201

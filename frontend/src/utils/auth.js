@@ -4,13 +4,12 @@ import {
   FiUser,
   FiCalendar,
   FiClock,
-  FiBookmark,
+  FiBriefcase,
   FiBarChart2,
   FiFileText,
   FiBell,
   FiUsers,
   FiSettings,
-  FiCheckCircle,
   FiHome,
   FiCpu,
   FiLink,
@@ -202,8 +201,7 @@ export function getSidebarItems(role, plan) {
           icon: FiClock,
           section: "interviews",
         },
-        { name: "Saved Jobs", link: "/jobs/saved", icon: FiBookmark, section: "jobs" },
-        { name: "Applied Jobs", link: "/jobs/applied", icon: FiCheckCircle, section: "jobs" },
+        { name: "Jobs", link: "/jobs", icon: FiBriefcase, section: "jobs" },
         { name: "Notifications", link: "/notifications", icon: FiBell, section: "activity" },
         { name: "Analytics", link: "/analytics", icon: FiBarChart2, section: "activity" },
         { name: "Resume Builder", link: "/resume/builder", icon: FiFileText, section: "pro" },
@@ -221,9 +219,9 @@ export function getSidebarItems(role, plan) {
         { name: "Settings", link: "/settings", icon: FiSettings, section: "bottom" },
         { name: "Sign Out", link: "/signin", icon: FiLogOut, section: "bottom" },
        ];
-     } else {
-       // pro - same as trial now (all features visible)
-       return [
+      } else {
+        // pro - same as trial now (all features visible)
+        return [
           { name: "Dashboard", link: "/dashboard", icon: FiHome, section: "main" },
           { name: "Profile", link: "/profile", icon: FiUser, section: "main" },
           {
@@ -238,8 +236,7 @@ export function getSidebarItems(role, plan) {
            icon: FiClock,
            section: "interviews",
          },
-         { name: "Saved Jobs", link: "/jobs/saved", icon: FiBookmark, section: "jobs" },
-         { name: "Applied Jobs", link: "/jobs/applied", icon: FiCheckCircle, section: "jobs" },
+          { name: "Jobs", link: "/jobs", icon: FiBriefcase, section: "jobs" },
          { name: "Notifications", link: "/notifications", icon: FiBell, section: "activity" },
          { name: "Analytics", link: "/analytics", icon: FiBarChart2, section: "activity" },
          { name: "Resume Builder", link: "/resume/builder", icon: FiFileText, section: "pro" },

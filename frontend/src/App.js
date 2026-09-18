@@ -35,8 +35,7 @@ import SettingsSwitcher from "./pages/SettingsSwitcher";
 import Profile from "./pages/individual/Profile";
 import UpcomingInterviews from "./pages/individual/UpcomingInterviews";
 import InterviewHistory from "./pages/individual/InterviewHistory";
-import SavedJobs from "./pages/individual/SavedJobs";
-import AppliedJobs from "./pages/individual/AppliedJobs";
+import Jobs from "./pages/individual/Jobs";
 import Analytics from "./pages/individual/Analytics";
 import ResumeBuilder from "./pages/individual/ResumeBuilder";
 import JobAlerts from "./pages/individual/JobAlerts";
@@ -208,28 +207,21 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route path="/jobs" element={<Navigate to="/dashboard" replace />} />
+          <Route
+            path="/jobs"
+            element={
+              <ProtectedRoute>
+                <Jobs />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/jobs/saved" element={<Navigate to="/jobs" replace />} />
+          <Route path="/jobs/applied" element={<Navigate to="/jobs?tab=applied" replace />} />
           <Route
             path="/jobs/:id"
             element={
               <ProtectedRoute>
                 <JobDetails />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/jobs/saved"
-            element={
-              <ProtectedRoute>
-                <SavedJobs />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/jobs/applied"
-            element={
-              <ProtectedRoute>
-                <AppliedJobs />
               </ProtectedRoute>
             }
           />

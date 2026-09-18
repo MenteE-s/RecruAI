@@ -87,6 +87,14 @@ class Config:
         "https://recruai.yourdomain.com" if IS_PRODUCTION else f"http://localhost:{os.getenv('PORT', '8000')}"
     )
 
+    # Transactional email (Resend). OTP is strictly no-reply; the welcome
+    # mail invites replies, routed to the contact inbox.
+    RESEND_API_KEY = os.getenv("RESEND_API_KEY")
+    RESEND_FROM_EMAIL = os.getenv("RESEND_FROM_EMAIL", "RecruAI <no-reply@menteeai.org>")
+    RESEND_WELCOME_FROM_EMAIL = os.getenv(
+        "RESEND_WELCOME_FROM_EMAIL", "RecruAI <welcome@menteeai.org>"
+    )
+
     # Security: Rate limiting configuration
     RATELIMIT_STORAGE_URL = os.getenv("RATELIMIT_STORAGE_URL", "memory://")
     RATELIMIT_STRATEGY = os.getenv("RATELIMIT_STRATEGY", "fixed-window")

@@ -289,11 +289,11 @@ export default function MyNetwork() {
 
             {/* Saved / applied shortcuts */}
             <div className="grid grid-cols-2 gap-2.5">
-              <button onClick={() => navigate("/jobs/saved")} className="bg-white border border-gray-200 rounded-lg shadow-sm p-3 text-left hover:border-blue-200 transition-colors">
+              <button onClick={() => navigate("/jobs")} className="bg-white border border-gray-200 rounded-lg shadow-sm p-3 text-left hover:border-blue-200 transition-colors">
                 <p className="text-xs font-bold text-gray-900 flex items-center gap-1.5"><FiBriefcase className="w-3.5 h-3.5 text-gray-400" /> Saved jobs</p>
                 <p className="text-[11px] text-blue-600 font-medium mt-1">View →</p>
               </button>
-              <button onClick={() => navigate("/jobs/applied")} className="bg-white border border-gray-200 rounded-lg shadow-sm p-3 text-left hover:border-blue-200 transition-colors">
+              <button onClick={() => navigate("/jobs?tab=applied")} className="bg-white border border-gray-200 rounded-lg shadow-sm p-3 text-left hover:border-blue-200 transition-colors">
                 <p className="text-xs font-bold text-gray-900">Applied jobs</p>
                 <p className="text-[11px] text-blue-600 font-medium mt-1">View →</p>
               </button>

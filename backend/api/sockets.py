@@ -42,8 +42,12 @@ def handle_connect(auth=None):
 
     try:
         from ..models import User
-        if not User.query.get(user_id):
+        user = User.query.get(user_id)
+        if not user:
             logger.warning(f"Connection attempt for unknown user {user_id}")
+            return False
+        if not user.email_verified:
+            logger.warning(f"Connection attempt by unverified user {user_id}")
             return False
 
         _connected_users[request.sid] = user_id

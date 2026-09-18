@@ -5,6 +5,8 @@ import { verifyTokenWithServer } from "../utils/auth";
 
 // Uses the shared short-TTL cached /api/auth/me (single-flight) so mounting
 // N protected routes does not fan out N network verifies.
+// Unverified accounts are bounced to /signin even with a valid token —
+// signing in then routes them through the OTP step.
 export default function ProtectedRoute({ children }) {
   const [checking, setChecking] = useState(true);
   const [ok, setOk] = useState(false);
@@ -15,7 +17,7 @@ export default function ProtectedRoute({ children }) {
     (async () => {
       try {
         const user = await verifyTokenWithServer();
-        if (!cancelled) setOk(!!user);
+        if (!cancelled) setOk(!!user && user.email_verified !== false);
       } catch {
         if (!cancelled) setOk(false);
       } finally {

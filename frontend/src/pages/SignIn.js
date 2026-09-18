@@ -13,6 +13,7 @@ import {
 } from "react-icons/fi";
 import { useToast } from "../components/ui/ToastContext";
 import { getBackendUrl } from "../utils/auth";
+import OtpVerify from "../components/auth/OtpVerify";
 
 const HIGHLIGHTS = [
   { icon: FiTarget, title: "AI-matched jobs", text: "Roles tailored to your skills, not keywords." },
@@ -27,6 +28,7 @@ export default function SignIn() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState("individual");
+  const [otpEmail, setOtpEmail] = useState(null);
   const navigate = useNavigate();
   const { showToast } = useToast();
 
@@ -65,6 +67,20 @@ export default function SignIn() {
       });
       const data = await res.json();
       if (!res.ok) {
+        // Unverified account: move to the OTP step (a fresh code was sent).
+        if (res.status === 403 && data.code === "email_not_verified") {
+          setOtpEmail(data.email || email);
+          showToast({
+            message: data.code_resent
+              ? "Account not verified — we sent you a fresh code"
+              : "Account not verified — enter your code or resend it",
+            type: "warning",
+            position: "side",
+            duration: 4000,
+          });
+          setLoading(false);
+          return;
+        }
         const msg = data.error || "Sign in failed";
         setError(msg);
         // show side toast for errors
@@ -131,6 +147,18 @@ export default function SignIn() {
     }
   }
 
+  function handleVerified(data) {
+    if (data.access_token) {
+      localStorage.setItem("access_token", data.access_token);
+    }
+    localStorage.setItem("isAuthenticated", "true");
+    if (data.user && data.user.role) {
+      localStorage.setItem("authRole", data.user.role);
+    }
+    showToast({ message: "Email verified — signed in", type: "success", position: "side", duration: 2400 });
+    navigate("/dashboard", { replace: true });
+  }
+
   return (
     <div className="min-h-screen bg-white text-neutral-900">
       <div className="grid min-h-screen grid-cols-1 lg:grid-cols-2">
@@ -151,6 +179,10 @@ export default function SignIn() {
 
           <div className="flex flex-1 items-center justify-center py-10">
             <div className="w-full max-w-md">
+              {otpEmail ? (
+                <OtpVerify email={otpEmail} onVerified={handleVerified} onBack={() => setOtpEmail(null)} />
+              ) : (
+              <>
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-neutral-400">
                 Welcome back
               </p>
@@ -266,6 +298,8 @@ export default function SignIn() {
                 </Link>
                 .
               </p>
+              </>
+              )}
             </div>
           </div>
         </div>

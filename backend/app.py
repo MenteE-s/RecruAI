@@ -109,6 +109,8 @@ def create_app(config_object: object | None = None):
 	def revoked_token_callback(jwt_header, jwt_payload):
 		return jsonify({"error": "Token has been revoked", "code": "token_revoked"}), 401
 
+
+
 	# Initialize Redis cache
 	try:
 		from .extensions import init_redis
@@ -234,6 +236,11 @@ def create_app(config_object: object | None = None):
 		limiter.limit("100 per minute")(app.view_functions.get('api.get_me', lambda: None))
 		# Unauthenticated public-profile views write an analytics row per hit
 		limiter.limit("60 per minute")(app.view_functions.get('api.get_public_profile', lambda: None))
+		# OTP: tight caps stop email bombing and code guessing
+		limiter.limit("5 per minute")(app.view_functions.get('api.request_email_otp', lambda: None))
+		limiter.limit("10 per minute")(app.view_functions.get('api.verify_email_otp', lambda: None))
+		limiter.limit("5 per minute")(app.view_functions.get('api.request_email_change', lambda: None))
+		limiter.limit("10 per minute")(app.view_functions.get('api.verify_email_change', lambda: None))
 		# Spam-prone writes + expensive search
 		limiter.limit("30 per minute")(app.view_functions.get('api.create_post', lambda: None))
 		limiter.limit("30 per minute")(app.view_functions.get('api.create_application', lambda: None))

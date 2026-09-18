@@ -57,6 +57,22 @@ def login():
         kafka_service.emit_event("user_login_failed", {"user_id": user.id, "email": email, "reason": "invalid_password", "ip": request.remote_addr})
         return jsonify({"error": "invalid credentials"}), 401
 
+    if not user.email_verified:
+        log_security_event("login_blocked_unverified", user_id=user.id, ip_address=request.remote_addr, email=email)
+        # Help the user forward: (re)send a code, respecting the cooldown.
+        try:
+            from .verification import _send_otp
+            code_status, _ = _send_otp(user)
+            resent = code_status == 200
+        except Exception:
+            resent = False
+        return jsonify({
+            "error": "Please verify your email first. Enter the code we sent you.",
+            "code": "email_not_verified",
+            "email": email,
+            "code_resent": resent,
+        }), 403
+
     log_security_event("login_success", user_id=user.id, ip_address=request.remote_addr, email=email)
     kafka_service.emit_event("user_login_success", {
         "user_id": user.id,
@@ -166,21 +182,16 @@ def update_me():
             setattr(user, field, value)
 
     if 'email' in data:
-        email = sanitize_input(data.get('email', ''))
-        if not email:
-            return jsonify({"error": "email cannot be empty"}), 400
-
-        from ...utils.security import validate_email
-        if not validate_email(email):
-            log_security_event("invalid_email_format", user_id=user.id, ip_address=request.remote_addr, email=email)
-            return jsonify({"error": "Invalid email format"}), 400
-
-        existing_user = User.query.filter_by(email=email).first()
-        if existing_user and existing_user.id != user_id:
-            log_security_event("duplicate_email_update_attempt", user_id=user.id, ip_address=request.remote_addr, email=email)
-            return jsonify({"error": "email already exists"}), 400
-
-        user.email = email
+        # Security: addresses change only through the verified flow
+        # (POST /auth/email/change-request + /auth/email/change-verify),
+        # which proves ownership of the NEW address first.
+        email = sanitize_input(data.get('email', '')) or ""
+        if email and email != user.email:
+            log_security_event("direct_email_change_blocked", user_id=user.id, ip_address=request.remote_addr, email=email)
+            return jsonify({
+                "error": "Email changes need verification. Request a code for the new address first.",
+                "code": "email_change_requires_verification",
+            }), 400
 
     try:
         db.session.commit()

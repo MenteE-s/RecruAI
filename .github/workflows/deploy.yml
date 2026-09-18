@@ -11,6 +11,8 @@ env:
   EC2_USER: ec2-user
   EC2_HOST: ${{ secrets.EC2_HOST }}
   DEPLOY_DIR: /opt/recruai
+  API_DOMAIN: api.recruai.menteeai.org
+  FRONTEND_ORIGIN: https://recruai.menteeai.org
 
 jobs:
   # ===========================================================================
@@ -75,7 +77,7 @@ jobs:
           flask db heads
 
   # ===========================================================================
-  # Deploy job — runs on push to main
+  # Deploy job — runs on push to main. Push code, it lands on EC2.
   # ===========================================================================
   deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -92,14 +94,11 @@ jobs:
           ssh-keyscan -H ${{ env.EC2_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
 
       - name: Verify SSH connection
-        run: ssh ${{ env.EC2_USER }}@${{ env.EC2_HOST }} "echo 'Connected to \$(hostname)'"
-
-      - name: Create deploy directory
-        run: |
-          ssh ${{ env.EC2_USER }}@${{ env.EC2_HOST }} "mkdir -p ${{ env.DEPLOY_DIR }}"
+        run: ssh ${{ env.EC2_USER }}@${{ env.EC2_HOST }} "echo 'Connected to $(hostname)'"
 
       - name: Sync code to EC2 (rsync)
         run: |
+          ssh ${{ env.EC2_USER }}@${{ env.EC2_HOST }} "mkdir -p ${{ env.DEPLOY_DIR }}"
           rsync -avz --delete \
             --exclude '.git' \
             --exclude 'node_modules' \
@@ -109,79 +108,141 @@ jobs:
             --exclude 'backend/.env' \
             --exclude 'frontend/.env' \
             --exclude 'frontend/build' \
+            --exclude 'mlservices/.venv' \
             ./ ${{ env.EC2_USER }}@${{ env.EC2_HOST }}:${{ env.DEPLOY_DIR }}/
 
       - name: Inject production environment
+        env:
+          RDS_DATABASE_URL: ${{ secrets.RDS_DATABASE_URL }}
         run: |
-          ssh ${{ env.EC2_USER }}@${{ env.EC2_HOST }} "cat > ${{ env.DEPLOY_DIR }}/backend/.env.production" << 'ENVEOF'
+          # NOTE: inside containers, services resolve by compose service name
+          # (redis://redis, kafka:29092) — never localhost/127.0.0.1.
+          # VECTOR_DB_* are parsed out of RDS_DATABASE_URL so the RAG/recommender
+          # modules point at RDS instead of their localhost defaults.
+          ssh ${{ env.EC2_USER }}@${{ env.EC2_HOST }} \
+            "RDS_DATABASE_URL='${RDS_DATABASE_URL}' \
+             API_DOMAIN='${{ env.API_DOMAIN }}' \
+             FRONTEND_ORIGIN='${{ env.FRONTEND_ORIGIN }}' \
+             SECRET_KEY='${{ secrets.SECRET_KEY }}' \
+             JWT_SECRET_KEY='${{ secrets.JWT_SECRET_KEY }}' \
+             GROQ_API_KEY='${{ secrets.GROQ_API_KEY }}' \
+             OPENAI_API_KEY='${{ secrets.OPENAI_API_KEY }}' \
+             RESEND_API_KEY='${{ secrets.RESEND_API_KEY }}' \
+             bash -s" << 'ENVEOF'
+          set -euo pipefail
+          URL="$RDS_DATABASE_URL"
+          DB_USER="$(echo "$URL" | sed -E 's|.*://([^:]+):.*|\1|')"
+          DB_PASS="$(echo "$URL" | sed -E 's|.*://[^:]+:([^@]+)@.*|\1|')"
+          DB_HOST="$(echo "$URL" | sed -E 's|.*@([^:/]+).*|\1|')"
+          DB_PORT="$(echo "$URL" | sed -E 's|.*@[^:/]+:?([0-9]*)/.*|\1|')"
+          DB_PORT="${DB_PORT:-5432}"
+          DB_NAME="$(echo "$URL" | sed -E 's|.*/([^/?]+).*|\1|')"
+          cat > /opt/recruai/backend/.env.production << EOF2
           IS_PRODUCTION=1
-          DATABASE_URL=${{ secrets.RDS_DATABASE_URL }}
-          SECRET_KEY=${{ secrets.SECRET_KEY }}
-          JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }}
-          GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}
-          OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
-          REDIS_URL=redis://127.0.0.1:6379/0
-          KAFKA_BOOTSTRAP_SERVERS=localhost:9092
-          KAFKA_ENABLED=1
+          FLASK_ENV=production
+          FLASK_DEBUG=0
+          PORT=8000
+          API_DOMAIN=$API_DOMAIN
+          FRONTEND_ORIGIN=$FRONTEND_ORIGIN
+          DATABASE_URL=$URL
+          VECTOR_DB_HOST=$DB_HOST
+          VECTOR_DB_PORT=$DB_PORT
+          VECTOR_DB_NAME=$DB_NAME
+          VECTOR_DB_USER=$DB_USER
+          VECTOR_DB_PASSWORD=$DB_PASS
+          SECRET_KEY=$SECRET_KEY
+          JWT_SECRET_KEY=$JWT_SECRET_KEY
+          GROQ_API_KEY=$GROQ_API_KEY
+          OPENAI_API_KEY=$OPENAI_API_KEY
+          RESEND_API_KEY=$RESEND_API_KEY
+          REDIS_URL=redis://redis:6379/0
           REDIS_ENABLED=1
+          RATELIMIT_STORAGE_URL=redis://redis:6379/0
+          KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+          KAFKA_ENABLED=1
+          KAFKA_DEFAULT_TOPIC=recruai_events
           RAG_ENABLED=1
-          HUGGINGFACE_SPACES_URL=https://syedsyab-recruai.hf.space
           EMBEDDING_PROVIDER=huggingface
           EMBEDDING_DIMENSIONS=384
           AI_PROVIDER=groq
           AI_MODEL=groq/compound
           GROQ_MODEL=groq/compound
-          FLASK_ENV=production
-          FLASK_DEBUG=0
-          KAFKA_DEFAULT_TOPIC=recruai_events
           JWT_TOKEN_LOCATION=headers
           JWT_COOKIE_SECURE=1
           JWT_COOKIE_SAMESITE=None
           JWT_COOKIE_CSRF_PROTECT=1
           JWT_ACCESS_TOKEN_EXPIRES_HOURS=2
-          FRONTEND_ORIGIN=${{ secrets.FRONTEND_ORIGIN }}
+          SESSION_COOKIE_SECURE=1
           ENABLE_HSTS=1
           ENABLE_AUDIT_LOG=1
-          RATELIMIT_STORAGE_URL=redis://127.0.0.1:6379/0
-ENVEOF
+          EOF2
+          chmod 600 /opt/recruai/backend/.env.production
+          echo "Wrote backend/.env.production"
+          ENVEOF
 
-      - name: Deploy with Docker Compose
+      - name: Start infra + backend (no nginx yet on first boot)
         run: |
           ssh ${{ env.EC2_USER }}@${{ env.EC2_HOST }} "
             cd ${{ env.DEPLOY_DIR }} && \
-            docker compose -f ${{ env.DOCKER_COMPOSE_FILE }} pull && \
-            docker compose -f ${{ env.DOCKER_COMPOSE_FILE }} up -d --build --remove-orphans
+            export API_DOMAIN=${{ env.API_DOMAIN }} && \
+            docker compose -f ${{ env.DOCKER_COMPOSE_FILE }} up -d --build redis kafka kafka-init backend
           "
 
-      - name: Wait for backend health
+      - name: Issue TLS cert on first boot (standalone, nginx stopped)
         run: |
-          sleep 15
-          for i in {1..30}; do
-            STATUS=\$(ssh ${{ env.EC2_USER }}@${{ env.EC2_HOST }} \
-              "curl -s -o /dev/null -w '%{http_code}' http://localhost:5000/api/health" 2>/dev/null || echo "000")
-            if [ "\$STATUS" = "200" ]; then
-              echo "Backend is healthy!"
+          ssh ${{ env.EC2_USER }}@${{ env.EC2_HOST }} "
+            cd ${{ env.DEPLOY_DIR }} && export API_DOMAIN=${{ env.API_DOMAIN }} && \
+            if docker compose -f ${{ env.DOCKER_COMPOSE_FILE }} exec -T nginx test -f /etc/letsencrypt/live/${{ env.API_DOMAIN }}/fullchain.pem 2>/dev/null; then
+              echo 'Cert already exists, skipping issuance'
+            else
+              echo 'No cert yet — issuing via standalone certbot on :80 (nginx not running yet)'
+              docker compose -f ${{ env.DOCKER_COMPOSE_FILE }} run --rm -p 80:80 certbot \
+                certonly --standalone --non-interactive --agree-tos --register-unsafely-without-email \
+                -d ${{ env.API_DOMAIN }}
+            fi
+          "
+
+      - name: Start nginx + certbot renew loop
+        run: |
+          ssh ${{ env.EC2_USER }}@${{ env.EC2_HOST }} "
+            cd ${{ env.DEPLOY_DIR }} && \
+            export API_DOMAIN=${{ env.API_DOMAIN }} && \
+            docker compose -f ${{ env.DOCKER_COMPOSE_FILE }} up -d nginx certbot
+          "
+
+      - name: Wait for public HTTPS health (proves TLS + backend + RDS)
+        run: |
+          for i in $(seq 1 30); do
+            STATUS=$(curl -s -o /dev/null -w '%{http_code}' https://${{ env.API_DOMAIN }}/api/health 2>/dev/null || echo "000")
+            if [ "$STATUS" = "200" ]; then
+              echo "Backend is healthy over public HTTPS!"
               break
             fi
-            echo "Waiting for backend... (attempt \$i, status \$STATUS)"
-            sleep 5
+            echo "Waiting for backend... (attempt $i, status $STATUS)"
+            sleep 10
           done
+          if [ "$STATUS" != "200" ]; then
+            echo "Backend never became healthy — dumping logs"
+            ssh ${{ env.EC2_USER }}@${{ env.EC2_HOST }} "cd ${{ env.DEPLOY_DIR }} && docker compose -f ${{ env.DOCKER_COMPOSE_FILE }} logs --tail=100 backend nginx"
+            exit 1
+          fi
 
       - name: Run DB migrations
         run: |
           ssh ${{ env.EC2_USER }}@${{ env.EC2_HOST }} "
             cd ${{ env.DEPLOY_DIR }} && \
+            export API_DOMAIN=${{ env.API_DOMAIN }} && \
             docker compose -f ${{ env.DOCKER_COMPOSE_FILE }} exec -T backend flask db upgrade
           "
 
       - name: Clean up old Docker images
+        if: always()
         run: |
-          ssh ${{ env.EC2_USER }}@${{ env.EC2_HOST }} "docker image prune -af --filter 'until=168h'"
+          ssh ${{ env.EC2_USER }}@${{ env.EC2_HOST }} "docker image prune -af --filter 'until=168h'" || true
 
       - name: Deployment success notification
         if: success()
         run: |
-          DEPLOY_TIME=\$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-          echo "✅ Deployed successfully at \$DEPLOY_TIME"
-          echo "   Host: \${{ env.EC2_HOST }}"
-          echo "   Commit: \${{ github.sha }}"
+          echo "Deployed successfully at $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+          echo "   API: https://${{ env.API_DOMAIN }}/api/health"
+          echo "   Commit: ${{ github.sha }}"
