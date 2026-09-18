@@ -110,7 +110,7 @@ export default function Header({ sidebarItems = [] }) {
               type="text"
               placeholder="Search jobs, people..."
               readOnly
-              className="w-full h-7 pl-8 pr-3 bg-[#edf3f8] border border-transparent rounded-md text-xs text-gray-800 placeholder-gray-500 focus:outline-none focus:bg-white focus:border-blue-400 focus:ring-1 focus:ring-blue-100 transition-all cursor-default select-none"
+              className="w-full h-7 pl-8 pr-3 bg-[#f5f5f5] border border-transparent rounded-md text-xs text-gray-800 placeholder-gray-500 focus:outline-none focus:bg-white focus:border-blue-400 focus:ring-1 focus:ring-blue-100 transition-all cursor-default select-none"
             />
           </div>
         </div>

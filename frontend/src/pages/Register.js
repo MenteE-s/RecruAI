@@ -1,7 +1,29 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import {
+  FiArrowLeft,
+  FiUser,
+  FiBriefcase,
+  FiEye,
+  FiEyeOff,
+  FiCheck,
+  FiGift,
+  FiFileText,
+  FiBarChart2,
+} from "react-icons/fi";
 import { useToast } from "../components/ui/ToastContext";
 import { getBackendUrl } from "../utils/auth";
+
+const HIGHLIGHTS = [
+  { icon: FiFileText, title: "ATS-optimized CVs", text: "Rewrites that pass screening filters." },
+  { icon: FiBarChart2, title: "AI screening & matching", text: "Find signal in every application." },
+  { icon: FiGift, title: "Referral rewards", text: "Earn $3 per successful referral." },
+];
+
+const inputCls =
+  "block w-full rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-neutral-900 placeholder-gray-400 outline-none transition focus:border-neutral-900 focus:bg-white focus:ring-2 focus:ring-neutral-900/10";
+const labelCls =
+  "mb-1.5 block text-xs font-bold uppercase tracking-wider text-neutral-500";
 
 export default function Register() {
   const [email, setEmail] = useState("");
@@ -10,18 +32,12 @@ export default function Register() {
   const [role, setRole] = useState("individual");
   const [organizationName, setOrganizationName] = useState("");
   const [referralEmail, setReferralEmail] = useState("");
+  const [showReferral, setShowReferral] = useState(false);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const { showToast } = useToast();
-
-  useEffect(() => {
-    const update = (e) => setMousePosition({ x: e.clientX, y: e.clientY });
-    window.addEventListener("mousemove", update);
-    return () => window.removeEventListener("mousemove", update);
-  }, []);
 
   // Prefill referral email from ?ref= query param
   useEffect(() => {
@@ -29,6 +45,7 @@ export default function Register() {
     const ref = params.get("ref");
     if (ref) {
       setReferralEmail(decodeURIComponent(ref));
+      setShowReferral(true);
     }
   }, []);
 
@@ -122,177 +139,232 @@ export default function Register() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center relative overflow-hidden">
-      {/* Background animated layers (matching Hero) */}
-      <div className="absolute inset-0 bg-grid-pattern opacity-6 pointer-events-none"></div>
-      <div className="absolute inset-0 bg-gradient-to-r from-primary-400/20 via-accent-400/20 to-primary-400/20 bg-300% animate-gradient pointer-events-none"></div>
-      <div
-        className="absolute w-96 h-96 bg-gradient-radial from-primary-200/30 to-transparent rounded-full pointer-events-none transition-all duration-300 blur-3xl"
-        style={{ left: mousePosition.x - 192, top: mousePosition.y - 192 }}
-      ></div>
+    <div className="min-h-screen bg-white text-neutral-900">
+      <div className="grid min-h-screen grid-cols-1 lg:grid-cols-2">
+        {/* Left — form column */}
+        <div className="flex flex-col px-6 py-6 sm:px-12 lg:px-16 xl:px-24">
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => navigate("/")}
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-neutral-500 hover:text-neutral-900 transition-colors"
+              type="button"
+            >
+              <FiArrowLeft className="w-4 h-4" /> Back
+            </button>
+            <span className="text-sm font-extrabold tracking-tight">
+              RecruAI <span className="font-medium text-neutral-400">by MenteE</span>
+            </span>
+          </div>
 
-      <div className="max-w-5xl w-full grid grid-cols-1 md:grid-cols-2 shadow-lg rounded overflow-hidden relative z-10">
-        {/* Left panel - message */}
-        <div className="hidden md:flex flex-col justify-center p-10 bg-gradient-to-br from-green-600 to-teal-500 text-white">
-          <h3 className="text-3xl font-bold mb-4">Create your account</h3>
-          <p className="text-sm opacity-90">
-            Join RecruAI and start posting jobs, screening candidates with AI,
-            and collaborating with your team.
-          </p>
-          <div className="mt-6">
-            <ul className="space-y-2 text-sm">
-              <li>• Unlimited job posts (trial)</li>
-              <li>• AI-powered candidate scoring</li>
-              <li>• Advanced analytics and reporting</li>
-            </ul>
+          <div className="flex flex-1 items-center justify-center py-10">
+            <div className="w-full max-w-md">
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-neutral-400">
+                Free forever plan · No credit card required
+              </p>
+              <h1 className="mt-2 text-3xl font-extrabold tracking-tight sm:text-4xl">
+                Create your account
+              </h1>
+              <p className="mt-2 text-sm text-neutral-500">
+                Already have one?{" "}
+                <Link
+                  to="/signin"
+                  className="font-semibold text-neutral-900 underline underline-offset-4 hover:no-underline"
+                >
+                  Sign in
+                </Link>
+              </p>
+
+              {/* Role selector */}
+              <div className="mt-8 grid grid-cols-2 gap-2 rounded-xl bg-neutral-100 p-1.5">
+                {[
+                  { id: "individual", label: "Job seeker", icon: FiUser },
+                  { id: "organization", label: "Organization", icon: FiBriefcase },
+                ].map(({ id, label, icon: Icon }) => (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setRole(id)}
+                    aria-pressed={role === id}
+                    className={`flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-all ${
+                      role === id
+                        ? "bg-neutral-900 text-white shadow"
+                        : "text-neutral-500 hover:text-neutral-900"
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" /> {label}
+                  </button>
+                ))}
+              </div>
+
+              {error && (
+                <div className="mt-5 rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm font-medium text-red-700">
+                  {error}
+                </div>
+              )}
+
+              <form onSubmit={submit} className="mt-6 space-y-4">
+                <div>
+                  <label htmlFor="register-name" className={labelCls}>
+                    Full name
+                  </label>
+                  <input
+                    id="register-name"
+                    className={inputCls}
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    autoComplete="name"
+                    placeholder="Ada Ahmed"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="register-email" className={labelCls}>
+                    Email
+                  </label>
+                  <input
+                    id="register-email"
+                    className={inputCls}
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    type="email"
+                    autoComplete="email"
+                    placeholder="you@example.com"
+                    required
+                  />
+                </div>
+                {role === "organization" && (
+                  <div>
+                    <label htmlFor="register-org" className={labelCls}>
+                      Organization name
+                    </label>
+                    <input
+                      id="register-org"
+                      className={inputCls}
+                      value={organizationName}
+                      onChange={(e) => setOrganizationName(e.target.value)}
+                      autoComplete="organization"
+                      placeholder="Acme Pvt. Ltd."
+                      required
+                    />
+                  </div>
+                )}
+                <div>
+                  <label htmlFor="register-password" className={labelCls}>
+                    Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      id="register-password"
+                      className={`${inputCls} pr-11`}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      type={showPassword ? "text" : "password"}
+                      autoComplete="new-password"
+                      placeholder="Minimum 8 characters"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((s) => !s)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-900 transition-colors"
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                    >
+                      {showPassword ? (
+                        <FiEyeOff className="w-5 h-5" />
+                      ) : (
+                        <FiEye className="w-5 h-5" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Optional referral */}
+                <div className="rounded-lg border border-gray-200">
+                  <button
+                    type="button"
+                    onClick={() => setShowReferral((s) => !s)}
+                    aria-expanded={showReferral}
+                    className="flex w-full items-center justify-between px-3.5 py-2.5 text-sm font-semibold text-neutral-600 hover:text-neutral-900 transition-colors"
+                  >
+                    <span className="inline-flex items-center gap-2">
+                      <FiGift className="w-4 h-4" /> Have a referral email?
+                    </span>
+                    <span className="text-neutral-400">{showReferral ? "−" : "+"}</span>
+                  </button>
+                  {showReferral && (
+                    <div className="border-t border-gray-100 px-3.5 py-3">
+                      <input
+                        className={inputCls}
+                        value={referralEmail}
+                        onChange={(e) => setReferralEmail(e.target.value)}
+                        placeholder="e.g. friend@example.com"
+                        type="email"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <button
+                  className="w-full rounded-lg bg-neutral-900 py-3 text-sm font-bold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={loading}
+                  type="submit"
+                >
+                  {loading ? "Creating…" : "Create account"}
+                </button>
+              </form>
+
+              <p className="mt-6 text-center text-xs leading-relaxed text-neutral-400">
+                By continuing you agree to our{" "}
+                <Link to="/terms" className="underline underline-offset-2 hover:text-neutral-700">
+                  Terms
+                </Link>{" "}
+                and{" "}
+                <Link to="/privacy" className="underline underline-offset-2 hover:text-neutral-700">
+                  Privacy Policy
+                </Link>
+                .
+              </p>
+            </div>
           </div>
         </div>
 
-        {/* Right panel - form */}
-        <div className="bg-white p-8">
-          <div className="flex items-center justify-between mb-4">
-            <button
-              onClick={() => navigate("/signin")}
-              className="text-sm text-gray-500 hover:underline"
-              type="button"
-            >
-              ← Back
-            </button>
-            <Link
-              to="/signin"
-              className="text-sm text-blue-600 hover:underline"
-            >
-              Sign in
-            </Link>
+        {/* Right — brand panel */}
+        <div className="relative hidden overflow-hidden bg-neutral-900 text-white lg:flex lg:flex-col lg:justify-between lg:p-12 xl:p-16">
+          <div
+            className="pointer-events-none absolute inset-0 opacity-[0.35]"
+            style={{
+              backgroundImage:
+                "radial-gradient(circle at 80% 10%, rgba(255,255,255,0.14), transparent 45%), radial-gradient(circle at 10% 90%, rgba(255,255,255,0.08), transparent 40%)",
+            }}
+          />
+          <div className="relative">
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs font-semibold text-neutral-200">
+              <span className="h-2 w-2 rounded-full bg-emerald-400" />
+              Free forever plan available
+            </span>
+            <h2 className="mt-6 text-4xl font-extrabold leading-[1.05] tracking-tight xl:text-5xl">
+              Get hired faster.
+              <br />
+              <span className="text-neutral-400">Hire smarter.</span>
+            </h2>
           </div>
-          <h2 className="text-2xl font-bold mb-2">Create an account</h2>
-          <div className="flex items-center gap-3 mb-6 p-1 bg-gray-100 rounded-lg">
-            <button
-              type="button"
-              onClick={() => setRole("individual")}
-              className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                role === "individual"
-                  ? "bg-white text-green-700 shadow-sm border border-green-200"
-                  : "text-gray-600 hover:text-gray-800"
-              }`}
-            >
-              👤 Individual
-            </button>
-            <button
-              type="button"
-              onClick={() => setRole("organization")}
-              className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                role === "organization"
-                  ? "bg-white text-green-700 shadow-sm border border-green-200"
-                  : "text-gray-600 hover:text-gray-800"
-              }`}
-            >
-              🏢 Organization
-            </button>
-          </div>
-          {error && <div className="text-red-600 mb-2">{error}</div>}
 
-          <form onSubmit={submit}>
-            <label className="block mb-2">
-              <span className="text-sm">Email</span>
-              <input
-                className="mt-1 block w-full border px-3 py-2 rounded"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                type="email"
-                required
-              />
-            </label>
-            {role === "organization" && (
-              <label className="block mb-2">
-                <span className="text-sm">Organization name</span>
-                <input
-                  className="mt-1 block w-full border px-3 py-2 rounded"
-                  value={organizationName}
-                  onChange={(e) => setOrganizationName(e.target.value)}
-                />
-              </label>
-            )}
-            <label className="block mb-2">
-              <span className="text-sm">Name (optional)</span>
-              <input
-                className="mt-1 block w-full border px-3 py-2 rounded"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-            </label>
-            <label className="block mb-2">
-              <span className="text-sm">Referral email (optional)</span>
-              <input
-                className="mt-1 block w-full border px-3 py-2 rounded"
-                value={referralEmail}
-                onChange={(e) => setReferralEmail(e.target.value)}
-                placeholder="e.g. friend@example.com"
-                type="email"
-              />
-            </label>
-            <label className="block mb-4 relative">
-              <span className="text-sm">Password</span>
-              <input
-                className="mt-1 block w-full border px-3 py-2 rounded pr-10"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                type={showPassword ? "text" : "password"}
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword((s) => !s)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                aria-label={showPassword ? "Hide password" : "Show password"}
-              >
-                {showPassword ? (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="w-5 h-5"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M13.875 18.825A10.05 10.05 0 0112 19c-5.523 0-10-4.477-10-10 0-1.039.164-2.04.468-2.985M6.11 6.11A9.955 9.955 0 0112 5c5.523 0 10 4.477 10 10 0 1.042-.161 2.04-.466 2.984M3 3l18 18"
-                    />
-                  </svg>
-                ) : (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="w-5 h-5"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                    />
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                    />
-                  </svg>
-                )}
-              </button>
-            </label>
-            <button
-              className="w-full bg-blue-600 text-white py-2 rounded"
-              disabled={loading}
-              type="submit"
-            >
-              {loading ? "Creating…" : "Create account"}
-            </button>
-          </form>
+          <div className="relative space-y-5">
+            {HIGHLIGHTS.map(({ icon: Icon, title, text }) => (
+              <div key={title} className="flex items-start gap-4">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.06]">
+                  <Icon className="h-5 w-5 text-emerald-400" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold">{title}</p>
+                  <p className="mt-0.5 text-sm text-neutral-400">{text}</p>
+                </div>
+              </div>
+            ))}
+            <div className="flex items-center gap-2 border-t border-white/10 pt-6 text-xs text-neutral-400">
+              <FiCheck className="h-4 w-4 text-emerald-400" />
+              Built for Pakistan — expanding across the Gulf &amp; beyond
+            </div>
+          </div>
         </div>
       </div>
     </div>

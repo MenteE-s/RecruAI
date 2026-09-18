@@ -22,7 +22,7 @@ const Pricing = () => {
     {
       name: "Individual Pro",
       description: "For serious job seekers",
-      price: 30,
+      price: 15,
       duration: "month",
       features: [
         "Unlimited mock interviews",
