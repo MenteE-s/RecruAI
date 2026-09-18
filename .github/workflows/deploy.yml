@@ -258,11 +258,14 @@ jobs:
           fi
 
       - name: Run DB migrations
+        # NOTE: container workdir is /app but code lives at /app/backend, so
+        # the migrations directory must be given explicitly (bare
+        # 'flask db upgrade' looks for /app/migrations and errors out).
         run: |
           ssh ${{ env.EC2_USER }}@${{ env.EC2_HOST }} "
             cd ${{ env.DEPLOY_DIR }} && \
             export API_DOMAIN=${{ env.API_DOMAIN }} && \
-            docker compose -f ${{ env.DOCKER_COMPOSE_FILE }} exec -T backend flask db upgrade
+            docker compose -f ${{ env.DOCKER_COMPOSE_FILE }} exec -T backend flask db --directory /app/backend/migrations upgrade
           "
 
       - name: Clean up old Docker images
