@@ -93,7 +93,7 @@ export default function Dashboard() {
                 />
                 <button
                   onClick={() => alert("Compose mode: You can create job posts, share updates, or write articles here.")}
-                  className="flex-1 text-left h-11 px-4 bg-[#edf3f8] border border-transparent rounded-full text-sm text-gray-500 hover:bg-white hover:border-gray-200 hover:text-gray-700 transition-all"
+                  className="flex-1 text-left h-11 px-4 bg-[#f5f5f5] border border-transparent rounded-full text-sm text-gray-500 hover:bg-white hover:border-gray-200 hover:text-gray-700 transition-all"
                 >
                   Start a post
                 </button>

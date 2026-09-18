@@ -151,7 +151,7 @@ export default function OrganizationDashboard() {
             <Doughnut
               data={{
                 labels: Object.keys(analytics.applications_by_status),
-                datasets: [{ data: Object.values(analytics.applications_by_status), backgroundColor: ["#2563eb", "#f59e0b", "#ef4444", "#6b7280"], borderWidth: 2, borderColor: "#fff" }],
+                datasets: [{ data: Object.values(analytics.applications_by_status), backgroundColor: ["#171717", "#f59e0b", "#ef4444", "#6b7280"], borderWidth: 2, borderColor: "#fff" }],
               }}
               options={{
                 responsive: true,
