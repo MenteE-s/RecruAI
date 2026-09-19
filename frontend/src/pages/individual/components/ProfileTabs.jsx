@@ -45,6 +45,7 @@ const allTabs = [
 ];
 
 export const profileSectionTabs = allTabs;
+export const profileSectionIcons = iconMap;
 
 export default function ProfileTabs({ activeTab, onTabChange }) {
   const [expanded, setExpanded] = useState(false);

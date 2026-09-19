@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { FiChevronDown } from "react-icons/fi";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import IndividualNavbar from "../../components/layout/IndividualNavbar";
 import {
@@ -11,7 +12,7 @@ import {
 
 import ProfileBanner from "./components/ProfileBanner";
 import ProfileSidebar from "./components/ProfileSidebar";
-import ProfileTabs, { profileSectionTabs } from "./components/ProfileTabs";
+import ProfileTabs, { profileSectionTabs, profileSectionIcons } from "./components/ProfileTabs";
 import AboutSection from "./components/sections/AboutSection";
 import ExperienceSection from "./components/sections/ExperienceSection";
 import EducationSection from "./components/sections/EducationSection";
@@ -432,12 +433,27 @@ export default function Profile() {
     }
   };
 
-  // Sidebar tabs scroll to the stacked section instead of swapping content,
-  // so every section (filled or empty with an Add prompt) is visible on one page.
+  // Sections below Skills stay collapsed until opened from the sidebar,
+  // so the page stays short while everything remains one click away.
+  const [openSections, setOpenSections] = useState(
+    () => new Set(profileSectionTabs.slice(0, 4).map((t) => t.id))
+  );
+
+  // Sidebar tabs open (if collapsed) and scroll to the section.
   const scrollToSection = (id) => {
     setActiveTab(id);
-    requestAnimationFrame(() => {
+    setOpenSections((prev) => new Set(prev).add(id));
+    setTimeout(() => {
       document.getElementById(`section-${id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 80);
+  };
+
+  const toggleSection = (id) => {
+    setOpenSections((prev) => {
+      const n = new Set(prev);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
     });
   };
 
@@ -514,11 +530,28 @@ export default function Profile() {
         </div>
 
         <div className="lg:col-span-3 p-4 space-y-6">
-          {profileSectionTabs.map((t) => (
-            <div key={t.id} id={`section-${t.id}`} className="scroll-mt-4">
-              {tabContent[t.id]}
-            </div>
-          ))}
+          {profileSectionTabs.map((t) => {
+            if (!openSections.has(t.id)) {
+              const Icon = profileSectionIcons[t.icon];
+              return (
+                <div key={t.id} id={`section-${t.id}`} className="scroll-mt-4">
+                  <button
+                    onClick={() => toggleSection(t.id)}
+                    className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 flex items-center gap-3 hover:border-blue-300 hover:shadow-sm transition-all text-left"
+                  >
+                    {Icon && <Icon size={16} className="text-gray-400 shrink-0" />}
+                    <span className="flex-1 text-sm font-semibold text-gray-700">{t.label}</span>
+                    <FiChevronDown size={16} className="text-gray-400 shrink-0" />
+                  </button>
+                </div>
+              );
+            }
+            return (
+              <div key={t.id} id={`section-${t.id}`} className="scroll-mt-4">
+                {tabContent[t.id]}
+              </div>
+            );
+          })}
         </div>
       </div>
 
