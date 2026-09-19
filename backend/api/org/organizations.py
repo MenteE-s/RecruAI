@@ -836,5 +836,10 @@ def invite_team_member(org_id):
         join_date=payload.get("join_date")
     )
     db.session.add(tm)
+    # Joining a team means working here: lift the default 'unemployed' state
+    # so the profile doesn't contradict itself (Open to Work + In your team).
+    # Never demotes an existing hired/working/onboarding state.
+    if user.employment_status in (None, "", "unemployed"):
+        user.employment_status = "working"
     db.session.commit()
     return jsonify({"message": "invitation sent", "team_member": tm.to_dict()}), 201
