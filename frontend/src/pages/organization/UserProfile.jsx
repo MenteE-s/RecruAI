@@ -43,14 +43,19 @@ export default function UserProfile() {
 
   const toggleLike = async (targetUserId) => {
     if (!currentUser) return;
+    // Normalize: URL params are strings, API ids are numbers — the Set must
+    // use one type or has()/delete() silently miss (stale heart until refresh).
+    const key = String(targetUserId);
+    const wasLiked = likedProfiles.has(key);
+    setLikedProfiles((prev) => { const n = new Set(prev); if (wasLiked) n.delete(key); else n.add(key); return n; });
     try {
       const res = await fetch(`${getBackendUrl()}/api/users/${currentUser.id}/toggle-favorite/${targetUserId}`, { method: "POST", credentials: "include", headers: getAuthHeaders() });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.favorited) setLikedProfiles((prev) => new Set(prev).add(targetUserId));
-        else setLikedProfiles((prev) => { const n = new Set(prev); n.delete(targetUserId); return n; });
-      }
-    } catch {}
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      setLikedProfiles((prev) => { const n = new Set(prev); if (data.favorited) n.add(key); else n.delete(key); return n; });
+    } catch {
+      setLikedProfiles((prev) => { const n = new Set(prev); if (wasLiked) n.add(key); else n.delete(key); return n; });
+    }
   };
   const formatDate = (d) => {
     if (!d) return "Present";
@@ -114,7 +119,7 @@ export default function UserProfile() {
               </div>
               {currentUser && currentUser.id !== parseInt(userId) && (
                 <div className="flex gap-2">
-                  <button onClick={() => toggleLike(parseInt(userId))} className={`p-2.5 ${likedProfiles.has(userId) ? "bg-red-500 text-white" : "bg-white/10 border border-white/20 text-white hover:bg-white/20"}`}><FiHeart className={`w-5 h-5 ${likedProfiles.has(userId) ? "fill-white" : ""}`} /></button>
+                  <button onClick={() => toggleLike(userId)} className={`p-2.5 ${likedProfiles.has(String(userId)) ? "bg-red-500 text-white" : "bg-white/10 border border-white/20 text-white hover:bg-white/20"}`}><FiHeart className={`w-5 h-5 ${likedProfiles.has(String(userId)) ? "fill-white" : ""}`} /></button>
                   <button onClick={() => window.open(`/profile/${userId}`, "_blank")} className="p-2.5 bg-white/10 border border-white/20 text-white hover:bg-white/20"><FiGlobe className="w-5 h-5" /></button>
                 </div>
               )}
