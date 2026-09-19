@@ -290,6 +290,9 @@ export default function Candidates() {
                         <div className="flex flex-wrap items-start justify-between gap-2">
                           <div>
                             <h3 className="text-[15px] font-semibold text-gray-900">{application.user?.name || "Anonymous"}</h3>
+                            {application.user?.headline && (
+                              <p className="text-[13px] text-gray-600 font-medium mt-px">{application.user.headline}</p>
+                            )}
                             <p className="text-sm text-blue-600 flex items-center gap-1.5 mt-0.5"><FiBriefcase className="w-3.5 h-3.5" /> Applied for: {application.post?.title}</p>
                             <p className="text-xs text-gray-500 flex items-center gap-1 mt-1"><FiCalendar className="w-3 h-3" /> Applied {formatDate(application.applied_at)}</p>
                           </div>

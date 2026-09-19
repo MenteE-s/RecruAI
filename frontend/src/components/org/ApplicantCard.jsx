@@ -1,5 +1,6 @@
 import React from "react";
 import { FiBriefcase, FiCalendar, FiEye, FiVideo } from "react-icons/fi";
+import { getUploadUrl } from "../../utils/auth";
 
 const STATUS_META = {
   pending: { label: "Pending", color: "bg-amber-50 text-amber-700 border-amber-200" },
@@ -20,17 +21,31 @@ function metaFor(status) {
 export default function ApplicantCard({ application, timeLabel, onStatusChange, onSchedule, onViewProfile }) {
   const meta = metaFor(application.status);
   const name = application.user?.name || "Anonymous";
+  const photo = application.user?.profile_picture ? getUploadUrl(application.user.profile_picture) : null;
   return (
     <div className="bg-white border border-gray-200 rounded-xl shadow-sm hover:border-gray-300 hover:shadow transition-all">
       <div className="p-3">
         <div className="flex gap-2.5">
-          <div className="hidden sm:flex w-9 h-9 rounded-lg bg-gray-900 text-white items-center justify-center text-xs font-bold shrink-0">
-            {name.charAt(0).toUpperCase()}
+          <div className="hidden sm:block relative w-9 h-9 shrink-0">
+            <div className="absolute inset-0 rounded-lg bg-gray-900 text-white flex items-center justify-center text-xs font-bold">
+              {name.charAt(0).toUpperCase()}
+            </div>
+            {photo && (
+              <img
+                src={photo}
+                alt={name}
+                onError={(e) => { e.currentTarget.style.display = "none"; }}
+                className="absolute inset-0 w-9 h-9 rounded-lg object-cover border border-gray-200 bg-white"
+              />
+            )}
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex flex-wrap items-start justify-between gap-1.5">
               <div className="min-w-0">
                 <h3 className="text-[13px] font-semibold text-gray-900 leading-tight truncate">{name}</h3>
+                {application.user?.headline && (
+                  <p className="text-[11px] text-gray-600 font-medium truncate mt-px">{application.user.headline}</p>
+                )}
                 <p className="text-[11px] text-blue-600 flex items-center gap-1 mt-px truncate">
                   <FiBriefcase className="w-3 h-3 shrink-0" />
                   <span className="truncate">{application.post?.title || "Unknown role"}</span>
