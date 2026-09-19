@@ -57,7 +57,7 @@ export default function Header({ sidebarItems = [] }) {
     ? [
         { name: "Home", link: "/dashboard", icon: FiHome },
         { name: "Jobs", link: "/organization/jobs", icon: FiBriefcase },
-        { name: "Candidates", link: "/organization/candidates", icon: FiUsers },
+        { name: "People", link: "/organization/candidates", icon: FiUsers },
         { name: "Notifications", link: "/notifications", icon: FiBell, badge: unreadCount > 0 ? unreadCount : null },
       ]
     : [

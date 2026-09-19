@@ -1,11 +1,23 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import { getSidebarItems, getBackendUrl, getAuthHeaders, getUploadUrl } from "../../utils/auth";
 import { useToast } from "../../components/ui/ToastContext";
 import { formatDate } from "../../utils/timezone";
-import { FiUsers, FiSearch, FiX, FiEye, FiCalendar, FiBriefcase, FiMapPin, FiArrowRight, FiStar } from "react-icons/fi";
+import { FiUsers, FiSearch, FiX, FiEye, FiCalendar, FiArrowRight, FiStar, FiPlus, FiVideo, FiLayers } from "react-icons/fi";
 import EmploymentBadge from "../../components/ui/EmploymentStatus";
+
+function timeAgo(dateString) {
+  if (!dateString) return "Recently";
+  const mins = Math.floor((Date.now() - new Date(dateString).getTime()) / 60000);
+  if (mins < 60) return `${Math.max(mins, 1)}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  if (days < 30) return `${Math.floor(days / 7)}w ago`;
+  return formatDate(dateString);
+}
 
 export default function Candidates() {
   const navigate = useNavigate();
@@ -27,6 +39,8 @@ export default function Candidates() {
   const [search, setSearch] = useState("");
   const [starredUsers, setStarredUsers] = useState([]);
   const [starredLoading, setStarredLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const listRef = useRef(null);
   const [interviewForm, setInterviewForm] = useState({ title: "", description: "", scheduled_at: "", duration_minutes: 60, interview_type: "text", interviewers: "" });
 
   const setTab = (t) => setParams(t === "starred" ? { tab: "starred" } : {});
@@ -49,7 +63,10 @@ export default function Candidates() {
     if (!organizationId) return;
     try {
       if (reset) { setLoading(true); setApplications([]); setPagination((p) => ({ ...p, page: 1 })); }
-      const currentPage = reset ? 1 : pagination.page;
+      else setLoadingMore(true);
+      // NB: non-reset loads the NEXT page (page+1). Requesting pagination.page
+      // again would re-append the same page as duplicates.
+      const currentPage = reset ? 1 : pagination.page + 1;
       const params = new URLSearchParams({ page: currentPage, per_page: pagination.per_page, organization_id: organizationId });
       const res = await fetch(`${getBackendUrl()}/api/applications?${params}`, { credentials: "include", headers: getAuthHeaders() });
       if (res.ok) {
@@ -59,7 +76,7 @@ export default function Candidates() {
         setPagination({ page: result.pagination.page, per_page: result.pagination.per_page, total: result.pagination.total, has_more: result.pagination.has_next });
       } else throw new Error("Failed to fetch applications");
     } catch (err) { showToast("Error fetching applications", "error"); }
-    finally { if (reset) setLoading(false); }
+    finally { if (reset) setLoading(false); else setLoadingMore(false); }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [organizationId, pagination.page, pagination.per_page]);
 
@@ -152,6 +169,20 @@ export default function Candidates() {
     return u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q);
   });
 
+  // Recent history rail: latest applications first
+  const recentApps = useMemo(() => {
+    return [...applications]
+      .sort((a, b) => new Date(b.applied_at || 0) - new Date(a.applied_at || 0))
+      .slice(0, 6);
+  }, [applications]);
+
+  // Infinite scroll for the contact list (unfiltered All tab only)
+  const handleListScroll = () => {
+    const el = listRef.current;
+    if (!el || tab !== "all" || loadingMore || !pagination.has_more || search) return;
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 200) fetchApplications(false);
+  };
+
   if (tab === "all" && loading && applications.length === 0) {
     return (
       <DashboardLayout sidebarItems={sidebarItems}>
@@ -174,10 +205,10 @@ export default function Candidates() {
             <div>
               <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 border border-white/20 text-xs font-medium tracking-wide mb-3">
                 <FiUsers className="w-3.5 h-3.5" />
-                CANDIDATES
+                PEOPLE
               </div>
-              <h1 className="text-3xl md:text-[2rem] font-bold leading-tight">Candidates</h1>
-              <p className="text-gray-300 mt-2 max-w-xl text-sm md:text-[15px]">Review applicants, update status, and schedule interviews.</p>
+              <h1 className="text-3xl md:text-[2rem] font-bold leading-tight">People</h1>
+              <p className="text-gray-300 mt-2 max-w-xl text-sm md:text-[15px]">Everyone who applied, starred people, and latest activity.</p>
               <div className="mt-4 relative max-w-xl">
                 <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <input type="text" placeholder="Search by candidate or position…" value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-10 pr-9 py-3 bg-white text-gray-900 placeholder-gray-400 border-0 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
@@ -274,78 +305,118 @@ export default function Candidates() {
             ))}
           </div>
         )
-      ) : filtered.length === 0 ? (
-        <div className="bg-white border border-gray-200 p-12 text-center">
-          <div className="w-14 h-14 bg-gray-100 flex items-center justify-center mx-auto mb-4"><FiUsers className="w-7 h-7 text-gray-400" /></div>
-          <h3 className="text-lg font-semibold text-gray-900">No applications</h3>
-          <p className="text-sm text-gray-500 mt-1">No applications received yet.</p>
-        </div>
       ) : (
-        <>
-          <div className="space-y-3">
-            {filtered.map((application) => {
-              const meta = getStatusMeta(application.status);
-              return (
-                <div key={application.id} className="bg-white border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all">
-                  <div className="p-5">
-                    <div className="flex gap-4">
-                      <div className="hidden sm:flex w-11 h-11 bg-gray-900 text-white items-center justify-center text-sm font-bold shrink-0">{(application.user?.name || "?")[0].toUpperCase()}</div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex flex-wrap items-start justify-between gap-2">
-                          <div>
-                            <h3 className="text-[15px] font-semibold text-gray-900">{application.user?.name || "Anonymous"}</h3>
-                            {application.user?.headline && (
-                              <p className="text-[13px] text-gray-600 font-medium mt-px">{application.user.headline}</p>
-                            )}
-                            <div className="mt-1">
-                              <EmploymentBadge status={application.user?.employment_status} className="!px-2 !py-0.5 !text-[10px]" />
-                            </div>
-                            <p className="text-sm text-blue-600 flex items-center gap-1.5 mt-0.5"><FiBriefcase className="w-3.5 h-3.5" /> Applied for: {application.post?.title}</p>
-                            <p className="text-xs text-gray-500 flex items-center gap-1 mt-1"><FiCalendar className="w-3 h-3" /> Applied {formatDate(application.applied_at)}</p>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
+        {/* Left — contact list */}
+        <div className="lg:col-span-2 min-w-0">
+          {filtered.length === 0 ? (
+            <div className="bg-white border border-gray-200 p-12 text-center">
+              <div className="w-14 h-14 bg-gray-100 flex items-center justify-center mx-auto mb-4"><FiUsers className="w-7 h-7 text-gray-400" /></div>
+              <h3 className="text-lg font-semibold text-gray-900">No applications</h3>
+              <p className="text-sm text-gray-500 mt-1">No applications received yet.</p>
+            </div>
+          ) : (
+            <div ref={listRef} onScroll={handleListScroll} className="max-h-[76vh] overflow-y-auto pr-1 -mr-1">
+              <div className="grid sm:grid-cols-2 gap-3">
+                {filtered.map((application) => {
+                  const meta = getStatusMeta(application.status);
+                  const name = application.user?.name || "Anonymous";
+                  const photo = application.user?.profile_picture ? getUploadUrl(application.user.profile_picture) : null;
+                  return (
+                    <div key={application.id} className="bg-white border border-gray-200 rounded-xl p-3 hover:border-gray-300 hover:shadow-sm transition-all">
+                      <button onClick={() => fetchCandidateProfile(application.user_id)} className="w-full flex gap-2.5 text-left group">
+                        <div className="relative w-10 h-10 shrink-0">
+                          <div className="absolute inset-0 rounded-lg bg-gray-900 text-white flex items-center justify-center text-sm font-bold">
+                            {name.charAt(0).toUpperCase()}
                           </div>
-                          <span className={`inline-flex items-center px-2.5 py-1 text-xs font-medium border ${meta.color}`}>{meta.label}</span>
+                          {photo && (
+                            <img src={photo} alt={name} onError={(e) => { e.currentTarget.style.display = "none"; }} className="absolute inset-0 w-10 h-10 rounded-lg object-cover border border-gray-200 bg-white" />
+                          )}
                         </div>
-                        {application.cover_letter && <p className="text-sm text-gray-600 mt-3 bg-gray-50 border border-gray-200 p-3 line-clamp-3">{application.cover_letter}</p>}
-                        {application.resume_url && <a href={application.resume_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 mt-2 font-medium">📄 View resume</a>}
-                        <div className="mt-3 flex flex-wrap gap-1.5">
-                          <span className="text-xs bg-gray-50 text-gray-600 border border-gray-200 px-2 py-1 flex items-center gap-1"><FiMapPin className="w-3 h-3" />{application.post?.location || "Remote"}</span>
-                          {application.post?.employment_type && <span className="text-xs bg-gray-50 text-gray-600 border border-gray-200 px-2 py-1">{application.post.employment_type}</span>}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[13px] font-semibold text-gray-900 leading-tight truncate group-hover:text-blue-700">{name}</p>
+                          <p className="text-[11px] text-gray-500 truncate mt-px">{application.user?.headline || application.post?.title || "—"}</p>
+                          <p className="text-[11px] text-gray-400 mt-px">{timeAgo(application.applied_at)}</p>
                         </div>
-                      </div>
-                      <div className="hidden lg:flex flex-col gap-2 shrink-0 w-[180px]">
-                        <select value={application.status} onChange={(e) => updateApplicationStatus(application.id, e.target.value)} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white">
+                        <span className={`inline-flex items-center self-start px-1.5 py-0.5 text-[10px] font-semibold border rounded-full shrink-0 ${meta.color}`}>{meta.label}</span>
+                      </button>
+                      <div className="flex gap-1.5 mt-2.5 pt-2.5 border-t border-gray-100">
+                        <select value={application.status} onChange={(e) => updateApplicationStatus(application.id, e.target.value)} aria-label={`Status for ${name}`} className="flex-1 min-w-0 px-1.5 py-1.5 bg-gray-50 border border-gray-200 text-[11px] font-medium rounded-md focus:outline-none focus:border-blue-500">
                           <option value="pending">Pending</option>
                           <option value="reviewed">Reviewed</option>
                           <option value="accepted">Accepted</option>
                           <option value="rejected">Rejected</option>
                         </select>
-                        <button onClick={() => { setSelectedApplication(application); setShowScheduleInterview(true); }} className="w-full px-3 py-2 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700">Schedule interview</button>
-                        <button onClick={() => fetchCandidateProfile(application.user_id)} className="w-full px-3 py-2 bg-white border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center justify-center gap-1.5"><FiEye className="w-4 h-4" /> View profile</button>
-                        <button onClick={() => toggleOnboardingStatus(application.id, application.onboarded)} className={`w-full px-3 py-2 text-sm font-medium border ${application.onboarded ? "bg-red-50 text-red-700 border-red-200 hover:bg-red-100" : "bg-green-600 text-white border-green-600 hover:bg-green-700"}`}>{application.onboarded ? "Offboard" : "Onboard"}</button>
+                        <button onClick={() => { setSelectedApplication(application); setShowScheduleInterview(true); }} title="Schedule interview" className="p-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 shrink-0"><FiVideo className="w-3.5 h-3.5" /></button>
+                        <button onClick={() => fetchCandidateProfile(application.user_id)} title="View profile" className="p-1.5 bg-white border border-gray-200 text-gray-600 rounded-md hover:bg-gray-50 shrink-0"><FiEye className="w-3.5 h-3.5" /></button>
+                        <button onClick={() => toggleOnboardingStatus(application.id, application.onboarded)} title={application.onboarded ? "Offboard" : "Mark as onboarded"} className={`px-2 py-1.5 text-[11px] font-semibold rounded-md border shrink-0 ${application.onboarded ? "bg-red-50 text-red-700 border-red-200 hover:bg-red-100" : "bg-green-50 text-green-700 border-green-200 hover:bg-green-100"}`}>{application.onboarded ? "Hired ✓" : "Onboard"}</button>
                       </div>
+                      {application.cover_letter && (
+                        <p className="text-[11px] text-gray-500 mt-2 leading-snug line-clamp-2">{application.cover_letter}</p>
+                      )}
+                      {application.resume_url && <a href={application.resume_url} target="_blank" rel="noopener noreferrer" className="inline-block text-[11px] text-blue-600 hover:text-blue-700 mt-1.5 font-medium">View resume →</a>}
                     </div>
-                    <div className="mt-4 flex lg:hidden flex-wrap gap-2">
-                      <select value={application.status} onChange={(e) => updateApplicationStatus(application.id, e.target.value)} className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 text-sm">
-                        <option value="pending">Pending</option>
-                        <option value="reviewed">Reviewed</option>
-                        <option value="accepted">Accepted</option>
-                        <option value="rejected">Rejected</option>
-                      </select>
-                      <button onClick={() => { setSelectedApplication(application); setShowScheduleInterview(true); }} className="px-4 py-2 bg-blue-600 text-white text-sm font-medium">Schedule</button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          {pagination.has_more && (
-            <div className="flex flex-col items-center gap-3 mt-6">
-              <button onClick={() => fetchApplications(false)} className="px-6 py-3 bg-gray-900 text-white text-sm font-medium hover:bg-black">Load more candidates</button>
-              <p className="text-xs text-gray-500">Showing {applications.length} of {pagination.total}</p>
+                  );
+                })}
+              </div>
+              <div className="flex flex-col items-center gap-1.5 py-4">
+                {loadingMore && <p className="text-xs text-gray-500">Loading more…</p>}
+                {pagination.has_more && !search && !loadingMore && (
+                  <button onClick={() => fetchApplications(false)} className="px-5 py-2 bg-gray-900 text-white text-xs font-semibold hover:bg-black rounded-md">Load more</button>
+                )}
+                <p className="text-[11px] text-gray-400">Showing {filtered.length}{search ? "" : ` of ${pagination.total}`}</p>
+              </div>
             </div>
           )}
-        </>
-      )}
+        </div>
+
+        {/* Right rail — recent history + CTAs */}
+        <aside className="space-y-3">
+          <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-bold text-gray-900">Recent activity</h3>
+              <FiCalendar className="w-3.5 h-3.5 text-gray-400" />
+            </div>
+            <div className="mt-1.5 divide-y divide-gray-100">
+              {recentApps.length === 0 && (
+                <p className="text-[11px] text-gray-400 py-2 text-center">No activity yet.</p>
+              )}
+              {recentApps.map((app) => {
+                const dot = app.status === "accepted" ? "bg-green-500" : app.status === "rejected" ? "bg-red-500" : app.status === "reviewed" ? "bg-blue-500" : "bg-amber-500";
+                return (
+                  <button
+                    key={`recent-${app.id}`}
+                    onClick={() => fetchCandidateProfile(app.user_id)}
+                    className="w-full flex items-center gap-2 py-2 text-left group"
+                  >
+                    <span className={`w-2 h-2 rounded-full shrink-0 ${dot}`} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-gray-900 truncate group-hover:text-blue-700 leading-tight">{app.user?.name || "Anonymous"}</p>
+                      <p className="text-[11px] text-gray-400 truncate mt-px">{app.post?.title || "—"} · {timeAgo(app.applied_at)}</p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="bg-gray-900 text-white rounded-xl shadow-sm p-4">
+            <h3 className="text-sm font-bold">Hire faster</h3>
+            <p className="text-[11px] text-gray-400 mt-1 leading-snug">Source talent, open roles, and move people through your pipeline.</p>
+            <div className="mt-3 space-y-1.5">
+              <button onClick={() => navigate("/organization/hire")} className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-white text-gray-900 text-xs font-semibold hover:bg-gray-100 rounded-md">
+                <FiSearch className="w-3.5 h-3.5" /> Browse talent
+              </button>
+              <button onClick={() => navigate("/organization/jobs")} className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 rounded-md">
+                <FiPlus className="w-3.5 h-3.5" /> New job post
+              </button>
+              <button onClick={() => navigate("/organization/pipeline")} className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-white/10 border border-white/15 text-white text-xs font-semibold hover:bg-white/15 rounded-md">
+                <FiLayers className="w-3.5 h-3.5" /> Open pipeline
+              </button>
+            </div>
+          </div>
+        </aside>
+      </div>
       )}
 
       {showScheduleInterview && selectedApplication && (
