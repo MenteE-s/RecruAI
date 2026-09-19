@@ -549,13 +549,19 @@ export default function OrganizationProfile() {
                 const photo = member.user?.profile_picture ? getUploadUrl(member.user.profile_picture) : null;
                 return (
                   <div key={member.id} className="border border-gray-200 rounded-xl p-3 text-center hover:border-blue-200 hover:shadow-sm transition-all bg-white">
-                    {photo ? (
-                      <img src={photo} alt={name} className="w-14 h-14 rounded-xl object-cover mx-auto border border-gray-200" />
-                    ) : (
-                      <div className="w-14 h-14 rounded-xl bg-gray-900 text-white flex items-center justify-center text-lg font-bold mx-auto">
+                    <div className="relative w-14 h-14 mx-auto">
+                      <div className="absolute inset-0 rounded-xl bg-gray-900 text-white flex items-center justify-center text-lg font-bold">
                         {name.charAt(0).toUpperCase()}
                       </div>
-                    )}
+                      {photo && (
+                        <img
+                          src={photo}
+                          alt={name}
+                          onError={(e) => { e.currentTarget.style.display = "none"; }}
+                          className="absolute inset-0 w-14 h-14 rounded-xl object-cover border border-gray-200 bg-white"
+                        />
+                      )}
+                    </div>
                     <p className="text-[13px] font-semibold text-gray-900 mt-2 leading-tight truncate">{name}</p>
                     <p className="text-[11px] text-gray-500 truncate mt-px">{member.role || "Member"}</p>
                     <button
