@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import { getSidebarItems, getBackendUrl, getAuthHeaders } from "../../utils/auth";
 import { useToast } from "../../components/ui/ToastContext";
+import { COUNTRIES, CURRENCIES, formatSalaryRange, splitLocation, joinLocation } from "../../utils/jobMeta";
 import {
   FiBriefcase,
   FiMapPin,
@@ -30,7 +31,6 @@ export default function JobPostDetails() {
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    location: "",
     employment_type: "Full-time",
     category: "",
     salary_min: "",
@@ -40,6 +40,9 @@ export default function JobPostDetails() {
     application_deadline: "",
     status: "active",
   });
+  const [locCity, setLocCity] = useState("");
+  const [locCountry, setLocCountry] = useState("");
+  const [locRemote, setLocRemote] = useState(false);
 
   useEffect(() => {
     fetchPost();
@@ -56,10 +59,13 @@ export default function JobPostDetails() {
         const data = await res.json();
         const p = data.data || data;
         setPost(p);
+        const loc = splitLocation(p.location || "");
+        setLocCity(loc.city);
+        setLocCountry(loc.country);
+        setLocRemote(loc.remote);
         setFormData({
           title: p.title || "",
           description: p.description || "",
-          location: p.location || "",
           employment_type: p.employment_type || "Full-time",
           category: p.category || "",
           salary_min: p.salary_min || "",
@@ -83,7 +89,7 @@ export default function JobPostDetails() {
     e.preventDefault();
     setSaving(true);
     try {
-      const payload = { ...formData, requirements: formData.requirements.filter((r) => r.trim()) };
+      const payload = { ...formData, location: joinLocation({ city: locCity, country: locCountry, remote: locRemote }), requirements: formData.requirements.filter((r) => r.trim()) };
       const res = await fetch(`${getBackendUrl()}/api/posts/${id}`, {
         method: "PUT",
         headers: getAuthHeaders({ "Content-Type": "application/json" }),
@@ -167,7 +173,7 @@ export default function JobPostDetails() {
                 {post.location && <span className="inline-flex items-center gap-1 text-xs bg-white/10 border border-white/20 px-2.5 py-1"><FiMapPin className="w-3 h-3" />{post.location}</span>}
                 {post.employment_type && <span className="inline-flex items-center gap-1 text-xs bg-white/10 border border-white/20 px-2.5 py-1"><FiBriefcase className="w-3 h-3" />{post.employment_type}</span>}
                 {post.category && <span className="inline-flex items-center gap-1 text-xs bg-blue-500/20 border border-blue-400/30 px-2.5 py-1 text-blue-200"><FiTag className="w-3 h-3" />{post.category}</span>}
-                {post.salary_min && post.salary_max && <span className="inline-flex items-center gap-1 text-xs bg-emerald-500/20 border border-emerald-400/30 px-2.5 py-1 text-emerald-200"><FiDollarSign className="w-3 h-3" />${post.salary_min} - ${post.salary_max} {post.salary_currency}</span>}
+                {(() => { const range = formatSalaryRange(post.salary_min, post.salary_max, post.salary_currency); return range && <span className="inline-flex items-center gap-1 text-xs bg-emerald-500/20 border border-emerald-400/30 px-2.5 py-1 text-emerald-200"><FiDollarSign className="w-3 h-3" />{range}</span>; })()}
                 {post.application_deadline && <span className="inline-flex items-center gap-1 text-xs bg-white/10 border border-white/20 px-2.5 py-1"><FiCalendar className="w-3 h-3" />Deadline {new Date(post.application_deadline).toLocaleDateString()}</span>}
               </div>
               <p className="text-sm text-gray-300 mt-4 max-w-2xl line-clamp-3">{post.description}</p>
@@ -199,7 +205,7 @@ export default function JobPostDetails() {
               <div><p className="text-xs text-gray-500 uppercase tracking-wider">Location</p><p className="font-medium text-gray-900 mt-1">{post.location || "—"}</p></div>
               <div><p className="text-xs text-gray-500 uppercase tracking-wider">Employment type</p><p className="font-medium text-gray-900 mt-1">{post.employment_type || "—"}</p></div>
               <div><p className="text-xs text-gray-500 uppercase tracking-wider">Category</p><p className="font-medium text-gray-900 mt-1">{post.category || "—"}</p></div>
-              <div><p className="text-xs text-gray-500 uppercase tracking-wider">Salary</p><p className="font-medium text-gray-900 mt-1">{post.salary_min && post.salary_max ? `$${post.salary_min} - $${post.salary_max} ${post.salary_currency}` : "—"}</p></div>
+              <div><p className="text-xs text-gray-500 uppercase tracking-wider">Salary</p><p className="font-medium text-gray-900 mt-1">{formatSalaryRange(post.salary_min, post.salary_max, post.salary_currency) || "—"}</p></div>
               <div><p className="text-xs text-gray-500 uppercase tracking-wider">Deadline</p><p className="font-medium text-gray-900 mt-1 flex items-center gap-1"><FiCalendar className="w-3.5 h-3.5 text-gray-400" />{post.application_deadline ? new Date(post.application_deadline).toLocaleDateString() : "—"}</p></div>
               <div><p className="text-xs text-gray-500 uppercase tracking-wider">Status</p><p className="font-medium mt-1"><span className={`inline-flex px-2 py-1 text-xs border ${post.status === "active" ? "bg-green-50 text-green-700 border-green-200" : "bg-gray-50 text-gray-600 border-gray-200"}`}>{post.status}</span></p></div>
             </div>
@@ -250,10 +256,18 @@ export default function JobPostDetails() {
                 <textarea rows={4} value={formData.description} onChange={(e) => setFormData((p) => ({ ...p, description: e.target.value }))} className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white resize-none" />
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1.5">Location</label>
-                  <input type="text" value={formData.location} onChange={(e) => setFormData((p) => ({ ...p, location: e.target.value }))} className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white" />
-                </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1.5">Location</label>
+                <label className="flex items-center gap-2 text-sm text-gray-700 mb-2 cursor-pointer select-none">
+                  <input type="checkbox" checked={locRemote} onChange={(e) => setLocRemote(e.target.checked)} className="w-4 h-4 accent-blue-600" />
+                  Remote position
+                </label>
+                <input type="text" value={locCity} disabled={locRemote} onChange={(e) => setLocCity(e.target.value)} placeholder="City (optional)" className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white disabled:opacity-50 mb-2" />
+                <select value={locCountry} disabled={locRemote} onChange={(e) => setLocCountry(e.target.value)} className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white disabled:opacity-50">
+                  <option value="">Select country…</option>
+                  {COUNTRIES.map((c) => <option key={c.code} value={c.name}>{c.name}</option>)}
+                </select>
+              </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1.5">Category</label>
                   <input type="text" value={formData.category} onChange={(e) => setFormData((p) => ({ ...p, category: e.target.value }))} className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white" />
@@ -271,10 +285,7 @@ export default function JobPostDetails() {
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1.5">Currency</label>
                   <select value={formData.salary_currency} onChange={(e) => setFormData((p) => ({ ...p, salary_currency: e.target.value }))} className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 text-sm">
-                    <option>USD</option>
-                    <option>EUR</option>
-                    <option>GBP</option>
-                    <option>CAD</option>
+                    {CURRENCIES.map((c) => <option key={c.code} value={c.code}>{c.code} — {c.name} ({c.symbol})</option>)}
                   </select>
                 </div>
               </div>
