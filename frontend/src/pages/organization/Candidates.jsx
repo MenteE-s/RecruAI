@@ -196,42 +196,38 @@ export default function Candidates() {
 
   return (
     <DashboardLayout sidebarItems={sidebarItems}>
-      {/* Hero */}
-      <div className="relative overflow-hidden rounded-2xl bg-gray-900 text-white mb-6">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-transparent to-indigo-600/20" />
-        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3" />
-        <div className="relative p-6 md:p-8">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-            <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 border border-white/20 text-xs font-medium tracking-wide mb-3">
-                <FiUsers className="w-3.5 h-3.5" />
-                PEOPLE
-              </div>
-              <h1 className="text-3xl md:text-[2rem] font-bold leading-tight">People</h1>
-              <p className="text-gray-300 mt-2 max-w-xl text-sm md:text-[15px]">Everyone who applied, starred people, and latest activity.</p>
-              <div className="mt-4 relative max-w-xl">
-                <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <input type="text" placeholder="Search by candidate or position…" value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-10 pr-9 py-3 bg-white text-gray-900 placeholder-gray-400 border-0 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
-                {search && <button onClick={() => setSearch("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 rounded text-gray-500"><FiX className="w-4 h-4" /></button>}
-              </div>
-            </div>
-            <div className="grid grid-cols-3 gap-3 lg:w-[380px]">
-              <div className="bg-white/10 backdrop-blur border border-white/10 p-4 text-center">
-                <p className="text-2xl font-bold">{applications.length}</p>
-                <p className="text-xs text-gray-300 mt-1">Applications</p>
-              </div>
-              <div className="bg-blue-500/20 backdrop-blur border border-blue-400/20 p-4 text-center">
-                <p className="text-2xl font-bold text-blue-200">{applications.filter((a) => a.status === "pending").length}</p>
-                <p className="text-xs text-blue-200 mt-1">Pending</p>
-              </div>
-              <div className="bg-green-500/20 backdrop-blur border border-green-400/20 p-4 text-center">
-                <p className="text-2xl font-bold text-green-200">{applications.filter((a) => a.status === "accepted").length}</p>
-                <p className="text-xs text-green-200 mt-1">Accepted</p>
-              </div>
-            </div>
+      <div className="w-full max-w-5xl mx-auto space-y-2.5">
+        <div className="flex items-center gap-2 justify-between">
+          <div className="min-w-0">
+            <h1 className="text-base font-bold text-gray-900 tracking-tight">People</h1>
+            <p className="text-[11px] text-gray-500 mt-0.5">
+              {pagination.total || applications.length} applicants · {starredUsers.length} starred · {applications.filter((a) => a.status === "pending").length} pending
+            </p>
           </div>
+          <button
+            onClick={() => navigate("/organization/hire")}
+            className="shrink-0 inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 hover:underline"
+          >
+            Hire people <FiArrowRight className="w-3 h-3" />
+          </button>
         </div>
-      </div>
+
+        {/* Search */}
+        <div className="relative">
+          <FiSearch className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 w-3.5 h-3.5" />
+          <input
+            type="text"
+            placeholder="Filter by name, role…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-8 pr-8 py-1.5 bg-white border border-gray-200 rounded-lg text-xs text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-500 shadow-sm"
+          />
+          {search && (
+            <button onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 rounded text-gray-500">
+              <FiX className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
 
       {/* Internal tabs — same pattern as Interviews/Jobs */}
       <div className="flex gap-1.5 bg-white border border-gray-200 rounded-lg p-1 shadow-sm mb-4">
@@ -418,6 +414,7 @@ export default function Candidates() {
         </aside>
       </div>
       )}
+      </div>
 
       {showScheduleInterview && selectedApplication && (
         <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
