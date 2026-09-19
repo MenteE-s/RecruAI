@@ -252,7 +252,7 @@ export default function Candidates() {
                   )}
                 </div>
                 <p className="text-[13px] font-semibold text-gray-900 mt-2 leading-tight truncate">{u.name || "Unnamed"}</p>
-                {(u.headline || u.email) && <p className="text-[11px] text-gray-500 truncate mt-px">{u.headline || u.email}</p>}
+                {u.headline && <p className="text-[11px] text-gray-500 truncate mt-px font-medium">{u.headline}</p>}
                 <button
                   onClick={() => navigate(`/organization/user/${u.id}`)}
                   className="mt-2 w-full inline-flex items-center justify-center gap-1 px-2.5 py-1.5 bg-white border border-gray-200 text-[11px] font-semibold text-blue-600 hover:bg-blue-50 rounded-md"
