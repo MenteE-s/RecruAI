@@ -10,17 +10,17 @@ export function employmentMeta(status) {
       return {
         label: "Hired",
         verified: true,
-        chip: "bg-emerald-50 text-emerald-700 border-emerald-200",
-        ring: "ring-emerald-500",
-        banner: "bg-emerald-600",
+        chip: "bg-[#FAF4E3] text-[#7A5F22] border-[#E5D3A6]",
+        ring: "ring-[#C6A15B]",
+        banner: "bg-[#9A7B3F]",
       };
     case "working":
       return {
         label: "Working",
         verified: true,
-        chip: "bg-emerald-50 text-emerald-700 border-emerald-200",
-        ring: "ring-emerald-500",
-        banner: "bg-emerald-600",
+        chip: "bg-[#FAF4E3] text-[#7A5F22] border-[#E5D3A6]",
+        ring: "ring-[#C6A15B]",
+        banner: "bg-[#9A7B3F]",
       };
     case "onboarding":
       return {
@@ -35,9 +35,9 @@ export function employmentMeta(status) {
       return {
         label: "Open to Work",
         verified: false,
-        chip: "bg-blue-50 text-blue-700 border-blue-200",
-        ring: "ring-blue-500",
-        banner: "bg-blue-600",
+        chip: "bg-green-50 text-green-700 border-green-200",
+        ring: "ring-green-500",
+        banner: "bg-green-600",
       };
   }
 }

@@ -234,7 +234,7 @@ export default function HirePeople() {
                             </div>
                             <div>
                               <p className="text-sm font-medium text-gray-900">{candidate.name || "Anonymous"}</p>
-                              <p className="text-xs text-gray-500">{candidate.current_position || "—"}</p>
+                              <p className="text-xs text-gray-500">{candidate.headline || candidate.current_position || "—"}</p>
                             </div>
                           </div>
                         </td>
