@@ -40,6 +40,45 @@ def _can_manage_post(user, post):
     return post.organization_id in _managed_org_ids(user)
 
 
+def _notify_candidate(application, title, message):
+    """Persist an in-app notification for the candidate. Never raises —
+    a notification failure must not break the status change itself."""
+    try:
+        from ...models import Notification
+        post = application.post
+        notification = Notification.create_notification(
+            user_id=application.user_id,
+            notification_type="application_status",
+            title=title,
+            message=message,
+            related_application_id=application.id,
+            related_post_id=application.post_id,
+            related_organization_id=post.organization_id if post else None,
+        )
+        db.session.add(notification)
+        db.session.commit()
+        try:
+            kafka.emit_event('notification_created', {
+                'notification_id': notification.id,
+                'user_id': application.user_id,
+                'type': 'application_status',
+                'title': title,
+                'related_application_id': application.id,
+            })
+        except Exception as ke:
+            print(f"Failed to emit Kafka message for application notification: {ke}")
+    except Exception as e:
+        print(f"Failed to create application status notification: {e}")
+
+
+def _app_names(application):
+    post = application.post
+    post_title = (post.title if post and post.title else "a position")
+    org = getattr(post, "organization", None) if post else None
+    org_name = (org.name if org and getattr(org, "name", None) else "The organization")
+    return post_title, org_name
+
+
 # Application endpoints
 @api_bp.route("/applications", methods=["GET"])
 @jwt_required()

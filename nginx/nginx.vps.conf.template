@@ -1,10 +1,10 @@
 # RecruAI VPS nginx — API-only host (frontend lives on Vercel).
 # Rendered by the nginx:alpine image from $API_DOMAIN at container start.
 # Everything proxies to the backend (REST + Socket.IO + uploads + health).
-
-upstream backend {
-    server backend:8000;
-}
+#
+# NOTE: upstream is resolved via Docker's embedded DNS on every request
+# (resolver + variable). A plain 'upstream backend' block would resolve once
+# at startup and 502 forever after any backend recreation (new container IP).
 
 server {
     listen 80;
@@ -21,9 +21,14 @@ server {
 }
 
 server {
-    listen 443 ssl http2;
+    listen 443 ssl;
+    http2 on;
     server_name ${API_DOMAIN};
     server_tokens off;
+
+    # Docker embedded DNS — re-resolved per TTL so backend recreations
+    # (new container IPs on every deploy) never go stale.
+    resolver 127.0.0.11 valid=10s ipv6=off;
 
     ssl_certificate /etc/letsencrypt/live/${API_DOMAIN}/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/${API_DOMAIN}/privkey.pem;
@@ -53,7 +58,8 @@ server {
 
     # Socket.IO long-polling/websocket needs a long window
     location /socket.io/ {
-        proxy_pass http://backend;
+        set $backend_upstream backend:8000;
+        proxy_pass http://$backend_upstream;
         proxy_read_timeout 86400s;
     }
 
@@ -68,6 +74,7 @@ server {
     gzip_proxied any;
 
     location / {
-        proxy_pass http://backend;
+        set $backend_upstream backend:8000;
+        proxy_pass http://$backend_upstream;
     }
 }

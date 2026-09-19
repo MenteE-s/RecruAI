@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import { getSidebarItems, getBackendUrl, getUploadUrl, getAuthHeaders } from "../../utils/auth";
-import { FiMail, FiBriefcase, FiAward, FiBook, FiCode, FiFolder, FiFileText, FiHeart, FiGlobe, FiStar, FiArrowLeft, FiMapPin, FiCalendar } from "react-icons/fi";
+import { FiMail, FiBriefcase, FiAward, FiBook, FiCode, FiFolder, FiFileText, FiHeart, FiGlobe, FiStar, FiArrowLeft, FiMapPin, FiCalendar, FiEdit2 } from "react-icons/fi";
+import EmploymentBadge, { employmentMeta } from "../../components/ui/EmploymentStatus";
 
 export default function UserProfile() {
   const { userId } = useParams();
@@ -96,20 +97,31 @@ export default function UserProfile() {
 
   return (
     <DashboardLayout sidebarItems={sidebarItems}>
-      {/* Back */}
-      <button onClick={() => navigate(-1)} className="inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900 mb-4"><FiArrowLeft className="w-4 h-4" /> Back</button>
+      {/* Back + own-profile edit */}
+      <div className="flex items-center justify-between mb-4">
+        <button onClick={() => navigate(-1)} className="inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900"><FiArrowLeft className="w-4 h-4" /> Back</button>
+        {currentUser && String(currentUser.id) === String(userId) && (
+          <button onClick={() => navigate("/profile")} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 text-xs font-semibold text-blue-600 hover:bg-blue-50 rounded-md">
+            <FiEdit2 className="w-3.5 h-3.5" /> Edit my profile
+          </button>
+        )}
+      </div>
 
       {/* Hero */}
       <div className="relative overflow-hidden bg-gray-900 text-white mb-6">
         {user.banner && <img src={getUploadUrl(user.banner)} alt="banner" className="absolute inset-0 w-full h-full object-cover opacity-20" />}
         <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-transparent to-indigo-600/20" />
         <div className="relative p-6 md:p-8 flex flex-col md:flex-row gap-6">
-          {user.profile_picture ? <img src={getUploadUrl(user.profile_picture)} alt={user.name} className="w-24 h-24 rounded-full object-cover border-4 border-white/20 shrink-0" /> : <div className="w-24 h-24 rounded-full bg-white/20 flex items-center justify-center text-2xl font-bold shrink-0">{(user.name || user.email)[0].toUpperCase()}</div>}
+          {user.profile_picture ? <img src={getUploadUrl(user.profile_picture)} alt={user.name} className={`w-24 h-24 rounded-full object-cover border-4 border-white/20 ring-4 ring-offset-2 ring-offset-transparent shrink-0 ${employmentMeta(user.employment_status).ring}`} /> : <div className={`w-24 h-24 rounded-full bg-white/20 flex items-center justify-center text-2xl font-bold shrink-0 ring-4 ring-offset-2 ring-offset-transparent ${employmentMeta(user.employment_status).ring}`}>{(user.name || user.email)[0].toUpperCase()}</div>}
           <div className="flex-1 min-w-0">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <h1 className="text-2xl md:text-3xl font-bold">{user.name || user.email}</h1>
+                {user.headline && (
+                  <p className="text-gray-200 mt-1 text-sm md:text-[15px] font-medium">{user.headline}</p>
+                )}
                 <p className="text-gray-300 mt-1 flex flex-wrap items-center gap-2 text-sm">
+                  <EmploymentBadge status={user.employment_status} />
                   <span className={`px-2 py-1 text-xs font-medium border ${is_team_member ? "bg-green-500/20 text-green-200 border-green-400/20" : "bg-amber-500/20 text-amber-200 border-amber-400/20"}`}>{is_team_member ? "In your team" : "Not in team"}</span>
                   {team_member_info && <><span className="bg-white/10 border border-white/20 px-2 py-1 text-xs">{team_member_info.role}</span><span className="text-gray-400">Joined {formatDate(team_member_info.join_date)}</span></>}
                 </p>

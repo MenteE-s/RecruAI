@@ -57,7 +57,7 @@ export default function Header({ sidebarItems = [] }) {
     ? [
         { name: "Home", link: "/dashboard", icon: FiHome },
         { name: "Jobs", link: "/organization/jobs", icon: FiBriefcase },
-        { name: "Candidates", link: "/organization/candidates", icon: FiUsers },
+        { name: "People", link: "/organization/candidates", icon: FiUsers },
         { name: "Notifications", link: "/notifications", icon: FiBell, badge: unreadCount > 0 ? unreadCount : null },
       ]
     : [
@@ -197,8 +197,8 @@ export default function Header({ sidebarItems = [] }) {
                     <button onClick={() => { navigate("/organization/team"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
                       <FiUsers className="w-3.5 h-3.5 text-gray-400" /> Team Members
                     </button>
-                    <button onClick={() => { navigate("/organization/hire"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
-                      <FiSearch className="w-3.5 h-3.5 text-gray-400" /> Hire People
+                    <button onClick={() => { navigate("/organization/candidates"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
+                      <FiSearch className="w-3.5 h-3.5 text-gray-400" /> Find & Hire People
                     </button>
                     <button onClick={() => { navigate("/organization/pipeline"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
                       <FiTrendingUp className="w-3.5 h-3.5 text-gray-400" /> Pipeline

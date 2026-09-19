@@ -8,6 +8,7 @@ import {
 } from "react-icons/fi";
 import Card from "../../../components/ui/Card";
 import { getUploadUrl } from "../../../utils/auth";
+import { EmploymentFrame, employmentMeta } from "../../../components/ui/EmploymentStatus";
 
 export default function ProfileSidebar({
   userData,
@@ -20,14 +21,14 @@ export default function ProfileSidebar({
   return (
     <Card>
       <div className="flex flex-col items-center text-center">
-        {/* Profile Picture */}
+        {/* Profile Picture — ring color encodes verified employment state */}
         <div className="relative mb-4">
           <div
-            className={`w-28 h-28 rounded-full flex items-center justify-center overflow-hidden border-4 ${
+            className={`w-28 h-28 rounded-full flex items-center justify-center overflow-hidden border-4 ring-4 ring-offset-2 ring-offset-white ${
               userData?.subscription_status?.is_paid_active
                 ? "border-blue-600"
                 : "border-gray-200"
-            }`}
+            } ${employmentMeta(userData?.employment_status).ring}`}
           >
             {userData?.profile_picture ? (
               <img
@@ -64,36 +65,29 @@ export default function ProfileSidebar({
         <h2 className="text-xl font-bold text-gray-900">
           {userData?.name || "Guest"}
         </h2>
+        {userData?.headline && (
+          <p className="text-sm font-medium text-gray-700 mt-0.5 leading-snug">
+            {userData.headline}
+          </p>
+        )}
         {userData?.location && (
           <p className="text-sm text-gray-500 flex items-center gap-1 mt-1">
             <FiMapPin size={14} /> {userData.location}
           </p>
         )}
 
-        {/* Employment Status */}
-        {userData?.employment_status &&
-          userData.employment_status !== "unemployed" && (
-            <div className="mt-3">
-              <span
-                className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                  userData.employment_status === "hired"
-                    ? "bg-blue-100 text-blue-800"
-                    : userData.employment_status === "working"
-                    ? "bg-green-100 text-green-800"
-                    : "bg-gray-100 text-gray-800"
-                }`}
-              >
-                {userData.employment_status === "hired" && "Hired"}
-                {userData.employment_status === "working" && "Working"}
-                {userData.employment_status === "onboarding" && "Onboarding"}
-              </span>
-              {userData.current_position && userData.current_company && (
-                <p className="text-xs text-gray-500 mt-1">
-                  {userData.current_position} at {userData.current_company}
-                </p>
-              )}
-            </div>
+        {/* Employment frame — verified Hired/Working vs Open to Work */}
+        <div className="mt-3 w-full">
+          <EmploymentFrame
+            status={userData?.employment_status}
+            company={userData?.current_company}
+          />
+          {userData?.current_position && userData?.current_company && (
+            <p className="text-xs text-gray-500 mt-1">
+              {userData.current_position} at {userData.current_company}
+            </p>
           )}
+        </div>
 
         {/* Links */}
         <div className="mt-4 space-y-2 w-full">

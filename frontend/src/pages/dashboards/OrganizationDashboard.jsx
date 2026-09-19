@@ -73,6 +73,8 @@ export default function OrganizationDashboard() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [search, setSearch] = useState("");
   const [postFilter, setPostFilter] = useState("");
+  // user_id:post_id pairs scheduled since last interviews fetch (optimistic)
+  const [scheduledKeys, setScheduledKeys] = useState(new Set());
   const [selectedApplication, setSelectedApplication] = useState(null);
   const [showScheduleInterview, setShowScheduleInterview] = useState(false);
   const [interviewForm, setInterviewForm] = useState({ title: "", scheduled_at: "", duration_minutes: 60, interview_type: "text" });
@@ -103,6 +105,30 @@ export default function OrganizationDashboard() {
     const pg = result.pagination || {};
     return { list, more: !!pg.has_next, total: pg.total ?? list.length };
   }, [organizationId]);
+
+  const refreshInterviews = useCallback(async () => {
+    try {
+      const ivRes = await fetch(`${getBackendUrl()}/api/interviews`, { credentials: "include", headers: getAuthHeaders() });
+      if (!ivRes.ok) return;
+      const upcoming = asList(await ivRes.json())
+        .map((iv) => ({ ...iv, _at: new Date(iv.scheduled_at_iso || iv.scheduled_at).getTime() }))
+        .filter((iv) => !Number.isNaN(iv._at) && iv._at >= Date.now() - 2 * 60 * 60 * 1000 && iv.status !== "cancelled")
+        .sort((a, b) => a._at - b._at)
+        .slice(0, 5);
+      setInterviews(upcoming);
+    } catch {}
+  }, []);
+
+  // Database is the source of truth (interview creation sets pipeline_stage);
+  // the set below merges fetched interviews with just-scheduled pairs so the
+  // UI reflects the scheduled state instantly without a full reload.
+  const scheduledSet = useMemo(() => {
+    const s = new Set(scheduledKeys);
+    interviews.forEach((iv) => {
+      if (iv.status !== "cancelled" && iv.user_id != null) s.add(`${iv.user_id}:${iv.post_id}`);
+    });
+    return s;
+  }, [interviews, scheduledKeys]);
 
   // Main load: identity first, then stream + rails in parallel
   useEffect(() => {
@@ -206,6 +232,15 @@ export default function OrganizationDashboard() {
       });
       if (!res.ok) throw new Error();
       showToast({ message: "Interview scheduled", type: "success" });
+      // Database already flipped pipeline_stage to interview_scheduled —
+      // mirror it locally (and the scheduled key) so every card updates now.
+      setApplications((prev) => prev.map((a) => (
+        a.user_id === selectedApplication.user_id && a.post_id === selectedApplication.post_id
+          ? { ...a, pipeline_stage: "interview_scheduled" }
+          : a
+      )));
+      setScheduledKeys((prev) => new Set(prev).add(`${selectedApplication.user_id}:${selectedApplication.post_id}`));
+      refreshInterviews();
       setShowScheduleInterview(false);
       setSelectedApplication(null);
     } catch {
@@ -431,6 +466,7 @@ export default function OrganizationDashboard() {
                     key={app.id}
                     application={app}
                     timeLabel={app.applied_at ? `Applied ${timeAgo(app.applied_at)}` : "Recently"}
+                    scheduled={scheduledSet.has(`${app.user_id}:${app.post_id}`)}
                     onStatusChange={handleStatusChange}
                     onSchedule={openSchedule}
                     onViewProfile={handleViewProfile}

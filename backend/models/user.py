@@ -39,6 +39,7 @@ class User(db.Model):
 
     # Employment status fields
     employment_status = db.Column(db.String(20), nullable=True, default="unemployed")  # 'unemployed', 'hired', 'working', 'onboarding'
+    headline = db.Column(db.String(200), nullable=True)  # Professional headline, e.g. 'Web Developer'
     current_position = db.Column(db.String(200), nullable=True)  # Job title
     current_company = db.Column(db.String(200), nullable=True)  # Company name
     current_company_id = db.Column(db.Integer, db.ForeignKey("organizations.id"), nullable=True)  # Company organization ID
@@ -133,6 +134,7 @@ class User(db.Model):
             "location": self.location,
             "website": self.website,
             "linkedin": self.linkedin,
+            "headline": self.headline,
             "subscription_status": self.get_subscription_status(),
             "last_login_at": self.last_login_at.isoformat() if self.last_login_at else None,
             "created_at": self.created_at.isoformat() if self.created_at else None,

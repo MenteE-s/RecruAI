@@ -258,8 +258,8 @@ export default function CandidateAnalysis() {
                   {candidate.name || "Anonymous"}
                 </h1>
                 <p className="text-green-100 text-sm mt-1">
-                  {candidate.current_position || "No current position"}
-                  {candidate.current_company && ` at ${candidate.current_company}`}
+                  {candidate.headline || candidate.current_position || "No current position"}
+                  {!candidate.headline && candidate.current_company && ` at ${candidate.current_company}`}
                 </p>
                 <div className="flex flex-wrap gap-2 mt-3">
                   {candidate.employment_status && (
