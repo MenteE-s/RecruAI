@@ -174,7 +174,7 @@ def update_me():
         log_security_event("request_size_exceeded", user_id=user.id, ip_address=request.remote_addr, details={"error": error_msg})
         return jsonify({"error": error_msg}), 400
 
-    allowed_fields = ['name', 'phone', 'location', 'website', 'linkedin']
+    allowed_fields = ['name', 'phone', 'location', 'website', 'linkedin', 'headline']
 
     for field in allowed_fields:
         if field in data:

@@ -12,6 +12,7 @@ export default function PersonalInfoModal({ isOpen, onClose, data, onSave, savin
           const formData = new FormData(e.target);
           onSave({
             name: formData.get("name"),
+            headline: formData.get("headline"),
             email: formData.get("email"),
             phone: formData.get("phone"),
             location: formData.get("location"),
@@ -24,6 +25,10 @@ export default function PersonalInfoModal({ isOpen, onClose, data, onSave, savin
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
             <input type="text" name="name" defaultValue={data?.name || ""} className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500" required />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Headline</label>
+            <input type="text" name="headline" defaultValue={data?.headline || ""} placeholder="e.g. Web Developer, Software Engineer" className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Email Address *</label>

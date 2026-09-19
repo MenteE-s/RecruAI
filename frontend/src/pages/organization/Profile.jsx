@@ -563,7 +563,10 @@ export default function OrganizationProfile() {
                       )}
                     </div>
                     <p className="text-[13px] font-semibold text-gray-900 mt-2 leading-tight truncate">{name}</p>
-                    <p className="text-[11px] text-gray-500 truncate mt-px">{member.role || "Member"}</p>
+                    <p className="text-[11px] text-gray-600 truncate mt-px font-medium">{member.user?.headline || member.role || "Member"}</p>
+                    {member.user?.headline && member.role && (
+                      <span className="inline-block mt-1 text-[10px] font-semibold bg-gray-100 text-gray-500 border border-gray-200 px-1.5 py-px rounded-full">{member.role}</span>
+                    )}
                     <button
                       onClick={() => uid && navigate(`/organization/user/${uid}`)}
                       disabled={!uid}

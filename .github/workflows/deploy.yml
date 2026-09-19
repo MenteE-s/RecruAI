@@ -233,11 +233,15 @@ jobs:
           "
 
       - name: Start nginx + certbot renew loop
+        # restart (not just up): the nginx template is bind-mounted but only
+        # RE-RENDERED at container start, so a plain 'up' would keep serving
+        # the previous deploy's rendered config.
         run: |
           ssh ${{ env.EC2_USER }}@${{ env.EC2_HOST }} "
             cd ${{ env.DEPLOY_DIR }} && \
             export API_DOMAIN=${{ env.API_DOMAIN }} && \
-            docker compose -f ${{ env.DOCKER_COMPOSE_FILE }} up -d nginx certbot
+            docker compose -f ${{ env.DOCKER_COMPOSE_FILE }} up -d nginx certbot && \
+            docker compose -f ${{ env.DOCKER_COMPOSE_FILE }} restart nginx
           "
 
       - name: Wait for public HTTPS health (proves TLS + backend + RDS)

@@ -64,6 +64,11 @@ export default function ProfileSidebar({
         <h2 className="text-xl font-bold text-gray-900">
           {userData?.name || "Guest"}
         </h2>
+        {userData?.headline && (
+          <p className="text-sm font-medium text-gray-700 mt-0.5 leading-snug">
+            {userData.headline}
+          </p>
+        )}
         {userData?.location && (
           <p className="text-sm text-gray-500 flex items-center gap-1 mt-1">
             <FiMapPin size={14} /> {userData.location}

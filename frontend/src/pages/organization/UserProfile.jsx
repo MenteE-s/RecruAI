@@ -109,6 +109,9 @@ export default function UserProfile() {
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <h1 className="text-2xl md:text-3xl font-bold">{user.name || user.email}</h1>
+                {user.headline && (
+                  <p className="text-gray-200 mt-1 text-sm md:text-[15px] font-medium">{user.headline}</p>
+                )}
                 <p className="text-gray-300 mt-1 flex flex-wrap items-center gap-2 text-sm">
                   <span className={`px-2 py-1 text-xs font-medium border ${is_team_member ? "bg-green-500/20 text-green-200 border-green-400/20" : "bg-amber-500/20 text-amber-200 border-amber-400/20"}`}>{is_team_member ? "In your team" : "Not in team"}</span>
                   {team_member_info && <><span className="bg-white/10 border border-white/20 px-2 py-1 text-xs">{team_member_info.role}</span><span className="text-gray-400">Joined {formatDate(team_member_info.join_date)}</span></>}

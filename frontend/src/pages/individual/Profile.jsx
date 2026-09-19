@@ -492,7 +492,7 @@ export default function Profile() {
             onEditProfile={() =>
               setEditingItem({
                 type: "personal",
-                data: { name: userData?.name || "", email: userData?.email || "", phone: userData?.phone || "", location: userData?.location || "", website: userData?.website || "", linkedin: userData?.linkedin || "" },
+                data: { name: userData?.name || "", headline: userData?.headline || "", email: userData?.email || "", phone: userData?.phone || "", location: userData?.location || "", website: userData?.website || "", linkedin: userData?.linkedin || "" },
               })
             }
             onJoinPosition={handleJoinPosition}
