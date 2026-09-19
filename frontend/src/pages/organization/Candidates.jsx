@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
-import { getSidebarItems, getBackendUrl, getAuthHeaders } from "../../utils/auth";
+import { getSidebarItems, getBackendUrl, getAuthHeaders, getUploadUrl } from "../../utils/auth";
 import { useToast } from "../../components/ui/ToastContext";
 import { formatDate } from "../../utils/timezone";
 import { FiUsers, FiSearch, FiX, FiEye, FiCalendar, FiBriefcase, FiMapPin, FiArrowRight, FiStar } from "react-icons/fi";
@@ -238,8 +238,18 @@ export default function Candidates() {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
             {starredFiltered.map((u) => (
               <div key={u.id} className="border border-gray-200 rounded-xl p-3 text-center hover:border-amber-200 hover:shadow-sm transition-all bg-white">
-                <div className="w-14 h-14 rounded-xl bg-gray-900 text-white flex items-center justify-center text-lg font-bold mx-auto">
-                  {(u.name || "?").charAt(0).toUpperCase()}
+                <div className="relative w-14 h-14 mx-auto">
+                  <div className="absolute inset-0 rounded-xl bg-gray-900 text-white flex items-center justify-center text-lg font-bold">
+                    {(u.name || "?").charAt(0).toUpperCase()}
+                  </div>
+                  {u.profile_picture && (
+                    <img
+                      src={getUploadUrl(u.profile_picture)}
+                      alt={u.name || "Candidate"}
+                      onError={(e) => { e.currentTarget.style.display = "none"; }}
+                      className="absolute inset-0 w-14 h-14 rounded-xl object-cover border border-gray-200 bg-white"
+                    />
+                  )}
                 </div>
                 <p className="text-[13px] font-semibold text-gray-900 mt-2 leading-tight truncate">{u.name || "Unnamed"}</p>
                 {u.email && <p className="text-[11px] text-gray-500 truncate mt-px">{u.email}</p>}
