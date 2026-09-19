@@ -1,19 +1,22 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
-import { getSidebarItems, getBackendUrl, getAuthHeaders } from "../../utils/auth";
+import { getSidebarItems, getBackendUrl, getAuthHeaders, getUploadUrl } from "../../utils/auth";
 import { useToast } from "../../components/ui/ToastContext";
 import { formatDate } from "../../utils/timezone";
-import { FiUsers, FiSearch, FiX, FiEye, FiCalendar, FiBriefcase, FiMapPin, FiArrowRight } from "react-icons/fi";
+import { FiUsers, FiSearch, FiX, FiEye, FiCalendar, FiBriefcase, FiMapPin, FiArrowRight, FiStar } from "react-icons/fi";
 
 export default function Candidates() {
   const navigate = useNavigate();
+  const [params, setParams] = useSearchParams();
+  const tab = params.get("tab") === "starred" ? "starred" : "all";
   const role = typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
   const plan = typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
   const sidebarItems = getSidebarItems(role, plan);
   const { showToast } = useToast();
   const [applications, setApplications] = useState([]);
   const [organizationId, setOrganizationId] = useState(null);
+  const [currentUserId, setCurrentUserId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedApplication, setSelectedApplication] = useState(null);
   const [showScheduleInterview, setShowScheduleInterview] = useState(false);
@@ -21,16 +24,24 @@ export default function Candidates() {
   const [candidateProfile, setCandidateProfile] = useState(null);
   const [pagination, setPagination] = useState({ page: 1, per_page: 20, total: 0, has_more: false });
   const [search, setSearch] = useState("");
+  const [starredUsers, setStarredUsers] = useState([]);
+  const [starredLoading, setStarredLoading] = useState(false);
   const [interviewForm, setInterviewForm] = useState({ title: "", description: "", scheduled_at: "", duration_minutes: 60, interview_type: "text", interviewers: "" });
 
+  const setTab = (t) => setParams(t === "starred" ? { tab: "starred" } : {});
+
   useEffect(() => {
-    const getOrgId = async () => {
+    const getIds = async () => {
       try {
         const res = await fetch(`${getBackendUrl()}/api/auth/me`, { credentials: "include", headers: getAuthHeaders() });
-        if (res.ok) setOrganizationId((await res.json()).user?.organization_id || null);
+        if (res.ok) {
+          const u = (await res.json()).user;
+          setOrganizationId(u?.organization_id || null);
+          setCurrentUserId(u?.id || null);
+        }
       } catch {}
     };
-    getOrgId();
+    getIds();
   }, []);
 
   const fetchApplications = useCallback(async (reset = false) => {
@@ -53,6 +64,39 @@ export default function Candidates() {
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { if (organizationId) fetchApplications(true); }, [organizationId]);
+
+  const fetchStarred = useCallback(async () => {
+    if (!currentUserId) return;
+    setStarredLoading(true);
+    try {
+      const res = await fetch(`${getBackendUrl()}/api/users/${currentUserId}/favorites?per_page=100`, { credentials: "include", headers: getAuthHeaders() });
+      if (res.ok) {
+        const data = await res.json();
+        setStarredUsers(Array.isArray(data) ? data : data.data || []);
+      }
+    } catch (err) {
+      showToast("Error fetching starred candidates", "error");
+    } finally {
+      setStarredLoading(false);
+    }
+  }, [currentUserId, showToast]);
+
+  useEffect(() => { if (tab === "starred" && currentUserId) fetchStarred(); }, [tab, currentUserId, fetchStarred]);
+
+  const handleUnstar = useCallback(async (targetUserId) => {
+    if (!currentUserId) return;
+    setStarredUsers((prev) => prev.filter((u) => u.id !== targetUserId));
+    try {
+      const res = await fetch(`${getBackendUrl()}/api/users/${currentUserId}/toggle-favorite/${targetUserId}`, { method: "POST", credentials: "include", headers: getAuthHeaders() });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      if (data.favorited) fetchStarred();
+      else showToast({ message: "Removed from starred", type: "success" });
+    } catch {
+      fetchStarred();
+      showToast({ message: "Failed to update starred", type: "error" });
+    }
+  }, [currentUserId, fetchStarred, showToast]);
 
   const updateApplicationStatus = useCallback(async (appId, status) => {
     try {
@@ -101,7 +145,13 @@ export default function Candidates() {
 
   const filtered = applications.filter((app) => !search || app.user?.name?.toLowerCase().includes(search.toLowerCase()) || app.post?.title?.toLowerCase().includes(search.toLowerCase()));
 
-  if (loading && applications.length === 0) {
+  const starredFiltered = starredUsers.filter((u) => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q);
+  });
+
+  if (tab === "all" && loading && applications.length === 0) {
     return (
       <DashboardLayout sidebarItems={sidebarItems}>
         <div className="space-y-4">
@@ -151,7 +201,76 @@ export default function Candidates() {
         </div>
       </div>
 
-      {filtered.length === 0 ? (
+      {/* Internal tabs — same pattern as Interviews/Jobs */}
+      <div className="flex gap-1.5 bg-white border border-gray-200 rounded-lg p-1 shadow-sm mb-4">
+        {[
+          { id: "all", label: `All (${applications.length})`, icon: FiUsers },
+          { id: "starred", label: `Starred (${starredUsers.length})`, icon: FiStar },
+        ].map((t) => {
+          const Icon = t.icon;
+          const isActive = tab === t.id;
+          return (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={`flex-1 inline-flex items-center justify-center gap-1.5 py-1.5 text-xs font-semibold rounded-md transition-colors ${
+                isActive ? "bg-gray-900 text-white" : "text-gray-500 hover:bg-gray-50"
+              }`}
+            >
+              <Icon className={`w-3.5 h-3.5 ${t.id === "starred" && isActive ? "fill-amber-400 text-amber-400" : t.id === "starred" ? "text-amber-500" : ""}`} /> {t.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {tab === "starred" ? (
+        starredLoading ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {[1, 2, 3, 4].map((i) => <div key={i} className="bg-white border border-gray-200 h-44 animate-pulse" />)}
+          </div>
+        ) : starredFiltered.length === 0 ? (
+          <div className="bg-white border border-gray-200 p-12 text-center">
+            <div className="w-14 h-14 bg-amber-50 border border-amber-100 flex items-center justify-center mx-auto mb-4"><FiStar className="w-7 h-7 text-amber-400" /></div>
+            <h3 className="text-lg font-semibold text-gray-900">{starredUsers.length === 0 ? "No starred candidates yet" : "No matches"}</h3>
+            <p className="text-sm text-gray-500 mt-1 max-w-md mx-auto">{starredUsers.length === 0 ? "Tap the star on any profile to pin top candidates here." : `Nobody starred matches “${search}”.`}</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {starredFiltered.map((u) => (
+              <div key={u.id} className="border border-gray-200 rounded-xl p-3 text-center hover:border-amber-200 hover:shadow-sm transition-all bg-white">
+                <div className="relative w-14 h-14 mx-auto">
+                  <div className="absolute inset-0 rounded-xl bg-gray-900 text-white flex items-center justify-center text-lg font-bold">
+                    {(u.name || "?").charAt(0).toUpperCase()}
+                  </div>
+                  {u.profile_picture && (
+                    <img
+                      src={getUploadUrl(u.profile_picture)}
+                      alt={u.name || "Candidate"}
+                      onError={(e) => { e.currentTarget.style.display = "none"; }}
+                      className="absolute inset-0 w-14 h-14 rounded-xl object-cover border border-gray-200 bg-white"
+                    />
+                  )}
+                </div>
+                <p className="text-[13px] font-semibold text-gray-900 mt-2 leading-tight truncate">{u.name || "Unnamed"}</p>
+                {u.email && <p className="text-[11px] text-gray-500 truncate mt-px">{u.email}</p>}
+                <button
+                  onClick={() => navigate(`/organization/user/${u.id}`)}
+                  className="mt-2 w-full inline-flex items-center justify-center gap-1 px-2.5 py-1.5 bg-white border border-gray-200 text-[11px] font-semibold text-blue-600 hover:bg-blue-50 rounded-md"
+                >
+                  <FiEye className="w-3 h-3" /> Visit profile
+                </button>
+                <button
+                  onClick={() => handleUnstar(u.id)}
+                  title="Remove star"
+                  className="mt-1.5 w-full inline-flex items-center justify-center gap-1 px-2.5 py-1.5 bg-amber-50 text-amber-700 border border-amber-200 text-[11px] font-semibold hover:bg-amber-100 rounded-md"
+                >
+                  <FiStar className="w-3.5 h-3.5 fill-amber-500 text-amber-500" /> Starred
+                </button>
+              </div>
+            ))}
+          </div>
+        )
+      ) : filtered.length === 0 ? (
         <div className="bg-white border border-gray-200 p-12 text-center">
           <div className="w-14 h-14 bg-gray-100 flex items-center justify-center mx-auto mb-4"><FiUsers className="w-7 h-7 text-gray-400" /></div>
           <h3 className="text-lg font-semibold text-gray-900">No applications</h3>
@@ -216,6 +335,7 @@ export default function Candidates() {
             </div>
           )}
         </>
+      )}
       )}
 
       {showScheduleInterview && selectedApplication && (

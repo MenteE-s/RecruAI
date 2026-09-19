@@ -16,6 +16,8 @@ import {
   FiTrendingUp,
   FiUsers,
   FiVideo,
+  FiBarChart2,
+  FiCpu,
 } from "react-icons/fi";
 
 export default function Header({ sidebarItems = [] }) {
@@ -47,12 +49,23 @@ export default function Header({ sidebarItems = [] }) {
     return () => { cancelled = true; };
   }, [location.pathname]);
 
-  const navItems = [
-    { name: "Home", link: "/dashboard", icon: FiHome },
-    { name: "My Network", link: "/network", icon: FiUsers },
-    { name: "Interviews", link: "/interviews", icon: FiVideo },
-    { name: "Notifications", link: "/notifications", icon: FiBell, badge: unreadCount > 0 ? unreadCount : null },
-  ];
+  const role = typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
+  const isOrg = role === "organization";
+
+  // Role-aware nav: seekers browse jobs/people, orgs work posts/candidates
+  const navItems = isOrg
+    ? [
+        { name: "Home", link: "/dashboard", icon: FiHome },
+        { name: "Jobs", link: "/organization/jobs", icon: FiBriefcase },
+        { name: "Candidates", link: "/organization/candidates", icon: FiUsers },
+        { name: "Notifications", link: "/notifications", icon: FiBell, badge: unreadCount > 0 ? unreadCount : null },
+      ]
+    : [
+        { name: "Home", link: "/dashboard", icon: FiHome },
+        { name: "My Network", link: "/network", icon: FiUsers },
+        { name: "Interviews", link: "/interviews", icon: FiVideo },
+        { name: "Notifications", link: "/notifications", icon: FiBell, badge: unreadCount > 0 ? unreadCount : null },
+      ];
 
   const isActive = (link) => {
     return location.pathname === link || location.pathname.startsWith(link + "/");
@@ -109,7 +122,7 @@ export default function Header({ sidebarItems = [] }) {
             <FiSearch className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 w-3.5 h-3.5" />
             <input
               type="text"
-              placeholder="Search jobs, people..."
+              placeholder={isOrg ? "Search candidates, jobs..." : "Search jobs, people..."}
               readOnly
               className="w-full h-7 pl-8 pr-3 bg-[#f5f5f5] border border-transparent rounded-md text-xs text-gray-800 placeholder-gray-500 focus:outline-none focus:bg-white focus:border-blue-400 focus:ring-1 focus:ring-blue-100 transition-all cursor-default select-none"
             />
@@ -176,6 +189,29 @@ export default function Header({ sidebarItems = [] }) {
           {dropdownOpen && (
             <div className="absolute right-0 top-full mt-1.5 w-48 bg-white border border-gray-200 rounded-lg shadow-xl shadow-gray-200/50 overflow-hidden z-50 animate-in slide-in-from-top-1 duration-150">
               <div className="py-1">
+                {isOrg ? (
+                  <>
+                    <button onClick={() => { navigate("/organization/profile"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
+                      <FiUser className="w-3.5 h-3.5 text-gray-400" /> Organization Profile
+                    </button>
+                    <button onClick={() => { navigate("/organization/team"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
+                      <FiUsers className="w-3.5 h-3.5 text-gray-400" /> Team Members
+                    </button>
+                    <button onClick={() => { navigate("/organization/hire"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
+                      <FiSearch className="w-3.5 h-3.5 text-gray-400" /> Hire People
+                    </button>
+                    <button onClick={() => { navigate("/organization/pipeline"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
+                      <FiTrendingUp className="w-3.5 h-3.5 text-gray-400" /> Pipeline
+                    </button>
+                    <button onClick={() => { navigate("/organization/analytics"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
+                      <FiBarChart2 className="w-3.5 h-3.5 text-gray-400" /> Analytics
+                    </button>
+                    <button onClick={() => { navigate("/organization/ai-agents"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
+                      <FiCpu className="w-3.5 h-3.5 text-gray-400" /> AI Agents
+                    </button>
+                  </>
+                ) : (
+                  <>
                 <button onClick={() => { navigate("/profile"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
                   <FiUser className="w-3.5 h-3.5 text-gray-400" /> Profile
                 </button>
@@ -197,6 +233,8 @@ export default function Header({ sidebarItems = [] }) {
                 <button onClick={() => { navigate("/resume/builder"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
                   <FiFileText className="w-3.5 h-3.5 text-gray-400" /> Resume Builder
                 </button>
+                  </>
+                )}
                 <div className="border-t border-gray-100 my-1" />
                 <button onClick={() => { navigate("/settings"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-50 transition-colors">
                   <FiSettings className="w-3.5 h-3.5" /> Settings

@@ -40,5 +40,6 @@ class TeamMember(db.Model):
                 "id": self.user.id if self.user else None,
                 "name": self.user.name if self.user else None,
                 "email": self.user.email if self.user else None,
+                "profile_picture": self.user.profile_picture if self.user else None,
             } if self.user else None,
         }

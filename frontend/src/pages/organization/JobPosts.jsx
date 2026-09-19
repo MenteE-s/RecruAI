@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import { getSidebarItems, verifyTokenWithServer, getBackendUrl, getAuthHeaders } from "../../utils/auth";
 import { useToast } from "../../components/ui/ToastContext";
+import { COUNTRIES, CURRENCIES, formatSalaryRange, splitLocation, joinLocation } from "../../utils/jobMeta";
 import {
   FiBriefcase,
   FiMapPin,
@@ -29,7 +30,12 @@ export default function JobPosts() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [postToDelete, setPostToDelete] = useState(null);
   const [search, setSearch] = useState("");
-  const [formData, setFormData] = useState({ title: "", description: "", location: "", employment_type: "Full-time", category: "", salary_min: "", salary_max: "", salary_currency: "USD", requirements: [], application_deadline: "", status: "active" });
+  const [formData, setFormData] = useState({ title: "", description: "", employment_type: "Full-time", category: "", salary_min: "", salary_max: "", salary_currency: "USD", requirements: [], application_deadline: "", status: "active" });
+  const [locCity, setLocCity] = useState("");
+  const [locCountry, setLocCountry] = useState("");
+  const [locRemote, setLocRemote] = useState(false);
+  const [showPublishConfirm, setShowPublishConfirm] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [organizationId, setOrganizationId] = useState(null);
 
   useEffect(() => {
@@ -59,17 +65,29 @@ export default function JobPosts() {
     } catch (e) { console.error(e); } finally { setLoading(false); }
   };
 
+  // Form submit: edits save immediately, new posts go through a review step
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (editingPost) {
+      await doSave();
+    } else {
+      setShowPublishConfirm(true);
+    }
+  };
+
+  const doSave = async () => {
+    if (saving) return;
+    setSaving(true);
     try {
       const url = editingPost ? `${getBackendUrl()}/api/posts/${editingPost.id}` : `${getBackendUrl()}/api/posts`;
       const method = editingPost ? "PUT" : "POST";
       const orgId = editingPost?.organization_id ?? organizationId;
       if (!orgId) { showToast({ message: "Unable to determine your organization. Please sign in again.", type: "error" }); return; }
-      const payload = { ...formData, organization_id: orgId, requirements: formData.requirements.filter((r) => r.trim()) };
+      const payload = { ...formData, location: joinLocation({ city: locCity, country: locCountry, remote: locRemote }), organization_id: orgId, requirements: formData.requirements.filter((r) => r.trim()) };
       const res = await fetch(url, { method, headers: getAuthHeaders({ "Content-Type": "application/json" }), credentials: "include", body: JSON.stringify(payload) });
-      if (res.ok) { await fetchPosts(organizationId); resetForm(); showToast({ message: editingPost ? "Job post updated!" : "Job post created!", type: "success" }); } else showToast({ message: (await res.json().catch(() => ({})))?.error || "Failed to save", type: "error" });
+      if (res.ok) { await fetchPosts(organizationId); resetForm(); setShowPublishConfirm(false); showToast({ message: editingPost ? "Job post updated!" : "Job post published!", type: "success" }); } else showToast({ message: (await res.json().catch(() => ({})))?.error || "Failed to save", type: "error" });
     } catch { showToast({ message: "Failed to save job post", type: "error" }); }
+    finally { setSaving(false); }
   };
   const handleDelete = async (postId) => { setPostToDelete(postId); setShowDeleteConfirm(true); };
   const confirmDelete = async () => {
@@ -79,12 +97,25 @@ export default function JobPosts() {
       if (res.ok) { await fetchPosts(organizationId); setShowDeleteConfirm(false); setPostToDelete(null); showToast({ message: "Deleted", type: "success" }); } else showToast({ message: "Failed to delete", type: "error" });
     } catch { showToast({ message: "Failed to delete", type: "error" }); }
   };
-  const handleEdit = (post) => {
-    setEditingPost(post);
-    setFormData({ title: post.title || "", description: post.description || "", location: post.location || "", employment_type: post.employment_type || "Full-time", category: post.category || "", salary_min: post.salary_min || "", salary_max: post.salary_max || "", salary_currency: post.salary_currency || "USD", requirements: post.requirements || [], application_deadline: post.application_deadline || "", status: post.status || "active" });
+  const openForm = (post) => {
+    if (post) {
+      setEditingPost(post);
+      const loc = splitLocation(post.location || "");
+      setLocCity(loc.city);
+      setLocCountry(loc.country);
+      setLocRemote(loc.remote);
+      setFormData({ title: post.title || "", description: post.description || "", employment_type: post.employment_type || "Full-time", category: post.category || "", salary_min: post.salary_min || "", salary_max: post.salary_max || "", salary_currency: post.salary_currency || "USD", requirements: post.requirements || [], application_deadline: post.application_deadline || "", status: post.status || "active" });
+    } else {
+      setEditingPost(null);
+      setLocCity("");
+      setLocCountry("");
+      setLocRemote(false);
+      setFormData({ title: "", description: "", employment_type: "Full-time", category: "", salary_min: "", salary_max: "", salary_currency: "USD", requirements: [], application_deadline: "", status: "active" });
+    }
     setShowCreateForm(true);
   };
-  const resetForm = () => { setFormData({ title: "", description: "", location: "", employment_type: "Full-time", category: "", salary_min: "", salary_max: "", salary_currency: "USD", requirements: [], application_deadline: "", status: "active" }); setEditingPost(null); setShowCreateForm(false); };
+  const handleEdit = (post) => openForm(post);
+  const resetForm = () => { setFormData({ title: "", description: "", employment_type: "Full-time", category: "", salary_min: "", salary_max: "", salary_currency: "USD", requirements: [], application_deadline: "", status: "active" }); setLocCity(""); setLocCountry(""); setLocRemote(false); setEditingPost(null); setShowCreateForm(false); setShowPublishConfirm(false); };
   const addRequirement = () => setFormData((p) => ({ ...p, requirements: [...p.requirements, ""] }));
   const updateRequirement = (i, v) => setFormData((p) => ({ ...p, requirements: p.requirements.map((r, idx) => (idx === i ? v : r)) }));
   const removeRequirement = (i) => setFormData((p) => ({ ...p, requirements: p.requirements.filter((_, idx) => idx !== i) }));
@@ -138,7 +169,7 @@ export default function JobPosts() {
                   <p className="text-xs text-gray-300 mt-1">Other</p>
                 </div>
               </div>
-              <button onClick={() => setShowCreateForm(!showCreateForm)} className="w-full inline-flex items-center justify-center gap-2 bg-white text-gray-900 px-5 py-3 text-sm font-medium hover:bg-gray-100 transition-colors">
+              <button onClick={() => (showCreateForm ? resetForm() : openForm(null))} className="w-full inline-flex items-center justify-center gap-2 bg-white text-gray-900 px-5 py-3 text-sm font-medium hover:bg-gray-100 transition-colors">
                 <FiPlus className="w-4 h-4" /> {showCreateForm ? "Cancel" : "New job post"}
               </button>
             </div>
@@ -181,10 +212,18 @@ export default function JobPosts() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1.5">Location</label>
-                <div className="relative">
+                <label className="flex items-center gap-2 text-sm text-gray-700 mb-2 cursor-pointer select-none">
+                  <input type="checkbox" checked={locRemote} onChange={(e) => setLocRemote(e.target.checked)} className="w-4 h-4 accent-blue-600" />
+                  Remote position
+                </label>
+                <div className="relative mb-2">
                   <FiMapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <input type="text" value={formData.location} onChange={(e) => setFormData((p) => ({ ...p, location: e.target.value }))} placeholder="Remote or City, Country" className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white" />
+                  <input type="text" value={locCity} disabled={locRemote} onChange={(e) => setLocCity(e.target.value)} placeholder="City (optional)" className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white disabled:opacity-50" />
                 </div>
+                <select value={locCountry} disabled={locRemote} onChange={(e) => setLocCountry(e.target.value)} className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white disabled:opacity-50">
+                  <option value="">Select country…</option>
+                  {COUNTRIES.map((c) => <option key={c.code} value={c.name}>{c.name}</option>)}
+                </select>
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1.5">Employment type</label>
@@ -222,10 +261,7 @@ export default function JobPosts() {
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1.5">Currency</label>
                 <select value={formData.salary_currency} onChange={(e) => setFormData((p) => ({ ...p, salary_currency: e.target.value }))} className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white">
-                  <option>USD</option>
-                  <option>EUR</option>
-                  <option>GBP</option>
-                  <option>CAD</option>
+                  {CURRENCIES.map((c) => <option key={c.code} value={c.code}>{c.code} — {c.name} ({c.symbol})</option>)}
                 </select>
               </div>
             </div>
@@ -249,7 +285,7 @@ export default function JobPosts() {
               </div>
             </div>
             <div className="flex gap-3 pt-2">
-              <button type="submit" className="px-6 py-2.5 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700">{editingPost ? "Update post" : "Create post"}</button>
+              <button type="submit" className="px-6 py-2.5 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700">{editingPost ? "Update post" : "Review & publish"}</button>
               <button type="button" onClick={resetForm} className="px-5 py-2.5 bg-white border border-gray-200 text-sm font-medium hover:bg-gray-50">Cancel</button>
             </div>
           </form>
@@ -281,7 +317,7 @@ export default function JobPosts() {
                       {post.location && <span className="inline-flex items-center gap-1 text-xs bg-gray-50 text-gray-700 border border-gray-200 px-2 py-1"><FiMapPin className="w-3 h-3" />{post.location}</span>}
                       {post.employment_type && <span className="inline-flex items-center gap-1 text-xs bg-gray-50 text-gray-700 border border-gray-200 px-2 py-1"><FiBriefcase className="w-3 h-3" />{post.employment_type}</span>}
                       {post.category && <span className="inline-flex items-center gap-1 text-xs bg-blue-50 text-blue-700 border border-blue-200 px-2 py-1"><FiTag className="w-3 h-3" />{post.category}</span>}
-                      {post.salary_min && post.salary_max && <span className="inline-flex items-center gap-1 text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-1"><FiDollarSign className="w-3 h-3" />${post.salary_min} - ${post.salary_max} {post.salary_currency}</span>}
+                      {(() => { const range = formatSalaryRange(post.salary_min, post.salary_max, post.salary_currency); return range && <span className="inline-flex items-center gap-1 text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-1"><FiDollarSign className="w-3 h-3" />{range}</span>; })()}
                       {post.application_deadline && <span className="inline-flex items-center gap-1 text-xs bg-gray-50 text-gray-600 border border-gray-200 px-2 py-1"><FiCalendar className="w-3 h-3" />{new Date(post.application_deadline).toLocaleDateString()}</span>}
                     </div>
                     {post.requirements && post.requirements.length > 0 && <div className="mt-2 flex flex-wrap gap-1.5">{post.requirements.slice(0, 3).map((r, j) => <span key={j} className="text-xs bg-white border border-gray-200 px-2 py-1 text-gray-600">{r}</span>)} {post.requirements.length > 3 && <span className="text-xs text-gray-500">+{post.requirements.length - 3}</span>}</div>}
@@ -312,6 +348,31 @@ export default function JobPosts() {
           </div>
         )}
       </div>
+
+      {showPublishConfirm && !editingPost && (
+        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white max-w-md w-full border border-gray-200 rounded-lg overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-100">
+              <h3 className="text-sm font-semibold text-gray-900">Publish this job post?</h3>
+              <p className="text-xs text-gray-500 mt-1">Review the details — candidates will see this immediately.</p>
+            </div>
+            <dl className="px-6 py-4 space-y-2.5 text-sm max-h-[50vh] overflow-y-auto">
+              <div className="flex gap-2"><dt className="w-24 shrink-0 text-xs text-gray-500 uppercase tracking-wider pt-0.5">Title</dt><dd className="font-semibold text-gray-900">{formData.title || "—"}</dd></div>
+              {formData.category && <div className="flex gap-2"><dt className="w-24 shrink-0 text-xs text-gray-500 uppercase tracking-wider pt-0.5">Category</dt><dd className="text-gray-700">{formData.category}</dd></div>}
+              <div className="flex gap-2"><dt className="w-24 shrink-0 text-xs text-gray-500 uppercase tracking-wider pt-0.5">Location</dt><dd className="text-gray-700">{joinLocation({ city: locCity, country: locCountry, remote: locRemote }) || "—"}</dd></div>
+              <div className="flex gap-2"><dt className="w-24 shrink-0 text-xs text-gray-500 uppercase tracking-wider pt-0.5">Type</dt><dd className="text-gray-700">{formData.employment_type}</dd></div>
+              {formatSalaryRange(formData.salary_min, formData.salary_max, formData.salary_currency) && <div className="flex gap-2"><dt className="w-24 shrink-0 text-xs text-gray-500 uppercase tracking-wider pt-0.5">Salary</dt><dd className="text-gray-700">{formatSalaryRange(formData.salary_min, formData.salary_max, formData.salary_currency)}</dd></div>}
+              {formData.application_deadline && <div className="flex gap-2"><dt className="w-24 shrink-0 text-xs text-gray-500 uppercase tracking-wider pt-0.5">Deadline</dt><dd className="text-gray-700">{new Date(formData.application_deadline).toLocaleDateString()}</dd></div>}
+              <div className="flex gap-2"><dt className="w-24 shrink-0 text-xs text-gray-500 uppercase tracking-wider pt-0.5">Status</dt><dd className="text-gray-700 capitalize">{formData.status}</dd></div>
+              {formData.requirements.filter((r) => r.trim()).length > 0 && <div className="flex gap-2"><dt className="w-24 shrink-0 text-xs text-gray-500 uppercase tracking-wider pt-0.5">Requires</dt><dd className="text-gray-700">{formData.requirements.filter((r) => r.trim()).length} requirement(s)</dd></div>}
+            </dl>
+            <div className="px-6 py-4 border-t border-gray-100 flex gap-2">
+              <button onClick={doSave} disabled={saving} className="flex-1 bg-blue-600 text-white py-2.5 text-sm font-medium hover:bg-blue-700 disabled:opacity-50">{saving ? "Publishing…" : "Publish post"}</button>
+              <button onClick={() => setShowPublishConfirm(false)} disabled={saving} className="px-5 py-2.5 bg-white border border-gray-200 text-sm font-medium hover:bg-gray-50 disabled:opacity-50">Back to edit</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">

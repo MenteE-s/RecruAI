@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import FollowButton from "../../components/ui/FollowButton";
 import {
@@ -26,6 +26,7 @@ import {
   FiDollarSign,
   FiArrowRight,
   FiTag,
+  FiStar,
 } from "react-icons/fi";
 
 const Modal = ({ isOpen, onClose, children }) => {
@@ -90,11 +91,17 @@ const SocialMediaModal = ({ isOpen, onClose, socialLinks, onSave, saving }) => {
 
 export default function OrganizationProfile() {
   const { orgId } = useParams();
+  const navigate = useNavigate();
   const role = typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
   const plan = typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
   const sidebarItems = getSidebarItems(role, plan);
   const [posts, setPosts] = useState([]);
   const [postsLoading, setPostsLoading] = useState(false);
+  const [teamMembers, setTeamMembers] = useState([]);
+  const [teamLoading, setTeamLoading] = useState(false);
+  const [starred, setStarred] = useState(new Set());
+  const [currentUserId, setCurrentUserId] = useState(null);
+  const [targetOrgId, setTargetOrgId] = useState(null);
   const [profileData, setProfileData] = useState({ name: "", description: "", website: "", company_size: "", industry: "", mission: "", vision: "", social_media_links: [], profile_image: "", banner_image: "", subscription_status: null });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -110,10 +117,12 @@ export default function OrganizationProfile() {
         if (!userRes.ok) throw new Error("Failed to get user");
         const userData = await userRes.json();
         const currentUserOrgId = userData.user.organization_id;
-        const targetOrgId = orgId || currentUserOrgId;
-        if (!targetOrgId) { setError("No organization found for this user"); return; }
+        const targetId = orgId || currentUserOrgId;
+        if (!targetId) { setError("No organization found for this user"); return; }
+        setTargetOrgId(targetId);
+        setCurrentUserId(userData.user.id || null);
         setCanEdit(!orgId || parseInt(orgId) === currentUserOrgId);
-        const orgRes = await fetch(`${getBackendUrl()}/api/organizations/${targetOrgId}`, { credentials: "include", headers: getAuthHeaders() });
+        const orgRes = await fetch(`${getBackendUrl()}/api/organizations/${targetId}`, { credentials: "include", headers: getAuthHeaders() });
         if (!orgRes.ok) throw new Error("Failed to load organization profile");
         const orgData = await orgRes.json();
         setProfileData({ name: orgData.name || "", description: orgData.description || "", website: orgData.website || "", company_size: orgData.company_size || "", industry: orgData.industry || "", mission: orgData.mission || "", vision: orgData.vision || "", social_media_links: orgData.social_media_links || [], profile_image: orgData.profile_image || "", banner_image: orgData.banner_image || "", subscription_status: orgData.subscription_status || null });
@@ -136,6 +145,48 @@ export default function OrganizationProfile() {
     };
     fetchPosts();
   }, [orgId]);
+
+  useEffect(() => {
+    if (!targetOrgId) return;
+    const fetchTeam = async () => {
+      setTeamLoading(true);
+      try {
+        const res = await fetch(`${getBackendUrl()}/api/organizations/${targetOrgId}/team-members`, { credentials: "include", headers: getAuthHeaders() });
+        if (res.ok) {
+          const members = await res.json();
+          setTeamMembers(Array.isArray(members) ? members : []);
+          // Pre-check starred state so stars render correctly on first paint
+          if (currentUserId && Array.isArray(members) && members.length > 0) {
+            const checks = await Promise.all(members.map((m) => {
+              const uid = m.user?.id;
+              if (!uid) return null;
+              return fetch(`${getBackendUrl()}/api/users/${currentUserId}/is-favorite/${uid}`, { credentials: "include", headers: getAuthHeaders() })
+                .then((r) => (r.ok ? r.json() : null))
+                .then((d) => (d && d.favorited ? uid : null))
+                .catch(() => null);
+            }));
+            setStarred(new Set(checks.filter(Boolean)));
+          }
+        }
+      } catch (e) { console.error("Failed to load team:", e); }
+      finally { setTeamLoading(false); }
+    };
+    fetchTeam();
+  }, [targetOrgId, currentUserId]);
+
+  const toggleStar = async (targetUserId) => {
+    if (!currentUserId || !targetUserId) return;
+    const wasStarred = starred.has(targetUserId);
+    setStarred((prev) => { const n = new Set(prev); if (wasStarred) n.delete(targetUserId); else n.add(targetUserId); return n; });
+    try {
+      const res = await fetch(`${getBackendUrl()}/api/users/${currentUserId}/toggle-favorite/${targetUserId}`, { method: "POST", credentials: "include", headers: getAuthHeaders() });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      setStarred((prev) => { const n = new Set(prev); if (data.favorited) n.add(targetUserId); else n.delete(targetUserId); return n; });
+    } catch {
+      setStarred((prev) => { const n = new Set(prev); if (wasStarred) n.add(targetUserId); else n.delete(targetUserId); return n; });
+    }
+  };
 
   const saveBasicInfo = async (data) => {
     if (!canEdit) return;
@@ -463,6 +514,76 @@ export default function OrganizationProfile() {
               })
             )}
           </div>
+        </div>
+
+        {/* People who work here */}
+        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm mt-6">
+          <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-gray-50 to-white">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-blue-100 text-blue-600 flex items-center justify-center rounded-lg shadow-sm">
+                <FiUsers className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-gray-900 leading-tight">People who work here</h3>
+                <p className="text-xs text-gray-500 mt-0.5">Team members at this organization</p>
+              </div>
+            </div>
+            <span className="text-xs font-semibold bg-blue-600 text-white px-3 py-1 rounded-full shadow-sm">{teamMembers.length}</span>
+          </div>
+          {teamLoading ? (
+            <div className="flex justify-center items-center py-10"><div className="animate-spin h-8 w-8 border-3 border-blue-200 border-t-blue-600 rounded-full" /></div>
+          ) : teamMembers.length === 0 ? (
+            <div className="text-center py-12 px-6">
+              <div className="w-16 h-16 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm">
+                <FiUsers className="w-8 h-8 text-blue-300" />
+              </div>
+              <h4 className="text-base font-semibold text-gray-900">No team members yet</h4>
+              <p className="text-sm text-gray-500 mt-1">Nobody is listed as working here right now.</p>
+            </div>
+          ) : (
+            <div className="p-5 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              {teamMembers.map((member) => {
+                const uid = member.user?.id;
+                const name = member.user?.name || "Unnamed";
+                const isStarred = uid != null && starred.has(uid);
+                const photo = member.user?.profile_picture ? getUploadUrl(member.user.profile_picture) : null;
+                return (
+                  <div key={member.id} className="border border-gray-200 rounded-xl p-3 text-center hover:border-blue-200 hover:shadow-sm transition-all bg-white">
+                    <div className="relative w-14 h-14 mx-auto">
+                      <div className="absolute inset-0 rounded-xl bg-gray-900 text-white flex items-center justify-center text-lg font-bold">
+                        {name.charAt(0).toUpperCase()}
+                      </div>
+                      {photo && (
+                        <img
+                          src={photo}
+                          alt={name}
+                          onError={(e) => { e.currentTarget.style.display = "none"; }}
+                          className="absolute inset-0 w-14 h-14 rounded-xl object-cover border border-gray-200 bg-white"
+                        />
+                      )}
+                    </div>
+                    <p className="text-[13px] font-semibold text-gray-900 mt-2 leading-tight truncate">{name}</p>
+                    <p className="text-[11px] text-gray-500 truncate mt-px">{member.role || "Member"}</p>
+                    <button
+                      onClick={() => uid && navigate(`/organization/user/${uid}`)}
+                      disabled={!uid}
+                      className="mt-2 w-full inline-flex items-center justify-center gap-1 px-2.5 py-1.5 bg-white border border-gray-200 text-[11px] font-semibold text-blue-600 hover:bg-blue-50 rounded-md disabled:opacity-50"
+                    >
+                      <FiEye className="w-3 h-3" /> Visit profile
+                    </button>
+                    <button
+                      onClick={() => uid && toggleStar(uid)}
+                      disabled={!uid || !currentUserId}
+                      title={isStarred ? "Unstar" : "Star this person"}
+                      className={`mt-1.5 w-full inline-flex items-center justify-center gap-1 px-2.5 py-1.5 border text-[11px] font-semibold rounded-md transition-colors disabled:opacity-50 ${isStarred ? "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100" : "bg-white text-gray-500 border-gray-200 hover:text-amber-600 hover:border-amber-200 hover:bg-amber-50/50"}`}
+                    >
+                      <FiStar className={`w-3.5 h-3.5 ${isStarred ? "fill-amber-500 text-amber-500" : ""}`} /> {isStarred ? "Starred" : "Star"}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
       {editingSection === "basic" && (
