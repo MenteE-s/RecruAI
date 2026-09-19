@@ -78,8 +78,7 @@ def update_user_timezone(user_id):
             "field": "timezone",
             "value": tz,
             "message": f"User {user.name} updated their timezone to {tz}"
-        },
-        user_id=user.id
+        }
     )
 
     return jsonify({
@@ -192,8 +191,7 @@ def create_user():
             "email": email,
             "name": name,
             "message": f"New user created: {name} ({email})"
-        },
-        user_id=user.id
+        }
     )
 
     return jsonify(user.to_dict()), 201
@@ -292,8 +290,7 @@ def toggle_favorite(user_id, target_user_id):
                 "target_user_id": target_user_id,
                 "favorited": False,
                 "message": "User removed from favorites"
-            },
-            user_id=user_id
+            }
         )
 
         return jsonify({
@@ -321,8 +318,7 @@ def toggle_favorite(user_id, target_user_id):
                 "target_user_id": target_user_id,
                 "favorited": True,
                 "message": f"User {target_user.name} added to favorites"
-            },
-            user_id=user_id
+            }
         )
 
         # Create notification for the favorited user
@@ -428,8 +424,7 @@ def join_position(user_id):
             "name": user.name,
             "onboarded_date": user.onboarded_date.isoformat() if user.onboarded_date else None,
             "message": f"User {user.name} has successfully joined their new position"
-        },
-        user_id=user.id
+        }
     )
 
     return jsonify({
