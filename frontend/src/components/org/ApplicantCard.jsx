@@ -1,5 +1,6 @@
 import React from "react";
-import { FiBriefcase, FiCalendar, FiEye, FiVideo } from "react-icons/fi";
+import { useNavigate } from "react-router-dom";
+import { FiBriefcase, FiCalendar, FiEye, FiVideo, FiCheckCircle } from "react-icons/fi";
 import { getUploadUrl } from "../../utils/auth";
 import EmploymentBadge from "../ui/EmploymentStatus";
 
@@ -19,7 +20,8 @@ function metaFor(status) {
  * Denser sibling of the Candidates page card: identity + post + time,
  * status chip, cover-letter preview, and inline review actions.
  */
-export default function ApplicantCard({ application, timeLabel, onStatusChange, onSchedule, onViewProfile }) {
+export default function ApplicantCard({ application, timeLabel, scheduled, onStatusChange, onSchedule, onViewProfile }) {
+  const navigate = useNavigate();
   const meta = metaFor(application.status);
   const name = application.user?.name || "Anonymous";
   const photo = application.user?.profile_picture ? getUploadUrl(application.user.profile_picture) : null;
@@ -79,12 +81,22 @@ export default function ApplicantCard({ application, timeLabel, onStatusChange, 
             <option value="accepted">Accepted</option>
             <option value="rejected">Rejected</option>
           </select>
-          <button
-            onClick={() => onSchedule(application)}
-            className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-blue-600 text-white text-[11px] font-semibold hover:bg-blue-700 rounded-md"
-          >
-            <FiVideo className="w-3 h-3" /> Schedule
-          </button>
+          {scheduled ? (
+            <button
+              onClick={() => navigate("/organization/interviews")}
+              title="Interview already scheduled — view interviews"
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-green-50 text-green-700 border border-green-200 text-[11px] font-semibold hover:bg-green-100 rounded-md"
+            >
+              <FiCheckCircle className="w-3 h-3" /> Scheduled
+            </button>
+          ) : (
+            <button
+              onClick={() => onSchedule(application)}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-blue-600 text-white text-[11px] font-semibold hover:bg-blue-700 rounded-md"
+            >
+              <FiVideo className="w-3 h-3" /> Schedule
+            </button>
+          )}
           <button
             onClick={() => onViewProfile(application.user_id)}
             className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-white border border-gray-200 text-gray-600 text-[11px] font-medium hover:bg-gray-50 rounded-md"
