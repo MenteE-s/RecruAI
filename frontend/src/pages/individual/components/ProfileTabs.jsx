@@ -44,6 +44,8 @@ const allTabs = [
   { id: "licenses", label: "Licenses", icon: "FiCheck" },
 ];
 
+export const profileSectionTabs = allTabs;
+
 export default function ProfileTabs({ activeTab, onTabChange }) {
   const [expanded, setExpanded] = useState(false);
   const visibleTabs = expanded ? allTabs : allTabs.slice(0, 4);

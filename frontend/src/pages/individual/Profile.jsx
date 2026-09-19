@@ -11,7 +11,7 @@ import {
 
 import ProfileBanner from "./components/ProfileBanner";
 import ProfileSidebar from "./components/ProfileSidebar";
-import ProfileTabs from "./components/ProfileTabs";
+import ProfileTabs, { profileSectionTabs } from "./components/ProfileTabs";
 import AboutSection from "./components/sections/AboutSection";
 import ExperienceSection from "./components/sections/ExperienceSection";
 import EducationSection from "./components/sections/EducationSection";
@@ -432,6 +432,15 @@ export default function Profile() {
     }
   };
 
+  // Sidebar tabs scroll to the stacked section instead of swapping content,
+  // so every section (filled or empty with an Add prompt) is visible on one page.
+  const scrollToSection = (id) => {
+    setActiveTab(id);
+    requestAnimationFrame(() => {
+      document.getElementById(`section-${id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  };
+
   if (loading) {
     return (
       <DashboardLayout NavbarComponent={IndividualNavbar} sidebarItems={sidebarItems}>
@@ -500,12 +509,16 @@ export default function Profile() {
 
           <ProfileTabs
             activeTab={activeTab}
-            onTabChange={setActiveTab}
+            onTabChange={scrollToSection}
           />
         </div>
 
-        <div className="lg:col-span-3 p-4">
-          {tabContent[activeTab]}
+        <div className="lg:col-span-3 p-4 space-y-6">
+          {profileSectionTabs.map((t) => (
+            <div key={t.id} id={`section-${t.id}`} className="scroll-mt-4">
+              {tabContent[t.id]}
+            </div>
+          ))}
         </div>
       </div>
 
