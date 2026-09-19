@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import { getSidebarItems, getBackendUrl, getUploadUrl, getAuthHeaders } from "../../utils/auth";
-import { FiMail, FiBriefcase, FiAward, FiBook, FiCode, FiFolder, FiFileText, FiHeart, FiGlobe, FiStar, FiArrowLeft, FiMapPin, FiCalendar } from "react-icons/fi";
+import { FiMail, FiBriefcase, FiAward, FiBook, FiCode, FiFolder, FiFileText, FiHeart, FiGlobe, FiStar, FiArrowLeft, FiMapPin, FiCalendar, FiEdit2 } from "react-icons/fi";
 import EmploymentBadge, { employmentMeta } from "../../components/ui/EmploymentStatus";
 
 export default function UserProfile() {
@@ -97,8 +97,15 @@ export default function UserProfile() {
 
   return (
     <DashboardLayout sidebarItems={sidebarItems}>
-      {/* Back */}
-      <button onClick={() => navigate(-1)} className="inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900 mb-4"><FiArrowLeft className="w-4 h-4" /> Back</button>
+      {/* Back + own-profile edit */}
+      <div className="flex items-center justify-between mb-4">
+        <button onClick={() => navigate(-1)} className="inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900"><FiArrowLeft className="w-4 h-4" /> Back</button>
+        {currentUser && String(currentUser.id) === String(userId) && (
+          <button onClick={() => navigate("/profile")} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 text-xs font-semibold text-blue-600 hover:bg-blue-50 rounded-md">
+            <FiEdit2 className="w-3.5 h-3.5" /> Edit my profile
+          </button>
+        )}
+      </div>
 
       {/* Hero */}
       <div className="relative overflow-hidden bg-gray-900 text-white mb-6">
