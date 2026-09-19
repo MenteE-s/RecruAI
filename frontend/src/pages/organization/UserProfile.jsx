@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import { getSidebarItems, getBackendUrl, getUploadUrl, getAuthHeaders } from "../../utils/auth";
 import { FiMail, FiBriefcase, FiAward, FiBook, FiCode, FiFolder, FiFileText, FiHeart, FiGlobe, FiStar, FiArrowLeft, FiMapPin, FiCalendar } from "react-icons/fi";
+import EmploymentBadge, { employmentMeta } from "../../components/ui/EmploymentStatus";
 
 export default function UserProfile() {
   const { userId } = useParams();
@@ -104,7 +105,7 @@ export default function UserProfile() {
         {user.banner && <img src={getUploadUrl(user.banner)} alt="banner" className="absolute inset-0 w-full h-full object-cover opacity-20" />}
         <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-transparent to-indigo-600/20" />
         <div className="relative p-6 md:p-8 flex flex-col md:flex-row gap-6">
-          {user.profile_picture ? <img src={getUploadUrl(user.profile_picture)} alt={user.name} className="w-24 h-24 rounded-full object-cover border-4 border-white/20 shrink-0" /> : <div className="w-24 h-24 rounded-full bg-white/20 flex items-center justify-center text-2xl font-bold shrink-0">{(user.name || user.email)[0].toUpperCase()}</div>}
+          {user.profile_picture ? <img src={getUploadUrl(user.profile_picture)} alt={user.name} className={`w-24 h-24 rounded-full object-cover border-4 border-white/20 ring-4 ring-offset-2 ring-offset-transparent shrink-0 ${employmentMeta(user.employment_status).ring}`} /> : <div className={`w-24 h-24 rounded-full bg-white/20 flex items-center justify-center text-2xl font-bold shrink-0 ring-4 ring-offset-2 ring-offset-transparent ${employmentMeta(user.employment_status).ring}`}>{(user.name || user.email)[0].toUpperCase()}</div>}
           <div className="flex-1 min-w-0">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
@@ -113,6 +114,7 @@ export default function UserProfile() {
                   <p className="text-gray-200 mt-1 text-sm md:text-[15px] font-medium">{user.headline}</p>
                 )}
                 <p className="text-gray-300 mt-1 flex flex-wrap items-center gap-2 text-sm">
+                  <EmploymentBadge status={user.employment_status} />
                   <span className={`px-2 py-1 text-xs font-medium border ${is_team_member ? "bg-green-500/20 text-green-200 border-green-400/20" : "bg-amber-500/20 text-amber-200 border-amber-400/20"}`}>{is_team_member ? "In your team" : "Not in team"}</span>
                   {team_member_info && <><span className="bg-white/10 border border-white/20 px-2 py-1 text-xs">{team_member_info.role}</span><span className="text-gray-400">Joined {formatDate(team_member_info.join_date)}</span></>}
                 </p>

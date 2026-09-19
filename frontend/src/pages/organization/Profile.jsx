@@ -28,6 +28,7 @@ import {
   FiTag,
   FiStar,
 } from "react-icons/fi";
+import EmploymentBadge from "../../components/ui/EmploymentStatus";
 
 const Modal = ({ isOpen, onClose, children }) => {
   if (!isOpen) return null;
@@ -564,9 +565,12 @@ export default function OrganizationProfile() {
                     </div>
                     <p className="text-[13px] font-semibold text-gray-900 mt-2 leading-tight truncate">{name}</p>
                     <p className="text-[11px] text-gray-600 truncate mt-px font-medium">{member.user?.headline || member.role || "Member"}</p>
-                    {member.user?.headline && member.role && (
-                      <span className="inline-block mt-1 text-[10px] font-semibold bg-gray-100 text-gray-500 border border-gray-200 px-1.5 py-px rounded-full">{member.role}</span>
-                    )}
+                    <div className="mt-1.5 flex flex-wrap justify-center gap-1">
+                      {member.role && (
+                        <span className="inline-block text-[10px] font-semibold bg-gray-100 text-gray-500 border border-gray-200 px-1.5 py-px rounded-full">{member.role}</span>
+                      )}
+                      <EmploymentBadge status={member.user?.employment_status} className="!px-1.5 !py-px !text-[10px]" />
+                    </div>
                     <button
                       onClick={() => uid && navigate(`/organization/user/${uid}`)}
                       disabled={!uid}

@@ -1,6 +1,7 @@
 import React from "react";
 import { FiBriefcase, FiCalendar, FiEye, FiVideo } from "react-icons/fi";
 import { getUploadUrl } from "../../utils/auth";
+import EmploymentBadge from "../ui/EmploymentStatus";
 
 const STATUS_META = {
   pending: { label: "Pending", color: "bg-amber-50 text-amber-700 border-amber-200" },
@@ -46,6 +47,9 @@ export default function ApplicantCard({ application, timeLabel, onStatusChange, 
                 {application.user?.headline && (
                   <p className="text-[11px] text-gray-600 font-medium truncate mt-px">{application.user.headline}</p>
                 )}
+                <div className="mt-1">
+                  <EmploymentBadge status={application.user?.employment_status} className="!px-1.5 !py-px !text-[10px]" />
+                </div>
                 <p className="text-[11px] text-blue-600 flex items-center gap-1 mt-px truncate">
                   <FiBriefcase className="w-3 h-3 shrink-0" />
                   <span className="truncate">{application.post?.title || "Unknown role"}</span>

@@ -37,6 +37,7 @@ class Application(db.Model):
                 "email": self.user.email if self.user else None,
                 "profile_picture": self.user.profile_picture if self.user else None,
                 "headline": self.user.headline if self.user else None,
+                "employment_status": self.user.employment_status if self.user else None,
             } if self.user else None,
             "post": self.post.to_dict() if self.post else None,
         }

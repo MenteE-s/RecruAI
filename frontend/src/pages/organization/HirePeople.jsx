@@ -4,6 +4,7 @@ import DashboardLayout from "../../components/layout/DashboardLayout";
 import { getSidebarItems, getBackendUrl, getUploadUrl, getAuthHeaders } from "../../utils/auth";
 import { useToast } from "../../components/ui/ToastContext";
 import { FiUsers, FiSearch, FiEye, FiChevronDown, FiChevronUp, FiX, FiLoader, FiBriefcase } from "react-icons/fi";
+import EmploymentBadge, { employmentMeta } from "../../components/ui/EmploymentStatus";
 
 const MATCH_COLORS = {
   excellent: { badge: "bg-green-50 text-green-700 border-green-200", bar: "bg-green-600", dot: "bg-green-500" },
@@ -229,7 +230,7 @@ export default function HirePeople() {
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-3">
                             <div className="shrink-0">
-                              {candidate.profile_picture ? <img src={getUploadUrl(candidate.profile_picture)} alt="" loading="lazy" decoding="async" className="w-9 h-9 rounded-full object-cover border border-gray-200" /> : <div className="w-9 h-9 rounded-full bg-gray-900 text-white flex items-center justify-center text-sm font-bold">{(candidate.name || "?")[0].toUpperCase()}</div>}
+                              {candidate.profile_picture ? <img src={getUploadUrl(candidate.profile_picture)} alt="" loading="lazy" decoding="async" className={`w-9 h-9 rounded-full object-cover border border-gray-200 ring-2 ${employmentMeta(candidate.employment_status).ring}`} /> : <div className={`w-9 h-9 rounded-full bg-gray-900 text-white flex items-center justify-center text-sm font-bold ring-2 ${employmentMeta(candidate.employment_status).ring}`}>{(candidate.name || "?")[0].toUpperCase()}</div>}
                             </div>
                             <div>
                               <p className="text-sm font-medium text-gray-900">{candidate.name || "Anonymous"}</p>
@@ -238,7 +239,7 @@ export default function HirePeople() {
                           </div>
                         </td>
                         <td className="px-4 py-3 hidden md:table-cell">
-                          <span className={`inline-flex px-2 py-1 text-xs font-medium border ${candidate.employment_status === "unemployed" ? "bg-green-50 text-green-700 border-green-200" : candidate.employment_status === "working" || candidate.employment_status === "hired" ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-gray-50 text-gray-600 border-gray-200"}`}>{candidate.employment_status || "unknown"}</span>
+                          <EmploymentBadge status={candidate.employment_status} />
                         </td>
                         <td className="px-4 py-3 hidden lg:table-cell text-xs text-gray-600">
                           {candidate.experience_years ? `${candidate.experience_years.toFixed(1)} yrs` : "—"}
