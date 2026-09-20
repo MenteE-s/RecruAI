@@ -300,6 +300,62 @@ class HuggingFaceEmbeddingProvider(EmbeddingProvider):
             raise
 
 
+class OpenRouterEmbeddingProvider(EmbeddingProvider):
+    """OpenRouter embedding provider (OpenAI-compatible /embeddings API).
+
+    Default model `sentence-transformers/all-minilm-l6-v2` is 384-dim, matching
+    the pgvector columns. The returned dimension is validated fail-fast so a
+    misconfigured model can't silently corrupt the vector store.
+    """
+
+    API_URL = "https://openrouter.ai/api/v1/embeddings"
+
+    def __init__(self, api_key: str, model: str = "sentence-transformers/all-minilm-l6-v2",
+                 dimensions: int = 384, timeout: int = 30):
+        if not api_key:
+            raise ValueError("OpenRouter API key required")
+        self.api_key = api_key
+        self.model = model
+        self._embedding_dimension = dimensions
+        self.timeout = timeout
+
+    @property
+    def embedding_dimension(self) -> int:
+        return self._embedding_dimension
+
+    def embed(self, text: str) -> List[float]:
+        return self.embed_batch([text])[0]
+
+    def embed_batch(self, texts: List[str]) -> List[List[float]]:
+        try:
+            response = requests.post(
+                self.API_URL,
+                json={"model": self.model, "input": texts, "encoding_format": "float"},
+                headers={
+                    "Authorization": f"Bearer {self.api_key}",
+                    "Content-Type": "application/json",
+                    "HTTP-Referer": os.getenv("OPENROUTER_REFERER", "https://recruai.local"),
+                    "X-Title": os.getenv("OPENROUTER_TITLE", "RecruAI"),
+                },
+                timeout=self.timeout,
+            )
+            response.raise_for_status()
+            items = sorted(response.json().get("data", []), key=lambda d: d.get("index", 0))
+            embeddings = [item["embedding"] for item in items]
+            if len(embeddings) != len(texts):
+                raise ValueError(
+                    f"OpenRouter returned {len(embeddings)} embeddings for {len(texts)} inputs")
+            for emb in embeddings:
+                if len(emb) != self._embedding_dimension:
+                    raise ValueError(
+                        f"OpenRouter model {self.model} returned {len(emb)} dims, "
+                        f"expected {self._embedding_dimension} — check EMBEDDING_MODEL/DIMENSIONS")
+            return embeddings
+        except Exception as e:
+            logger.error(f"OpenRouter embedding error: {str(e)}")
+            raise
+
+
 class AIProviderManager:
     """Central manager for AI providers"""
 
@@ -375,6 +431,16 @@ class AIProviderManager:
                 raise ValueError("HUGGINGFACE_SPACES_URL required for HuggingFace embeddings")
             return HuggingFaceEmbeddingProvider(
                 api_url=self.config.HUGGINGFACE_SPACES_URL,
+                dimensions=self.config.EMBEDDING_DIMENSIONS
+            )
+
+        elif provider == "openrouter":
+            if not self.config.OPENROUTER_API_KEY:
+                raise ValueError("OPENROUTER_API_KEY required for OpenRouter embeddings")
+            model = self.config.EMBEDDING_MODEL or "sentence-transformers/all-minilm-l6-v2"
+            return OpenRouterEmbeddingProvider(
+                api_key=self.config.OPENROUTER_API_KEY,
+                model=model,
                 dimensions=self.config.EMBEDDING_DIMENSIONS
             )
 

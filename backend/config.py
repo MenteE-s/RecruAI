@@ -160,6 +160,10 @@ class Config:
         return os.getenv("GROQ_API_KEY")
 
     @property
+    def OPENROUTER_API_KEY(self):
+        return os.getenv("OPENROUTER_API_KEY")
+
+    @property
     def AI_MAX_TOKENS(self):
         return int(os.getenv("AI_MAX_TOKENS", "4000"))
 
