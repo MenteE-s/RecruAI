@@ -34,6 +34,16 @@ def request_email_change():
         data = request.get_json()
     except Exception:
         return jsonify({"error": "Invalid JSON in request body"}), 400
+    # Security: require password re-auth so a brief session hijack cannot
+    # permanently reassign the account.
+    current_password = (data or {}).get("current_password", "") or ""
+    if not current_password:
+        return jsonify({"error": "current_password is required"}), 400
+    if not user.check_password(current_password):
+        db.session.commit()
+        log_security_event("change_email_password_failed", user_id=user.id, ip_address=request.remote_addr)
+        return jsonify({"error": "Invalid password"}), 401
+    db.session.commit()
     new_email = sanitize_input((data or {}).get("new_email", "") or "")
     if not new_email:
         return jsonify({"error": "new_email is required"}), 400
@@ -110,6 +120,12 @@ def verify_email_change():
         pass
     log_security_event("email_changed", user_id=user.id, ip_address=request.remote_addr,
                        email=new_email, details={"old_email": old_email})
+    # Security: notify the old address so the legitimate owner can spot a
+    # hijack. TODO: send via Resend using _send() helper (no generic
+    # send_email exists yet) — currently logged + Kafka event only.
+    log_security_event("email_change_old_notified", user_id=user.id,
+                       ip_address=request.remote_addr, email=old_email,
+                       details={"new_email": new_email})
     try:
         kafka_service.emit_event("email_changed", {
             "user_id": user.id, "old_email": old_email,

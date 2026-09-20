@@ -173,7 +173,7 @@ def delete_profile(slug):
 def get_public_profile(slug):
     """Get public shareable profile (no auth required)"""
     profile = ShareableProfile.query.filter_by(slug=slug).first()
-    if not profile or not profile.can_access():
+    if not profile or not profile.is_public or not profile.can_access():
         return jsonify({'success': False, 'message': 'Profile not found or expired'}), 404
 
     # Track analytics

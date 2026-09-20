@@ -108,7 +108,8 @@ def _shell_html(preheader: str, body_html: str) -> str:
 
 
 def otp_email_html(name: str, code: str, minutes: int = 10, context: str = "register") -> str:
-    first = (name or "there").split(" ")[0]
+    import html as _html
+    first = _html.escape((name or "there").split(" ")[0], quote=True)
     digits = "".join(
         f'<td align="center" style="width:48px;height:56px;background-color:{LIGHT_BG};border:1px solid {BORDER};border-radius:10px;font-size:26px;font-weight:800;color:{CHARCOAL};">{d}</td><td style="width:8px;"></td>'
         for d in code
@@ -152,7 +153,8 @@ def otp_email_text(name: str, code: str, minutes: int = 10, context: str = "regi
 
 
 def welcome_email_html(name: str, role: str = "individual") -> str:
-    first = (name or "there").split(" ")[0]
+    import html as _html
+    first = _html.escape((name or "there").split(" ")[0], quote=True)
     if role == "organization":
         steps = [
             ("Post your first role", "Publish a job in under two minutes — it goes live across Pakistan & the Gulf instantly."),
@@ -234,17 +236,26 @@ def _send(to_email: str, subject: str, html: str, text: str,
 
 
 def maybe_dev_log_otp(to_email: str, code: str) -> None:
-    """Dev-only fallback: print the code to server logs when email is not
-    configured. Never runs in production, so codes can't leak into prod logs.
+    """Dev-only fallback: log OTP issuance WITHOUT the code by default.
+
+    Full codes only appear when explicitly enabled with
+    ALLOW_DEV_OTP_LOG=1 + FLASK_DEBUG=1 (local dev). Never runs in
+    production, so codes can't leak into prod/staging logs.
     """
+    import os
     try:
         from flask import current_app
 
         is_prod = bool(current_app.config.get("IS_PRODUCTION"))
     except RuntimeError:
         is_prod = False
-    if not is_prod and not _config("RESEND_API_KEY"):
-        logger.warning("DEV-ONLY OTP for %s: %s (set RESEND_API_KEY to send real mail)", to_email, code)
+    if is_prod or _config("RESEND_API_KEY"):
+        return
+    if os.getenv("ALLOW_DEV_OTP_LOG") == "1" and os.getenv("FLASK_DEBUG") == "1":
+        masked = f"***{code[-2:]}" if code and len(code) >= 2 else "***"
+        logger.warning("DEV-ONLY OTP issued (masked %s). Full code suppressed; check debugger.", masked)
+    else:
+        logger.info("OTP issued (dev log suppressed; set ALLOW_DEV_OTP_LOG=1 + FLASK_DEBUG=1 locally to debug)")
 
 
 def send_otp_email(to_email: str, name: str, code: str, context: str = "register") -> Tuple[bool, Optional[str]]:

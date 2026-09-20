@@ -26,11 +26,10 @@ def _user_id_from_token(token):
 def handle_connect(auth=None):
     """Handle client connection and join the caller's own room.
 
-    The JWT arrives via the Socket.IO auth handshake (never the URL query
-    string, which would leak it into server/proxy logs). The query-string
-    form is still accepted as a fallback for older clients.
+    The JWT arrives via the Socket.IO auth handshake only — never the URL
+    query string, which would leak it into server/proxy logs.
     """
-    token = (auth or {}).get('token') or request.args.get('token')
+    token = (auth or {}).get('token')
     if not token:
         logger.warning("Connection attempt without token")
         return False  # Reject connection
@@ -71,11 +70,10 @@ def handle_join_org(data):
     except (TypeError, ValueError):
         return
     # Prefer the connect-time identity; fall back to token re-verification
-    # (never trust room claims).
+    # via the data payload (never URL query or room claims).
     uid = _connected_users.get(request.sid)
     if uid is None:
-        token = ((data or {}).get('token')
-                 or request.args.get('token'))
+        token = (data or {}).get('token')
         uid = _user_id_from_token(token)
         if uid is None:
             logger.warning("join_org without verifiable identity")

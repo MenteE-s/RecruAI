@@ -2,7 +2,7 @@
 
 Policy:
 - 6-digit codes from a cryptographic RNG (leading zeros allowed).
-- Only SHA-256 hashes touch the database.
+- Only HMAC-SHA256 hashes (server pepper + user|purpose|meta binding) touch the database.
 - 10-minute expiry, 5 wrong guesses lock the code.
 - 60-second resend cooldown and max 5 codes per hour per user.
 """
@@ -23,13 +23,31 @@ def generate_code(length: int = OTP_LENGTH) -> str:
     return "".join(secrets.choice("0123456789") for _ in range(length))
 
 
-def hash_code(code: str) -> str:
-    return hashlib.sha256(code.encode("utf-8")).hexdigest()
-
-
-def verify_code_hash(code: str, code_hash: str) -> bool:
+def _pepper() -> bytes:
+    """Server-side pepper for OTP hashes (never stored in DB)."""
+    import os
     try:
-        return hmac.compare_digest(hash_code(code.strip()), code_hash or "")
+        from flask import current_app
+        pepper = current_app.config.get("OTP_PEPPER") or current_app.config.get("SECRET_KEY")
+    except RuntimeError:
+        pepper = None
+    pepper = pepper or os.getenv("OTP_PEPPER") or os.getenv("SECRET_KEY") or "dev-otp-pepper-change-me"
+    return str(pepper).encode("utf-8")
+
+
+def hash_code(code: str, context: str = "") -> str:
+    """HMAC-SHA256 of the code bound to its context (user|purpose|meta).
+
+    Replaces plain SHA256 so a DB dump cannot be cracked offline without
+    the server pepper, and codes cannot be replayed across users/purposes.
+    """
+    msg = f"{context}|{(code or '').strip()}".encode("utf-8")
+    return hmac.new(_pepper(), msg, hashlib.sha256).hexdigest()
+
+
+def verify_code_hash(code: str, code_hash: str, context: str = "") -> bool:
+    try:
+        return hmac.compare_digest(hash_code(code.strip(), context), code_hash or "")
     except Exception:
         return False
 
@@ -66,11 +84,12 @@ def issue_otp(user, purpose: str = "verify_email", meta: str = None):
         return None, "rate_limited"
 
     code = generate_code()
+    context = f"{user.id}|{purpose}|{meta or ''}"
     otp = EmailOtp(
         user_id=user.id,
         purpose=purpose,
         meta=meta,
-        code_hash=hash_code(code),
+        code_hash=hash_code(code, context),
         expires_at=now + timedelta(minutes=OTP_TTL_MINUTES),
         attempts=0,
     )
@@ -100,7 +119,8 @@ def check_otp(user, code: str, purpose: str = "verify_email", meta: str = None):
         return False, "expired"
     if otp.is_locked:
         return False, "locked"
-    if not verify_code_hash(code or "", otp.code_hash):
+    context = f"{user.id}|{purpose}|{meta or ''}"
+    if not verify_code_hash(code or "", otp.code_hash, context):
         otp.attempts = (otp.attempts or 0) + 1
         db.session.commit()
         if otp.is_locked:

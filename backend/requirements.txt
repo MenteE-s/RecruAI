@@ -12,16 +12,15 @@ gunicorn>=21.2
 pytz>=2023.3
 APScheduler>=3.10
 requests>=2.28
-APScheduler>=3.10
-pytz
-openai
-groq
+openai>=1.0
+groq>=0.4
 bcrypt>=4.0
 cryptography>=41.0
-gradio_client
+gradio_client>=0.7
 confluent-kafka>=2.3.0
-flask-socketio
-eventlet
+flask-socketio>=5.3
 redis>=5.0
 pgvector>=0.3.0
 resend>=2.0
+# NOTE: eventlet removed — app uses async_mode="threading" (extensions.py:17).
+# TODO: pin exact == versions with pip-compile --generate-hashes for reproducible builds.

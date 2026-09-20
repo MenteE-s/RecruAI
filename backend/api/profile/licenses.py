@@ -89,7 +89,7 @@ def update_license(license_id):
 
     # Update other fields
     for key, value in data.items():
-        if key not in ['issue_date', 'expiry_date'] and key not in ('id', 'user_id') and hasattr(license, key):
+        if key not in ['issue_date', 'expiry_date'] and key not in ('id', 'user_id', 'created_at', 'updated_at', 'organization_id') and hasattr(license, key):
             setattr(license, key, value)
 
     db.session.commit()

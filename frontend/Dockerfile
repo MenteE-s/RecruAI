@@ -1,10 +1,10 @@
-FROM node:18-alpine
+FROM node:22-alpine
 
 WORKDIR /app
 
 # Copy package files and install dependencies
 COPY package.json package-lock.json ./
-RUN npm install
+RUN npm install && chown -R node:node /app
 
 # Set environment variables
 ARG REACT_APP_API_BASE_URL
@@ -15,6 +15,8 @@ ENV CHOKIDAR_USEPOLLING=true
 ENV WDS_SOCKET_PORT=0
 
 EXPOSE 3000
+
+USER node
 
 # Development mode with hot reload
 CMD ["npm", "start"]

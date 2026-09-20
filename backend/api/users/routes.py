@@ -89,8 +89,9 @@ def update_user_timezone(user_id):
 
 
 @api_bp.route("/users/<int:user_id>/current-time", methods=["GET"])
+@jwt_required()
 def get_user_current_time(user_id):
-    """Get current time information in user's timezone."""
+    """Get current time information in user's timezone (auth required to prevent ID enumeration)."""
     user = User.query.get_or_404(user_id)
     tz = user.timezone or "UTC"
     return jsonify(get_current_time_info(tz)), 200
@@ -115,14 +116,24 @@ def list_users():
     )
     if me.role != "organization" and not manages_any:
         return jsonify({"error": "Forbidden: organization account required"}), 403
-    # Get pagination parameters
+    # Get pagination parameters (capped at 100 by Pagination)
     page, per_page = get_pagination_params()
+    # Cap directory pages to prevent mass scraping
+    per_page = min(per_page, 20)
 
-    # Get filters from request
-    filters = get_request_filters(User)
+    # Security: allowlist filters/sorts for hiring directory. Never expose
+    # email/phone/tokens/lockout fields as filters, sorts, or output.
+    ALLOWED_FILTERS = {"name", "headline", "location", "role", "employment_status"}
+    ALLOWED_SORTS = {"name", "created_at", "headline"}
 
-    # Get sorting parameters
+    raw_filters = get_request_filters(User)
+    filters = {k: v for k, v in raw_filters.items() if k in ALLOWED_FILTERS}
+    # Force candidate-only view
+    filters["role"] = "individual"
+
     sort_by, sort_order = get_sorting_params(default_sort='created_at')
+    if sort_by not in ALLOWED_SORTS:
+        sort_by = "created_at"
 
     # Build base query
     query = User.query
@@ -137,8 +148,25 @@ def list_users():
     log_security_event("users_list_accessed", request.remote_addr, None,
                       details={"page": page, "per_page": per_page, "total": pagination_result['pagination']['total']})
 
-    # Return paginated response
-    return jsonify(paginated_response(pagination_result['items'], pagination_result['pagination'])), 200
+    def _directory_serializer(u):
+        return {
+            "id": u.id,
+            "name": u.name,
+            "headline": u.headline,
+            "location": u.location,
+            "role": u.role,
+            "profile_picture": u.profile_picture,
+            "employment_status": u.employment_status,
+            "current_position": u.current_position,
+            "current_company": u.current_company,
+        }
+
+    # Return paginated response with minimal DTO (no email/phone/PII)
+    return jsonify(paginated_response(
+        pagination_result['items'],
+        pagination_result['pagination'],
+        item_serializer=_directory_serializer,
+    )), 200
 
 
 @api_bp.route("/users", methods=["POST"])
@@ -177,7 +205,40 @@ def create_user():
         log_security_event("duplicate_user_creation_attempt", request.remote_addr, None, email=email)
         return jsonify({"error": "email already exists"}), 400
 
-    user = User(email=email, name=name, role=role)
+    # Security: never create passwordless accounts — require a password so
+    # the account cannot be claimed via OTP-only flow, and start unverified.
+    password = (payload or {}).get("password", "") or ""
+    if not password:
+        return jsonify({"error": "password required"}), 400
+    user = User(email=email, name=name, role=role, email_verified=False)
+    try:
+        user.set_password(password)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    # Bind organization-role users to caller's org to avoid orphan org accounts.
+    if role == "organization":
+        try:
+            from flask_jwt_extended import get_jwt_identity as _gj
+            caller = User.query.get(int(_gj()))
+        except (TypeError, ValueError):
+            caller = None
+        requested_org = (payload or {}).get("organization_id")
+        try:
+            requested_org = int(requested_org) if requested_org is not None else None
+        except (TypeError, ValueError):
+            return jsonify({"error": "Invalid organization_id"}), 400
+        org_id = requested_org or (caller.organization_id if caller else None)
+        if not org_id:
+            return jsonify({"error": "organization_id required for organization users"}), 400
+        # Caller must manage the target org (own org account or team member).
+        from ...models import TeamMember as _TM
+        allowed = caller is not None and (
+            (caller.role == "organization" and caller.organization_id == org_id)
+            or _TM.query.filter_by(organization_id=org_id, user_id=caller.id).first() is not None
+        )
+        if not allowed:
+            return jsonify({"error": "Forbidden for this organization"}), 403
+        user.organization_id = org_id
     db.session.add(user)
     db.session.commit()
 

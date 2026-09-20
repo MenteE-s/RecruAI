@@ -48,11 +48,18 @@ def query_rag():
 
         query = data['query']
         user_context = data.get('user_context', {})
-        filters = data.get('filters', {})
+        raw_filters = data.get('filters', {}) or {}
 
         # Add current user to context
         current_user_id = get_jwt_identity()
         user_context['user_id'] = current_user_id
+
+        # Security: never trust client tenant filters — derive server-side.
+        # Only source_type allowlist is accepted from the client.
+        allowed_sources = {"job", "profile", "resume", "post", "document"}
+        filters = {"user_id": current_user_id}
+        if isinstance(raw_filters.get("source_type"), str) and raw_filters["source_type"] in allowed_sources:
+            filters["source_type"] = raw_filters["source_type"]
 
         # Execute RAG query workflow
         result = supervisor.orchestrate_workflow(

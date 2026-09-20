@@ -60,8 +60,8 @@ class ShareableProfile(db.Model):
         return datetime.utcnow() > self.expires_at
 
     def can_access(self):
-        """Check if the profile can be accessed"""
-        return self.is_active and not self.is_expired()
+        """Check if the profile can be accessed publicly."""
+        return bool(self.is_public) and self.is_active and not self.is_expired()
 
     def increment_views(self):
         """Increment view count and update last viewed timestamp"""

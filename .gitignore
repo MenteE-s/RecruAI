@@ -5,6 +5,7 @@ backups
 
 .env
 .env.*
+!*.example
 venv
 .venv
 

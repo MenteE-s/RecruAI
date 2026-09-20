@@ -335,13 +335,26 @@ def list_posts():
     return jsonify({"data": data, "pagination": pagination_result['pagination']}), 200
 
 @api_bp.route("/posts/<int:post_id>", methods=["GET"])
-@cached("job_details", ttl=300, key_func=lambda post_id: f"post_{post_id}")
+@jwt_required(optional=True)
+# Security: inactive/closed drafts visible only to managers, so requester
+# must be part of cache key to avoid serving private cached response.
+@cached("job_details", ttl=300, key_func=lambda post_id: f"{get_jwt_identity() or 'anon'}:post_{post_id}")
 def get_post(post_id):
     post = Post.query.get_or_404(post_id)
+    if post.status != "active":
+        try:
+            uid = get_jwt_identity()
+            caller = User.query.get(int(uid)) if uid is not None else None
+        except (TypeError, ValueError):
+            caller = None
+        if not _can_manage_org(caller, post.organization_id):
+            # 404 (not 403) to avoid confirming existence of drafts.
+            return jsonify({"error": "Not Found"}), 404
     return jsonify(post.to_dict())
 
 
 @api_bp.route("/posts/<int:post_id>/view", methods=["POST"])
+@jwt_required(optional=True)
 def record_post_view(post_id):
     """Record one detail view for a post (called by the job details page).
 
@@ -349,6 +362,15 @@ def record_post_view(post_id):
     swallow view increments.
     """
     post = Post.query.get_or_404(post_id)
+    # Security: do not allow public enumeration/increment of drafts.
+    if post.status != "active":
+        try:
+            uid = get_jwt_identity()
+            caller = User.query.get(int(uid)) if uid is not None else None
+        except (TypeError, ValueError):
+            caller = None
+        if not _can_manage_org(caller, post.organization_id):
+            return jsonify({"error": "Not Found"}), 404
     try:
         Post.query.filter_by(id=post.id).update(
             {Post.view_count: Post.view_count + 1},

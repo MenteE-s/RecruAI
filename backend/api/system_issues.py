@@ -143,8 +143,11 @@ def update_system_issue(issue_id):
             return jsonify({'success': False, 'error': 'Forbidden'}), 403
         data = request.get_json()
 
-        # Update allowed fields
+        # Update allowed fields (allowlisted to prevent garbage states)
         allowed_fields = ['status', 'resolution']
+        allowed_statuses = {'open', 'investigating', 'in_progress', 'resolved', 'closed'}
+        if 'status' in data and data['status'] not in allowed_statuses:
+            return jsonify({'success': False, 'error': 'Invalid status'}), 400
         for field in allowed_fields:
             if field in data:
                 setattr(issue, field, data[field])
@@ -174,22 +177,26 @@ def update_system_issue(issue_id):
 @api_bp.route('/system-issues/stats', methods=['GET'])
 @jwt_required()
 def get_system_issue_stats():
-    """Get statistics about system issues"""
+    """Get statistics about the caller's own system issues (tenant-scoped)."""
     try:
-        total_issues = SystemIssue.query.count()
-        open_issues = SystemIssue.query.filter(SystemIssue.status.in_(['open', 'investigating', 'in_progress'])).count()
-        resolved_issues = SystemIssue.query.filter(SystemIssue.status.in_(['resolved', 'closed'])).count()
+        me_id = _me_id()
+        if not me_id:
+            return jsonify({'success': False, 'error': 'Invalid user identity'}), 400
+        base = SystemIssue.query.filter(SystemIssue.user_id == me_id)
+        total_issues = base.count()
+        open_issues = base.filter(SystemIssue.status.in_(['open', 'investigating', 'in_progress'])).count()
+        resolved_issues = base.filter(SystemIssue.status.in_(['resolved', 'closed'])).count()
 
-        # Get issues by type
+        # Get issues by type (scoped)
         issues_by_type = {}
         for issue_type in ['bug', 'feature_request', 'improvement', 'other']:
-            count = SystemIssue.query.filter(SystemIssue.issue_type == issue_type).count()
+            count = base.filter(SystemIssue.issue_type == issue_type).count()
             issues_by_type[issue_type] = count
 
-        # Get issues by severity
+        # Get issues by severity (scoped)
         issues_by_severity = {}
         for severity in ['low', 'medium', 'high', 'critical']:
-            count = SystemIssue.query.filter(SystemIssue.severity == severity).count()
+            count = base.filter(SystemIssue.severity == severity).count()
             issues_by_severity[severity] = count
 
         return jsonify({

@@ -89,6 +89,57 @@ def login():
     set_access_cookies(resp, access_token)
     return resp
 
+@api_bp.route("/auth/password/change", methods=["POST"])
+@jwt_required()
+def change_password():
+    """Change password for the current user (requires current password).
+
+    Updates password_changed_at so future token-freshness checks can reject
+    pre-change tokens. Revokes the current token + clears auth cache.
+    """
+    try:
+        uid = int(get_jwt_identity())
+    except (TypeError, ValueError):
+        return jsonify({"error": "Invalid user identity"}), 400
+    user = User.query.get(uid)
+    if not user:
+        return jsonify({"error": "user not found"}), 404
+    try:
+        data = request.get_json()
+    except Exception:
+        return jsonify({"error": "Invalid JSON in request body"}), 400
+    current_password = (data or {}).get("current_password", "") or ""
+    new_password = (data or {}).get("new_password", "") or ""
+    if not current_password or not new_password:
+        return jsonify({"error": "current_password and new_password are required"}), 400
+    if not user.check_password(current_password):
+        db.session.commit()
+        log_security_event("password_change_failed", user_id=user.id, ip_address=request.remote_addr)
+        return jsonify({"error": "Invalid current password"}), 401
+    try:
+        user.set_password(new_password)
+    except ValueError as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 400
+    db.session.commit()
+    try:
+        jti = get_jwt().get("jti")
+        exp = current_app.config.get("JWT_ACCESS_TOKEN_EXPIRES")
+        try:
+            ttl = int(exp.total_seconds())
+        except (AttributeError, TypeError, ValueError):
+            ttl = CACHE_TTL.get("jwt_blocklist", 7200)
+        block_jti(jti, max(ttl, 60))
+    except Exception:
+        pass
+    try:
+        invalidate_auth_cache(user.id)
+    except Exception:
+        pass
+    log_security_event("password_changed", user_id=user.id, ip_address=request.remote_addr)
+    kafka_service.emit_event("password_changed", {"user_id": user.id, "ip": request.remote_addr})
+    return jsonify({"message": "Password changed successfully"}), 200
+
 @api_bp.route("/auth/logout", methods=["POST"])
 @jwt_required(optional=True)
 def logout():

@@ -46,9 +46,17 @@ class Config:
         raise ValueError("JWT_SECRET_KEY environment variable is required in production")
 
     # Security: Enhanced JWT settings
-    JWT_TOKEN_LOCATION = ["headers", "cookies"]
+    # Allow override via JWT_TOKEN_LOCATION env (prod deploy uses headers-only).
+    # Default keeps headers+cookies for backward compat with existing frontend.
+    import json as _json
+    _loc_raw = os.getenv("JWT_TOKEN_LOCATION")
+    try:
+        JWT_TOKEN_LOCATION = _json.loads(_loc_raw) if _loc_raw else ["headers", "cookies"]
+    except Exception:
+        JWT_TOKEN_LOCATION = [s.strip() for s in _loc_raw.split(",") if s.strip()] if _loc_raw else ["headers", "cookies"]
     JWT_COOKIE_SECURE = os.getenv("JWT_COOKIE_SECURE", "1" if IS_PRODUCTION else "0") == "1"
     JWT_COOKIE_SAMESITE = os.getenv("JWT_COOKIE_SAMESITE", "None" if IS_PRODUCTION else "Lax")
+    JWT_COOKIE_HTTPONLY = True
     # Enable CSRF protection in production for additional security
     JWT_COOKIE_CSRF_PROTECT = os.getenv("JWT_COOKIE_CSRF_PROTECT", "1" if IS_PRODUCTION else "0") == "1"
 

@@ -46,7 +46,7 @@ def update_hobby_interest(hi_id):
 
     data = request.get_json()
     for key, value in data.items():
-        if key not in ('id', 'user_id') and hasattr(hobby_interest, key):
+        if key not in ('id', 'user_id', 'created_at', 'updated_at', 'organization_id') and hasattr(hobby_interest, key):
             setattr(hobby_interest, key, value)
 
     db.session.commit()
