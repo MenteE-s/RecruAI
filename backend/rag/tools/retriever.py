@@ -280,8 +280,15 @@ class RetrieverTool:
             }
 
     def _apply_filters(self, query, filters: Dict[str, Any]):
-        """Apply metadata filters to the query."""
-        if 'source_type' in filters:
+        """Apply metadata filters to the query.
+
+        Security: only source_type (allowlisted upstream) plus server-injected
+        user_id/organization_id are honored. document_id is intentionally
+        ignored here to prevent cross-tenant doc access by ID guessing —
+        add per-document ACL checks before re-enabling it.
+        """
+        allowed_sources = {"job", "profile", "resume", "post", "document"}
+        if filters.get('source_type') in allowed_sources:
             query = query.filter(EmbeddingStore.source_type == filters['source_type'])
 
         if 'user_id' in filters:
@@ -290,9 +297,7 @@ class RetrieverTool:
         if 'organization_id' in filters:
             query = query.filter(EmbeddingStore.organization_id == filters['organization_id'])
 
-        if 'document_id' in filters:
-            query = query.filter(EmbeddingStore.document_id == filters['document_id'])
-
+        # NOTE: document_id filter disabled (see docstring).
         # Add more filters as needed
         return query
 

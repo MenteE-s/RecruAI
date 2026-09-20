@@ -50,15 +50,24 @@ class KafkaService:
     def publish_event(self, topic: str, event_type: str, data: Dict[str, Any], key: Optional[str] = None):
         """
         Publish an event to a Kafka topic.
-        
+
         Args:
             topic: Kafka topic name
             event_type: Type of event (e.g., 'interview_started')
             data: Event payload
             key: Optional message key for partitioning
         """
+        import re
         if not self.producer:
             logger.warning(f"Kafka Producer not available. Skipping event: {event_type}")
+            return False
+        # Security: bound event shape so user-controlled fields (names,
+        # messages, titles) cannot fan out unbounded payloads.
+        if not isinstance(event_type, str) or not re.fullmatch(r"[A-Za-z0-9_]{1,64}", event_type):
+            logger.warning(f"Refusing Kafka event with invalid event_type: {event_type!r}")
+            return False
+        if not isinstance(data, dict):
+            logger.warning("Refusing Kafka event with non-dict payload")
             return False
 
         try:
@@ -67,11 +76,15 @@ class KafkaService:
                 'data': data,
                 'timestamp': str(logging.Formatter.default_msec_format) # Placeholder for real timing
             }
-            
+            raw = json.dumps(payload, default=str).encode('utf-8')
+            if len(raw) > 8192:
+                logger.warning(f"Refusing oversized Kafka event {event_type} ({len(raw)} bytes)")
+                return False
+
             self.producer.produce(
-                topic, 
-                key=key, 
-                value=json.dumps(payload).encode('utf-8'),
+                topic,
+                key=key,
+                value=raw,
                 callback=self._delivery_report
             )
             

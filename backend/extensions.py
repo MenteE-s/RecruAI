@@ -45,8 +45,10 @@ def init_redis(app):
         # Store in app extensions for cache utilities to access
         app.extensions["redis_client"] = redis_client
 
-        print(f"Redis connected at {redis_url}")
-        logger.info(f"Redis connected at {redis_url}")
+        # Security: never log credentials — strip password if present.
+        _safe_url = redis_url.split("@")[-1] if "@" in redis_url else redis_url
+        print(f"Redis connected at {_safe_url}")
+        logger.info(f"Redis connected at {_safe_url}")
         return redis_client
     except redis.ConnectionError as e:
         logger.warning(f"Redis connection failed: {e}. Caching disabled.")

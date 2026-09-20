@@ -114,8 +114,8 @@ def register():
     except Exception as e:
         db.session.rollback()
         log_security_event("registration_failed", user_id=None, ip_address=request.remote_addr, email=email, details={"error": str(e)})
-        kafka_service.emit_event("registration_failed", {"email": email, "reason": "internal_error", "error": str(e), "ip": request.remote_addr})
-        return jsonify({"error": f"Failed to register user: {str(e)}"}), 500
+        kafka_service.emit_event("registration_failed", {"email": email, "reason": "internal_error", "ip": request.remote_addr})
+        return jsonify({"error": "Failed to register user. Please try again."}), 500
 
     # Email-first flow: no token yet. The account stays unverified until the
     # OTP step succeeds, which is also when the welcome email goes out.

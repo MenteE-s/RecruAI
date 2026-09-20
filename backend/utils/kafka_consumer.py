@@ -92,11 +92,23 @@ class KafkaConsumerService:
 
     def _broadcast_to_socket(self, topic, data):
         """Bridge Kafka events to Socket.IO for real-time frontend updates."""
+        import re
         try:
-            # The event name is usually the event_type field we added in our emit_event calls
+            # The event name is usually the event_type field we added in our emit_event calls.
+            # Security: allowlist event names so a compromised producer cannot
+            # trigger arbitrary frontend handlers.
             event_name = data.get('event_type') or topic
-            user_id = data.get('user_id')
-            org_id = data.get('org_id') or data.get('organization_id')
+            if not isinstance(event_name, str) or not re.fullmatch(r"[A-Za-z0-9_]{1,64}", event_name):
+                logger.warning(f"Dropping Kafka event with invalid event_name: {event_name!r}")
+                return
+            try:
+                user_id = int(data.get('user_id')) if data.get('user_id') is not None else None
+            except (TypeError, ValueError):
+                user_id = None
+            try:
+                org_id = int(data.get('org_id') or data.get('organization_id')) if (data.get('org_id') or data.get('organization_id')) is not None else None
+            except (TypeError, ValueError):
+                org_id = None
 
             # Broadcast to user-specific room if available
             if user_id:

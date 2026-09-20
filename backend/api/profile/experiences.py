@@ -109,7 +109,7 @@ def update_experience(exp_id):
     for key, value in data.items():
         if key in ('start_date', 'end_date') and value in ('', None):
             setattr(experience, key, None)
-        elif key not in ('id', 'user_id') and hasattr(experience, key):
+        elif key not in ('id', 'user_id', 'created_at', 'updated_at', 'organization_id') and hasattr(experience, key):
             setattr(experience, key, value)
 
     # Free-text rename breaks the link (same as LinkedIn clearing the company).
@@ -206,7 +206,7 @@ def update_project(project_id):
 
     data = request.get_json()
     for key, value in data.items():
-        if key not in ('id', 'user_id') and hasattr(project, key):
+        if key not in ('id', 'user_id', 'created_at', 'updated_at', 'organization_id') and hasattr(project, key):
             if key == 'technologies':
                 setattr(project, key, json.dumps(value) if value else None)
             else:

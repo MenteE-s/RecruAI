@@ -54,6 +54,14 @@ def create_app(config_object: object | None = None):
 	app = Flask(__name__)
 	app.config.from_object(config_object or Config)
 
+	# Security: trust X-Forwarded-For/Proto from nginx (single proxy) so
+	# rate-limit keys and audit IPs see the real client, not the Docker gateway.
+	try:
+		from werkzeug.middleware.proxy_fix import ProxyFix
+		app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
+	except Exception:
+		pass
+
 	# Security: Set max content length
 	app.config['MAX_CONTENT_LENGTH'] = app.config.get('MAX_CONTENT_LENGTH', 16 * 1024 * 1024)  # 16MB
 
@@ -98,12 +106,17 @@ def create_app(config_object: object | None = None):
 
 	@jwt.token_in_blocklist_loader
 	def check_if_token_revoked(jwt_header, jwt_payload):
-		# Logged-out tokens are revoked in Redis (fail-open when Redis is down).
+		# Logged-out tokens are revoked in Redis. Fail-closed when Redis is
+		# expected (REDIS_ENABLED) so logout cannot be bypassed by killing Redis;
+		# fail-open only when Redis is intentionally disabled.
 		try:
 			from .utils.cache import is_jti_blocked
 			return is_jti_blocked(jwt_payload.get("jti"))
 		except Exception:
-			return False
+			try:
+				return bool(app.config.get("REDIS_ENABLED", True))
+			except Exception:
+				return True
 
 	@jwt.revoked_token_loader
 	def revoked_token_callback(jwt_header, jwt_payload):
@@ -165,7 +178,8 @@ def create_app(config_object: object | None = None):
 				app=app,
 				key_func=get_remote_address,
 				storage_uri=storage_uri,
-				strategy=app.config.get('RATELIMIT_STRATEGY', "fixed-window")
+				strategy=app.config.get('RATELIMIT_STRATEGY', "fixed-window"),
+				default_limits=["200 per day", "50 per hour"],
 			)
 		except Exception as e:
 			print(f"Warning: Redis rate-limit storage unavailable ({e}); using memory://")
@@ -173,11 +187,14 @@ def create_app(config_object: object | None = None):
 				app=app,
 				key_func=get_remote_address,
 				storage_uri="memory://",
-				strategy=app.config.get('RATELIMIT_STRATEGY', "fixed-window")
+				strategy=app.config.get('RATELIMIT_STRATEGY', "fixed-window"),
+				default_limits=["200 per day", "50 per hour"],
 			)
 	except ImportError:
 		print("Warning: Flask-Limiter not installed. Rate limiting disabled.")
 		limiter = None
+		if app.config.get("IS_PRODUCTION"):
+			raise RuntimeError("Flask-Limiter required in production")
 
 	# Security: Initialize Flask-Talisman for security headers
 	try:
@@ -186,11 +203,17 @@ def create_app(config_object: object | None = None):
 			app,
 			content_security_policy={
 				'default-src': "'self'",
-				'script-src': "'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com",
-				'style-src': "'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net",
+				# No unsafe-eval; no third-party script CDNs. Nonce handles
+				# legit inline scripts; unsafe-inline kept only for style
+				# (React inline styles) where nonces are less practical.
+				'script-src': "'self'",
+				'style-src': "'self' 'unsafe-inline' https://fonts.googleapis.com",
 				'font-src': "'self' https://fonts.gstatic.com",
 				'img-src': "'self' data: https:",
-				'connect-src': "'self' https://api.openai.com https://api.groq.com https://sentence-transformers.com",
+				'connect-src': "'self' https://api.openai.com https://api.groq.com",
+				'object-src': "'none'",
+				'base-uri': "'self'",
+				'frame-ancestors': "'none'",
 			},
 			content_security_policy_nonce_in=['script-src', 'style-src'],
 			force_https=app.config['IS_PRODUCTION'],
@@ -218,8 +241,11 @@ def create_app(config_object: object | None = None):
 	# enable CORS for API routes so frontend dev server can call /api/*
 	try:
 		from flask_cors import CORS  # type: ignore
-		print(f"Setting CORS origins to: {origins_list}", flush=True)
-		CORS(app, origins=origins_list, supports_credentials=True, allow_headers=["Content-Type", "Authorization"], methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"], expose_headers=["Content-Type", "Authorization"])
+		# Security: never allow wildcard with credentials. Fail-closed on misconfig.
+		if "*" in origins_list:
+			raise ValueError("FRONTEND_ORIGIN must not contain '*' when supports_credentials=True")
+		print(f"Setting CORS for {len(origins_list)} origin(s)", flush=True)
+		CORS(app, origins=origins_list, supports_credentials=True, allow_headers=["Content-Type", "Authorization", "X-CSRF-TOKEN"], methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"], expose_headers=["Content-Type", "Authorization"])
 	except Exception as e:
 		print(f"Failed to configure CORS: {e}", flush=True)
 		pass
@@ -231,21 +257,29 @@ def create_app(config_object: object | None = None):
 	# NOTE: the blueprint is named "api", so endpoints are "api.<view>" —
 	# "api_bp.<view>" matches nothing and would silently disable the limit.
 	if limiter:
-		limiter.limit("10 per minute")(app.view_functions.get('api.login', lambda: None))
-		limiter.limit("5 per minute")(app.view_functions.get('api.register', lambda: None))
-		limiter.limit("100 per minute")(app.view_functions.get('api.get_me', lambda: None))
+		def _limit(endpoint, spec):
+			fn = app.view_functions.get(endpoint)
+			if fn is None:
+				print(f"WARNING: rate-limit target missing: {endpoint} — fix endpoint name")
+				return
+			limiter.limit(spec)(fn)
+
+		_limit("api.login", "10 per minute")
+		_limit("api.register", "5 per minute")
+		_limit("api.get_me", "100 per minute")
 		# Unauthenticated public-profile views write an analytics row per hit
-		limiter.limit("60 per minute")(app.view_functions.get('api.get_public_profile', lambda: None))
+		_limit("api.get_public_profile", "60 per minute")
 		# OTP: tight caps stop email bombing and code guessing
-		limiter.limit("5 per minute")(app.view_functions.get('api.request_email_otp', lambda: None))
-		limiter.limit("10 per minute")(app.view_functions.get('api.verify_email_otp', lambda: None))
-		limiter.limit("5 per minute")(app.view_functions.get('api.request_email_change', lambda: None))
-		limiter.limit("10 per minute")(app.view_functions.get('api.verify_email_change', lambda: None))
+		_limit("api.request_email_otp", "5 per minute")
+		_limit("api.verify_email_otp", "10 per minute")
+		_limit("api.request_email_change", "5 per minute")
+		_limit("api.verify_email_change", "10 per minute")
 		# Spam-prone writes + expensive search
-		limiter.limit("30 per minute")(app.view_functions.get('api.create_post', lambda: None))
-		limiter.limit("30 per minute")(app.view_functions.get('api.create_application', lambda: None))
-		limiter.limit("30 per minute")(app.view_functions.get('api.create_system_issue', lambda: None))
-		limiter.limit("60 per minute")(app.view_functions.get('recommendations.search_profiles', lambda: None))
+		_limit("api.create_post", "30 per minute")
+		_limit("api.create_application", "30 per minute")
+		_limit("api.create_system_issue", "30 per minute")
+		# Org creation spawns 10 default AI agents (cost) — tight cap
+		_limit("api.create_organization", "5 per minute")
 
 	# Register practice AI agents blueprint separately to avoid circular imports
 	try:
@@ -268,6 +302,14 @@ def create_app(config_object: object | None = None):
 			app.register_blueprint(recommendations_module.recommendations_bp)
 		except ImportError as e:
 			print(f"Warning: Could not register recommendations blueprint: {e}")
+
+	# Rate limits for late-registered blueprints (must run after registration)
+	if limiter:
+		fn = app.view_functions.get("recommendations.search_profiles")
+		if fn is None:
+			print("WARNING: rate-limit target missing: recommendations.search_profiles — fix endpoint name")
+		else:
+			limiter.limit("60 per minute")(fn)
 
 	# Error handlers for API routes - return JSON instead of HTML.
 	# Messages are generic on purpose: exception text can leak internals.
@@ -303,6 +345,7 @@ def create_app(config_object: object | None = None):
 	# prevent client-side script access to session cookies and allow enabling
 	# Secure in environments that terminate TLS.
 	app.config.setdefault("SESSION_COOKIE_HTTPONLY", True)
+	app.config.setdefault("SESSION_COOKIE_SAMESITE", "Lax")
 	app.config.setdefault(
 		"SESSION_COOKIE_SECURE",
 		os.getenv("SESSION_COOKIE_SECURE", "0") == "1",
@@ -319,15 +362,17 @@ def create_app(config_object: object | None = None):
 	def set_security_headers(response):
 		# Prevent MIME type sniffing
 		response.headers.setdefault("X-Content-Type-Options", "nosniff")
-		# Clickjacking protection
-		response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
+		# Clickjacking protection (unified with Talisman DENY)
+		response.headers["X-Frame-Options"] = "DENY"
 		# Basic referrer policy
 		response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
 		# Feature-Policy / Permissions-Policy can be tightened as needed
 		# response.headers.setdefault("Permissions-Policy", "geolocation=(), microphone=()")
-		# HSTS only when explicitly enabled (set ENABLE_HSTS=1 in production)
-		if os.getenv("ENABLE_HSTS", "0") == "1":
-			response.headers.setdefault("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload")
+		# HSTS on in production by default (behind TLS-terminating nginx);
+		# explicitly opt out with ENABLE_HSTS=0 if ever serving plaintext.
+		if app.config.get("IS_PRODUCTION", False) or os.getenv("ENABLE_HSTS", "0") == "1":
+			if os.getenv("ENABLE_HSTS", "1") != "0":
+				response.headers.setdefault("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload")
 		return response
 
 	@app.route("/")
@@ -351,6 +396,15 @@ def create_app(config_object: object | None = None):
 			"timestamp": __import__("datetime").datetime.utcnow().isoformat(),
 			"database": db_status
 		}), 200 if db_status == "healthy" else 503
+
+	# Health is polled every 30s by Docker — cap abuse but allow monitors.
+	# (Applied here because the route must exist before limiting it.)
+	if limiter:
+		_fn = app.view_functions.get("health_check")
+		if _fn is None:
+			print("WARNING: rate-limit target missing: health_check")
+		else:
+			limiter.limit("60 per minute")(_fn)
 
 	# helpful shell context for `flask shell`
 	try:

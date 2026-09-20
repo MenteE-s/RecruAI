@@ -2,7 +2,7 @@ from flask import request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from .. import api_bp
 from ...extensions import db
-from ...models import User, Experience, Education, Skill, Project, Publication, ProfileSection, Award, Certification, Language, VolunteerExperience, Reference, HobbyInterest, ProfessionalMembership, Patent, CourseTraining, SocialMediaLink, KeyAchievement, Conference, SpeakingEngagement, License, TeamMember
+from ...models import User, Experience, Education, Skill, Project, Publication, ProfileSection, Award, Certification, Language, VolunteerExperience, Reference, HobbyInterest, ProfessionalMembership, Patent, CourseTraining, SocialMediaLink, KeyAchievement, Conference, SpeakingEngagement, License, TeamMember, Application, Post, Interview
 from sqlalchemy.orm import joinedload
 from sqlalchemy import desc
 import os
@@ -66,11 +66,40 @@ def get_user_profile(user_id):
             is_team_member = True  # User viewing their own profile
         else:
             # For organization users accessing other users' profiles (for hiring purposes)
+            # Security: require an Application or Interview relationship with one
+            # of the caller's managed orgs (same rule as GET /users/<id>/full-profile).
+            # Without this, any org account could harvest any candidate's PII.
             if current_user.organization_id and current_user.role == 'organization':
                 # Organization users can view any individual user's profile for hiring
                 target_user = User.query.options(joinedload(User.organization)).filter_by(id=user_id, role='individual').first()
                 if not target_user:
                     return jsonify({'error': 'User not found'}), 404
+
+                managed_ids = set()
+                if current_user.organization_id:
+                    managed_ids.add(current_user.organization_id)
+                for tm in TeamMember.query.filter_by(user_id=current_user_id_int).all():
+                    managed_ids.add(tm.organization_id)
+
+                related = False
+                if managed_ids:
+                    related = (
+                        Application.query.join(Post, Application.post_id == Post.id)
+                        .filter(
+                            Application.user_id == user_id,
+                            Post.organization_id.in_(managed_ids),
+                        )
+                        .first()
+                        is not None
+                    ) or (
+                        Interview.query.filter(
+                            Interview.user_id == user_id,
+                            Interview.organization_id.in_(managed_ids),
+                        ).first()
+                        is not None
+                    )
+                if not related:
+                    return jsonify({'error': 'Forbidden'}), 403
 
                 # Check if target user is a formal team member in the organization
                 target_team_member = TeamMember.query.options(joinedload(TeamMember.organization), joinedload(TeamMember.user)).filter_by(
@@ -163,11 +192,10 @@ def get_user_profile(user_id):
                 print(f"Failed to create profile view notification: {e}")
 
         return jsonify(profile_data), 200
-    except Exception as e:
+    except Exception:
         import traceback
-        print(f"Error in get_user_profile: {str(e)}")
-        print(traceback.format_exc())
-        return jsonify({'error': f'Internal server error: {str(e)}'}), 500
+        traceback.print_exc()
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 # Profile Picture Upload endpoint
 @api_bp.route('/profile/upload-profile-picture', methods=['POST'])

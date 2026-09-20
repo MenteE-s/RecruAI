@@ -262,12 +262,21 @@ def update_application_status(app_id):
     if not _can_manage_post(_current_user(), application.post):
         return jsonify({"error": "Forbidden for this organization"}), 403
     payload = request.get_json(silent=True) or {}
+    allowed_statuses = {"pending", "reviewed", "accepted", "rejected", "withdrawn"}
+    allowed_stages = {"applied", "screening", "interview_scheduled", "interview_completed",
+                      "offer_extended", "offer_accepted", "hired", "rejected"}
     if "status" in payload:
+        if payload["status"] not in allowed_statuses:
+            return jsonify({"error": f"Invalid status. Allowed: {sorted(allowed_statuses)}"}), 400
         application.status = payload["status"]
     if "pipeline_stage" in payload:
+        if payload["pipeline_stage"] not in allowed_stages:
+            return jsonify({"error": f"Invalid pipeline_stage. Allowed: {sorted(allowed_stages)}"}), 400
         application.pipeline_stage = payload["pipeline_stage"]
     # Handle onboarding status update
     if "onboarded" in payload:
+        if not isinstance(payload["onboarded"], bool):
+            return jsonify({"error": "onboarded must be true or false"}), 400
         application.onboarded = payload["onboarded"]
     db.session.commit()
     

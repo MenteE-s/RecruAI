@@ -97,7 +97,7 @@ def update_certification(cert_id):
 
     # Update other fields
     for key, value in data.items():
-        if key not in ['date_obtained', 'expiry_date'] and key not in ('id', 'user_id') and hasattr(certification, key):
+        if key not in ['date_obtained', 'expiry_date'] and key not in ('id', 'user_id', 'created_at', 'updated_at', 'organization_id') and hasattr(certification, key):
             setattr(certification, key, value)
 
     db.session.commit()

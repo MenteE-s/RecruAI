@@ -29,6 +29,37 @@ def _manages_org(org_id):
         return True
     return TeamMember.query.filter_by(organization_id=org_id, user_id=user.id).first() is not None
 
+
+ALLOWED_TEAM_ROLES = frozenset({"Admin", "HR", "Manager", "Member", "Employee"})
+
+
+def _is_org_admin(org_id):
+    """Caller may grant/revoke the Admin role: org owner account or Admin member."""
+    from flask_jwt_extended import get_jwt_identity
+    try:
+        uid = int(get_jwt_identity())
+    except (TypeError, ValueError):
+        return False
+    user = User.query.get(uid)
+    if not user:
+        return False
+    try:
+        org_id = int(org_id)
+    except (TypeError, ValueError):
+        return False
+    if user.role == "organization" and user.organization_id == org_id:
+        return True
+    tm = TeamMember.query.filter_by(organization_id=org_id, user_id=user.id).first()
+    return tm is not None and tm.role == "Admin"
+
+
+def _validate_permissions(permissions):
+    if permissions is None:
+        return True
+    if not isinstance(permissions, list) or len(permissions) > 50:
+        return False
+    return all(isinstance(p, str) and 1 <= len(p) <= 100 for p in permissions)
+
 # Default AI agents to create for new organizations
 DEFAULT_AI_AGENTS = [
     {
@@ -486,10 +517,14 @@ def list_organizations():
 @api_bp.route("/organizations", methods=["POST"])
 @jwt_required()
 def create_organization():
+    from ...utils.security import sanitize_input, log_security_event
     payload = request.get_json(silent=True) or {}
-    name = payload.get("name")
-    if not name:
-        return jsonify({"error": "name required"}), 400
+    raw_name = payload.get("name", "") or ""
+    name = sanitize_input(raw_name, max_length=255).strip()
+    if not name or len(name) < 2:
+        return jsonify({"error": "name required (min 2 characters)"}), 400
+    if len(name) > 255:
+        return jsonify({"error": "name must be at most 255 characters"}), 400
 
     if Organization.query.filter_by(name=name).first():
         return jsonify({"error": "organization already exists"}), 400
@@ -504,6 +539,13 @@ def create_organization():
     )
     db.session.add(org)
     db.session.commit()
+
+    try:
+        from flask import request as _req
+        log_security_event("organization_created", ip_address=_req.remote_addr,
+                           details={"org_id": org.id, "name": org.name})
+    except Exception:
+        pass
 
     # Emit Kafka event for organization creation
     kafka.emit_event('organization_created', {
@@ -522,28 +564,38 @@ def create_organization():
 
 @api_bp.route("/organizations/<int:org_id>", methods=["GET"])
 @jwt_required()
-@cached("org_details", ttl=300, key_func=lambda org_id: f"org_{org_id}")
+# Security: response differs for managers vs non-managers, so requester must
+# be part of cache key. A target-only key would serve a manager's private
+# response (contacts + inactive posts) to an unrelated requester on HIT.
+@cached("org_details", ttl=300, key_func=lambda org_id: f"{get_jwt_identity()}:org_{org_id}")
 def get_organization(org_id):
     org = Organization.query.get_or_404(org_id)
-    posts = [p.to_dict() for p in org.posts]
-    return jsonify({
-        "id": org.id,
-        "name": org.name,
-        "description": org.description,
-        "website": org.website,
-        "contact_email": org.contact_email,
-        "contact_name": org.contact_name,
-        "location": org.location,
-        "company_size": org.company_size,
-        "industry": org.industry,
-        "mission": org.mission,
-        "vision": org.vision,
-        "social_media_links": org.social_media_links,
-        "profile_image": org.profile_image,
-        "banner_image": org.banner_image,
-        "created_at": org.created_at.isoformat() if org.created_at else None,
-        "posts": posts,
-    })
+    is_manager = _manages_org(org_id)
+    if is_manager:
+        posts = [p.to_dict() for p in org.posts]
+        return jsonify({
+            "id": org.id,
+            "name": org.name,
+            "description": org.description,
+            "website": org.website,
+            "contact_email": org.contact_email,
+            "contact_name": org.contact_name,
+            "location": org.location,
+            "company_size": org.company_size,
+            "industry": org.industry,
+            "mission": org.mission,
+            "vision": org.vision,
+            "social_media_links": org.social_media_links,
+            "profile_image": org.profile_image,
+            "banner_image": org.banner_image,
+            "created_at": org.created_at.isoformat() if org.created_at else None,
+            "posts": posts,
+        })
+    # Non-managers get public-safe view: no contacts, active posts only.
+    public = org.to_public_dict()
+    active_posts = [p.to_dict() for p in org.posts if p.status == "active"]
+    public["posts"] = active_posts
+    return jsonify(public)
 
 @api_bp.route("/organizations/<int:org_id>", methods=["PUT"])
 @jwt_required()
@@ -614,8 +666,9 @@ def update_organization_timezone(org_id):
 
 
 @api_bp.route("/organizations/<int:org_id>/current-time", methods=["GET"])
+@jwt_required()
 def get_organization_current_time(org_id):
-    """Get current time information in organization's timezone."""
+    """Get current time information in organization's timezone (auth required to prevent ID enumeration)."""
     org = Organization.query.get_or_404(org_id)
     tz = org.timezone or "UTC"
     return jsonify(get_current_time_info(tz)), 200
@@ -673,6 +726,12 @@ def add_team_member(org_id):
 
     if not user_id or not role:
         return jsonify({"error": "user_id and role required"}), 400
+    if role not in ALLOWED_TEAM_ROLES:
+        return jsonify({"error": f"Invalid role. Allowed: {sorted(ALLOWED_TEAM_ROLES)}"}), 400
+    if role == "Admin" and not _is_org_admin(org_id):
+        return jsonify({"error": "Only Admins can grant the Admin role"}), 403
+    if not _validate_permissions(permissions):
+        return jsonify({"error": "Invalid permissions (must be a list of <=50 strings)"}), 400
 
     # Check if user exists
     user = User.query.get(user_id)
@@ -713,8 +772,15 @@ def update_team_member(org_id, member_id):
     payload = request.get_json(silent=True) or {}
 
     if "role" in payload:
-        tm.role = payload["role"]
+        new_role = payload["role"]
+        if new_role not in ALLOWED_TEAM_ROLES:
+            return jsonify({"error": f"Invalid role. Allowed: {sorted(ALLOWED_TEAM_ROLES)}"}), 400
+        if new_role == "Admin" and not _is_org_admin(org_id):
+            return jsonify({"error": "Only Admins can grant the Admin role"}), 403
+        tm.role = new_role
     if "permissions" in payload:
+        if not _validate_permissions(payload["permissions"]):
+            return jsonify({"error": "Invalid permissions (must be a list of <=50 strings)"}), 400
         tm.permissions = json.dumps(payload["permissions"]) if payload["permissions"] else None
     if "join_date" in payload:
         tm.join_date = payload["join_date"]
@@ -804,6 +870,12 @@ def invite_team_member(org_id):
 
     if not email:
         return jsonify({"error": "email required"}), 400
+    if role not in ALLOWED_TEAM_ROLES:
+        return jsonify({"error": f"Invalid role. Allowed: {sorted(ALLOWED_TEAM_ROLES)}"}), 400
+    if role == "Admin" and not _is_org_admin(org_id):
+        return jsonify({"error": "Only Admins can grant the Admin role"}), 403
+    if not _validate_permissions(permissions):
+        return jsonify({"error": "Invalid permissions (must be a list of <=50 strings)"}), 400
 
     # Check if user already exists
     user = User.query.filter_by(email=email).first()

@@ -73,7 +73,7 @@ def update_speaking_engagement(se_id):
 
     # Update other fields
     for key, value in data.items():
-        if key != 'date' and key not in ('id', 'user_id') and hasattr(speaking_engagement, key):
+        if key != 'date' and key not in ('id', 'user_id', 'created_at', 'updated_at', 'organization_id') and hasattr(speaking_engagement, key):
             setattr(speaking_engagement, key, value)
 
     db.session.commit()

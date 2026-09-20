@@ -199,12 +199,26 @@ def block_jti(jti: str, ttl: Optional[int] = None) -> None:
 
 
 def is_jti_blocked(jti: Optional[str]) -> bool:
-    """True when the given JWT ID is on the revocation list."""
+    """True when the given JWT ID is on the revocation list.
+
+    Fail-closed when Redis is expected but unreachable (raise so caller can
+    deny); fail-open only when Redis is intentionally disabled (no client).
+    """
     if not jti:
         return False
+    client = _get_redis_client()
+    if not client:
+        return False
     try:
-        return cache_get(_build_key("jwt_blocklist", jti)) is not None
-    except Exception:
+        return client.get(_build_key("jwt_blocklist", jti)) is not None
+    except Exception as e:
+        logger.warning(f"Cache GET failed for blocklist key: {e}")
+        try:
+            from flask import current_app
+            if current_app.config.get("REDIS_ENABLED", True):
+                raise
+        except RuntimeError:
+            pass
         return False
 
 

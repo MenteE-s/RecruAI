@@ -9,7 +9,24 @@ from typing import Dict, List, Any, Tuple
 
 # Columns that must never be filterable/sortable via request params.
 # (Secrets and hashes must not be usable as query oracles.)
-BLOCKED_QUERY_FIELDS = frozenset({"password_hash"})
+BLOCKED_QUERY_FIELDS = frozenset({
+    "password_hash",
+    "email",
+    "phone",
+    "tokens_used",
+    "interviews_count",
+    "failed_login_attempts",
+    "locked_until",
+    "last_login_at",
+    "password_changed_at",
+    "referred_by_email",
+    "referred_by_user_id",
+})
+
+
+def _escape_like(value: str) -> str:
+    """Escape % _ \\ wildcards for LIKE queries to prevent filter bypass."""
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
 
 class Pagination:
@@ -136,8 +153,8 @@ def apply_filters_and_sorting(query, model_class, filters: Dict[str, Any] = None
                 column = getattr(model_class, field)
                 # Handle different filter types
                 if isinstance(value, str):
-                    # Case-insensitive partial match for strings
-                    query = query.filter(column.ilike(f'%{value}%'))
+                    # Case-insensitive partial match for strings (escape wildcards)
+                    query = query.filter(column.ilike(f'%{_escape_like(value)}%', escape='\\'))
                 elif isinstance(value, list):
                     # IN clause for lists
                     query = query.filter(column.in_(value))
