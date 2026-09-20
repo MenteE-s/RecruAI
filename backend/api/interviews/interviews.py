@@ -689,15 +689,16 @@ def get_interview_conversation(interview_id):
 
     # Check if user has access to this interview
     # For practice interviews (organization_id is None), only the candidate can access
-    # For regular interviews, candidate or organization members can access
+    # For regular interviews, candidate or any managing-org member (direct
+    # account or team member) can access — same rule as interview detail.
     has_access = False
     print(f"Checking access: interview.user_id={interview.user_id}, user_id={user_id}")
     if interview.user_id == user_id:
         # User is the candidate
         print("User is the candidate - granting access")
         has_access = True
-    elif interview.organization_id is not None and user.organization and user.organization.id == interview.organization_id:
-        # User is a member of the organization that owns the interview
+    elif interview.organization_id is not None and interview.organization_id in _managed_org_ids(user):
+        # User manages the organization that owns the interview
         print("User is organization member - granting access")
         has_access = True
     else:
