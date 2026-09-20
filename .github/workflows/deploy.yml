@@ -193,8 +193,8 @@ jobs:
           EMBEDDING_PROVIDER=huggingface
           EMBEDDING_DIMENSIONS=384
           AI_PROVIDER=groq
-          AI_MODEL=groq/compound
-          GROQ_MODEL=groq/compound
+          AI_MODEL=qwen/qwen3.8-27b
+          GROQ_MODEL=qwen/qwen3.8-27b
           JWT_TOKEN_LOCATION=headers
           JWT_COOKIE_SECURE=1
           JWT_COOKIE_SAMESITE=None

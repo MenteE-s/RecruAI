@@ -156,7 +156,7 @@ class OpenAILLMProvider(LLMProvider):
 class GroqLLMProvider(LLMProvider):
     """Groq LLM provider implementation"""
 
-    def __init__(self, api_key: str, model: str = "mixtral-8x7b-32768", timeout: int = 30):
+    def __init__(self, api_key: str, model: str = "qwen/qwen3.8-27b", timeout: int = 30):
         if not GROQ_AVAILABLE:
             raise ImportError("Groq package not installed")
         if not api_key:
@@ -342,7 +342,7 @@ class AIProviderManager:
         elif provider == "groq":
             if not self.config.GROQ_API_KEY:
                 raise ValueError("GROQ_API_KEY required for Groq provider")
-            model = self.config.AI_MODEL or "mixtral-8x7b-32768"
+            model = self.config.AI_MODEL or "qwen/qwen3.8-27b"
             return GroqLLMProvider(
                 api_key=self.config.GROQ_API_KEY,
                 model=model,
