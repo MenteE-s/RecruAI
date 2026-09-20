@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import { getSidebarItems, getBackendUrl, getAuthHeaders, getCurrentUserId } from "../../utils/auth";
 import { formatDate } from "../../utils/timezone";
+import DualTime from "../../components/ui/DualTime";
 import {
   FiBarChart2,
   FiTrendingUp,
@@ -261,7 +262,7 @@ export default function Analytics() {
                   <div key={interview.id} onClick={() => navigate(`/interviews/${interview.id}/analysis`)} className="border border-gray-200 p-4 hover:border-gray-300 hover:bg-gray-50 cursor-pointer flex items-center justify-between gap-4">
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-gray-900 truncate">{interview.title || `Interview #${interview.id}`}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">{new Date(interview.scheduled_at).toLocaleDateString()} at {new Date(interview.scheduled_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} • {interview.duration_minutes} min • <span className="capitalize">{interview.interview_type}</span></p>
+                      <p className="text-xs text-gray-500 mt-0.5"><DualTime value={interview.scheduled_at_iso || interview.scheduled_at} otherTimezone={interview.organization_timezone} otherLabel={interview.organization} variant="compact" showRelative={false} /> • {interview.duration_minutes} min • <span className="capitalize">{interview.interview_type}</span></p>
                       {interview.post_title && <p className="text-xs text-blue-600 mt-1">Position: {interview.post_title}</p>}
                     </div>
                     <span className={`shrink-0 text-xs font-medium border px-2.5 py-1 ${interview.status === "completed" ? "bg-green-50 text-green-700 border-green-200" : interview.status === "cancelled" ? "bg-red-50 text-red-700 border-red-200" : "bg-amber-50 text-amber-700 border-amber-200"}`}>{interview.status}</span>

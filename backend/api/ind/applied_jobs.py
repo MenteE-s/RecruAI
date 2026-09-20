@@ -71,7 +71,7 @@ def cancel_application(application_id):
                 'application_id': application.id,
                 'user_id': application.user_id,
                 'post_id': application.post_id,
-                'withdrawn_at': application.updated_at.isoformat()
+                'withdrawn_at': utc_iso(application.updated_at)
             })
         except Exception as ke:
             print(f"Failed to emit Kafka message for application withdrawal: {ke}")

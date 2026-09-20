@@ -390,10 +390,11 @@ def create_app(config_object: object | None = None):
 		except Exception as e:
 			print(f"Health check DB failure: {e}", flush=True)
 			db_status = "unhealthy"
-		
+
+		from .utils.timezone_utils import utc_now_iso
 		return jsonify({
 			"status": "ok" if db_status == "healthy" else "degraded",
-			"timestamp": __import__("datetime").datetime.utcnow().isoformat(),
+			"timestamp": utc_now_iso(),
 			"database": db_status
 		}), 200 if db_status == "healthy" else 503
 

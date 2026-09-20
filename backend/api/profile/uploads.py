@@ -1,6 +1,7 @@
 from flask import request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from .. import api_bp
+from ...utils.timezone_utils import utc_now_iso, utc_iso
 from ...extensions import db
 from ...models import User, Experience, Education, Skill, Project, Publication, ProfileSection, Award, Certification, Language, VolunteerExperience, Reference, HobbyInterest, ProfessionalMembership, Patent, CourseTraining, SocialMediaLink, KeyAchievement, Conference, SpeakingEngagement, License, TeamMember, Application, Post, Interview
 from sqlalchemy.orm import joinedload
@@ -186,7 +187,7 @@ def get_user_profile(user_id):
                     'viewer_id': current_user.id,
                     'viewer_org_id': current_user.organization_id,
                     'target_user_id': target_user.id,
-                    'timestamp': datetime.utcnow().isoformat()
+                    'timestamp': utc_now_iso()
                 })
             except Exception as e:
                 print(f"Failed to create profile view notification: {e}")
@@ -242,7 +243,7 @@ def upload_profile_picture():
         kafka.emit_event('profile_picture_updated', {
             'user_id': user_id_int,
             'profile_picture_url': profile_picture_url,
-            'timestamp': datetime.utcnow().isoformat()
+            'timestamp': utc_now_iso()
         })
         
         return jsonify({
@@ -302,7 +303,7 @@ def upload_banner():
         kafka.emit_event('profile_banner_updated', {
             'user_id': user_id_int,
             'banner_url': banner_url,
-            'timestamp': datetime.utcnow().isoformat()
+            'timestamp': utc_now_iso()
         })
         
         return jsonify({

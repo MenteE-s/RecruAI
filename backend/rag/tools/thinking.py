@@ -3,6 +3,7 @@ import json
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 from ...ai_providers import get_ai_provider_manager
+from ...utils.timezone_utils import utc_now_iso
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +94,7 @@ class ThinkingModule:
             analysis = self._extract_json(response)
 
             # Add metadata
-            analysis['analyzed_at'] = datetime.utcnow().isoformat()
+            analysis['analyzed_at'] = utc_now_iso()
             analysis['context_chunks_used'] = len(context_chunks)
 
             return analysis
@@ -161,7 +162,7 @@ class ThinkingModule:
             reasoning = self._extract_json(response)
 
             # Add metadata
-            reasoning['generated_at'] = datetime.utcnow().isoformat()
+            reasoning['generated_at'] = utc_now_iso()
             reasoning['query'] = query
 
             return reasoning
@@ -219,7 +220,7 @@ class ThinkingModule:
             validation = self._extract_json(response)
 
             # Add metadata
-            validation['validated_at'] = datetime.utcnow().isoformat()
+            validation['validated_at'] = utc_now_iso()
 
             # Determine if reasoning is acceptable
             validation['is_acceptable'] = (

@@ -6,6 +6,7 @@ import bcrypt
 from datetime import datetime, timedelta
 from flask import current_app
 from werkzeug.security import generate_password_hash, check_password_hash
+from backend.utils.timezone_utils import utc_now_iso
 import logging
 
 # Configure security logger
@@ -101,7 +102,7 @@ def log_security_event(event_type: str, user_id: str = None, ip_address: str = N
         'event_type': event_type,
         'user_id': user_id,
         'ip_address': ip_address,
-        'timestamp': datetime.utcnow().isoformat(),
+        'timestamp': utc_now_iso(),
         'details': details or {}
     }
     

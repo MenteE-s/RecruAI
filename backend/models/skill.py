@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from ..extensions import db
+from ..utils.timezone_utils import utc_iso
 
 
 class Skill(db.Model):
@@ -22,5 +23,5 @@ class Skill(db.Model):
             "name": self.name,
             "level": self.level,
             "years_experience": self.years_experience,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "created_at": utc_iso(self.created_at),
         }

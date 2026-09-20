@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from ..extensions import db
+from ..utils.timezone_utils import utc_iso
 
 
 class Message(db.Model):
@@ -23,7 +24,7 @@ class Message(db.Model):
             "user_id": self.user_id,
             "content": self.content,
             "message_type": self.message_type,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "created_at": utc_iso(self.created_at),
             "user": {
                 "id": self.user.id if self.user else None,
                 "name": self.user.name if self.user else "Unknown User",

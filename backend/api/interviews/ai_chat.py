@@ -1,5 +1,6 @@
 from flask import request, jsonify
 from .. import api_bp
+from ...utils.timezone_utils import utc_now_iso, utc_iso
 from ...extensions import db
 from ...models import Interview, User, AIInterviewAgent, ConversationMessage, PracticeAIAgent
 from ...ai_service import get_ai_service
@@ -63,7 +64,7 @@ def interview_chat(interview_id):
             'content': message,
             'sender_name': user.name or user.email,
             'sender_type': 'user',
-            'timestamp': datetime.utcnow().isoformat()
+            'timestamp': utc_now_iso()
         })
     except Exception as ke:
         print(f"Failed to emit Kafka message for candidate interaction: {ke}")
@@ -115,7 +116,7 @@ def interview_chat(interview_id):
             kafka.emit_event('interview_agent_thinking', {
                 'interview_id': interview_id,
                 'thinking_process': thinking_step,
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': utc_now_iso()
             })
             
         kafka.emit_event('interview_agent_response', {
@@ -127,7 +128,7 @@ def interview_chat(interview_id):
             'sender_name': agent.name,
             'sender_type': 'agent',
             'thinking_used': enable_thinking,
-            'timestamp': datetime.utcnow().isoformat()
+            'timestamp': utc_now_iso()
         })
     except Exception as ke:
         print(f"Failed to emit Kafka message for agent response: {ke}")

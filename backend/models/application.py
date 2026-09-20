@@ -1,5 +1,6 @@
 from datetime import datetime
 from backend.extensions import db
+from backend.utils.timezone_utils import utc_iso
 
 class Application(db.Model):
     __tablename__ = "applications"
@@ -28,8 +29,8 @@ class Application(db.Model):
             "resume_url": self.resume_url,
             "status": self.status,
             "pipeline_stage": self.pipeline_stage,
-            "applied_at": self.applied_at.isoformat() if self.applied_at else None,
-            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "applied_at": utc_iso(self.applied_at),
+            "updated_at": utc_iso(self.updated_at),
             "onboarded": self.onboarded,  # Include in dict representation
             "user": {
                 "id": self.user.id if self.user else None,

@@ -1,5 +1,6 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from backend.extensions import db
+from backend.utils.timezone_utils import utc_iso
 
 
 class ShareableProfile(db.Model):
@@ -45,19 +46,23 @@ class ShareableProfile(db.Model):
             "show_education": self.show_education,
             "show_skills": self.show_skills,
             "show_projects": self.show_projects,
-            "expires_at": self.expires_at.isoformat() if self.expires_at else None,
+            "expires_at": utc_iso(self.expires_at),
             "is_active": self.is_active,
             "view_count": self.view_count,
-            "last_viewed_at": self.last_viewed_at.isoformat() if self.last_viewed_at else None,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
-            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "last_viewed_at": utc_iso(self.last_viewed_at),
+            "created_at": utc_iso(self.created_at),
+            "updated_at": utc_iso(self.updated_at),
         }
 
     def is_expired(self):
         """Check if the profile link has expired"""
         if not self.expires_at:
             return False
-        return datetime.utcnow() > self.expires_at
+        # Tolerate tz-aware values (e.g. stored with offset): compare in UTC.
+        expires_at = self.expires_at
+        if expires_at.tzinfo is not None:
+            expires_at = expires_at.astimezone(timezone.utc).replace(tzinfo=None)
+        return datetime.utcnow() > expires_at
 
     def can_access(self):
         """Check if the profile can be accessed publicly."""
@@ -122,5 +127,5 @@ class ProfileAnalytics(db.Model):
             "country": self.country,
             "city": self.city,
             "session_id": self.session_id,
-            "viewed_at": self.viewed_at.isoformat() if self.viewed_at else None,
+            "viewed_at": utc_iso(self.viewed_at),
         }

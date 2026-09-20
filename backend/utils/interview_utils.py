@@ -23,9 +23,12 @@ def update_expired_interviews():
 
         updated_count = 0
         for interview in expired_interviews:
-            # Calculate if interview time has actually expired (scheduled_time + duration)
-            interview_end_time = interview.scheduled_at.replace(tzinfo=timezone.utc) + \
-                               timedelta(minutes=interview.duration_minutes)
+            # Calculate if interview time has actually expired (scheduled_time + duration).
+            # DB datetimes are naive UTC: keep the comparison naive-naive.
+            # (An aware end-time vs naive utcnow() raises TypeError and the
+            # whole batch silently returns 0.)
+            interview_end_time = interview.scheduled_at + \
+                               timedelta(minutes=interview.duration_minutes or 60)
 
             if current_time >= interview_end_time:
                 # Update interview status
@@ -46,6 +49,48 @@ def update_expired_interviews():
         print(f"Error updating expired interviews: {e}")
         db.session.rollback()
         return 0
+
+
+def is_overdue(interview, now=None):
+    """True when a scheduled/in-progress interview's end time has passed.
+
+    DB datetimes are naive UTC: the comparison stays naive-naive.
+    """
+    if not interview or not interview.scheduled_at:
+        return False
+    if interview.status not in ('scheduled', 'in_progress'):
+        return False
+    now = now or datetime.utcnow()
+    duration = interview.duration_minutes or 60
+    return now >= interview.scheduled_at + timedelta(minutes=duration)
+
+
+def complete_overdue_interview(interview):
+    """Transition a single overdue interview to completed (no commit).
+
+    Returns True when transitioned. Idempotent: callers commit. This is the
+    safety net behind the (currently disabled) background scheduler, applied
+    lazily on reads so stuck interviews can't stay 'in_progress' forever.
+    """
+    if not is_overdue(interview):
+        return False
+    now = datetime.utcnow()
+    interview.status = 'completed'
+    interview.completed_at = now
+    interview.round_status = 'completed'
+    return True
+
+
+def complete_overdue_interviews(interviews):
+    """Transition all overdue interviews in an iterable. Returns count (no commit)."""
+    count = 0
+    try:
+        for interview in interviews or []:
+            if complete_overdue_interview(interview):
+                count += 1
+    except TypeError:
+        pass
+    return count
 
 
 def update_interview_decision(interview_id, decision, feedback=None, rating=None):

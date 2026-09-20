@@ -4,7 +4,7 @@ import DashboardLayout from "../../components/layout/DashboardLayout";
 import IndividualNavbar from "../../components/layout/IndividualNavbar";
 import Card from "../../components/ui/Card";
 import { getBackendUrl, getAuthHeaders } from "../../utils/auth";
-import { formatDateTime as formatDateTimeTz } from "../../utils/timezone";
+import DualTime from "../../components/ui/DualTime";
 
 export default function InterviewDetail() {
   const { interviewId } = useParams();
@@ -213,17 +213,6 @@ export default function InterviewDetail() {
     }
   };
 
-  const formatDateTime = (dateString) => {
-    return formatDateTimeTz(dateString, {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-      timeZoneName: "short",
-    });
-  };
-
   const getStatusBadge = (status) => {
     switch (status) {
       case "completed":
@@ -411,9 +400,11 @@ export default function InterviewDetail() {
                   <div className="text-right">
                     <p className="text-sm text-gray-500">Scheduled</p>
                     <p className="text-sm font-medium text-gray-900">
-                      {formatDateTime(
-                        interview.scheduled_at_iso || interview.scheduled_at
-                      )}
+                      <DualTime
+                        value={interview.scheduled_at_iso || interview.scheduled_at}
+                        otherTimezone={interview.organization_timezone}
+                        otherLabel={interview.organization}
+                      />
                     </p>
                     <p className="text-sm text-gray-500">
                       Duration: {interview.duration_minutes || 60} minutes
@@ -496,7 +487,7 @@ export default function InterviewDetail() {
                                 </h3>
                                 <p className="text-sm text-gray-500">
                                   {round.decided_at
-                                    ? formatDateTime(round.decided_at)
+                                    ? <DualTime value={round.decided_at} variant="compact" showRelative={false} />
                                     : "Date not available"}
                                 </p>
                               </div>
@@ -691,7 +682,7 @@ export default function InterviewDetail() {
                               >
                                 {msg.sender_name}
                                 {msg.created_at
-                                  ? ` • ${formatDateTime(msg.created_at)}`
+                                  ? <> • <DualTime value={msg.created_at} variant="compact" showRelative={false} /></>
                                   : ""}
                               </div>
                             </div>

@@ -28,6 +28,38 @@ export function setUserTimezone(timezone) {
 }
 
 /**
+ * Parse a backend timestamp into a Date, always interpreting it as UTC.
+ *
+ * Backend datetimes are UTC; ISO strings carry an explicit 'Z'/offset since
+ * the backend explicitly serializes them. Legacy naive strings
+ * ("2026-09-20T10:00:00", no offset) are parsed as browser-local time by
+ * `new Date()`, which shifts displayed times by the viewer's UTC offset —
+ * so append 'Z' when no offset is present. Date-only strings
+ * ("2026-09-20") are parsed at UTC noon so the calendar day renders
+ * correctly in every timezone (midnight UTC would show the prior day
+ * west of Greenwich).
+ */
+export function parseUTC(value) {
+  if (value === null || value === undefined || value === "") {
+    return new Date(NaN);
+  }
+  if (typeof value === "number") {
+    return new Date(value);
+  }
+  if (value instanceof Date) {
+    return value;
+  }
+  const str = String(value).trim();
+  if (/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(str)) {
+    return new Date(`${str}T12:00:00Z`);
+  }
+  if (/[zZ]$|[+-][0-9]{2}:?[0-9]{2}$/.test(str)) {
+    return new Date(str);
+  }
+  return new Date(`${str}Z`);
+}
+
+/**
  * Format a UTC datetime string/timestamp for display in user's timezone.
  *
  * @param {string|number} utcDateTime - ISO string or milliseconds timestamp from backend
@@ -39,13 +71,8 @@ export function formatDateTime(utcDateTime, options = {}, timezone = null) {
 
   const tz = timezone || getUserTimezone();
 
-  // Handle both ISO strings and millisecond timestamps
-  let date;
-  if (typeof utcDateTime === "number") {
-    date = new Date(utcDateTime);
-  } else {
-    date = new Date(utcDateTime);
-  }
+  // Handle both ISO strings and millisecond timestamps (always as UTC)
+  const date = parseUTC(utcDateTime);
 
   if (isNaN(date.getTime())) {
     console.warn("Invalid date:", utcDateTime);
@@ -76,9 +103,22 @@ export function formatDateTime(utcDateTime, options = {}, timezone = null) {
 }
 
 /**
- * Format date only (no time).
+ * Format date only (no time). Date-only inputs ("YYYY-MM-DD") are rendered
+ * as that exact calendar day in every timezone (formatted in UTC), since a
+ * calendar date has no instant to convert.
  */
 export function formatDate(utcDateTime, timezone = null) {
+  if (typeof utcDateTime === "string" && /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(utcDateTime.trim())) {
+    return formatDateTime(`${utcDateTime.trim()}T12:00:00Z`, {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: undefined,
+      minute: undefined,
+      timeZoneName: undefined,
+      timeZone: "UTC",
+    });
+  }
   return formatDateTime(
     utcDateTime,
     {
@@ -135,10 +175,7 @@ export function formatDateTimeCompact(utcDateTime, timezone = null) {
 export function getRelativeTime(utcDateTime) {
   if (!utcDateTime) return "";
 
-  const date =
-    typeof utcDateTime === "number"
-      ? new Date(utcDateTime)
-      : new Date(utcDateTime);
+  const date = parseUTC(utcDateTime);
   if (isNaN(date.getTime())) return "";
 
   const now = new Date();
@@ -182,8 +219,8 @@ export function toUTC(localDate, timezone = null) {
     return localDate.toISOString();
   }
 
-  // If it's a string, parse and return
-  const date = new Date(localDate);
+  // If it's a string, parse as UTC and return
+  const date = parseUTC(localDate);
   if (isNaN(date.getTime())) {
     console.warn("Invalid date for UTC conversion:", localDate);
     return null;
@@ -204,10 +241,7 @@ export function getCurrentTimeFormatted(timezone = null) {
  */
 export function isPast(utcDateTime) {
   if (!utcDateTime) return false;
-  const date =
-    typeof utcDateTime === "number"
-      ? new Date(utcDateTime)
-      : new Date(utcDateTime);
+  const date = parseUTC(utcDateTime);
   return date.getTime() < Date.now();
 }
 
@@ -216,10 +250,7 @@ export function isPast(utcDateTime) {
  */
 export function isFuture(utcDateTime) {
   if (!utcDateTime) return false;
-  const date =
-    typeof utcDateTime === "number"
-      ? new Date(utcDateTime)
-      : new Date(utcDateTime);
+  const date = parseUTC(utcDateTime);
   return date.getTime() > Date.now();
 }
 
@@ -228,13 +259,18 @@ export function isFuture(utcDateTime) {
  */
 export function isWithinHours(utcDateTime, hours) {
   if (!utcDateTime) return false;
-  const date =
-    typeof utcDateTime === "number"
-      ? new Date(utcDateTime)
-      : new Date(utcDateTime);
+  const date = parseUTC(utcDateTime);
   const now = Date.now();
   const futureLimit = now + hours * 3600000;
   return date.getTime() > now && date.getTime() <= futureLimit;
+}
+
+/**
+ * Format a UTC datetime in an explicitly given timezone (for the
+ * secondary "other party" line of dual-time display).
+ */
+export function formatInTimezone(utcDateTime, timezone, options = {}) {
+  return formatDateTime(utcDateTime, options, timezone);
 }
 
 /**
@@ -263,10 +299,12 @@ export function getTimezoneInfo(timezone = null) {
 const timezoneUtils = {
   getUserTimezone,
   setUserTimezone,
+  parseUTC,
   formatDateTime,
   formatDate,
   formatTime,
   formatDateTimeCompact,
+  formatInTimezone,
   getRelativeTime,
   toUTC,
   getCurrentTimeFormatted,

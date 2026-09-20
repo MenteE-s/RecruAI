@@ -1,5 +1,6 @@
 from datetime import datetime
 from backend.extensions import db
+from backend.utils.timezone_utils import utc_iso
 
 
 class Notification(db.Model):
@@ -100,8 +101,8 @@ class Notification(db.Model):
             "is_read": self.is_read,
             "is_archived": self.is_archived,
             "is_favorited": self.is_favorited,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
-            "read_at": self.read_at.isoformat() if self.read_at else None,
+            "created_at": utc_iso(self.created_at),
+            "read_at": utc_iso(self.read_at),
             "related_user_id": self.related_user_id,
             "related_organization_id": self.related_organization_id,
             "related_interview_id": self.related_interview_id,

@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import { getSidebarItems, getBackendUrl, getAuthHeaders } from "../../utils/auth";
-import { formatDateTime, getRelativeTime } from "../../utils/timezone";
+import { parseUTC } from "../../utils/timezone";
+import DualTime from "../../components/ui/DualTime";
 import {
   FiCalendar,
   FiClock,
@@ -75,7 +76,7 @@ export default function UpcomingInterviews() {
 
   const getStatusBadge = (interview) => {
     const now = new Date();
-    const scheduledTime = new Date(interview.scheduled_at_iso || interview.scheduled_at);
+    const scheduledTime = parseUTC(interview.scheduled_at_iso || interview.scheduled_at);
     const timeDiff = scheduledTime - now;
     const minutesDiff = timeDiff / (1000 * 60);
     if (interview.status === "completed") return <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-green-50 text-green-700 border border-green-200 px-2.5 py-1"><FiCheckCircle className="w-3.5 h-3.5" /> Completed</span>;
@@ -90,7 +91,7 @@ export default function UpcomingInterviews() {
     const scheduledAt = interview.scheduled_at_iso || interview.scheduled_at;
     if (!scheduledAt) return false;
     const nowUTC = new Date();
-    const scheduledTime = new Date(scheduledAt + (scheduledAt.includes("Z") ? "" : "Z"));
+    const scheduledTime = parseUTC(scheduledAt);
     const timeDiff = scheduledTime - nowUTC;
     const minutesDiff = timeDiff / (1000 * 60);
     return minutesDiff <= 0 && minutesDiff >= -interview.duration_minutes;
@@ -100,7 +101,7 @@ export default function UpcomingInterviews() {
     const scheduledAt = interview.scheduled_at_iso || interview.scheduled_at;
     if (!scheduledAt) return "Unknown";
     const nowUTC = new Date();
-    const scheduledTime = new Date(scheduledAt + (scheduledAt.includes("Z") ? "" : "Z"));
+    const scheduledTime = parseUTC(scheduledAt);
     const timeDiff = scheduledTime - nowUTC;
     const minutesDiff = timeDiff / (1000 * 60);
     if (minutesDiff > 15) return "Scheduled";
@@ -226,9 +227,7 @@ export default function UpcomingInterviews() {
                           <p className="text-sm text-gray-600 mt-1 flex flex-wrap items-center gap-1.5">
                             <span>{interview.organization}</span>
                             <span className="text-gray-300">•</span>
-                            <span className="flex items-center gap-1"><FiClock className="w-3.5 h-3.5 text-gray-400" />{formatDateTime(interview.scheduled_at)}</span>
-                            <span className="text-gray-300 hidden sm:inline">•</span>
-                            <span className="text-xs text-gray-500">{getRelativeTime(interview.scheduled_at)}</span>
+                            <span className="flex items-center gap-1"><FiClock className="w-3.5 h-3.5 text-gray-400" /><DualTime value={interview.scheduled_at_iso || interview.scheduled_at} otherTimezone={interview.organization_timezone} otherLabel={interview.organization} variant="compact" /></span>
                           </p>
                           {interview.post_title && <p className="text-xs text-blue-600 mt-1.5 inline-flex items-center gap-1"><FiBriefcase className="w-3 h-3" /> Position: {interview.post_title}</p>}
                         </div>

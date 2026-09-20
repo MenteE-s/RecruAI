@@ -3,7 +3,8 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import MenteeLoader from "../../components/ui/MenteeLoader";
 import { getSidebarItems, getBackendUrl, getAuthHeaders } from "../../utils/auth";
-import { formatDateTime } from "../../utils/timezone";
+import { parseUTC } from "../../utils/timezone";
+import DualTime from "../../components/ui/DualTime";
 import {
   FiCalendar,
   FiClock,
@@ -43,14 +44,14 @@ function typeMeta(type) {
 function canJoin(iv) {
   const at = iv.scheduled_at_iso || iv.scheduled_at;
   if (!at) return false;
-  const diff = (new Date(at + (at.includes("Z") ? "" : "Z")) - new Date()) / 60000;
+  const diff = (parseUTC(at) - new Date()) / 60000;
   return diff <= 0 && diff >= -(iv.duration_minutes || 60);
 }
 
 function joinLabel(iv) {
   const at = iv.scheduled_at_iso || iv.scheduled_at;
   if (!at) return "Unknown";
-  const diff = (new Date(at + (at.includes("Z") ? "" : "Z")) - new Date()) / 60000;
+  const diff = (parseUTC(at) - new Date()) / 60000;
   if (diff > 15) return "Scheduled";
   if (diff > 0) return `Starts in ${Math.ceil(diff)}m`;
   if (diff >= -(iv.duration_minutes || 60)) return "Join now";
@@ -203,7 +204,7 @@ export default function Interviews() {
                         {statusChip(iv)}
                       </div>
                       <p className="text-[11px] text-gray-500 truncate mt-0.5">
-                        {iv.organization || "Unknown org"} · {iv.scheduled_at ? formatDateTime(iv.scheduled_at) : "Unscheduled"}
+                        {iv.organization || "Unknown org"} · {iv.scheduled_at ? <DualTime value={iv.scheduled_at_iso || iv.scheduled_at} otherTimezone={iv.organization_timezone} otherLabel={iv.organization} variant="compact" /> : "Unscheduled"}
                       </p>
                       {iv.post_title && <p className="text-[11px] text-blue-600 truncate mt-px">{iv.post_title}</p>}
                     </div>
@@ -251,7 +252,7 @@ export default function Interviews() {
                       {statusChip(iv)}
                     </div>
                     <p className="text-[11px] text-gray-500 truncate mt-0.5">
-                      {iv.organization || "Unknown org"} · {iv.scheduled_at ? formatDateTime(iv.scheduled_at_iso || iv.scheduled_at) : ""}
+                      {iv.organization || "Unknown org"} · {iv.scheduled_at ? <DualTime value={iv.scheduled_at_iso || iv.scheduled_at} otherTimezone={iv.organization_timezone} otherLabel={iv.organization} variant="compact" /> : ""}
                     </p>
                     {iv.rating ? (
                       <p className="flex items-center gap-0.5 mt-1">

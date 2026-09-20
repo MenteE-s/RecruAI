@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from backend.extensions import db
+from backend.utils.timezone_utils import utc_iso
 
 
 class TeamMember(db.Model):
@@ -34,7 +35,7 @@ class TeamMember(db.Model):
             "role": self.role,
             "permissions": permissions,
             "join_date": self.join_date.isoformat() if self.join_date else None,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "created_at": utc_iso(self.created_at),
             "organization": self.organization.name if self.organization else None,
             "user": {
                 "id": self.user.id if self.user else None,

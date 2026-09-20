@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from ..extensions import db
+from ..utils.timezone_utils import utc_iso
 
 
 class CompanyFollow(db.Model):
@@ -23,7 +24,7 @@ class CompanyFollow(db.Model):
             "id": self.id,
             "user_id": self.user_id,
             "organization_id": self.organization_id,
-            "followed_at": self.created_at.isoformat() if self.created_at else None,
+            "followed_at": utc_iso(self.created_at),
             "organization": self.organization.to_public_dict() if self.organization else None,
         }
         if with_latest_post and self.organization:

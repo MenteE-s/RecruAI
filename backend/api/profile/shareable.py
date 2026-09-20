@@ -4,7 +4,7 @@ from .. import api_bp
 from ...models import ShareableProfile, ProfileAnalytics, User, ProfileSection
 from ...extensions import db
 from ...utils.pagination import Pagination, get_pagination_params, paginated_response
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import re
 
 
@@ -59,11 +59,13 @@ def create_profile():
     if existing:
         return jsonify({'success': False, 'message': 'Slug already exists'}), 409
 
-    # Parse expiry date if provided
+    # Parse expiry date if provided (normalize to naive UTC for DB storage)
     expires_at = None
     if 'expires_at' in data and data['expires_at']:
         try:
             expires_at = datetime.fromisoformat(data['expires_at'].replace('Z', '+00:00'))
+            if expires_at.tzinfo is not None:
+                expires_at = expires_at.astimezone(timezone.utc).replace(tzinfo=None)
         except ValueError:
             return jsonify({'success': False, 'message': 'Invalid expiry date format'}), 400
 
@@ -131,13 +133,16 @@ def update_profile(slug):
         if field in data:
             setattr(profile, field, data[field])
 
-    # Handle expiry date
+    # Handle expiry date (normalize to naive UTC for DB storage)
     if 'expires_at' in data:
         if data['expires_at'] is None:
             profile.expires_at = None
         else:
             try:
-                profile.expires_at = datetime.fromisoformat(data['expires_at'].replace('Z', '+00:00'))
+                parsed = datetime.fromisoformat(data['expires_at'].replace('Z', '+00:00'))
+                if parsed.tzinfo is not None:
+                    parsed = parsed.astimezone(timezone.utc).replace(tzinfo=None)
+                profile.expires_at = parsed
             except ValueError:
                 return jsonify({'success': False, 'message': 'Invalid expiry date format'}), 400
 

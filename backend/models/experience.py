@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from ..extensions import db
+from ..utils.timezone_utils import utc_iso
 
 
 class Experience(db.Model):
@@ -45,5 +46,5 @@ class Experience(db.Model):
             "end_date": self.end_date.isoformat() if self.end_date else None,
             "current_job": self.current_job,
             "employment_type": self.employment_type,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "created_at": utc_iso(self.created_at),
         }

@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from ..extensions import db
+from ..utils.timezone_utils import utc_iso
 
 
 class SpeakingEngagement(db.Model):
@@ -30,5 +31,5 @@ class SpeakingEngagement(db.Model):
             "date": self.date.isoformat() if self.date else None,
             "audience_size": self.audience_size,
             "description": self.description,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "created_at": utc_iso(self.created_at),
         }

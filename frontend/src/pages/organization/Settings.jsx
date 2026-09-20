@@ -639,7 +639,7 @@ export default function OrganizationSettings() {
         <div className="bg-white border border-gray-200 p-6">
           <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2"><FiGlobe className="w-4 h-4 text-gray-500" /> Timezone settings</h3>
           <p className="text-sm text-gray-500 mt-1">Set your organization's timezone for all team members.</p>
-          <div className="mt-4"><TimezoneSelector organizationId={organization?.id} showCurrentTime={true} /></div>
+          <div className="mt-4"><TimezoneSelector organizationId={organization?.id} value={organization?.timezone} showCurrentTime={true} /></div>
         </div>
 
         {/* Danger */}

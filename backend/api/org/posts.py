@@ -2,6 +2,7 @@ from flask import request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy import func
 from .. import api_bp
+from ...utils.timezone_utils import utc_now_iso, utc_iso
 from ...extensions import db
 from ...models import Post, Organization, User, TeamMember, CompanyFollow, Notification
 import json
@@ -141,7 +142,7 @@ def create_post():
             'organization_id': post.organization_id,
             'title': post.title,
             'status': post.status,
-            'timestamp': datetime.utcnow().isoformat()
+            'timestamp': utc_now_iso()
         })
 
         # Notify followers so their notification cards link straight to this job
@@ -251,7 +252,7 @@ def update_post(post_id):
             'organization_id': post.organization_id,
             'title': post.title,
             'status': post.status,
-            'updated_at': datetime.utcnow().isoformat()
+            'updated_at': utc_now_iso()
         })
         
         return jsonify(post.to_dict()), 200
@@ -282,7 +283,7 @@ def delete_post(post_id):
         kafka.emit_event('job_post_deleted', {
             'post_id': post_id_val,
             'organization_id': org_id_val,
-            'timestamp': datetime.utcnow().isoformat()
+            'timestamp': utc_now_iso()
         })
         
         return jsonify({"message": "post deleted"}), 200

@@ -1,6 +1,7 @@
 from flask import request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from .. import api_bp
+from ...utils.timezone_utils import utc_now_iso, utc_iso
 from ...extensions import db
 from ...models import Application, Post, Interview, TeamMember, User
 from sqlalchemy import func
@@ -168,7 +169,7 @@ def create_application():
         'user_id': application.user_id,
         'post_id': application.post_id,
         'pipeline_stage': application.pipeline_stage,
-        'timestamp': datetime.utcnow().isoformat()
+        'timestamp': utc_now_iso()
     })
     
     return jsonify(application.to_dict()), 201
@@ -287,7 +288,7 @@ def update_application_status(app_id):
         'post_id': application.post_id,
         'status': application.status,
         'pipeline_stage': application.pipeline_stage,
-        'updated_at': datetime.utcnow().isoformat()
+        'updated_at': utc_now_iso()
     })
     
     return jsonify(application.to_dict()), 200

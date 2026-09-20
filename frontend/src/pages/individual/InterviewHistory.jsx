@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import { useNavigate } from "react-router-dom";
 import { getSidebarItems, getBackendUrl, getAuthHeaders } from "../../utils/auth";
-import { formatDateTime as formatDateTimeTz } from "../../utils/timezone";
+import DualTime from "../../components/ui/DualTime";
 import {
   FiCalendar,
   FiClock,
@@ -82,9 +82,6 @@ export default function InterviewHistory() {
     };
     fetchData();
   }, []);
-
-  const formatDateTime = (dateString) =>
-    formatDateTimeTz(dateString, { year: "numeric", month: "long", day: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: undefined });
 
   const getStatusBadge = (status, finalDecision, rating) => {
     if (finalDecision) {
@@ -209,7 +206,7 @@ export default function InterviewHistory() {
                             <p className="text-sm text-gray-600 mt-1 flex flex-wrap items-center gap-1.5">
                               <span>{interview.organization}</span>
                               <span className="text-gray-300">•</span>
-                              <span className="flex items-center gap-1"><FiClock className="w-3.5 h-3.5 text-gray-400" />{formatDateTime(interview.scheduled_at_iso || interview.scheduled_at)}</span>
+                              <span className="flex items-center gap-1"><FiClock className="w-3.5 h-3.5 text-gray-400" /><DualTime value={interview.scheduled_at_iso || interview.scheduled_at} otherTimezone={interview.organization_timezone} otherLabel={interview.organization} variant="compact" /></span>
                             </p>
                             {interview.post_title && <p className="text-xs text-blue-600 mt-1 flex items-center gap-1"><FiBriefcase className="w-3 h-3" /> Position: {interview.post_title}</p>}
                           </div>
@@ -246,7 +243,7 @@ export default function InterviewHistory() {
                                     <div className="flex-1 min-w-0">
                                       <div className="flex flex-wrap items-center justify-between gap-2">
                                         <p className="text-sm font-medium text-gray-900">Round {decision.round_number}</p>
-                                        <span className="text-xs text-gray-500">{formatDateTimeTz(decision.decided_at)}</span>
+                                        <span className="text-xs text-gray-500"><DualTime value={decision.decided_at} variant="compact" showRelative={false} /></span>
                                       </div>
                                       <div className="mt-1.5 flex flex-wrap items-center gap-2">
                                         {getDecisionBadge(decision.decision)}

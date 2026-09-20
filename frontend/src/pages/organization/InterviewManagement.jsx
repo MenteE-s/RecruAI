@@ -9,7 +9,8 @@ import {
   getBackendUrl,
   getAuthHeaders,
 } from "../../utils/auth";
-import { formatDateTime as formatDateTimeTz } from "../../utils/timezone";
+import { parseUTC } from "../../utils/timezone";
+import DualTime from "../../components/ui/DualTime";
 
 // Modal Component
 const Modal = ({ isOpen, onClose, children }) => {
@@ -605,9 +606,11 @@ const CancelInterviewModal = ({
               </p>
               <p>
                 <strong>Scheduled:</strong>{" "}
-                {formatDateTimeTz(
-                  interview.scheduled_at_iso || interview.scheduled_at
-                )}
+                <DualTime
+                  value={interview.scheduled_at_iso || interview.scheduled_at}
+                  otherTimezone={interview.candidate_timezone}
+                  otherLabel={interview.user_name}
+                />
               </p>
               <p>
                 <strong>Duration:</strong> {interview.duration_minutes} minutes
@@ -1248,21 +1251,9 @@ export default function InterviewManagement() {
     }
   };
 
-  const formatDateTime = (dateString) => {
-    return formatDateTimeTz(dateString, {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-      timeZoneName: "short",
-    });
-  };
-
   const getStatusBadge = (interview) => {
-    // Get current time in UTC for comparison with UTC scheduled times
-    const now = new Date();
-    const nowUTC = new Date(now.getTime() + now.getTimezoneOffset() * 60000);
+    // Compare UTC instants (backend timestamps are UTC)
+    const nowUTC = new Date();
 
     const scheduledAt = interview.scheduled_at_iso || interview.scheduled_at;
     if (!scheduledAt)
@@ -1272,7 +1263,7 @@ export default function InterviewManagement() {
         </span>
       );
 
-    const scheduledTime = new Date(scheduledAt);
+    const scheduledTime = parseUTC(scheduledAt);
     const timeDiff = scheduledTime - nowUTC;
     const minutesDiff = timeDiff / (1000 * 60);
 
@@ -1357,10 +1348,8 @@ export default function InterviewManagement() {
     // Get current time in UTC
     const nowUTC = new Date();
 
-    // Parse scheduled time as UTC (assume ISO string is UTC)
-    const scheduledTime = new Date(
-      scheduledAt + (scheduledAt.includes("Z") ? "" : "Z")
-    ); // Ensure UTC
+    // Parse scheduled time as UTC instant
+    const scheduledTime = parseUTC(scheduledAt);
     const timeDiff = scheduledTime - nowUTC;
     const minutesDiff = timeDiff / (1000 * 60);
 
@@ -1377,10 +1366,8 @@ export default function InterviewManagement() {
     // Get current time in UTC
     const nowUTC = new Date();
 
-    // Parse scheduled time as UTC
-    const scheduledTime = new Date(
-      scheduledAt + (scheduledAt.includes("Z") ? "" : "Z")
-    ); // Ensure UTC
+    // Parse scheduled time as UTC instant
+    const scheduledTime = parseUTC(scheduledAt);
     const timeDiff = scheduledTime - nowUTC;
     const minutesDiff = timeDiff / (1000 * 60);
 
@@ -1522,9 +1509,8 @@ export default function InterviewManagement() {
   const inProgress = filteredInterviews.filter((i) => {
     const scheduledAt = i.scheduled_at_iso || i.scheduled_at;
     if (!scheduledAt) return false;
-    const now = new Date();
-    const nowUTC = new Date(now.getTime() + now.getTimezoneOffset() * 60000);
-    const scheduledTime = new Date(scheduledAt);
+    const nowUTC = new Date();
+    const scheduledTime = parseUTC(scheduledAt);
     const timeDiff = scheduledTime - nowUTC;
     const minutesDiff = timeDiff / (1000 * 60);
     return (
@@ -1564,9 +1550,12 @@ export default function InterviewManagement() {
             <div>
               <h3 className="font-semibold text-gray-800">{interview.title}</h3>
               <p className="text-sm text-gray-600">
-                {formatDateTime(
-                  interview.scheduled_at_iso || interview.scheduled_at
-                )}{" "}
+                <DualTime
+                  value={interview.scheduled_at_iso || interview.scheduled_at}
+                  otherTimezone={interview.candidate_timezone}
+                  otherLabel={interview.user_name}
+                  variant="compact"
+                />{" "}
                 • {interview.duration_minutes} minutes
               </p>
               {interview.post_title && (
@@ -1715,9 +1704,7 @@ export default function InterviewManagement() {
                           )}
                           <p className="text-xs text-gray-500 mt-1">
                             Decided on{" "}
-                            {new Date(decision.decided_at).toLocaleDateString()}{" "}
-                            at{" "}
-                            {new Date(decision.decided_at).toLocaleTimeString()}
+                            <DualTime value={decision.decided_at} variant="compact" showRelative={false} />
                             {decision.decided_by_name &&
                               ` by ${decision.decided_by_name}`}
                           </p>

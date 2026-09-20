@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 
 from backend.extensions import db
+from backend.utils.timezone_utils import utc_iso
 
 
 class Organization(db.Model):
@@ -62,7 +63,7 @@ class Organization(db.Model):
             "banner_image": self.banner_image,
             "timezone": self.timezone or "UTC",
             "subscription_status": self.get_subscription_status(),
-            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "created_at": utc_iso(self.created_at),
         }
 
     def to_public_dict(self):
@@ -153,7 +154,7 @@ class Organization(db.Model):
             "status": self.subscription_status,
             "is_trial_active": self.is_trial_active(),
             "is_paid_active": self.is_subscription_active(),
-            "trial_start_date": self.trial_start_date.isoformat() if self.trial_start_date else None,
+            "trial_start_date": utc_iso(self.trial_start_date),
             "paid_plan": self.paid_plan,
             "tokens_used": self.tokens_used or 0,
             "interviews_used": self.interviews_used or 0,

@@ -8,6 +8,7 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime
 
 from ...ai_providers import get_ai_provider_manager
+from ...utils.timezone_utils import utc_now_iso
 from ..config import RAGConfig
 
 
@@ -100,7 +101,7 @@ class GeneratorTool:
                 'model': self.config.AI_PROVIDER,
                 'tokens_used': tokens_used,
                 'finish_reason': 'completed',
-                'generated_at': datetime.utcnow().isoformat(),
+                'generated_at': utc_now_iso(),
                 'context_chunks_used': len(context_chunks),
                 'query': query
             }
@@ -112,7 +113,7 @@ class GeneratorTool:
                 'answer': "I apologize, but I encountered an error while generating a response. Please try again.",
                 'confidence': 0.0,
                 'sources': [],
-                'generated_at': datetime.utcnow().isoformat()
+                'generated_at': utc_now_iso()
             }
 
     def generate_summary(
@@ -170,7 +171,7 @@ class GeneratorTool:
                 'compression_ratio': len(summary) / len(content) if content else 0,
                 'model': self.config.AI_PROVIDER,
                 'tokens_used': tokens_used,
-                'generated_at': datetime.utcnow().isoformat()
+                'generated_at': utc_now_iso()
             }
 
         except Exception as e:
@@ -178,7 +179,7 @@ class GeneratorTool:
             return {
                 'error': str(e),
                 'summary': "Unable to generate summary due to an error.",
-                'generated_at': datetime.utcnow().isoformat()
+                'generated_at': utc_now_iso()
             }
 
     def _prepare_context(self, context_chunks: List[Dict[str, Any]]) -> str:

@@ -89,6 +89,27 @@ def utc_now() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def utc_iso(dt: Optional[datetime]) -> Optional[str]:
+    """Serialize a datetime as explicit-UTC ISO string for API responses.
+
+    Naive values are assumed UTC (the DB convention); aware values are
+    converted. Output always ends with 'Z' so browsers parse it as UTC
+    instead of browser-local wall time.
+    """
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    else:
+        dt = dt.astimezone(timezone.utc)
+    return dt.isoformat().replace("+00:00", "Z")
+
+
+def utc_now_iso() -> str:
+    """Current UTC time as explicit-UTC ISO string (for event payloads)."""
+    return utc_iso(utc_now())
+
+
 def to_utc(dt: datetime, from_tz: str = "UTC") -> datetime:
     """
     Convert a datetime from a specific timezone to UTC.

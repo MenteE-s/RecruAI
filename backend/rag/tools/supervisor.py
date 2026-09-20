@@ -9,6 +9,7 @@ from typing import Dict, Any, List, Optional, Union
 from datetime import datetime
 
 from ..config import RAGConfig
+from ...utils.timezone_utils import utc_now_iso
 
 
 logger = logging.getLogger(__name__)
@@ -199,7 +200,7 @@ class RAGSupervisor:
                 result['processing_steps'].append({
                     'tool': tool_name,
                     'success': step_result.get('success', True),
-                    'timestamp': datetime.utcnow().isoformat(),
+                    'timestamp': utc_now_iso(),
                     'output_summary': self._summarize_step_output(step_result)
                 })
 
@@ -236,7 +237,7 @@ class RAGSupervisor:
         result['processing_steps'].append({
             'tool': 'retriever',
             'success': retrieval_result.get('success', True),
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': utc_now_iso(),
             'chunks_retrieved': len(retrieval_result.get('chunks', []))
         })
 
@@ -255,7 +256,7 @@ class RAGSupervisor:
         result['processing_steps'].append({
             'tool': 'generator',
             'success': generation_result.get('success', True),
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': utc_now_iso(),
             'answer_length': len(generation_result.get('answer', ''))
         })
 
@@ -344,7 +345,7 @@ class RAGSupervisor:
         activity = {
             'workflow_id': workflow_id,
             'activity_type': activity_type,
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': utc_now_iso(),
             'input_summary': self._summarize_data(input_data),
             'output_summary': self._summarize_data(output_data)
         }

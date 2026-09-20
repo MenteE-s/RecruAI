@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import { getSidebarItems, getBackendUrl, getAuthHeaders } from "../../utils/auth";
 import { formatDate } from "../../utils/timezone";
+import DualTime from "../../components/ui/DualTime";
 import { FiBarChart2, FiAward, FiUsers, FiTarget, FiCheckCircle, FiAlertTriangle, FiArrowRight } from "react-icons/fi";
 
 export default function OrganizationAnalytics() {
@@ -187,7 +188,7 @@ export default function OrganizationAnalytics() {
                   <div key={interview.id} onClick={() => navigate(`/interviews/${interview.id}/analysis`)} className="border border-gray-200 p-4 hover:bg-gray-50 cursor-pointer flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-gray-900">{interview.title || `Interview #${interview.id}`}</p>
-                      <p className="text-xs text-gray-500">{new Date(interview.scheduled_at).toLocaleDateString()} at {new Date(interview.scheduled_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} • {interview.duration_minutes} min • {interview.interview_type}</p>
+                      <p className="text-xs text-gray-500"><DualTime value={interview.scheduled_at_iso || interview.scheduled_at} otherTimezone={interview.candidate_timezone} otherLabel={interview.user_name} variant="compact" showRelative={false} /> • {interview.duration_minutes} min • {interview.interview_type}</p>
                       {interview.post_title && <p className="text-xs text-blue-600 mt-1">{interview.post_title}</p>}
                     </div>
                     <span className={`text-xs font-medium border px-2 py-1 ${interview.status === "completed" ? "bg-green-50 text-green-700 border-green-200" : interview.status === "cancelled" ? "bg-red-50 text-red-700 border-red-200" : "bg-amber-50 text-amber-700 border-amber-200"}`}>{interview.status}</span>
