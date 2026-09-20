@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from ..extensions import db
+from ..utils.timezone_utils import utc_iso
 
 
 class Certification(db.Model):
@@ -26,5 +27,5 @@ class Certification(db.Model):
             "date_obtained": self.date_obtained.isoformat() if self.date_obtained else None,
             "expiry_date": self.expiry_date.isoformat() if self.expiry_date else None,
             "credential_id": self.credential_id,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "created_at": utc_iso(self.created_at),
         }

@@ -1,6 +1,7 @@
 from flask import request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from .. import api_bp
+from ...utils.timezone_utils import utc_now_iso, utc_iso
 from ...extensions import db
 from ...models import (
     ProfileSection, User, Skill, Experience, Education, Project,
@@ -112,7 +113,7 @@ def save_profile_section():
             'section_id': existing_section.id,
             'user_id': user_id,
             'section_type': section_type,
-            'timestamp': datetime.utcnow().isoformat()
+            'timestamp': utc_now_iso()
         })
 
         # Auto-generate embedding
@@ -145,7 +146,7 @@ def save_profile_section():
             'section_id': new_section.id,
             'user_id': user_id,
             'section_type': section_type,
-            'timestamp': datetime.utcnow().isoformat()
+            'timestamp': utc_now_iso()
         })
 
         # Auto-generate embedding
@@ -183,7 +184,7 @@ def delete_profile_section(section_id):
         'section_id': section_id_val,
         'user_id': user_id,
         'section_type': section_type_val,
-        'timestamp': datetime.utcnow().isoformat()
+        'timestamp': utc_now_iso()
     })
 
     return jsonify({'message': 'Section deleted successfully'}), 200

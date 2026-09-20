@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from ..extensions import db
+from ..utils.timezone_utils import utc_iso
 
 
 class ConversationMemory(db.Model):
@@ -25,7 +26,7 @@ class ConversationMemory(db.Model):
             "user_id": self.user_id,
             "message_type": self.message_type,
             "content": self.content,
-            "timestamp": self.timestamp.isoformat() if self.timestamp else None,
+            "timestamp": utc_iso(self.timestamp),
             "extra_data": json.loads(self.extra_data) if self.extra_data else None,
         }
 

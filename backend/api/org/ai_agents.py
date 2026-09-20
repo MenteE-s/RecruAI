@@ -5,6 +5,7 @@ from flask import request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from .. import api_bp
+from ...utils.timezone_utils import utc_now_iso, utc_iso
 from ...extensions import db
 from ...models import AIInterviewAgent, Organization, Interview, User, TeamMember
 
@@ -222,7 +223,7 @@ def start_ai_interview(interview_id):
     interview.feedback = json.dumps([{
         "role": "assistant",
         "content": initial_message,
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": utc_now_iso()
     }])
 
     db.session.commit()
@@ -281,8 +282,8 @@ def send_ai_message(interview_id):
 
         # Update conversation history
         new_history = conversation_history + [
-            {"role": "user", "content": candidate_message, "timestamp": datetime.utcnow().isoformat()},
-            {"role": "assistant", "content": ai_response, "timestamp": datetime.utcnow().isoformat()}
+            {"role": "user", "content": candidate_message, "timestamp": utc_now_iso()},
+            {"role": "assistant", "content": ai_response, "timestamp": utc_now_iso()}
         ]
 
         interview.feedback = json.dumps(new_history)

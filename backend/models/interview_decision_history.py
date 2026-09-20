@@ -1,4 +1,5 @@
 from backend.extensions import db
+from backend.utils.timezone_utils import utc_iso
 from datetime import datetime
 
 
@@ -28,5 +29,5 @@ class InterviewDecisionHistory(db.Model):
             "rating": self.rating,
             "decided_by": self.decided_by,
             "decided_by_name": self.decision_maker.name if self.decision_maker else None,
-            "decided_at": self.decided_at.isoformat() if self.decided_at else None,
+            "decided_at": utc_iso(self.decided_at),
         }

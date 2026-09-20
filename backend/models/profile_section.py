@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from ..extensions import db
+from ..utils.timezone_utils import utc_iso
 
 
 class ProfileSection(db.Model):
@@ -25,7 +26,7 @@ class ProfileSection(db.Model):
             "section_type": self.section_type,
             "section_data": json.loads(self.section_data) if self.section_data else {},
             "order_index": self.order_index,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
-            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
-            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+            "created_at": utc_iso(self.created_at),
+            "updated_at": utc_iso(self.updated_at),
+            "completed_at": utc_iso(self.completed_at),
         }

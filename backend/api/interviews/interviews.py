@@ -1,6 +1,7 @@
 from flask import request, jsonify
 from sqlalchemy import or_
 from .. import api_bp
+from ...utils.timezone_utils import utc_now_iso, utc_iso, format_datetime, get_user_timezone, get_organization_timezone
 from ...extensions import db
 from ...models import Interview, Application, ConversationMemory, Message, InterviewAnalysis, ConversationMessage, Organization, Post, User, TeamMember
 from ...utils.kafka_service import KafkaService
@@ -102,6 +103,15 @@ def get_interviews():
     # Apply pagination
     pagination_result = Pagination(query, page=page, per_page=per_page).paginate()
 
+    # Lazy expiry: past-due interviews can't stay active forever (the
+    # background scheduler is currently disabled).
+    try:
+        from ...utils.interview_utils import complete_overdue_interviews
+        if complete_overdue_interviews(pagination_result['items']):
+            db.session.commit()
+    except Exception:
+        db.session.rollback()
+
     # Return paginated response
     return jsonify(paginated_response(pagination_result['items'], pagination_result['pagination'])), 200
 
@@ -112,6 +122,12 @@ def get_interview(interview_id):
     interview = Interview.query.get_or_404(interview_id)
     if not _can_see_interview(_me(), interview):
         return jsonify({"error": "Forbidden"}), 403
+    try:
+        from ...utils.interview_utils import complete_overdue_interview
+        if complete_overdue_interview(interview):
+            db.session.commit()
+    except Exception:
+        db.session.rollback()
     return jsonify(interview.to_dict()), 200
 
 @api_bp.route('/interviews', methods=['POST'])
@@ -239,26 +255,34 @@ def create_interview():
             'interview_id': interview.id,
             'user_id': interview.user_id,
             'organization_id': interview.organization_id,
-            'scheduled_at': interview.scheduled_at.isoformat(),
+            'scheduled_at': utc_iso(interview.scheduled_at),
             'title': interview.title
         })
     except Exception as e:
         print(f"Failed to emit Kafka event: {e}")
 
-    # Create notification for the interviewee
+    # Create notification for the interviewee (dual-zone text: candidate
+    # time primary, org time secondary — no math needed by the reader).
     try:
+        candidate_tz = get_user_timezone(interview.user)
+        org_tz = get_organization_timezone(interview.organization)
+        candidate_when = format_datetime(interview.scheduled_at, candidate_tz)
+        if org_tz == candidate_tz:
+            when_text = candidate_when
+        else:
+            when_text = f"{candidate_when} ({format_datetime(interview.scheduled_at, org_tz)} {interview.organization.name if interview.organization else 'org time'})"
         create_interview_notification(
             interview.id,
             "interview_scheduled",
             interview.user_id,
             f"Interview Scheduled: {interview.title}",
-            f"Your interview '{interview.title}' has been scheduled for {interview.scheduled_at.strftime('%B %d, %Y at %I:%M %p')}."
+            f"Your interview '{interview.title}' has been scheduled for {when_text}."
         )
     except Exception as e:
         print(f"Failed to create interview notification: {e}")
 
     log_security_event("interview_created", request.remote_addr, user_id,
-                      details={"interview_id": interview.id, "title": title, "scheduled_at": scheduled_at.isoformat()})
+                      details={"interview_id": interview.id, "title": title, "scheduled_at": utc_iso(scheduled_at)})
 
     return jsonify({
         'message': 'Interview scheduled successfully',
@@ -359,12 +383,19 @@ def update_interview(interview_id):
 
         try:
             if new_status == 'cancelled':
+                candidate_tz = get_user_timezone(interview.user)
+                org_tz = get_organization_timezone(interview.organization)
+                candidate_when = format_datetime(interview.scheduled_at, candidate_tz)
+                if org_tz == candidate_tz:
+                    when_text = candidate_when
+                else:
+                    when_text = f"{candidate_when} ({format_datetime(interview.scheduled_at, org_tz)} org time)"
                 create_interview_notification(
                     interview.id,
                     "interview_cancelled",
                     interview.user_id,
                     f"Interview Cancelled: {interview.title}",
-                    f"Your interview '{interview.title}' scheduled for {interview.scheduled_at.strftime('%B %d, %Y at %I:%M %p')} has been cancelled."
+                    f"Your interview '{interview.title}' scheduled for {when_text} has been cancelled."
                 )
             elif new_status == 'completed':
                 # Check if there's a decision/rating to determine if passed
@@ -450,6 +481,12 @@ def get_upcoming_interviews():
             Interview.organization_id.in_(_managed_org_ids(user) or [-1]),
         )
     ).order_by(Interview.scheduled_at.asc()).all()
+    try:
+        from ...utils.interview_utils import complete_overdue_interviews
+        if complete_overdue_interviews(interviews):
+            db.session.commit()
+    except Exception:
+        db.session.rollback()
     return jsonify({'interviews': [interview.to_dict() for interview in interviews]}), 200
 
 @api_bp.route('/interviews/history', methods=['GET'])
@@ -682,7 +719,7 @@ def get_interview_conversation(interview_id):
             'sender_user_id': msg.sender_user_id,
             'sender_agent_id': msg.sender_agent_id,
             'content': msg.content,
-            'created_at': msg.created_at.isoformat() if msg.created_at else None,
+            'created_at': utc_iso(msg.created_at),
             # Include sender names for display
             'sender_name': (
                 msg.sender_user.name if msg.sender_type == 'user' and msg.sender_user else

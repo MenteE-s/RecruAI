@@ -1,5 +1,6 @@
 
 from backend.extensions import db
+from backend.utils.timezone_utils import utc_iso
 from datetime import datetime, timezone
 
 
@@ -122,21 +123,23 @@ class Interview(db.Model):
             "ai_agent": self.ai_agent.to_dict() if self.ai_agent else None,
             "practice_ai_agent_id": self.practice_ai_agent_id,
             "practice_ai_agent": self.practice_ai_agent.to_dict() if self.practice_ai_agent else None,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
-            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "created_at": utc_iso(self.created_at),
+            "updated_at": utc_iso(self.updated_at),
             # Multi-round fields
             "current_round": self.current_round,
             "max_rounds": self.max_rounds,
             "round_status": self.round_status,
             "final_decision": self.final_decision,
-            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+            "completed_at": utc_iso(self.completed_at),
             "decision_history": [dh.to_dict() for dh in self.decision_history] if self.decision_history else [],
             "analysis_data": self.analysis_data,
             "strengths": self._get_json_list(self.strengths),
             "improvements": self._get_json_list(self.improvements),
             "organization": self.organization.name if self.organization else None,
+            "organization_timezone": (self.organization.timezone or "UTC") if self.organization else "UTC",
             "post_title": self.post.title if self.post else None,
             "user_name": self.user.name if self.user else None,
+            "candidate_timezone": (self.user.timezone or "UTC") if self.user else "UTC",
             # "analysis": self.analysis.to_dict() if self.analysis else None,  # Temporarily disabled
             "analysis": None,
         }

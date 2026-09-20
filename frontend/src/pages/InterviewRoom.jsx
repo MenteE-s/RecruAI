@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import TextInterview from "../components/interviews/TextInterview";
-import { formatDateTime } from "../utils/timezone";
+import { parseUTC } from "../utils/timezone";
+import DualTime from "../components/ui/DualTime";
 import socketService from "../utils/socket";
 import { getCurrentUser } from "../utils/auth";
 
@@ -376,7 +377,7 @@ const InterviewRoom = () => {
   const isInterviewReady = () => {
     if (!interview) return false;
     const now = new Date();
-    const scheduledTime = new Date(interview.scheduled_at);
+    const scheduledTime = parseUTC(interview.scheduled_at_iso || interview.scheduled_at);
     const timeDiff = scheduledTime - now;
     const minutesDiff = timeDiff / (1000 * 60);
 
@@ -387,7 +388,7 @@ const InterviewRoom = () => {
   // Render waiting room
   const renderWaitingRoom = () => {
     const now = new Date();
-    const scheduledTime = new Date(interview.scheduled_at);
+    const scheduledTime = parseUTC(interview.scheduled_at_iso || interview.scheduled_at);
     const timeDiff = scheduledTime - now;
     const minutesDiff = Math.ceil(timeDiff / (1000 * 60));
 
@@ -406,7 +407,13 @@ const InterviewRoom = () => {
               : "Your interview is starting now! Click the button below to join."}
           </p>
           <div className="space-y-2 text-sm text-gray-500">
-            <p>📅 {formatDateTime(interview.scheduled_at)}</p>
+            <p>📅 <DualTime
+              value={interview.scheduled_at_iso || interview.scheduled_at}
+              others={[
+                { timezone: interview.organization_timezone, label: interview.organization },
+                { timezone: interview.candidate_timezone, label: interview.user_name },
+              ]}
+            /></p>
             <p>⏱️ Duration: {interview.duration_minutes} minutes</p>
             <p>
               💬 Interview Type:{" "}

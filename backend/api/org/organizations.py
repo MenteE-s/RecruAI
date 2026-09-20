@@ -3,7 +3,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from .. import api_bp
 from ...extensions import db
 from ...models import Organization, TeamMember, User, AIInterviewAgent
-from ...utils.timezone_utils import is_valid_timezone, get_current_time_info
+from ...utils.timezone_utils import is_valid_timezone, get_current_time_info, utc_iso, utc_now_iso
 from ...utils.kafka_service import kafka_service as kafka
 from ...utils.cache import cached, invalidate_org_cache
 import json
@@ -59,6 +59,25 @@ def _validate_permissions(permissions):
     if not isinstance(permissions, list) or len(permissions) > 50:
         return False
     return all(isinstance(p, str) and 1 <= len(p) <= 100 for p in permissions)
+
+
+def _parse_join_date(value):
+    """Parse an optional join_date (YYYY-MM-DD or full ISO datetime) to a date.
+
+    Returns (date_or_None, error_response_or_None). Accepts full ISO strings
+    by taking the calendar date portion.
+    """
+    if value is None or value == "":
+        return None, None
+    if not isinstance(value, str):
+        return None, (jsonify({"error": "Invalid join_date. Use YYYY-MM-DD"}), 400)
+    text = value.strip()
+    try:
+        if "T" in text:
+            return datetime.fromisoformat(text.replace("Z", "+00:00")).date(), None
+        return datetime.strptime(text, "%Y-%m-%d").date(), None
+    except (ValueError, TypeError):
+        return None, (jsonify({"error": "Invalid join_date. Use YYYY-MM-DD"}), 400)
 
 # Default AI agents to create for new organizations
 DEFAULT_AI_AGENTS = [
@@ -511,7 +530,7 @@ def list_organizations():
         "location": o.location,
         "profile_image": o.profile_image,
         "banner_image": o.banner_image,
-        "created_at": o.created_at.isoformat() if o.created_at else None,
+        "created_at": utc_iso(o.created_at),
     } for o in orgs]), 200
 
 @api_bp.route("/organizations", methods=["POST"])
@@ -551,7 +570,7 @@ def create_organization():
     kafka.emit_event('organization_created', {
         'org_id': org.id,
         'name': org.name,
-        'timestamp': datetime.utcnow().isoformat()
+        'timestamp': utc_now_iso()
     })
 
     # Invalidate org caches
@@ -588,7 +607,7 @@ def get_organization(org_id):
             "social_media_links": org.social_media_links,
             "profile_image": org.profile_image,
             "banner_image": org.banner_image,
-            "created_at": org.created_at.isoformat() if org.created_at else None,
+            "created_at": utc_iso(org.created_at),
             "posts": posts,
         })
     # Non-managers get public-safe view: no contacts, active posts only.
@@ -655,7 +674,7 @@ def update_organization_timezone(org_id):
     kafka.emit_event('organization_timezone_updated', {
         'org_id': org.id,
         'timezone': tz,
-        'timestamp': datetime.utcnow().isoformat()
+        'timestamp': utc_now_iso()
     })
     
     return jsonify({
@@ -732,6 +751,9 @@ def add_team_member(org_id):
         return jsonify({"error": "Only Admins can grant the Admin role"}), 403
     if not _validate_permissions(permissions):
         return jsonify({"error": "Invalid permissions (must be a list of <=50 strings)"}), 400
+    join_date, join_err = _parse_join_date(join_date)
+    if join_err:
+        return join_err
 
     # Check if user exists
     user = User.query.get(user_id)
@@ -758,7 +780,7 @@ def add_team_member(org_id):
         'org_id': org_id,
         'user_id': user_id,
         'role': role,
-        'timestamp': datetime.utcnow().isoformat()
+        'timestamp': utc_now_iso()
     })
     
     return jsonify(tm.to_dict()), 201
@@ -783,7 +805,10 @@ def update_team_member(org_id, member_id):
             return jsonify({"error": "Invalid permissions (must be a list of <=50 strings)"}), 400
         tm.permissions = json.dumps(payload["permissions"]) if payload["permissions"] else None
     if "join_date" in payload:
-        tm.join_date = payload["join_date"]
+        parsed, join_err = _parse_join_date(payload["join_date"])
+        if join_err:
+            return join_err
+        tm.join_date = parsed
 
     db.session.commit()
     return jsonify(tm.to_dict()), 200
@@ -801,7 +826,7 @@ def remove_team_member(org_id, member_id):
     kafka.emit_event('team_member_removed', {
         'org_id': org_id,
         'member_id': member_id,
-        'timestamp': datetime.utcnow().isoformat()
+        'timestamp': utc_now_iso()
     })
     
     return jsonify({"message": "team member removed"}), 200
@@ -825,11 +850,12 @@ def list_organization_people(org_id):
     Managers of the org only."""
     if not _manages_org(org_id):
         return jsonify({"error": "Forbidden for this organization"}), 403
-    from datetime import date
+    from datetime import date, datetime, timezone
     from sqlalchemy import func, or_
     from ...models import Experience
     org = Organization.query.get_or_404(org_id)
-    today = date.today()
+    # UTC calendar date (not server-local): consistent for viewers worldwide.
+    today = datetime.now(timezone.utc).date()
     rows = (db.session.query(Experience, User)
             .join(User, User.id == Experience.user_id)
             .filter(or_(
@@ -876,6 +902,9 @@ def invite_team_member(org_id):
         return jsonify({"error": "Only Admins can grant the Admin role"}), 403
     if not _validate_permissions(permissions):
         return jsonify({"error": "Invalid permissions (must be a list of <=50 strings)"}), 400
+    invite_join_date, join_err = _parse_join_date(payload.get("join_date"))
+    if join_err:
+        return join_err
 
     # Check if user already exists
     user = User.query.filter_by(email=email).first()
@@ -905,7 +934,7 @@ def invite_team_member(org_id):
         user_id=user_id,
         role=role,
         permissions=json.dumps(permissions) if permissions else None,
-        join_date=payload.get("join_date")
+        join_date=invite_join_date
     )
     db.session.add(tm)
     # Joining a team means working here: lift the default 'unemployed' state

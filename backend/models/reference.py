@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from ..extensions import db
+from ..utils.timezone_utils import utc_iso
 
 
 class Reference(db.Model):
@@ -28,5 +29,5 @@ class Reference(db.Model):
             "email": self.email,
             "phone": self.phone,
             "relationship": self.relationship,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "created_at": utc_iso(self.created_at),
         }

@@ -3,6 +3,7 @@ from datetime import datetime
 from sqlalchemy import func
 
 from ..extensions import db
+from ..utils.timezone_utils import utc_iso
 
 
 class Post(db.Model):
@@ -64,8 +65,8 @@ class Post(db.Model):
             "status": self.status,
             "view_count": self.view_count or 0,
             "application_count": application_count if application_count is not None else self.application_count(),
-            "created_at": self.created_at.isoformat() if self.created_at else None,
-            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "created_at": utc_iso(self.created_at),
+            "updated_at": utc_iso(self.updated_at),
             "organization_id": self.organization_id,
             "organization": {
                 "id": self.organization.id,

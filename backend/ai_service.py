@@ -9,6 +9,7 @@ from typing import Dict, List, Optional, Any
 from datetime import datetime
 
 from .ai_providers import get_ai_provider_manager
+from .utils.timezone_utils import utc_now_iso
 
 
 class AIService:
@@ -124,7 +125,7 @@ class InterviewAIService(AIService):
         return {
             "ai_message": ai_response,
             "parsed_response": parsed_response,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": utc_now_iso()
         }
 
     def _build_interview_system_prompt(self, agent_data: Dict, interview_context: Dict) -> str:

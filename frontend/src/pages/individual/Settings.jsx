@@ -271,7 +271,7 @@ export default function Settings() {
                 />
                 {expanded === "tz" && (
                   <div className="pb-4">
-                    <TimezoneSelector userId={userId} showCurrentTime={true} />
+                    <TimezoneSelector userId={userId} value={userData?.timezone} showCurrentTime={true} />
                   </div>
                 )}
                 <Row
@@ -388,7 +388,7 @@ export default function Settings() {
                 <div className="py-3">
                   <p className="text-[13px] font-semibold text-gray-900">Timezone</p>
                   <p className="text-xs text-gray-500 mt-0.5 mb-2">Interview times display in this timezone.</p>
-                  <TimezoneSelector userId={userId} showCurrentTime={true} />
+                  <TimezoneSelector userId={userId} value={userData?.timezone} showCurrentTime={true} />
                 </div>
                 <div className="flex items-center justify-between gap-3 py-3">
                   <div className="min-w-0">

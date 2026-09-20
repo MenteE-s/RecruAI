@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from ..extensions import db
+from ..utils.timezone_utils import utc_iso
 
 
 class EmailOtp(db.Model):
@@ -46,7 +47,7 @@ class EmailOtp(db.Model):
         return {
             "id": self.id,
             "purpose": self.purpose,
-            "expires_at": self.expires_at.isoformat() if self.expires_at else None,
+            "expires_at": utc_iso(self.expires_at),
             "attempts": self.attempts,
             "consumed": self.consumed_at is not None,
         }

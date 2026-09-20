@@ -24,6 +24,17 @@ export default function TimezoneSelector({
   const [currentTime, setCurrentTime] = useState("");
   const [saving, setSaving] = useState(false);
 
+  // Hydrate from the server-provided value when it arrives/changes
+  // (e.g. user.timezone from /api/auth/me), keeping local edits intact
+  // only while a save is in flight.
+  useEffect(() => {
+    if (value && !saving) {
+      setSelectedTz(value);
+      setUserTimezone(value);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
+
   // Fetch timezone list from backend
   useEffect(() => {
     const fetchTimezones = async () => {
@@ -97,8 +108,8 @@ export default function TimezoneSelector({
       setSaving(true);
       try {
         const endpoint = userId
-          ? `/api/users/${userId}/timezone`
-          : `/api/organizations/${organizationId}/timezone`;
+          ? `${getBackendUrl()}/api/users/${userId}/timezone`
+          : `${getBackendUrl()}/api/organizations/${organizationId}/timezone`;
 
         const response = await fetch(endpoint, {
           method: "PUT",

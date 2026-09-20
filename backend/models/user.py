@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from backend.extensions import db
+from backend.utils.timezone_utils import utc_iso
 
 
 class User(db.Model):
@@ -136,15 +137,15 @@ class User(db.Model):
             "linkedin": self.linkedin,
             "headline": self.headline,
             "subscription_status": self.get_subscription_status(),
-            "last_login_at": self.last_login_at.isoformat() if self.last_login_at else None,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "last_login_at": utc_iso(self.last_login_at),
+            "created_at": utc_iso(self.created_at),
             # Employment status
             "employment_status": self.employment_status,
             "current_position": self.current_position,
             "current_company": self.current_company,
             "current_company_id": self.current_company_id,
-            "hired_date": self.hired_date.isoformat() if self.hired_date else None,
-            "onboarded_date": self.onboarded_date.isoformat() if self.onboarded_date else None,
+            "hired_date": utc_iso(self.hired_date),
+            "onboarded_date": utc_iso(self.onboarded_date),
             # Referral
             "referred_by_email": self.referred_by_email,
             "referred_by_user_id": self.referred_by_user_id,
@@ -243,7 +244,7 @@ class User(db.Model):
             "status": self.subscription_status,
             "is_trial_active": self.is_trial_active(),
             "is_paid_active": self.is_subscription_active(),
-            "trial_start_date": self.trial_start_date.isoformat() if self.trial_start_date else None,
+            "trial_start_date": utc_iso(self.trial_start_date),
             "paid_plan": self.paid_plan,
             "tokens_used": self.tokens_used or 0,
             "interviews_count": self.interviews_count or 0,

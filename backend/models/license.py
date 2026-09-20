@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from ..extensions import db
+from ..utils.timezone_utils import utc_iso
 
 
 class License(db.Model):
@@ -30,5 +31,5 @@ class License(db.Model):
             "expiry_date": self.expiry_date.isoformat() if self.expiry_date else None,
             "is_active": self.is_active,
             "description": self.description,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "created_at": utc_iso(self.created_at),
         }

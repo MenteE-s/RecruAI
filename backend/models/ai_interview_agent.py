@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from ..extensions import db
+from ..utils.timezone_utils import utc_iso
 
 
 class AIInterviewAgent(db.Model):
@@ -31,7 +32,7 @@ class AIInterviewAgent(db.Model):
             "description": self.description,
             "custom_instructions": self.custom_instructions,
             "is_active": self.is_active,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
-            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "created_at": utc_iso(self.created_at),
+            "updated_at": utc_iso(self.updated_at),
             "organization": self.organization.name if self.organization else None,
         }

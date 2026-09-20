@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from backend.extensions import db
+from backend.utils.timezone_utils import utc_iso
 
 
 class PaymentMethod(db.Model):
@@ -44,5 +45,5 @@ class PaymentMethod(db.Model):
             "exp_year": f"{self.exp_year % 100:02d}",
             "cardholder_name": self.cardholder_name,
             "is_default": bool(self.is_default),
-            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "created_at": utc_iso(self.created_at),
         }

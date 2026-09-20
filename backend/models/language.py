@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from ..extensions import db
+from ..utils.timezone_utils import utc_iso
 
 
 class Language(db.Model):
@@ -20,5 +21,5 @@ class Language(db.Model):
             "user_id": self.user_id,
             "name": self.name,
             "proficiency_level": self.proficiency_level,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "created_at": utc_iso(self.created_at),
         }

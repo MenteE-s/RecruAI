@@ -5,7 +5,7 @@ import IndividualNavbar from "../components/layout/IndividualNavbar";
 import OrganizationNavbar from "../components/layout/OrganizationNavbar";
 import Card from "../components/ui/Card";
 import { getSidebarItems, getBackendUrl } from "../utils/auth";
-import { formatDateTime } from "../utils/timezone";
+import DualTime from "../components/ui/DualTime";
 
 const InterviewAnalysis = () => {
   const { interviewId } = useParams();
@@ -233,7 +233,13 @@ const InterviewAnalysis = () => {
             <div>
               <div className="text-sm text-gray-600">Date & Time</div>
               <div className="font-medium">
-                {formatDateTime(interview.scheduled_at)}
+                <DualTime
+                  value={interview.scheduled_at_iso || interview.scheduled_at}
+                  others={[
+                    { timezone: interview.organization_timezone, label: interview.organization },
+                    { timezone: interview.candidate_timezone, label: interview.user_name },
+                  ]}
+                />
               </div>
             </div>
             <div>
@@ -508,9 +514,7 @@ const InterviewAnalysis = () => {
                               {message.content}
                             </div>
                             <div className="text-xs text-gray-400 mt-1">
-                              {new Date(
-                                message.created_at
-                              ).toLocaleTimeString()}
+                              <DualTime value={message.created_at} variant="compact" showRelative={false} />
                             </div>
                           </div>
                         </div>

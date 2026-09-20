@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from ..extensions import db
+from ..utils.timezone_utils import utc_iso
 
 
 class Patent(db.Model):
@@ -37,5 +38,5 @@ class Patent(db.Model):
             "grant_date": self.grant_date.isoformat() if self.grant_date else None,
             "description": self.description,
             "inventors": inventors,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "created_at": utc_iso(self.created_at),
         }

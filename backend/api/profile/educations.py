@@ -1,6 +1,7 @@
 from flask import request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from .. import api_bp
+from ...utils.timezone_utils import utc_now_iso, utc_iso
 from ...extensions import db
 from ...models import Education, Skill, Language
 from datetime import datetime
@@ -65,7 +66,7 @@ def create_education():
         'user_id': user_id,
         'degree': education.degree,
         'school': education.school,
-        'timestamp': datetime.utcnow().isoformat()
+        'timestamp': utc_now_iso()
     })
 
     return jsonify({'message': 'Education record created successfully', 'education': education.to_dict()}), 201
@@ -104,7 +105,7 @@ def update_education(edu_id):
         'user_id': user_id,
         'degree': education.degree,
         'school': education.school,
-        'timestamp': datetime.utcnow().isoformat()
+        'timestamp': utc_now_iso()
     })
 
     return jsonify({'message': 'Education record updated successfully', 'education': education.to_dict()}), 200
@@ -127,7 +128,7 @@ def delete_education(edu_id):
     kafka.emit_event('profile_education_deleted', {
         'education_id': edu_id_val,
         'user_id': user_id,
-        'timestamp': datetime.utcnow().isoformat()
+        'timestamp': utc_now_iso()
     })
 
     return jsonify({'message': 'Education record deleted successfully'}), 200

@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from backend.extensions import db
+from backend.utils.timezone_utils import utc_iso
 
 
 class TokenUsage(db.Model):
@@ -28,5 +29,5 @@ class TokenUsage(db.Model):
             "model": self.model,
             "tokens_used": self.tokens_used,
             "operation_type": self.operation_type,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "created_at": utc_iso(self.created_at),
         }

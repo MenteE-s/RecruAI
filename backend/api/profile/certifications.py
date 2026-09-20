@@ -1,6 +1,7 @@
 from flask import request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from .. import api_bp
+from ...utils.timezone_utils import utc_now_iso, utc_iso
 from ...extensions import db
 from ...models import Certification
 from datetime import datetime
@@ -59,7 +60,7 @@ def create_certification():
         'user_id': user_id,
         'name': certification.name,
         'issuer': certification.issuer,
-        'timestamp': datetime.utcnow().isoformat()
+        'timestamp': utc_now_iso()
     })
 
     return jsonify({'message': 'Certification created successfully', 'certification': certification.to_dict()}), 201
@@ -108,7 +109,7 @@ def update_certification(cert_id):
         'user_id': user_id,
         'name': certification.name,
         'issuer': certification.issuer,
-        'timestamp': datetime.utcnow().isoformat()
+        'timestamp': utc_now_iso()
     })
 
     return jsonify({'message': 'Certification updated successfully', 'certification': certification.to_dict()}), 200
@@ -131,7 +132,7 @@ def delete_certification(cert_id):
     kafka.emit_event('profile_certification_deleted', {
         'certification_id': cert_id_val,
         'user_id': user_id,
-        'timestamp': datetime.utcnow().isoformat()
+        'timestamp': utc_now_iso()
     })
 
     return jsonify({'message': 'Certification deleted successfully'}), 200

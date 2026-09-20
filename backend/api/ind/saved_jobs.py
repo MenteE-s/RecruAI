@@ -43,7 +43,7 @@ def save_job():
         kafka.emit_event('job_saved', {
             'user_id': user_id,
             'post_id': post_id,
-            'saved_at': saved_job.saved_at.isoformat() if saved_job.saved_at else None
+            'saved_at': utc_iso(saved_job.saved_at)
         })
     except Exception as ke:
         print(f"Failed to emit Kafka message for job save: {ke}")

@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from ..extensions import db
+from ..utils.timezone_utils import utc_iso
 
 
 class SystemIssue(db.Model):
@@ -45,9 +46,9 @@ class SystemIssue(db.Model):
             "user_email": self.user_email,
             "resolution": self.resolution,
             "resolved_by": self.resolved_by,
-            "resolved_at": self.resolved_at.isoformat() if self.resolved_at else None,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
-            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "resolved_at": utc_iso(self.resolved_at),
+            "created_at": utc_iso(self.created_at),
+            "updated_at": utc_iso(self.updated_at),
             "reporter": {
                 "id": self.reporter.id if self.reporter else None,
                 "name": self.reporter.name if self.reporter else None,

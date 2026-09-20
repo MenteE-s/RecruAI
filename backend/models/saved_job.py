@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from ..extensions import db
+from ..utils.timezone_utils import utc_iso
 
 
 class SavedJob(db.Model):
@@ -19,6 +20,6 @@ class SavedJob(db.Model):
             "id": self.id,
             "user_id": self.user_id,
             "post_id": self.post_id,
-            "saved_at": self.saved_at.isoformat() if self.saved_at else None,
+            "saved_at": utc_iso(self.saved_at),
             "post": self.post.to_dict() if self.post else None,
         }
