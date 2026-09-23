@@ -4,7 +4,7 @@ import DashboardLayout from "../components/layout/DashboardLayout";
 import IndividualNavbar from "../components/layout/IndividualNavbar";
 import OrganizationNavbar from "../components/layout/OrganizationNavbar";
 import Card from "../components/ui/Card";
-import { getSidebarItems, getBackendUrl } from "../utils/auth";
+import { getSidebarItems, getBackendUrl, getAuthHeaders } from "../utils/auth";
 import DualTime from "../components/ui/DualTime";
 
 const InterviewAnalysis = () => {
@@ -42,6 +42,7 @@ const InterviewAnalysis = () => {
       const interviewResponse = await fetch(
         `${getBackendUrl()}/api/interviews/${interviewId}`,
         {
+          headers: getAuthHeaders(),
           credentials: "include",
         }
       );
@@ -59,6 +60,7 @@ const InterviewAnalysis = () => {
           const analysisResponse = await fetch(
             `${getBackendUrl()}/api/interviews/${interviewId}/analysis`,
             {
+              headers: getAuthHeaders(),
               credentials: "include",
             }
           );
@@ -80,6 +82,7 @@ const InterviewAnalysis = () => {
       const conversationResponse = await fetch(
         `${getBackendUrl()}/api/interviews/${interviewId}/conversation`,
         {
+          headers: getAuthHeaders(),
           credentials: "include",
         }
       );
@@ -114,7 +117,7 @@ const InterviewAnalysis = () => {
         `${getBackendUrl()}/api/interviews/${interviewId}/analyze?force=true`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...getAuthHeaders() },
           credentials: "include",
         }
       );
@@ -254,6 +257,17 @@ const InterviewAnalysis = () => {
                 {interview.interview_type} Interview
               </div>
             </div>
+            {interview.recording_url && (
+              <div className="md:col-span-3 mt-2">
+                <div className="text-sm text-gray-600 mb-1">Recording</div>
+                <video
+                  controls
+                  preload="metadata"
+                  src={`${interview.recording_url.startsWith("http") ? "" : getBackendUrl()}${interview.recording_url}`}
+                  className="w-full rounded-lg bg-black max-h-[480px]"
+                />
+              </div>
+            )}
           </div>
           {interview.post_title && (
             <div className="mt-4 pt-4 border-t">

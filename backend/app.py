@@ -196,6 +196,18 @@ def create_app(config_object: object | None = None):
 		if app.config.get("IS_PRODUCTION"):
 			raise RuntimeError("Flask-Limiter required in production")
 
+	# Skip rate limiting for CORS preflight (OPTIONS) and video polling endpoints
+	# that fire every 5-8s and would blow through normal limits instantly.
+	if limiter:
+		@limiter.request_filter
+		def _skip_options_and_polling():
+			path = request.path
+			if request.method == "OPTIONS":
+				return True
+			if "/conversation" in path or "/recording/status" in path:
+				return True
+			return False
+
 	# Security: Initialize Flask-Talisman for security headers
 	try:
 		from flask_talisman import Talisman

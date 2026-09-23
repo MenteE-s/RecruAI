@@ -434,6 +434,10 @@ function App() {
             }
           />
           <Route
+            path="/interviews/analysis"
+            element={<Navigate to="/analytics" replace />}
+          />
+          <Route
             path="/interviews/:interviewId/analysis"
             element={
               <ProtectedRoute>

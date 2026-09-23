@@ -27,6 +27,14 @@ export default function InterviewDetail() {
   const chatEndRef = useRef(null);
 
   useEffect(() => {
+    // Guard against non-numeric ids (e.g. a stale "/interviews/analysis"
+    // bookmark). Without this the fetch hits a 404 and shows a cryptic
+    // "Failed to fetch" error with no way forward.
+    if (!interviewId || !/^\d+$/.test(String(interviewId))) {
+      setError("Interview not found. The link looks invalid.");
+      setLoading(false);
+      return;
+    }
     const fetchInterview = async () => {
       try {
         const response = await fetch(
@@ -37,6 +45,15 @@ export default function InterviewDetail() {
           }
         );
 
+        if (response.status === 404) {
+          throw new Error("Interview not found. It may have been deleted.");
+        }
+        if (response.status === 403) {
+          throw new Error("You don't have access to this interview.");
+        }
+        if (response.status === 401) {
+          throw new Error("Please log in to view this interview.");
+        }
         if (!response.ok) {
           throw new Error("Failed to fetch interview details");
         }
@@ -45,7 +62,13 @@ export default function InterviewDetail() {
         setInterview(data);
       } catch (err) {
         console.error("Error fetching interview:", err);
-        setError(err.message);
+        // Browser network failures surface as TypeError "Failed to fetch" —
+        // translate to something actionable with a retry path.
+        if (err instanceof TypeError && /fetch/i.test(err.message)) {
+          setError("Network error. Couldn't reach the server. Check your connection and try again.");
+        } else {
+          setError(err.message);
+        }
       } finally {
         setLoading(false);
       }
@@ -316,12 +339,18 @@ export default function InterviewDetail() {
               </div>
             </div>
           </div>
-          <div className="mt-4">
+          <div className="mt-4 flex gap-2">
             <button
-              onClick={() => navigate(-1)}
+              onClick={() => navigate("/interviews/history")}
               className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
             >
               Back to Interview History
+            </button>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+            >
+              Retry
             </button>
           </div>
         </div>
@@ -344,7 +373,7 @@ export default function InterviewDetail() {
             </div>
             <div className="px-4 py-4 bg-gray-50 text-right sm:px-6">
               <button
-                onClick={() => navigate(-1)}
+                onClick={() => navigate("/interviews/history")}
                 className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
                 Back to Interview History
@@ -372,7 +401,7 @@ export default function InterviewDetail() {
           </div>
           <div className="flex space-x-3">
             <button
-              onClick={() => navigate(-1)}
+              onClick={() => navigate("/interviews/history")}
               className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
             >
               Back to History
@@ -396,6 +425,15 @@ export default function InterviewDetail() {
                       {interview.final_decision &&
                         getDecisionBadge(interview.final_decision)}
                     </div>
+                    {(interview.interview_type === "video" || interview.interview_type === "human_video") &&
+                      (interview.status === "scheduled" || interview.status === "in_progress") && (
+                      <button
+                        onClick={() => navigate(`/interview/${interview.id}`)}
+                        className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                      >
+                        Join Interview
+                      </button>
+                    )}
                   </div>
                   <div className="text-right">
                     <p className="text-sm text-gray-500">Scheduled</p>
@@ -422,6 +460,23 @@ export default function InterviewDetail() {
                         {interview.feedback}
                       </p>
                     </div>
+                  </div>
+                )}
+
+                {interview.recording_url && (
+                  <div className="mt-6">
+                    <h3 className="text-sm font-medium text-gray-900 mb-2">
+                      Recording
+                    </h3>
+                    <video
+                      controls
+                      preload="metadata"
+                      src={`${interview.recording_url.startsWith("http") ? "" : getBackendUrl()}${interview.recording_url}`}
+                      className="w-full rounded-lg bg-black"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Recorded call — visible only to participants and hiring managers.
+                    </p>
                   </div>
                 )}
 

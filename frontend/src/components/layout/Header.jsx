@@ -215,7 +215,7 @@ export default function Header({ sidebarItems = [] }) {
                 <button onClick={() => { navigate("/profile"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
                   <FiUser className="w-3.5 h-3.5 text-gray-400" /> Profile
                 </button>
-                <button onClick={() => { navigate("/interviews/analysis"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
+                <button onClick={() => { navigate("/analytics"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
                   <FiTrendingUp className="w-3.5 h-3.5 text-gray-400" /> Analytics
                 </button>
                 <button onClick={() => { navigate("/jobs"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">

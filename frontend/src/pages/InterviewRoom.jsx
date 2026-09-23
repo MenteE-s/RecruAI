@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import TextInterview from "../components/interviews/TextInterview";
+import VideoRoom from "../components/interviews/VideoRoom";
 import { parseUTC } from "../utils/timezone";
 import DualTime from "../components/ui/DualTime";
 import socketService from "../utils/socket";
@@ -543,26 +544,9 @@ const InterviewRoom = () => {
           </div>
         );
 
+      case "video":
       case "human_video":
-        return (
-          <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-            <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full text-center">
-              <div className="text-green-500 text-4xl mb-4">👥</div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                Human Video Interview
-              </h2>
-              <p className="text-gray-600 mb-4">
-                Coming soon! This feature is under development.
-              </p>
-              <button
-                onClick={() => navigate("/dashboard")}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              >
-                Return to Dashboard
-              </button>
-            </div>
-          </div>
-        );
+        return <VideoRoom interviewId={interviewId} interview={interview} onLeave={() => navigate(`/interviews/${interviewId}`)} />;
 
       default:
         return (
