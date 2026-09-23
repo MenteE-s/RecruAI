@@ -180,7 +180,6 @@ services:
     container_name: recruai_nginx
     restart: unless-stopped
     entrypoint: ["/bin/sh", "/entrypoint-vps.sh"]
-    command: []
     ports:
       - "80:80"
       - "443:443"
