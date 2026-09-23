@@ -395,29 +395,32 @@ export default function IndividualDashboard() {
             </div>
           </div>
 
-          <div className="bg-white border border-gray-200 rounded-xl px-3 py-2.5 shadow-sm">
+          <div className="bg-gradient-to-br from-red-50 to-red-100 border-2 border-red-300 rounded-xl px-3 py-2.5 shadow-sm">
             <div className="flex items-center justify-between">
-              <h3 className="text-xs font-bold text-gray-900">Next interview</h3>
-              <button onClick={() => navigate("/interviews")} className="text-[11px] font-semibold text-blue-600 hover:underline">
+              <h3 className="text-xs font-bold text-red-700 flex items-center gap-1.5">
+                <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                Next interview
+              </h3>
+              <button onClick={() => navigate("/interviews")} className="text-[11px] font-semibold text-red-600 hover:underline">
                 All →
               </button>
             </div>
             {loading ? (
-              <p className="text-[11px] text-gray-400 mt-1.5">Loading…</p>
+              <p className="text-[11px] text-red-400 mt-1.5">Loading…</p>
             ) : nextInterview ? (
               <button onClick={() => navigate(`/interviews/${nextInterview.id}`)} className="w-full text-left mt-1.5 group">
-                <p className="text-xs font-semibold text-gray-900 group-hover:text-blue-700 leading-tight truncate">
+                <p className="text-xs font-bold text-red-900 group-hover:text-red-600 leading-tight truncate">
                   {nextInterview.title || "Interview"}
                 </p>
-                <p className="text-[11px] text-gray-500 truncate mt-px">
+                <p className="text-[11px] text-red-600 truncate mt-px">
                   {nextInterview.organization || ""}
                 </p>
-                <p className="mt-1 inline-block text-[11px] font-bold text-blue-700 bg-blue-50 border border-blue-100 px-1.5 py-px rounded-full">
+                <p className="mt-1.5 inline-block text-[11px] font-bold text-white bg-red-600 px-2 py-0.5 rounded-full animate-pulse">
                   {countdownTo(nextInterview._at)}
                 </p>
               </button>
             ) : (
-              <p className="text-[11px] text-gray-400 mt-1.5">Nothing scheduled.</p>
+              <p className="text-[11px] text-red-400 mt-1.5">Nothing scheduled.</p>
             )}
           </div>
 

@@ -179,13 +179,15 @@ services:
     image: nginx:1.25-alpine
     container_name: recruai_nginx
     restart: unless-stopped
+    entrypoint: ["/bin/sh", "/entrypoint-vps.sh"]
+    command: []
     ports:
       - "80:80"
       - "443:443"
-    environment:
-      API_DOMAIN: ${API_DOMAIN:?set API_DOMAIN in environment (e.g. api.menteeai.org)}
+    env_file:
+      - ./backend/.env.vps
     volumes:
-      # Rendered on container start via nginx's /etc/nginx/templates mechanism
+      - ./nginx/entrypoint-vps.sh:/entrypoint-vps.sh:ro
       - ./nginx/nginx.vps.conf.template:/etc/nginx/templates/default.conf.template:ro
       - certbot_www:/var/www/certbot
       - letsencrypt:/etc/letsencrypt
