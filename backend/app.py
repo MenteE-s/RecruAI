@@ -357,7 +357,7 @@ def create_app(config_object: object | None = None):
 	# prevent client-side script access to session cookies and allow enabling
 	# Secure in environments that terminate TLS.
 	app.config.setdefault("SESSION_COOKIE_HTTPONLY", True)
-	app.config.setdefault("SESSION_COOKIE_SAMESITE", "Lax")
+	app.config.setdefault("SESSION_COOKIE_SAMESITE", os.getenv("SESSION_COOKIE_SAMESITE", "None" if app.config.get("IS_PRODUCTION") else "Lax"))
 	app.config.setdefault(
 		"SESSION_COOKIE_SECURE",
 		os.getenv("SESSION_COOKIE_SECURE", "0") == "1",
