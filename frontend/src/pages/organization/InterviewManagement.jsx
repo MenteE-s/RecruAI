@@ -1471,25 +1471,6 @@ export default function InterviewManagement() {
     }
   };
 
-  const getInterviewTypeIcon = (type) => {
-    switch (type) {
-      case "text":
-        return "💬";
-      case "ai_video":
-        return "🤖";
-      case "human_video":
-        return "👥";
-      case "video":
-        return "📹";
-      case "phone":
-        return "📞";
-      case "in-person":
-        return "🏢";
-      default:
-        return "📅";
-    }
-  };
-
   // Filtering logic
   const filteredInterviews = interviews.filter((interview) => {
     // Text filter
