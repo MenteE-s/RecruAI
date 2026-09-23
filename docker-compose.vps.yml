@@ -87,9 +87,12 @@ services:
     volumes:
       # Persist user/org uploads outside the container filesystem
       - backend_uploads:/app/backend/uploads
+      # Call recordings written by the egress service (served at /uploads/recordings/*)
+      - recordings:/app/backend/uploads/recordings
     depends_on:
       db:
         condition: service_healthy
+        required: false
       redis:
         condition: service_healthy
     healthcheck:
@@ -98,6 +101,79 @@ services:
       timeout: 10s
       start_period: 60s
       retries: 3
+
+  # Self-hosted video (LiveKit SFU + TURN + recording egress).
+  # Firewall must allow: TCP 7881, TCP+UDP 7882, TCP+UDP 3478, UDP 50000-50050.
+  # Signaling reaches browsers as wss://<API_DOMAIN>/livekit/ via nginx.
+  livekit:
+    image: livekit/livekit-server:v1.8.4
+    container_name: recruai_livekit
+    restart: unless-stopped
+    mem_limit: 1g
+    ports:
+      - "7881:7881/tcp" # ICE/TCP fallback
+      - "7882:7882/tcp" # ICE/TCP multiplex
+      - "7882:7882/udp" # ICE/UDP multiplex
+      - "3478:3478/tcp" # TURN/TCP
+      - "3478:3478/udp" # TURN/UDP
+      - "50000-50050:50000-50050/udp" # WebRTC media
+    environment:
+      LIVEKIT_CONFIG: |
+        port: 7880
+        bind_addresses:
+          - "0.0.0.0"
+        rtc:
+          tcp_port: 7881
+          udp_port: 7882
+          port_range_start: 50000
+          port_range_end: 50050
+          use_external_ip: true
+        keys:
+          ${LIVEKIT_API_KEY:?set LIVEKIT_API_KEY in environment}: ${LIVEKIT_API_SECRET:?set LIVEKIT_API_SECRET in environment}
+        # Egress state + multi-node coordination live here (server panics
+        # on egress API calls without it).
+        redis:
+          address: redis:6379
+        room:
+          empty_timeout: 300
+          departure_timeout: 20
+          max_participants: 4
+        turn:
+          enabled: true
+          udp_port: 3478
+          external_tls: false
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:7880 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # Recording worker: room-composite MP4 -> /recordings (max 2 concurrent by config).
+  egress:
+    image: livekit/egress:v1.8.4
+    container_name: recruai_egress
+    restart: unless-stopped
+    mem_limit: 1g
+    cpus: 1.5
+    environment:
+      EGRESS_CONFIG_BODY: |
+        api_key: ${LIVEKIT_API_KEY:?set LIVEKIT_API_KEY in environment}
+        api_secret: ${LIVEKIT_API_SECRET:?set LIVEKIT_API_SECRET in environment}
+        ws_url: ws://livekit:7880
+        redis:
+          address: redis:6379
+        cpu_cost:
+          room_composite_cpu_cost: 1
+          track_composite_cpu_cost: 1
+          track_cpu_cost: 0.5
+        log_level: debug
+    volumes:
+      - recordings:/recordings
+    depends_on:
+      livekit:
+        condition: service_started
+      redis:
+        condition: service_healthy
 
   nginx:
     image: nginx:1.25-alpine
@@ -122,5 +198,6 @@ volumes:
   redisdata:
   kafkadata:
   backend_uploads:
+  recordings:
   certbot_www:
   letsencrypt:

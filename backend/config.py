@@ -218,3 +218,26 @@ class Config:
     @property
     def EMBEDDING_REQUESTS_PER_HOUR(self):
         return int(os.getenv("EMBEDDING_REQUESTS_PER_HOUR", "1000"))
+
+    # LiveKit self-hosted video (1:1 interviews + recording)
+    @property
+    def LIVEKIT_URL(self):
+        # Internal URL for server-side API calls (ws://livekit:7880 in compose)
+        return os.getenv("LIVEKIT_URL")
+
+    @property
+    def LIVEKIT_PUBLIC_URL(self):
+        # wss:// URL handed to browsers (defaults to LIVEKIT_URL)
+        return os.getenv("LIVEKIT_PUBLIC_URL") or os.getenv("LIVEKIT_URL")
+
+    @property
+    def LIVEKIT_API_KEY(self):
+        return os.getenv("LIVEKIT_API_KEY")
+
+    @property
+    def LIVEKIT_API_SECRET(self):
+        return os.getenv("LIVEKIT_API_SECRET")
+
+    @property
+    def LIVEKIT_MAX_CONCURRENT_RECORDINGS(self):
+        return int(os.getenv("LIVEKIT_MAX_CONCURRENT_RECORDINGS", "2"))

@@ -8,6 +8,7 @@ import {
   getSidebarItems,
   getBackendUrl,
   getAuthHeaders,
+  getUploadUrl,
 } from "../../utils/auth";
 import { parseUTC } from "../../utils/timezone";
 import DualTime from "../../components/ui/DualTime";
@@ -53,6 +54,34 @@ const ScheduleInterviewModal = ({
     interviewers: [],
     ai_agent_id: "",
   });
+  const [candidateSearch, setCandidateSearch] = useState("");
+  const [candidateResults, setCandidateResults] = useState([]);
+  const [selectedCandidate, setSelectedCandidate] = useState(null);
+  const [searchingCandidates, setSearchingCandidates] = useState(false);
+  const [showCandidateDropdown, setShowCandidateDropdown] = useState(false);
+
+  // Search candidates by name
+  useEffect(() => {
+    if (!candidateSearch || candidateSearch.length < 2) {
+      setCandidateResults([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setSearchingCandidates(true);
+      try {
+        const res = await fetch(
+          `${getBackendUrl()}/api/users?name=${encodeURIComponent(candidateSearch)}&per_page=8`,
+          { credentials: "include", headers: getAuthHeaders() }
+        );
+        if (res.ok) {
+          const data = await res.json();
+          setCandidateResults(data.data || data.users || data.items || []);
+        }
+      } catch {}
+      setSearchingCandidates(false);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [candidateSearch]);
 
   const [posts, setPosts] = useState([]);
   const [aiAgents, setAiAgents] = useState([]);
@@ -175,6 +204,10 @@ const ScheduleInterviewModal = ({
       ai_agent_id: "",
     });
     setRecommendedAgents([]);
+    setSelectedCandidate(null);
+    setCandidateSearch("");
+    setCandidateResults([]);
+    setShowCandidateDropdown(false);
     onClose();
   };
 
@@ -218,21 +251,77 @@ const ScheduleInterviewModal = ({
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Candidate ID
+              Candidate
             </label>
-            <input
-              type="number"
-              value={formData.user_id}
-              onChange={(e) =>
-                setFormData({ ...formData, user_id: e.target.value })
-              }
-              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
-              placeholder="e.g., 2 (candidate's user ID)"
-              required
-            />
+            <div className="relative">
+              {selectedCandidate ? (
+                <div className="flex items-center gap-2 p-2 border rounded bg-blue-50">
+                  {selectedCandidate.profile_picture ? (
+                    <img src={getUploadUrl(selectedCandidate.profile_picture)} alt="" className="w-8 h-8 rounded-full object-cover" />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-semibold">
+                      {(selectedCandidate.name || "U").charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <span className="flex-1 text-sm font-medium">{selectedCandidate.name}</span>
+                  <button
+                    type="button"
+                    onClick={() => { setSelectedCandidate(null); setFormData({ ...formData, user_id: "" }); setCandidateSearch(""); }}
+                    className="text-gray-400 hover:text-red-500 text-sm"
+                  >✕</button>
+                </div>
+              ) : (
+                <>
+                  <input
+                    type="text"
+                    value={candidateSearch}
+                    onChange={(e) => { setCandidateSearch(e.target.value); setShowCandidateDropdown(true); }}
+                    onFocus={() => setShowCandidateDropdown(true)}
+                    onBlur={() => setTimeout(() => setShowCandidateDropdown(false), 200)}
+                    className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+                    placeholder="Search candidate by name..."
+                    autoComplete="off"
+                  />
+                  {showCandidateDropdown && candidateResults.length > 0 && (
+                    <div className="absolute z-10 w-full bg-white border rounded-lg shadow-lg mt-1 max-h-60 overflow-y-auto">
+                      {candidateResults.map((u) => (
+                        <button
+                          key={u.id}
+                          type="button"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => {
+                            setSelectedCandidate(u);
+                            setFormData({ ...formData, user_id: u.id });
+                            setCandidateSearch("");
+                            setShowCandidateDropdown(false);
+                          }}
+                          className="w-full flex items-center gap-2 px-3 py-2 hover:bg-blue-50 text-left"
+                        >
+                          {u.profile_picture ? (
+                            <img src={getUploadUrl(u.profile_picture)} alt="" className="w-7 h-7 rounded-full object-cover" />
+                          ) : (
+                            <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-semibold">
+                              {(u.name || "U").charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-gray-800 truncate">{u.name}</p>
+                            {u.headline && <p className="text-xs text-gray-500 truncate">{u.headline}</p>}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {showCandidateDropdown && candidateSearch.length >= 2 && candidateResults.length === 0 && !searchingCandidates && (
+                    <div className="absolute z-10 w-full bg-white border rounded-lg shadow-lg mt-1 p-3 text-sm text-gray-500">
+                      No candidates found
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
             <p className="text-xs text-gray-500 mt-1">
-              Enter the candidate's user ID number (you can find this in the
-              Candidates section)
+              Search by name to find the candidate
             </p>
           </div>
 
@@ -1544,9 +1633,17 @@ export default function InterviewManagement() {
         )}
         <div className="flex-1">
           <div className="flex items-center mb-2">
-            <span className="text-2xl mr-3">
-              {getInterviewTypeIcon(interview.interview_type)}
-            </span>
+            {interview.user_profile_picture ? (
+              <img
+                src={getUploadUrl(interview.user_profile_picture)}
+                alt={interview.user_name || "Candidate"}
+                className="w-10 h-10 rounded-full object-cover mr-3 border border-gray-200"
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mr-3 text-sm font-semibold border border-gray-200">
+                {(interview.user_name || "U").charAt(0).toUpperCase()}
+              </div>
+            )}
             <div>
               <h3 className="font-semibold text-gray-800">{interview.title}</h3>
               <p className="text-sm text-gray-600">

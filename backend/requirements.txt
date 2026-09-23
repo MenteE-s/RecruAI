@@ -19,6 +19,7 @@ cryptography>=41.0
 gradio_client>=0.7
 confluent-kafka>=2.3.0
 flask-socketio>=5.3
+livekit-api>=1.2
 redis>=5.0
 pgvector>=0.3.0
 resend>=2.0

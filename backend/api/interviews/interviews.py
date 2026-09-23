@@ -540,6 +540,13 @@ def complete_interview(interview_id):
     # setattr(interview, 'completed_at', datetime.utcnow())
     # setattr(interview, 'round_status', "completed")
 
+    # Stop any active call recording (best-effort; webhook stores the URL)
+    try:
+        from ...utils import livekit_service as _livekit
+        _livekit.stop_room_recordings(interview)
+    except Exception:
+        pass
+
     db.session.commit()
 
     return jsonify({

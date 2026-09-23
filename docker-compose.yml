@@ -72,6 +72,72 @@ services:
       timeout: 5s
       retries: 5
 
+  # LiveKit SFU + TURN for local video-call dev (devkey/devsecret only —
+  # production keys come from environment, see docker-compose.vps.yml).
+  livekit:
+    image: livekit/livekit-server:v1.8.4
+    container_name: recruai_livekit_dev
+    ports:
+      - "127.0.0.1:7880:7880"
+      - "127.0.0.1:7881:7881"
+      - "127.0.0.1:7882:7882/tcp"
+      - "127.0.0.1:7882:7882/udp"
+      - "127.0.0.1:3478:3478/tcp"
+      - "127.0.0.1:3478:3478/udp"
+      - "127.0.0.1:50000-50050:50000-50050/udp"
+    environment:
+      LIVEKIT_CONFIG: |
+        port: 7880
+        bind_addresses:
+          - "0.0.0.0"
+        rtc:
+          tcp_port: 7881
+          udp_port: 7882
+          port_range_start: 50000
+          port_range_end: 50050
+          use_external_ip: false
+        keys:
+          devkey: devsecret0123456789abcdef0123456789ab
+        redis:
+          address: redis:6379
+        room:
+          empty_timeout: 300
+          departure_timeout: 20
+          max_participants: 4
+        turn:
+          enabled: true
+          udp_port: 3478
+          external_tls: false
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:7880 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # Recording worker for dev (bind-mounted so host backend can serve /uploads/recordings/*).
+  egress:
+    image: livekit/egress:v1.8.4
+    container_name: recruai_egress_dev
+    environment:
+      EGRESS_CONFIG_BODY: |
+        api_key: devkey
+        api_secret: devsecret0123456789abcdef0123456789ab
+        ws_url: ws://livekit:7880
+        redis:
+          address: redis:6379
+        cpu_cost:
+          room_composite_cpu_cost: 1
+          track_composite_cpu_cost: 1
+          track_cpu_cost: 0.5
+        log_level: debug
+    volumes:
+      - ./backend/uploads/recordings:/recordings
+    depends_on:
+      livekit:
+        condition: service_started
+      redis:
+        condition: service_healthy
+
 volumes:
   pgdata:
   redisdata:

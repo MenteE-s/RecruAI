@@ -63,6 +63,14 @@ server {
         proxy_read_timeout 86400s;
     }
 
+    # LiveKit signaling websocket (browsers connect wss://$host/livekit/).
+    # Media (RTP/ICE) and TURN go direct to host UDP/TCP ports, not via nginx.
+    location /livekit/ {
+        set $livekit_upstream livekit:7880;
+        proxy_pass http://$livekit_upstream;
+        proxy_read_timeout 86400s;
+    }
+
     client_max_body_size 16M;
 
     # Compress JSON API responses (listing pages fetch the most bytes here).

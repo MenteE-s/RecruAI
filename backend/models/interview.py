@@ -49,6 +49,9 @@ class Interview(db.Model):
     # Interviewers (JSON array of user IDs or names)
     interviewers = db.Column(db.Text, nullable=True)
 
+    # Self-hosted video (LiveKit): playback URL of the recorded call
+    recording_url = db.Column(db.String(500), nullable=True)
+
     # AI Interview Agent (optional - for AI-powered interviews)
     ai_agent_id = db.Column(db.Integer, db.ForeignKey("ai_interview_agents.id"), nullable=True)
     ai_agent = db.relationship("AIInterviewAgent", backref="interviews")
@@ -137,8 +140,10 @@ class Interview(db.Model):
             "improvements": self._get_json_list(self.improvements),
             "organization": self.organization.name if self.organization else None,
             "organization_timezone": (self.organization.timezone or "UTC") if self.organization else "UTC",
+            "recording_url": self.recording_url,
             "post_title": self.post.title if self.post else None,
             "user_name": self.user.name if self.user else None,
+            "user_profile_picture": self.user.profile_picture if self.user else None,
             "candidate_timezone": (self.user.timezone or "UTC") if self.user else "UTC",
             # "analysis": self.analysis.to_dict() if self.analysis else None,  # Temporarily disabled
             "analysis": None,
