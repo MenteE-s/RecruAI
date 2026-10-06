@@ -7,9 +7,9 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import {
   FiMapPin, FiBriefcase, FiGlobe, FiLinkedin, FiArrowLeft,
-  FiUsers, FiAlertTriangle,
+  FiAlertTriangle,
 } from "react-icons/fi";
-import { getBackendUrl, getUploadUrl, orgPath } from "../utils/auth";
+import { getBackendUrl, getUploadUrl } from "../utils/auth";
 
 export default function PublicProfileBySlug() {
   const { slug } = useParams();
@@ -132,15 +132,6 @@ export default function PublicProfileBySlug() {
                 </p>
               )}
             </div>
-
-            {u.organization_name && (
-              <Link
-                to={orgPath(u)}
-                className="mt-3 inline-flex items-center gap-1.5 text-[12px] font-semibold text-blue-600 hover:text-blue-800"
-              >
-                <FiUsers className="w-3.5 h-3.5" /> {u.organization_name}
-              </Link>
-            )}
           </div>
         </div>
 

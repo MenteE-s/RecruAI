@@ -37,11 +37,18 @@ def get_public_profile_by_slug(slug):
     if not user:
         return jsonify({"error": "Not found"}), 404
 
-    # Profiles attached to a company page have their public presence on the
-    # page, not on a personal handle. Serve the person anyway — they may hold a
-    # team seat as well as being a candidate.
-    org = user.organization if user.organization_id else None
-
+    # Privacy: a person's public profile must not disclose which company pages
+    # they administer. organization_id is a pointer to a page they created or
+    # were invited to, which is not the same claim as "I work here".
+    #
+    # Declared employment is fine and still shows: current_position and
+    # current_company are profile fields the person controls, as are the
+    # Experience entries. So someone can list a role at Honey Beee Lane if they
+    # want to — but nobody can discover that they own the page.
+    #
+    # Deliberately also absent: email, phone, referral address, plan and
+    # subscription state. is_discoverable governs search only; an explicit link
+    # still resolves.
     return jsonify({
         "user": {
             "id": user.id,
@@ -56,12 +63,6 @@ def get_public_profile_by_slug(slug):
             "employment_status": user.employment_status,
             "website": user.website,
             "linkedin": user.linkedin,
-            "organization_id": user.organization_id,
-            "organization_name": org.name if org else None,
-            "organization_slug": org.slug if org else None,
-            # Deliberately absent: email, phone, referral address, plan and
-            # subscription state. is_discoverable governs search only; an
-            # explicit link still resolves.
         },
         "is_discoverable": bool(user.is_discoverable),
     }), 200
