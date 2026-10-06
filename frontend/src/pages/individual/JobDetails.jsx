@@ -324,7 +324,7 @@ export default function JobDetails() {
               <h1 className="text-[17px] font-semibold text-gray-900 leading-snug">{job.title}</h1>
               {job.organization?.id ? (
                 <Link
-                  to={`orgPath(job.organization)`}
+                  to={orgPath(job.organization)}
                   className="text-sm text-blue-600 hover:underline"
                 >
                   {orgName}
@@ -423,7 +423,7 @@ export default function JobDetails() {
               <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
                 <h2 className="text-[15px] font-semibold text-gray-900">About the company</h2>
                 <button
-                  onClick={() => job.organization?.id && navigate(`orgPath(job.organization)`)}
+                  onClick={() => job.organization?.id && navigate(orgPath(job.organization))}
                   disabled={!job.organization?.id}
                   className="w-full flex items-center gap-2.5 mt-2.5 text-left group"
                 >

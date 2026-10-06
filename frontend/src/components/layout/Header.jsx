@@ -255,7 +255,7 @@ export default function Header({ sidebarItems = [] }) {
                     {headerUser?.organization_id && (
                       <button
                         onClick={() => {
-                          navigate(`orgPath(headerUser)`);
+                          navigate(orgPath(headerUser));
                           setDropdownOpen(false);
                         }}
                         className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors"

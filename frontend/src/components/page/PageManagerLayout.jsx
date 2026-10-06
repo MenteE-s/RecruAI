@@ -210,7 +210,7 @@ export default function PageManagerLayout({ children, title, subtitle, action })
           Add another page
         </button>
         <Link
-          to={`orgPath(org)`}
+          to={orgPath(org)}
           className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-md text-[12.5px] text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors"
         >
           <FiEye className="w-3.5 h-3.5 text-gray-400" />

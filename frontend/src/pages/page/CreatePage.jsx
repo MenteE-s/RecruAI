@@ -693,7 +693,7 @@ export default function CreatePage() {
             <>
               <button
                 type="button"
-                onClick={() => navigate(`orgPath(created)`)}
+                onClick={() => navigate(orgPath(created))}
                 className="px-3.5 py-2 rounded-lg text-[13px] font-semibold text-gray-600 hover:bg-gray-100 transition-colors"
               >
                 View page

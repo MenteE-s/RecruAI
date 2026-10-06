@@ -158,7 +158,7 @@ function LegacyOrgIdRedirect() {
     return () => { cancelled = true; };
   }, [orgId]);
 
-  if (slug) return <Navigate to={`orgPath(slug)`} replace />;
+  if (slug) return <Navigate to={`/org/${slug}`} replace />;
   if (failed) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
@@ -204,7 +204,7 @@ function LegacyOwnOrgRedirect() {
     return () => { cancelled = true; };
   }, [slug]);
 
-  if (ownSlug) return <Navigate to={`orgPath(ownSlug)`} replace />;
+  if (ownSlug) return <Navigate to={`/org/${ownSlug}`} replace />;
   if (failed) return <Navigate to="/feed" replace />;
   return (
     <div className="min-h-[40vh] flex items-center justify-center">

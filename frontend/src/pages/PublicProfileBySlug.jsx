@@ -135,7 +135,7 @@ export default function PublicProfileBySlug() {
 
             {u.organization_name && (
               <Link
-                to={`orgPath(u)`}
+                to={orgPath(u)}
                 className="mt-3 inline-flex items-center gap-1.5 text-[12px] font-semibold text-blue-600 hover:text-blue-800"
               >
                 <FiUsers className="w-3.5 h-3.5" /> {u.organization_name}

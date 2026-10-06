@@ -195,7 +195,7 @@ export async function getCurrentUserId() {
  */
 export function orgPath(org) {
   if (org && typeof org === "object") {
-    if (org.slug) return `orgPath(org.slug)`;
+    if (org.slug) return `/org/${org.slug}`;
     if (org.id) return `/org/profile/${org.id}`;
     return "/org/browse";
   }

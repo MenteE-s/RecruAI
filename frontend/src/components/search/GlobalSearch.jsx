@@ -39,7 +39,7 @@ export function resultTarget(kind, item) {
     case "person":
       return `/org/user/${item.id}`;
     case "company":
-      return `orgPath(item)`;
+      return orgPath(item);
     case "job":
       return `/in/jobs/${item.id}`;
     default:

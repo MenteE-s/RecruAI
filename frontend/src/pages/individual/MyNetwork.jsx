@@ -177,7 +177,7 @@ export default function MyNetwork() {
                           )}
                           <div className="flex-1 min-w-0">
                             <button
-                              onClick={() => org.id && navigate(`orgPath(org)`)}
+                              onClick={() => org.id && navigate(orgPath(org))}
                               className="text-[13px] font-semibold text-gray-900 hover:text-blue-600 hover:underline truncate block max-w-full"
                             >
                               {org.name || "Unknown"}
@@ -261,7 +261,7 @@ export default function MyNetwork() {
                       )}
                       <div className="flex-1 min-w-0">
                         <button
-                          onClick={() => navigate(`orgPath(c)`)}
+                          onClick={() => navigate(orgPath(c))}
                           className="text-[13px] font-semibold text-gray-900 hover:text-blue-600 hover:underline truncate block max-w-full text-left"
                         >
                           {c.name}

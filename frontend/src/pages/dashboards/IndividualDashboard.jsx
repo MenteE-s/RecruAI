@@ -745,7 +745,7 @@ export default function IndividualDashboard() {
               {topCompanies.map((c) => (
                 <button
                   key={`top-${c.id ?? c.name}`}
-                  onClick={() => c.id && navigate(`orgPath(c)`)}
+                  onClick={() => c.id && navigate(orgPath(c))}
                   disabled={!c.id}
                   title={c.id ? `View ${c.name}` : c.name}
                   className={`w-full flex items-center gap-2 py-2 text-left ${c.id ? "group cursor-pointer" : "cursor-default"}`}
