@@ -196,8 +196,8 @@ export default function UpcomingInterviews() {
               <button onClick={() => setFilterText("")} className="inline-flex items-center gap-2 bg-gray-900 text-white px-5 py-2.5 text-sm font-medium hover:bg-black transition-colors"><FiX className="w-4 h-4" /> Clear filter</button>
             ) : (
               <>
-                <button onClick={() => navigate("/dashboard")} className="inline-flex items-center gap-2 bg-gray-900 text-white px-5 py-2.5 text-sm font-medium hover:bg-black transition-colors">Browse jobs <FiArrowRight className="w-4 h-4" /></button>
-                <button onClick={() => navigate("/interviews/history")} className="inline-flex items-center gap-2 bg-white border border-gray-200 text-gray-700 px-5 py-2.5 text-sm font-medium hover:bg-gray-50">View history</button>
+                <button onClick={() => navigate("/feed")} className="inline-flex items-center gap-2 bg-gray-900 text-white px-5 py-2.5 text-sm font-medium hover:bg-black transition-colors">Browse jobs <FiArrowRight className="w-4 h-4" /></button>
+                <button onClick={() => navigate("/in/interviews/history")} className="inline-flex items-center gap-2 bg-white border border-gray-200 text-gray-700 px-5 py-2.5 text-sm font-medium hover:bg-gray-50">View history</button>
               </>
             )}
           </div>
@@ -244,7 +244,7 @@ export default function UpcomingInterviews() {
                     </div>
                     <div className="hidden lg:flex flex-col gap-2 shrink-0 w-[160px]">
                       {canJoin ? (
-                        <button onClick={() => navigate(`/interview/${interview.id}`)} className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors animate-pulse">
+                        <button onClick={() => navigate(`/in/interview/${interview.id}`)} className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors animate-pulse">
                           <FiPlayCircle className="w-4 h-4" /> {joinText}
                         </button>
                       ) : (
@@ -252,16 +252,16 @@ export default function UpcomingInterviews() {
                           <FiClock className="w-4 h-4" /> {joinText}
                         </button>
                       )}
-                      <button onClick={() => navigate(`/interviews/${interview.id}`)} className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white text-gray-700 border border-gray-200 text-sm font-medium hover:bg-gray-50 transition-colors">Prepare <FiArrowRight className="w-4 h-4" /></button>
+                      <button onClick={() => navigate(`/in/interviews/${interview.id}`)} className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white text-gray-700 border border-gray-200 text-sm font-medium hover:bg-gray-50 transition-colors">Prepare <FiArrowRight className="w-4 h-4" /></button>
                     </div>
                   </div>
                   <div className="mt-2 flex lg:hidden gap-2">
                     {canJoin ? (
-                      <button onClick={() => navigate(`/interview/${interview.id}`)} className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700"><FiPlayCircle className="w-4 h-4" /> {joinText}</button>
+                      <button onClick={() => navigate(`/in/interview/${interview.id}`)} className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700"><FiPlayCircle className="w-4 h-4" /> {joinText}</button>
                     ) : (
                       <button disabled className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-gray-100 text-gray-500 border border-gray-200 text-sm font-medium cursor-not-allowed"><FiClock className="w-4 h-4" /> {joinText}</button>
                     )}
-                    <button onClick={() => navigate(`/interviews/${interview.id}`)} className="inline-flex items-center justify-center px-4 py-2.5 bg-white border border-gray-200 text-gray-700 text-sm font-medium">Prepare</button>
+                    <button onClick={() => navigate(`/in/interviews/${interview.id}`)} className="inline-flex items-center justify-center px-4 py-2.5 bg-white border border-gray-200 text-gray-700 text-sm font-medium">Prepare</button>
                   </div>
                 </div>
               </div>

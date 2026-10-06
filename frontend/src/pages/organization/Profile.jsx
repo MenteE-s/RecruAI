@@ -30,6 +30,20 @@ import {
 } from "react-icons/fi";
 import EmploymentBadge from "../../components/ui/EmploymentStatus";
 
+// Mirrors COMPANY_TYPE_OPTIONS in backend/api/org/organizations.py
+const COMPANY_TYPE_LABELS = {
+  startup: "Startup",
+  private: "Private company",
+  public: "Public company",
+  nonprofit: "Non-profit",
+  agency: "Agency / consultancy",
+  education: "Education",
+  government: "Government",
+};
+// "1000+" is legacy but must stay selectable — see COMPANY_SIZE_OPTIONS in
+// backend/api/org/organizations.py.
+const COMPANY_SIZE_OPTIONS = ["1-10", "11-50", "51-200", "201-500", "501-1000", "1000+", "1001-5000", "5001-10000", "10000+"];
+
 const Modal = ({ isOpen, onClose, children }) => {
   if (!isOpen) return null;
   return (
@@ -91,7 +105,9 @@ const SocialMediaModal = ({ isOpen, onClose, socialLinks, onSave, saving }) => {
 };
 
 export default function OrganizationProfile() {
-  const { orgId } = useParams();
+  // Resolves from /org/:slug. orgId stays supported so the old
+  // /org/profile/:id URLs keep working via the redirect route.
+  const { orgId, slug } = useParams();
   const navigate = useNavigate();
   const role = typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
   const plan = typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
@@ -103,7 +119,7 @@ export default function OrganizationProfile() {
   const [starred, setStarred] = useState(new Set());
   const [currentUserId, setCurrentUserId] = useState(null);
   const [targetOrgId, setTargetOrgId] = useState(null);
-  const [profileData, setProfileData] = useState({ name: "", description: "", website: "", company_size: "", industry: "", mission: "", vision: "", social_media_links: [], profile_image: "", banner_image: "", subscription_status: null });
+  const [profileData, setProfileData] = useState({ name: "", description: "", website: "", company_size: "", industry: "", employee_count: null, company_type: "", founded_year: null, location: "", mission: "", vision: "", social_media_links: [], profile_image: "", banner_image: "", subscription_status: null });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -118,34 +134,50 @@ export default function OrganizationProfile() {
         if (!userRes.ok) throw new Error("Failed to get user");
         const userData = await userRes.json();
         const currentUserOrgId = userData.user.organization_id;
-        const targetId = orgId || currentUserOrgId;
+
+        // Slug form is the canonical URL, so resolve it to an id first and
+        // keep the rest of this component working off ids internally.
+        let resolvedId = orgId ? parseInt(orgId, 10) : null;
+        if (!resolvedId && slug) {
+          const bySlug = await fetch(
+            `${getBackendUrl()}/api/organizations/by-slug/${encodeURIComponent(slug)}`,
+            { credentials: "include", headers: getAuthHeaders() }
+          );
+          if (!bySlug.ok) throw new Error("Company not found");
+          const slugged = await bySlug.json();
+          resolvedId = slugged.id;
+        }
+        const targetId = resolvedId || currentUserOrgId;
         if (!targetId) { setError("No organization found for this user"); return; }
         setTargetOrgId(targetId);
         setCurrentUserId(userData.user.id || null);
-        setCanEdit(!orgId || parseInt(orgId) === currentUserOrgId);
+        // Edit rights are "is this my page", decided on the resolved id. With no
+        // id at all (bare /org/profile) we fall back to the caller's own page.
+        setCanEdit(resolvedId ? resolvedId === currentUserOrgId : true);
         const orgRes = await fetch(`${getBackendUrl()}/api/organizations/${targetId}`, { credentials: "include", headers: getAuthHeaders() });
         if (!orgRes.ok) throw new Error("Failed to load organization profile");
         const orgData = await orgRes.json();
-        setProfileData({ name: orgData.name || "", description: orgData.description || "", website: orgData.website || "", company_size: orgData.company_size || "", industry: orgData.industry || "", mission: orgData.mission || "", vision: orgData.vision || "", social_media_links: orgData.social_media_links || [], profile_image: orgData.profile_image || "", banner_image: orgData.banner_image || "", subscription_status: orgData.subscription_status || null });
+        setProfileData({ name: orgData.name || "", description: orgData.description || "", website: orgData.website || "", company_size: orgData.company_size || "", industry: orgData.industry || "", employee_count: orgData.employee_count ?? null, company_type: orgData.company_type || "", founded_year: orgData.founded_year ?? null, location: orgData.location || "", mission: orgData.mission || "", vision: orgData.vision || "", social_media_links: orgData.social_media_links || [], profile_image: orgData.profile_image || "", banner_image: orgData.banner_image || "", subscription_status: orgData.subscription_status || null });
       } catch (e) {
         setError("Failed to load profile data");
       } finally { setLoading(false); }
     };
     loadProfileData();
-  }, [orgId]);
+  }, [orgId, slug]);
 
   useEffect(() => {
-    if (!orgId) return;
+    const id = orgId || targetOrgId;
+    if (!id) return;
     const fetchPosts = async () => {
       setPostsLoading(true);
       try {
-        const res = await fetch(`${getBackendUrl()}/api/organizations/${orgId}/posts`, { credentials: "include", headers: getAuthHeaders() });
+        const res = await fetch(`${getBackendUrl()}/api/organizations/${id}/posts`, { credentials: "include", headers: getAuthHeaders() });
         if (res.ok) setPosts(await res.json());
       } catch (e) { console.error("Failed to load posts:", e); }
       finally { setPostsLoading(false); }
     };
     fetchPosts();
-  }, [orgId]);
+  }, [orgId, targetOrgId]);
 
   useEffect(() => {
     if (!targetOrgId) return;
@@ -213,12 +245,15 @@ export default function OrganizationProfile() {
       const userRes = await fetch(`${getBackendUrl()}/api/auth/me`, { credentials: "include", headers: getAuthHeaders() });
       const userData = await userRes.json();
       const targetOrgId = orgId || userData.user.organization_id;
-      const res = await fetch(`${getBackendUrl()}/api/organizations/${targetOrgId}/profile`, { method: "PUT", headers: getAuthHeaders({ "Content-Type": "application/json" }), credentials: "include", body: JSON.stringify({ company_size: data.company_size, industry: data.industry, mission: data.mission, vision: data.vision }) });
+      const res = await fetch(`${getBackendUrl()}/api/organizations/${targetOrgId}/profile`, { method: "PUT", headers: getAuthHeaders({ "Content-Type": "application/json" }), credentials: "include", body: JSON.stringify({ company_size: data.company_size, company_type: data.company_type, employee_count: data.employee_count, founded_year: data.founded_year, industry: data.industry, location: data.location, mission: data.mission, vision: data.vision }) });
       if (res.ok) {
         const result = await res.json();
-        setProfileData((p) => ({ ...p, company_size: result.company_size, industry: result.industry, mission: result.mission, vision: result.vision }));
+        setProfileData((p) => ({ ...p, company_size: result.company_size, company_type: result.company_type, employee_count: result.employee_count, founded_year: result.founded_year, industry: result.industry, location: result.location, mission: result.mission, vision: result.vision }));
         setEditingSection(null);
-      } else setError("Failed to save extended profile");
+      } else {
+        const body = await res.json().catch(() => ({}));
+        setError(body.error || "Failed to save extended profile");
+      }
     } catch { setError("Network error. Please try again."); }
     finally { setSaving(false); }
   };
@@ -417,6 +452,10 @@ export default function OrganizationProfile() {
             <div className="grid grid-cols-2 gap-4">
               <div><p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Company size</p><p className="text-sm text-gray-900 mt-1">{profileData.company_size || "Not set"}</p></div>
               <div><p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Industry</p><p className="text-sm text-gray-900 mt-1">{profileData.industry || "Not set"}</p></div>
+              <div><p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Employees</p><p className="text-sm text-gray-900 mt-1">{profileData.employee_count ?? "Not set"}</p></div>
+              <div><p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Company type</p><p className="text-sm text-gray-900 mt-1">{COMPANY_TYPE_LABELS[profileData.company_type] || "Not set"}</p></div>
+              <div><p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Founded</p><p className="text-sm text-gray-900 mt-1">{profileData.founded_year || "Not set"}</p></div>
+              <div><p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Address</p><p className="text-sm text-gray-900 mt-1 break-words">{profileData.location || "Not set"}</p></div>
             </div>
             <div><p className="text-xs font-medium text-gray-500 uppercase tracking-wider flex items-center gap-1"><FiTarget className="w-3 h-3" /> Mission</p><p className="text-sm text-gray-700 mt-1 leading-relaxed">{profileData.mission || "Not set"}</p></div>
             <div><p className="text-xs font-medium text-gray-500 uppercase tracking-wider flex items-center gap-1"><FiEye className="w-3 h-3" /> Vision</p><p className="text-sm text-gray-700 mt-1 leading-relaxed">{profileData.vision || "Not set"}</p></div>
@@ -482,7 +521,7 @@ export default function OrganizationProfile() {
               posts.map((post) => {
                 const deadlineSoon = post.application_deadline ? (new Date(post.application_deadline) - new Date()) / (1000 * 60 * 60 * 24) <= 7 && (new Date(post.application_deadline) - new Date()) / (1000 * 60 * 60 * 24) >= 0 : false;
                 return (
-                  <Link key={post.id} to={`/jobs/${post.id}`} className="block hover:bg-gradient-to-r hover:from-blue-50/30 hover:to-indigo-50/20 transition-all duration-200 group/card">
+                  <Link key={post.id} to={`/in/jobs/${post.id}`} className="block hover:bg-gradient-to-r hover:from-blue-50/30 hover:to-indigo-50/20 transition-all duration-200 group/card">
                     <div className="p-5 flex flex-col md:flex-row md:items-start gap-4 md:gap-6">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1.5">
@@ -574,7 +613,7 @@ export default function OrganizationProfile() {
                       <EmploymentBadge status={member.user?.employment_status} className="!px-1.5 !py-px !text-[10px]" />
                     </div>
                     <button
-                      onClick={() => uid && navigate(`/organization/user/${uid}`)}
+                      onClick={() => uid && navigate(`/org/user/${uid}`)}
                       disabled={!uid}
                       className="mt-2 w-full inline-flex items-center justify-center gap-1 px-2.5 py-1.5 bg-white border border-gray-200 text-[11px] font-semibold text-blue-600 hover:bg-blue-50 rounded-md disabled:opacity-50"
                     >
@@ -614,18 +653,24 @@ export default function OrganizationProfile() {
       {editingSection === "extended" && (
         <Modal isOpen={true} onClose={() => setEditingSection(null)}>
           <h2 className="text-sm font-semibold text-gray-900 mb-4">Edit extended profile</h2>
-          <form onSubmit={(e) => { e.preventDefault(); const fd = new FormData(e.target); saveExtendedProfile({ company_size: fd.get("company_size"), industry: fd.get("industry"), mission: fd.get("mission"), vision: fd.get("vision") }); }}>
+          <form onSubmit={(e) => { e.preventDefault(); const fd = new FormData(e.target); saveExtendedProfile({ company_size: fd.get("company_size"), company_type: fd.get("company_type"), employee_count: fd.get("employee_count"), founded_year: fd.get("founded_year"), industry: fd.get("industry"), location: fd.get("location"), mission: fd.get("mission"), vision: fd.get("vision") }); }}>
             <div className="space-y-3">
-              <select name="company_size" defaultValue={profileData.company_size} className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white">
-                <option value="">Select size</option>
-                <option value="1-10">1-10</option>
-                <option value="11-50">11-50</option>
-                <option value="51-200">51-200</option>
-                <option value="201-500">201-500</option>
-                <option value="501-1000">501-1000</option>
-                <option value="1000+">1000+</option>
-              </select>
+              <div className="grid grid-cols-2 gap-3">
+                <select name="company_size" defaultValue={profileData.company_size} className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white">
+                  <option value="">Company size</option>
+                  {COMPANY_SIZE_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+                </select>
+                <select name="company_type" defaultValue={profileData.company_type} className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white">
+                  <option value="">Company type</option>
+                  {Object.entries(COMPANY_TYPE_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <input name="employee_count" type="number" min="1" defaultValue={profileData.employee_count ?? ""} placeholder="Employees" className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white" />
+                <input name="founded_year" type="number" min="1800" max={new Date().getFullYear()} defaultValue={profileData.founded_year ?? ""} placeholder="Founded year" className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white" />
+              </div>
               <input name="industry" defaultValue={profileData.industry} placeholder="Industry" className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white" />
+              <input name="location" defaultValue={profileData.location} placeholder="Address (City, Country)" className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white" />
               <textarea name="mission" defaultValue={profileData.mission} rows={3} placeholder="Mission" className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white resize-none" />
               <textarea name="vision" defaultValue={profileData.vision} rows={3} placeholder="Vision" className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white resize-none" />
             </div>

@@ -186,14 +186,16 @@ def create_user():
 
     email = sanitize_input(payload.get("email", ""))
     name = sanitize_input(payload.get("name", ""))
-    role = sanitize_input(payload.get("role", "individual"))
+    role = sanitize_input(payload.get("role") or "individual") or "individual"
 
     if not email:
         log_security_event("missing_email_create_user", request.remote_addr, None)
         return jsonify({"error": "email required"}), 400
 
-    if role not in ("individual", "organization"):
-        return jsonify({"error": "Invalid role specified"}), 400
+    # Accounts are people only. Page access comes from a team_members row, so
+    # there is nothing to gain by asking for an "organization" role here.
+    if role != "individual":
+        return jsonify({"error": "Only individual accounts can be created. Add colleagues from your company page's team instead."}), 400
 
     # Validate email format
     if not validate_email(email):
@@ -210,35 +212,35 @@ def create_user():
     password = (payload or {}).get("password", "") or ""
     if not password:
         return jsonify({"error": "password required"}), 400
-    user = User(email=email, name=name, role=role, email_verified=False)
+    user = User(email=email, name=name, role="individual", email_verified=False)
     try:
         user.set_password(password)
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
-    # Bind organization-role users to caller's org to avoid orphan org accounts.
-    if role == "organization":
+    # Optionally attach the new person to a page the caller administers, so they
+    # show up on the team right away instead of needing a separate invite.
+    requested_org = (payload or {}).get("organization_id")
+    if requested_org is not None and requested_org != "":
         try:
             from flask_jwt_extended import get_jwt_identity as _gj
             caller = User.query.get(int(_gj()))
         except (TypeError, ValueError):
             caller = None
-        requested_org = (payload or {}).get("organization_id")
         try:
-            requested_org = int(requested_org) if requested_org is not None else None
+            requested_org = int(requested_org)
         except (TypeError, ValueError):
             return jsonify({"error": "Invalid organization_id"}), 400
-        org_id = requested_org or (caller.organization_id if caller else None)
-        if not org_id:
-            return jsonify({"error": "organization_id required for organization users"}), 400
-        # Caller must manage the target org (own org account or team member).
+        if not requested_org:
+            return jsonify({"error": "Invalid organization_id"}), 400
+        # Caller must administer the target page.
         from ...models import TeamMember as _TM
         allowed = caller is not None and (
-            (caller.role == "organization" and caller.organization_id == org_id)
-            or _TM.query.filter_by(organization_id=org_id, user_id=caller.id).first() is not None
+            (caller.organization_id == requested_org)
+            or _TM.query.filter_by(organization_id=requested_org, user_id=caller.id).first() is not None
         )
         if not allowed:
             return jsonify({"error": "Forbidden for this organization"}), 403
-        user.organization_id = org_id
+        user.organization_id = requested_org
     db.session.add(user)
     db.session.commit()
 

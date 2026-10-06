@@ -362,7 +362,7 @@ const InterviewRoom = () => {
                 "Are you sure you want to leave the interview? Your progress may not be saved."
               );
               if (confirmLeave) {
-                navigate("/dashboard");
+                navigate("/feed");
               }
             }}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
@@ -443,7 +443,7 @@ const InterviewRoom = () => {
                 "Are you sure you want to leave the interview? Your progress may not be saved."
               );
               if (confirmLeave) {
-                navigate("/dashboard");
+                navigate("/feed");
               }
             }}
             className="mt-4 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
@@ -535,7 +535,7 @@ const InterviewRoom = () => {
                 Coming soon! This feature is under development.
               </p>
               <button
-                onClick={() => navigate("/dashboard")}
+                onClick={() => navigate("/feed")}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
               >
                 Return to Dashboard
@@ -546,7 +546,7 @@ const InterviewRoom = () => {
 
       case "video":
       case "human_video":
-        return <VideoRoom interviewId={interviewId} interview={interview} onLeave={() => navigate(`/interviews/${interviewId}`)} />;
+        return <VideoRoom interviewId={interviewId} interview={interview} onLeave={() => navigate(`/in/interviews/${interviewId}`)} />;
 
       default:
         return (
@@ -560,7 +560,7 @@ const InterviewRoom = () => {
                 This interview type is not supported.
               </p>
               <button
-                onClick={() => navigate("/dashboard")}
+                onClick={() => navigate("/feed")}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
               >
                 Return to Dashboard

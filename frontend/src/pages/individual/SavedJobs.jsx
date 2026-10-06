@@ -174,9 +174,9 @@ export default function SavedJobs() {
             {search ? (
               <button onClick={() => setSearch("")} className="inline-flex items-center gap-2 bg-gray-900 text-white px-5 py-2.5 text-sm font-medium hover:bg-black transition-colors"><FiX className="w-4 h-4" /> Clear search</button>
             ) : (
-              <button onClick={() => navigate("/dashboard")} className="inline-flex items-center gap-2 bg-gray-900 text-white px-5 py-2.5 text-sm font-medium hover:bg-black transition-colors">Browse jobs <FiArrowRight className="w-4 h-4" /></button>
+              <button onClick={() => navigate("/feed")} className="inline-flex items-center gap-2 bg-gray-900 text-white px-5 py-2.5 text-sm font-medium hover:bg-black transition-colors">Browse jobs <FiArrowRight className="w-4 h-4" /></button>
             )}
-            <Link to="/jobs/saved" className="hidden" />
+            <Link to="/in/jobs/saved" className="hidden" />
           </div>
         </div>
       ) : (
@@ -194,7 +194,7 @@ export default function SavedJobs() {
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <Link to={`/jobs/${job.id}`} className="text-[15px] font-semibold text-gray-900 hover:text-blue-600 leading-tight">{job.title}</Link>
+                          <Link to={`/in/jobs/${job.id}`} className="text-[15px] font-semibold text-gray-900 hover:text-blue-600 leading-tight">{job.title}</Link>
                           <p className="text-sm text-gray-600 mt-0.5 flex items-center gap-1.5"><FiBriefcase className="w-3.5 h-3.5 text-gray-400" />{job.organization?.name || "Unknown"} {job.location && <><span className="text-gray-300">•</span><span className="flex items-center gap-1"><FiMapPin className="w-3 h-3 text-gray-400" />{job.location}</span></>}</p>
                         </div>
                         <span className="hidden sm:inline-flex items-center gap-1.5 text-xs bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-1 shrink-0"><FiCalendar className="w-3 h-3" /> Saved {formatDate(savedJob.saved_at)}</span>
@@ -213,7 +213,7 @@ export default function SavedJobs() {
                         <button onClick={() => handleApplyJob(job.id)} className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors">Apply now</button>
                       )}
                       <button onClick={() => handleUnsaveJob(savedJob.id)} className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white text-gray-700 border border-gray-200 text-sm font-medium hover:bg-gray-50"><FiTrash2 className="w-4 h-4" /> Remove</button>
-                      <Link to={`/jobs/${job.id}`} className="text-center text-xs font-medium text-blue-600 hover:text-blue-700">View details →</Link>
+                      <Link to={`/in/jobs/${job.id}`} className="text-center text-xs font-medium text-blue-600 hover:text-blue-700">View details →</Link>
                     </div>
                   </div>
                   <div className="mt-4 flex lg:hidden gap-2">

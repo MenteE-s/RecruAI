@@ -2,8 +2,6 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import {
   FiArrowLeft,
-  FiUser,
-  FiBriefcase,
   FiEye,
   FiEyeOff,
   FiCheck,
@@ -30,8 +28,6 @@ export default function Register() {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("individual");
-  const [organizationName, setOrganizationName] = useState("");
   const [referralEmail, setReferralEmail] = useState("");
   const [showReferral, setShowReferral] = useState(false);
   const [error, setError] = useState(null);
@@ -60,7 +56,7 @@ export default function Register() {
         if (!mounted) return;
         const user = await verifyTokenWithServer();
         if (user) {
-          navigate("/dashboard", { replace: true });
+          navigate("/feed", { replace: true });
         }
       } catch (e) {
         // ignore
@@ -81,14 +77,12 @@ export default function Register() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        // include role and optional organization name for organizations
+        // Individual signup only. Company pages are created later from inside
+        // the account (see CreatePage), never here.
         body: JSON.stringify({
           email,
           name,
           password,
-          role,
-          organization_name:
-            role === "organization" ? organizationName : undefined,
           referral_email: referralEmail || undefined,
         }),
       });
@@ -122,18 +116,14 @@ export default function Register() {
         localStorage.setItem("access_token", data.access_token);
         // server set cookie; set local flags and role (server-verified)
         localStorage.setItem("isAuthenticated", "true");
-        if (data.user && data.user.role) {
-          localStorage.setItem("authRole", data.user.role);
-        } else {
-          localStorage.setItem("authRole", role);
-        }
+        localStorage.setItem("authRole", data.user?.role || "individual");
         showToast({
           message: "Account created — signed in",
           type: "success",
           position: "side",
           duration: 2400,
         });
-        navigate("/dashboard", { replace: true });
+        navigate("/feed", { replace: true });
       } else {
         // otherwise go to sign-in page so user can authenticate
         showToast({
@@ -160,7 +150,7 @@ export default function Register() {
       localStorage.setItem("authRole", data.user.role);
     }
     showToast({ message: "Email verified — welcome!", type: "success", position: "side", duration: 2400 });
-    navigate("/dashboard", { replace: true });
+    navigate("/feed", { replace: true });
   };
 
   return (
@@ -202,28 +192,10 @@ export default function Register() {
                   Sign in
                 </Link>
               </p>
-
-              {/* Role selector */}
-              <div className="mt-8 grid grid-cols-2 gap-2 rounded-xl bg-neutral-100 p-1.5">
-                {[
-                  { id: "individual", label: "Job seeker", icon: FiUser },
-                  { id: "organization", label: "Organization", icon: FiBriefcase },
-                ].map(({ id, label, icon: Icon }) => (
-                  <button
-                    key={id}
-                    type="button"
-                    onClick={() => setRole(id)}
-                    aria-pressed={role === id}
-                    className={`flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-all ${
-                      role === id
-                        ? "bg-neutral-900 text-white shadow"
-                        : "text-neutral-500 hover:text-neutral-900"
-                    }`}
-                  >
-                    <Icon className="w-4 h-4" /> {label}
-                  </button>
-                ))}
-              </div>
+              <p className="mt-3 rounded-lg bg-neutral-50 px-3.5 py-2.5 text-[13px] leading-relaxed text-neutral-600">
+                One account for you. Running a company? After you sign up you can
+                open a company page from inside your account and post jobs as an admin.
+              </p>
 
               {error && (
                 <div className="mt-5 rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm font-medium text-red-700">
@@ -260,22 +232,6 @@ export default function Register() {
                     required
                   />
                 </div>
-                {role === "organization" && (
-                  <div>
-                    <label htmlFor="register-org" className={labelCls}>
-                      Organization name
-                    </label>
-                    <input
-                      id="register-org"
-                      className={inputCls}
-                      value={organizationName}
-                      onChange={(e) => setOrganizationName(e.target.value)}
-                      autoComplete="organization"
-                      placeholder="Acme Pvt. Ltd."
-                      required
-                    />
-                  </div>
-                )}
                 <div>
                   <label htmlFor="register-password" className={labelCls}>
                     Password

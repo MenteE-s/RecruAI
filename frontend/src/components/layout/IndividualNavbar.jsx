@@ -82,7 +82,7 @@ export default function IndividualNavbar({ isAuthenticated }) {
                 </Link>
 
                 <Link
-                  to="/profile"
+                  to="/in/profile"
                   className="text-sm font-medium text-gray-600 hover:text-gray-900"
                 >
                   Profile

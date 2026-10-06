@@ -2,8 +2,6 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import {
   FiArrowLeft,
-  FiUser,
-  FiBriefcase,
   FiEye,
   FiEyeOff,
   FiCheck,
@@ -27,7 +25,6 @@ export default function SignIn() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [role, setRole] = useState("individual");
   const [otpEmail, setOtpEmail] = useState(null);
   const navigate = useNavigate();
   const { showToast } = useToast();
@@ -41,7 +38,7 @@ export default function SignIn() {
         if (!mounted) return;
         const user = await verifyTokenWithServer();
         if (user) {
-          navigate("/dashboard", { replace: true });
+          navigate("/feed", { replace: true });
         }
       } catch (e) {
         // ignore
@@ -93,20 +90,6 @@ export default function SignIn() {
         setLoading(false);
         return;
       }
-      // If the user selected a role in the UI that doesn't match the server role,
-      // don't block sign-in — prefer the server-verified role. Show a warning
-      // so the user knows which dashboard they'll land on.
-      if (data.user && data.user.role && role && data.user.role !== role) {
-        const msg = `Account role mismatch: this email is registered as '${data.user.role}'. Signing in as '${data.user.role}'.`;
-        showToast({
-          message: msg,
-          type: "warning",
-          position: "center",
-          duration: 4500,
-        });
-        // override client role with server role
-        setRole(data.user.role);
-      }
       // store token, mark authenticated and redirect to dashboard
       // Store the access token for header-based auth
       if (data.access_token) {
@@ -114,7 +97,7 @@ export default function SignIn() {
       }
       // mark auth for frontend-only checks (will be refreshed by /api/auth/me)
       localStorage.setItem("isAuthenticated", "true");
-      // use server-verified role from response (do not trust the client-side role selector)
+      // use server-verified role from response — the client never chooses it
       if (data.user && data.user.role) {
         localStorage.setItem("authRole", data.user.role);
       }
@@ -126,7 +109,7 @@ export default function SignIn() {
         duration: 2200,
       });
       // prefer SPA navigation but fall back to full reload if SPA route doesn't take
-      navigate("/dashboard", { replace: true });
+      navigate("/feed", { replace: true });
       if (typeof window !== "undefined") {
         // small delay: if SPA navigation didn't change the path (protected route may redirect),
         // force a hard navigation to help surface errors in the network tab.
@@ -136,7 +119,7 @@ export default function SignIn() {
             console.warn(
               "SPA navigation to /dashboard didn't take effect — forcing full reload"
             );
-            window.location.assign("/dashboard");
+            window.location.assign("/feed");
           }
         }, 600);
       }
@@ -156,7 +139,7 @@ export default function SignIn() {
       localStorage.setItem("authRole", data.user.role);
     }
     showToast({ message: "Email verified — signed in", type: "success", position: "side", duration: 2400 });
-    navigate("/dashboard", { replace: true });
+    navigate("/feed", { replace: true });
   }
 
   return (
@@ -198,28 +181,6 @@ export default function SignIn() {
                   Create an account
                 </Link>
               </p>
-
-              {/* Role selector */}
-              <div className="mt-8 grid grid-cols-2 gap-2 rounded-xl bg-neutral-100 p-1.5">
-                {[
-                  { id: "individual", label: "Job seeker", icon: FiUser },
-                  { id: "organization", label: "Organization", icon: FiBriefcase },
-                ].map(({ id, label, icon: Icon }) => (
-                  <button
-                    key={id}
-                    type="button"
-                    onClick={() => setRole(id)}
-                    aria-pressed={role === id}
-                    className={`flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-all ${
-                      role === id
-                        ? "bg-neutral-900 text-white shadow"
-                        : "text-neutral-500 hover:text-neutral-900"
-                    }`}
-                  >
-                    <Icon className="w-4 h-4" /> {label}
-                  </button>
-                ))}
-              </div>
 
               {error && (
                 <div className="mt-5 rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm font-medium text-red-700">

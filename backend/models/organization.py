@@ -16,14 +16,26 @@ class Organization(db.Model):
     location = db.Column(db.String(255), nullable=True)
     company_size = db.Column(db.String(50), nullable=True)
     industry = db.Column(db.String(100), nullable=True)
+    # Exact headcount, when known. `company_size` holds the public bracket
+    # ("11-50"); this holds the real number for people who give one.
+    employee_count = db.Column(db.Integer, nullable=True)
+    founded_year = db.Column(db.Integer, nullable=True)
+    company_type = db.Column(db.String(50), nullable=True)  # startup/public/private/nonprofit
     mission = db.Column(db.Text, nullable=True)
     vision = db.Column(db.Text, nullable=True)
     social_media_links = db.Column(db.Text, nullable=True)  # JSON string
     # profile and banner images
     profile_image = db.Column(db.String(500), nullable=True)
     banner_image = db.Column(db.String(500), nullable=True)
+    # Visibility controls (page manager -> Visibility)
+    is_public = db.Column(db.Boolean, nullable=False, default=True)
+    accepting_applications = db.Column(db.Boolean, nullable=False, default=True)
+    show_public_stats = db.Column(db.Boolean, nullable=False, default=True)
     # organization's preferred timezone (e.g., 'Asia/Karachi', 'America/New_York')
     timezone = db.Column(db.String(50), nullable=True, default="UTC")
+    # Page URL: /org/<slug>. Derived from the name once at creation and then
+    # fixed, so renaming the company can't break shared links.
+    slug = db.Column(db.String(60), nullable=True, unique=True, index=True)
     # Subscription fields
     subscription_status = db.Column(db.String(20), nullable=True, default="trial")  # 'trial', 'active', 'expired', 'cancelled'
     trial_start_date = db.Column(db.DateTime, nullable=True, default=datetime.utcnow)
@@ -49,6 +61,7 @@ class Organization(db.Model):
         return {
             "id": self.id,
             "name": self.name,
+            "slug": self.slug,
             "description": self.description,
             "website": self.website,
             "contact_email": self.contact_email,
@@ -56,11 +69,17 @@ class Organization(db.Model):
             "location": self.location,
             "company_size": self.company_size,
             "industry": self.industry,
+            "employee_count": self.employee_count,
+            "founded_year": self.founded_year,
+            "company_type": self.company_type,
             "mission": self.mission,
             "vision": self.vision,
             "social_media_links": social_links,
             "profile_image": self.profile_image,
             "banner_image": self.banner_image,
+            "is_public": bool(self.is_public),
+            "accepting_applications": bool(self.accepting_applications),
+            "show_public_stats": bool(self.show_public_stats),
             "timezone": self.timezone or "UTC",
             "subscription_status": self.get_subscription_status(),
             "created_at": utc_iso(self.created_at),

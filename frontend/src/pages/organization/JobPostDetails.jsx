@@ -119,7 +119,7 @@ export default function JobPostDetails() {
       });
       if (res.ok) {
         showToast({ message: "Deleted", type: "success" });
-        navigate("/organization/jobs");
+        navigate("/org/jobs");
       } else showToast({ message: "Failed to delete", type: "error" });
     } catch {
       showToast({ message: "Failed to delete", type: "error" });
@@ -143,7 +143,7 @@ export default function JobPostDetails() {
       <DashboardLayout sidebarItems={sidebarItems}>
         <div className="bg-white border border-gray-200 p-12 text-center">
           <p className="text-sm text-gray-500">Job post not found</p>
-          <button onClick={() => navigate("/organization/jobs")} className="mt-4 text-sm text-blue-600 hover:text-blue-700">
+          <button onClick={() => navigate("/org/jobs")} className="mt-4 text-sm text-blue-600 hover:text-blue-700">
             Back to jobs
           </button>
         </div>
@@ -153,7 +153,7 @@ export default function JobPostDetails() {
 
   return (
     <DashboardLayout sidebarItems={sidebarItems}>
-      <button onClick={() => navigate("/organization/jobs")} className="inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900 mb-4">
+      <button onClick={() => navigate("/org/jobs")} className="inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900 mb-4">
         <FiArrowLeft className="w-4 h-4" /> Back to job posts
       </button>
 
@@ -185,7 +185,7 @@ export default function JobPostDetails() {
               <button onClick={handleDelete} className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-red-600 text-white text-sm font-medium hover:bg-red-700">
                 <FiTrash2 className="w-4 h-4" /> Delete
               </button>
-              <Link to={`/organization/candidates`} className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-white/10 border border-white/20 text-white text-sm font-medium hover:bg-white/15 text-center">
+              <Link to={`/org/candidates`} className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-white/10 border border-white/20 text-white text-sm font-medium hover:bg-white/15 text-center">
                 <FiUsers className="w-4 h-4" /> View applicants
               </Link>
             </div>
@@ -228,7 +228,7 @@ export default function JobPostDetails() {
             <div className="mt-4 space-y-2">
               <button onClick={() => setEditing(true)} className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700"><FiEdit2 className="w-4 h-4" /> Edit job</button>
               <button onClick={handleDelete} className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-red-200 text-sm font-medium text-red-600 hover:bg-red-50"><FiTrash2 className="w-4 h-4" /> Delete post</button>
-              <Link to="/organization/pipeline" className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 text-center"><FiUsers className="w-4 h-4" /> View pipeline</Link>
+              <Link to="/org/pipeline" className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 text-center"><FiUsers className="w-4 h-4" /> View pipeline</Link>
             </div>
           </div>
           <div className="bg-blue-600 text-white p-6">

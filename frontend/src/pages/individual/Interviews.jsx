@@ -211,7 +211,7 @@ export default function Interviews() {
                   </div>
                   <div className="flex gap-1.5 mt-2 pt-2 border-t border-gray-50">
                     {joinable ? (
-                      <button onClick={() => navigate(`/interview/${iv.id}`)} className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-600 text-white text-[11px] font-semibold hover:bg-blue-700 rounded-md animate-pulse">
+                      <button onClick={() => navigate(`/in/interview/${iv.id}`)} className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-600 text-white text-[11px] font-semibold hover:bg-blue-700 rounded-md animate-pulse">
                         <FiPlayCircle className="w-3 h-3" /> {joinLabel(iv)}
                       </button>
                     ) : (
@@ -219,7 +219,7 @@ export default function Interviews() {
                         <FiClock className="w-3 h-3" /> {joinLabel(iv)}
                       </span>
                     )}
-                    <button onClick={() => navigate(`/interviews/${iv.id}`)} className="inline-flex items-center gap-1 px-2.5 py-1 bg-white border border-gray-200 text-gray-600 text-[11px] font-medium hover:bg-gray-50 rounded-md">
+                    <button onClick={() => navigate(`/in/interviews/${iv.id}`)} className="inline-flex items-center gap-1 px-2.5 py-1 bg-white border border-gray-200 text-gray-600 text-[11px] font-medium hover:bg-gray-50 rounded-md">
                       <FiEye className="w-3 h-3" /> Prepare
                     </button>
                   </div>
@@ -265,11 +265,11 @@ export default function Interviews() {
                   </div>
                 </div>
                 <div className="flex gap-1.5 mt-2 pt-2 border-t border-gray-50">
-                  <button onClick={() => navigate(`/interviews/${iv.id}`)} className="inline-flex items-center gap-1 px-2.5 py-1 bg-white border border-gray-200 text-gray-600 text-[11px] font-medium hover:bg-gray-50 rounded-md">
+                  <button onClick={() => navigate(`/in/interviews/${iv.id}`)} className="inline-flex items-center gap-1 px-2.5 py-1 bg-white border border-gray-200 text-gray-600 text-[11px] font-medium hover:bg-gray-50 rounded-md">
                     <FiEye className="w-3 h-3" /> Details
                   </button>
                   {(iv.status === "completed" || iv.rating) && (
-                    <button onClick={() => navigate(`/interviews/${iv.id}/analysis`)} className="inline-flex items-center gap-1 px-2.5 py-1 bg-white border border-gray-200 text-blue-600 text-[11px] font-medium hover:bg-blue-50 rounded-md">
+                    <button onClick={() => navigate(`/in/interviews/${iv.id}/analysis`)} className="inline-flex items-center gap-1 px-2.5 py-1 bg-white border border-gray-200 text-blue-600 text-[11px] font-medium hover:bg-blue-50 rounded-md">
                       <FiBarChart2 className="w-3 h-3" /> Analysis
                     </button>
                   )}

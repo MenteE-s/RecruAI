@@ -290,8 +290,12 @@ def create_app(config_object: object | None = None):
 		_limit("api.create_post", "30 per minute")
 		_limit("api.create_application", "30 per minute")
 		_limit("api.create_system_issue", "30 per minute")
-		# Org creation spawns 10 default AI agents (cost) — tight cap
-		_limit("api.create_organization", "5 per minute")
+		# Org/page creation spawns 10 default AI agents (cost) and is now reachable by
+		# every individual account — keep it tight.
+		_limit("api.create_organization_page", "3 per hour")
+		# Omnibox fires on every keystroke (the client debounces), and each call
+		# fans out to three queries.
+		_limit("api.universal_search", "60 per minute")
 
 	# Register practice AI agents blueprint separately to avoid circular imports
 	try:

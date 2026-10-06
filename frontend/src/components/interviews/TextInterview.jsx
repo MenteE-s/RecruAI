@@ -105,7 +105,7 @@ const TextInterview = ({
 
       if (response.ok) {
         // Redirect to analysis page after completion
-        window.location.href = `/interviews/${interviewId}/analysis`;
+        window.location.href = `/in/interviews/${interviewId}/analysis`;
       } else {
         throw new Error("Failed to complete interview");
       }

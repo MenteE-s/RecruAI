@@ -71,6 +71,7 @@ class Post(db.Model):
             "organization": {
                 "id": self.organization.id,
                 "name": self.organization.name,
+                "slug": self.organization.slug,
                 "profile_image": self.organization.profile_image,
             } if self.organization else None,
             "organization_details": self.organization.to_public_dict() if self.organization else None,

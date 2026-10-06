@@ -180,7 +180,7 @@ const InterviewAnalysis = () => {
               {error || "Interview not found"}
             </h2>
             <button
-              onClick={() => navigate("/dashboard")}
+              onClick={() => navigate("/feed")}
               className="mt-3 px-5 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
             >
               Return to Dashboard
@@ -544,13 +544,13 @@ const InterviewAnalysis = () => {
         {/* Actions */}
         <div className="flex justify-center gap-4">
           <button
-            onClick={() => navigate(`/interviews/${interviewId}`)}
+            onClick={() => navigate(`/in/interviews/${interviewId}`)}
             className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
           >
             Back to Details
           </button>
           <button
-            onClick={() => navigate("/dashboard")}
+            onClick={() => navigate("/feed")}
             className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
           >
             Back to Dashboard

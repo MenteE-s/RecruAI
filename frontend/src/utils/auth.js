@@ -183,35 +183,55 @@ export async function getCurrentUserId() {
   return user?.id || null;
 }
 
+/**
+ * Canonical URL for a company page.
+ *
+ * Prefers the readable slug (/org/mentee-ai). Falls back to the legacy
+ * id form, which is a real redirect rather than a dead link, so a payload
+ * that somehow lacks a slug still lands on the right page instead of
+ * rendering /org/3.
+ *
+ * Accepts the org object, or a bare id for the few callers that only have one.
+ */
+export function orgPath(org) {
+  if (org && typeof org === "object") {
+    if (org.slug) return `orgPath(org.slug)`;
+    if (org.id) return `/org/profile/${org.id}`;
+    return "/org/browse";
+  }
+  if (org) return `/org/profile/${org}`;
+  return "/org/browse";
+}
+
 export function getSidebarItems(role, plan) {
   if (role === "individual") {
     if (plan === "trial") {
       return [
-        { name: "Dashboard", link: "/dashboard", icon: FiHome, section: "main" },
-        { name: "Profile", link: "/profile", icon: FiUser, section: "main" },
+        { name: "Feed", link: "/feed", icon: FiHome, section: "main" },
+        { name: "Profile", link: "/in/profile", icon: FiUser, section: "main" },
         {
           name: "Upcoming Interviews",
-          link: "/interviews/upcoming",
+          link: "/in/interviews/upcoming",
           icon: FiCalendar,
           section: "interviews",
         },
         {
           name: "Interview History",
-          link: "/interviews/history",
+          link: "/in/interviews/history",
           icon: FiClock,
           section: "interviews",
         },
-        { name: "Jobs", link: "/jobs", icon: FiBriefcase, section: "jobs" },
+        { name: "Jobs", link: "/in/jobs", icon: FiBriefcase, section: "jobs" },
         { name: "Notifications", link: "/notifications", icon: FiBell, section: "activity" },
-        { name: "Analytics", link: "/analytics", icon: FiBarChart2, section: "activity" },
-        { name: "Resume Builder", link: "/resume/builder", icon: FiFileText, section: "pro" },
-        { name: "Job Alerts", link: "/jobs/alerts", icon: FiBell, section: "pro" },
-        { name: "Career Coaching", link: "/coaching", icon: FiUsers, section: "pro" },
+        { name: "Analytics", link: "/in/analytics", icon: FiBarChart2, section: "activity" },
+        { name: "Resume Builder", link: "/in/resume/builder", icon: FiFileText, section: "pro" },
+        { name: "Job Alerts", link: "/in/jobs/alerts", icon: FiBell, section: "pro" },
+        { name: "Career Coaching", link: "/in/coaching", icon: FiUsers, section: "pro" },
         // PITCH: Practice hidden (stub alerts) — re-enable when implemented
-        { name: "My AI Agents", link: "/ai-agents", icon: FiCpu, section: "ai" },
+        { name: "My AI Agents", link: "/in/ai-agents", icon: FiCpu, section: "ai" },
         {
           name: "Shareable Profiles",
-          link: "/shareable-profiles",
+          link: "/in/shareable-profiles",
           icon: FiLink,
           section: "ai",
         },
@@ -222,31 +242,31 @@ export function getSidebarItems(role, plan) {
       } else {
         // pro - same as trial now (all features visible)
         return [
-          { name: "Dashboard", link: "/dashboard", icon: FiHome, section: "main" },
-          { name: "Profile", link: "/profile", icon: FiUser, section: "main" },
+          { name: "Feed", link: "/feed", icon: FiHome, section: "main" },
+          { name: "Profile", link: "/in/profile", icon: FiUser, section: "main" },
           {
            name: "Upcoming Interviews",
-           link: "/interviews/upcoming",
+           link: "/in/interviews/upcoming",
            icon: FiCalendar,
            section: "interviews",
          },
          {
            name: "Interview History",
-           link: "/interviews/history",
+           link: "/in/interviews/history",
            icon: FiClock,
            section: "interviews",
          },
-          { name: "Jobs", link: "/jobs", icon: FiBriefcase, section: "jobs" },
+          { name: "Jobs", link: "/in/jobs", icon: FiBriefcase, section: "jobs" },
          { name: "Notifications", link: "/notifications", icon: FiBell, section: "activity" },
-         { name: "Analytics", link: "/analytics", icon: FiBarChart2, section: "activity" },
-         { name: "Resume Builder", link: "/resume/builder", icon: FiFileText, section: "pro" },
-         { name: "Job Alerts", link: "/jobs/alerts", icon: FiBell, section: "pro" },
-         { name: "Career Coaching", link: "/coaching", icon: FiUsers, section: "pro" },
+         { name: "Analytics", link: "/in/analytics", icon: FiBarChart2, section: "activity" },
+         { name: "Resume Builder", link: "/in/resume/builder", icon: FiFileText, section: "pro" },
+         { name: "Job Alerts", link: "/in/jobs/alerts", icon: FiBell, section: "pro" },
+         { name: "Career Coaching", link: "/in/coaching", icon: FiUsers, section: "pro" },
          // PITCH: Practice hidden (stub alerts) — re-enable when implemented
-         { name: "My AI Agents", link: "/ai-agents", icon: FiCpu, section: "ai" },
+         { name: "My AI Agents", link: "/in/ai-agents", icon: FiCpu, section: "ai" },
          {
            name: "Shareable Profiles",
-           link: "/shareable-profiles",
+           link: "/in/shareable-profiles",
            icon: FiLink,
            section: "ai",
          },
@@ -258,57 +278,57 @@ export function getSidebarItems(role, plan) {
   } else if (role === "organization") {
     if (plan === "trial") {
       return [
-        { name: "Dashboard", link: "/dashboard", icon: FiHome, section: "main" },
-        { name: "Profile", link: "/organization/profile", icon: FiUser, section: "main" },
-        { name: "Team Members", link: "/organization/team", icon: FiUsers, section: "main" },
-        { name: "Job Posts", link: "/organization/jobs", icon: FiFileText, section: "main" },
-        { name: "Hire People", link: "/organization/hire", icon: FiUsers, section: "main" },
-        { name: "Candidates", link: "/organization/candidates", icon: FiUser, section: "candidates" },
+        { name: "Feed", link: "/feed", icon: FiHome, section: "main" },
+        { name: "Profile", link: "/org/profile", icon: FiUser, section: "main" },
+        { name: "Team Members", link: "/org/team", icon: FiUsers, section: "main" },
+        { name: "Job Posts", link: "/org/jobs", icon: FiFileText, section: "main" },
+        { name: "Hire People", link: "/org/hire", icon: FiUsers, section: "main" },
+        { name: "Candidates", link: "/org/candidates", icon: FiUser, section: "candidates" },
         {
           name: "Candidate Analysis",
-          link: "/organization/candidate-analysis",
+          link: "/org/candidate-analysis",
           icon: FiBarChart2,
           section: "candidates",
         },
         {
           name: "Interviews",
-          link: "/organization/interviews",
+          link: "/org/interviews",
           icon: FiCalendar,
           section: "interviews",
         },
-        { name: "AI Agents", link: "/organization/ai-agents", icon: FiCpu, section: "ai" },
+        { name: "AI Agents", link: "/org/ai-agents", icon: FiCpu, section: "ai" },
         { name: "Notifications", link: "/notifications", icon: FiBell, section: "activity" },
-        { name: "Pipeline", link: "/organization/pipeline", icon: FiBarChart2, section: "activity" },
-        { name: "Analytics", link: "/organization/analytics", icon: FiBarChart2, section: "activity" },
+        { name: "Pipeline", link: "/org/pipeline", icon: FiBarChart2, section: "activity" },
+        { name: "Analytics", link: "/org/analytics", icon: FiBarChart2, section: "activity" },
         { name: "Settings", link: "/settings", icon: FiSettings, section: "bottom" },
         { name: "Sign Out", link: "/signin", icon: FiLogOut, section: "bottom" },
        ];
      } else {
        // pro
        return [
-         { name: "Dashboard", link: "/dashboard", icon: FiHome, section: "main" },
-         { name: "Profile", link: "/organization/profile", icon: FiUser, section: "main" },
-         { name: "Team Members", link: "/organization/team", icon: FiUsers, section: "main" },
-         { name: "Job Posts", link: "/organization/jobs", icon: FiFileText, section: "main" },
-         { name: "Hire People", link: "/organization/hire", icon: FiUsers, section: "main" },
-         { name: "Candidates", link: "/organization/candidates", icon: FiUser, section: "candidates" },
+         { name: "Feed", link: "/feed", icon: FiHome, section: "main" },
+         { name: "Profile", link: "/org/profile", icon: FiUser, section: "main" },
+         { name: "Team Members", link: "/org/team", icon: FiUsers, section: "main" },
+         { name: "Job Posts", link: "/org/jobs", icon: FiFileText, section: "main" },
+         { name: "Hire People", link: "/org/hire", icon: FiUsers, section: "main" },
+         { name: "Candidates", link: "/org/candidates", icon: FiUser, section: "candidates" },
          {
            name: "Candidate Analysis",
-           link: "/organization/candidate-analysis",
+           link: "/org/candidate-analysis",
            icon: FiBarChart2,
            section: "candidates",
          },
          {
            name: "Interviews",
-           link: "/organization/interviews",
+           link: "/org/interviews",
            icon: FiCalendar,
            section: "interviews",
          },
-         { name: "AI Agents", link: "/organization/ai-agents", icon: FiCpu, section: "ai" },
+         { name: "AI Agents", link: "/org/ai-agents", icon: FiCpu, section: "ai" },
          { name: "Notifications", link: "/notifications", icon: FiBell, section: "activity" },
-         { name: "Pipeline", link: "/organization/pipeline", icon: FiBarChart2, section: "activity" },
-         { name: "Analytics", link: "/organization/analytics", icon: FiBarChart2, section: "activity" },
-          { name: "Reports", link: "/organization/reports", icon: FiFileText, section: "pro" },
+         { name: "Pipeline", link: "/org/pipeline", icon: FiBarChart2, section: "activity" },
+         { name: "Analytics", link: "/org/analytics", icon: FiBarChart2, section: "activity" },
+          { name: "Reports", link: "/org/reports", icon: FiFileText, section: "pro" },
           // PITCH: Integrations/Insights/Billing hidden (coming-soon stubs)
          { name: "Settings", link: "/settings", icon: FiSettings, section: "bottom" },
          { name: "Sign Out", link: "/signin", icon: FiLogOut, section: "bottom" },

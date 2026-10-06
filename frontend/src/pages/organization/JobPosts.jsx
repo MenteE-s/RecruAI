@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import { getSidebarItems, verifyTokenWithServer, getBackendUrl, getAuthHeaders } from "../../utils/auth";
 import { useToast } from "../../components/ui/ToastContext";
@@ -19,6 +19,7 @@ import {
 
 export default function JobPosts() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const role = typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
   const plan = typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
   const sidebarItems = getSidebarItems(role, plan);
@@ -114,6 +115,19 @@ export default function JobPosts() {
     }
     setShowCreateForm(true);
   };
+
+  // Deep-link from the "post your first job" CTA after creating a page:
+  // /organization/jobs?new=1 opens a blank post form, then drops the param so
+  // a refresh doesn't reopen it over an in-progress post.
+  useEffect(() => {
+    if (searchParams.get("new") !== "1") return;
+    openForm();
+    const next = new URLSearchParams(searchParams);
+    next.delete("new");
+    setSearchParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
   const handleEdit = (post) => openForm(post);
   const resetForm = () => { setFormData({ title: "", description: "", employment_type: "Full-time", category: "", salary_min: "", salary_max: "", salary_currency: "USD", requirements: [], application_deadline: "", status: "active" }); setLocCity(""); setLocCountry(""); setLocRemote(false); setEditingPost(null); setShowCreateForm(false); setShowPublishConfirm(false); };
   const addRequirement = () => setFormData((p) => ({ ...p, requirements: [...p.requirements, ""] }));
@@ -305,7 +319,7 @@ export default function JobPosts() {
         ) : (
           <div className="divide-y divide-gray-100">
             {filtered.map((post) => (
-              <div key={post.id} onClick={() => navigate(`/organization/jobs/${post.id}`)} className="p-5 hover:bg-blue-50/50 cursor-pointer border border-transparent hover:border-blue-100 transition-colors">
+              <div key={post.id} onClick={() => navigate(`/org/jobs/${post.id}`)} className="p-5 hover:bg-blue-50/50 cursor-pointer border border-transparent hover:border-blue-100 transition-colors">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2">

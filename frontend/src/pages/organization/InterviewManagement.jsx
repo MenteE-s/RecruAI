@@ -1799,7 +1799,7 @@ export default function InterviewManagement() {
               onClick={() => {
                 console.log("Interview object:", interview);
                 console.log("Interview ID:", interview.id);
-                navigate(`/interview/${interview.id}`);
+                navigate(`/in/interview/${interview.id}`);
               }}
               className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm animate-pulse"
             >
@@ -1827,7 +1827,7 @@ export default function InterviewManagement() {
                 🎯 Make Decision
               </button>
               <button
-                onClick={() => navigate(`/interview/${interview.id}/analysis`)}
+                onClick={() => navigate(`/in/interview/${interview.id}/analysis`)}
                 className="px-3 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 text-sm"
               >
                 📊 Analysis

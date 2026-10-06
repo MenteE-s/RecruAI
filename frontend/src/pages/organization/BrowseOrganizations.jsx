@@ -4,10 +4,11 @@ import DashboardLayout from "../../components/layout/DashboardLayout";
 import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
 import Card from "../../components/ui/Card";
 import {
-  getSidebarItems,
-  getUploadUrl,
-  getBackendUrl,
-  getAuthHeaders,
+getSidebarItems,
+getUploadUrl,
+getBackendUrl,
+getAuthHeaders,
+orgPath
 } from "../../utils/auth";
 import {
   FiSearch,
@@ -168,7 +169,7 @@ export default function BrowseOrganizations() {
                   <div className="flex items-center">
                     <div className="flex-shrink-0 h-12 w-12">
                       {org.profile_image ? (
-                        <Link to={`/organization/profile/${org.id}`} className="h-12 w-12 block">
+                        <Link to={`orgPath(org)`} className="h-12 w-12 block">
                           <img
                             src={getUploadUrl(org.profile_image)}
                             alt={`${org.name} profile`}
@@ -228,14 +229,14 @@ export default function BrowseOrganizations() {
 
                 <div className="flex gap-2">
                   <button
-                    onClick={() => navigate(`/organization/profile/${org.id}`)}
+                    onClick={() => navigate(`orgPath(org)`)}
                     className="inline-flex items-center px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                   >
                     <FiEye className="mr-1.5" size={14} />
                     Profile
                   </button>
                   <a
-                    href="/dashboard"
+                    href="/feed"
                     className="inline-flex items-center px-3 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-black focus:ring-2 focus:ring-gray-900 focus:ring-offset-2 transition-colors"
                   >
                     <FiBriefcase className="mr-1.5" size={14} />

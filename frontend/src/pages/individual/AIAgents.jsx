@@ -84,7 +84,7 @@ export default function IndividualAIAgents() {
       });
       if (response.ok) {
         const data = await response.json();
-        window.location.href = `/interview/${data.id}`;
+        window.location.href = `/in/interview/${data.id}`;
       } else {
         const errorData = await response.json();
         setError(errorData.error || "Failed to start practice interview");

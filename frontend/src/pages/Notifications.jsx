@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import socketService from "../utils/socket";
-import { getBackendUrl, verifyTokenWithServer, getSidebarItems, getUploadUrl } from "../utils/auth";
+import { getBackendUrl, verifyTokenWithServer, getSidebarItems, getUploadUrl, orgPath } from "../utils/auth";
 import { formatDate } from "../utils/timezone";
 import {
   FiBell,
@@ -176,13 +176,13 @@ export default function Notifications() {
   const getNotificationLink = (n) => {
     const r = rel(n);
     const postId = postOf(n)?.id ?? r.post_id;
-    if (postId) return `/jobs/${postId}`;
+    if (postId) return `/in/jobs/${postId}`;
     const orgId = orgOf(n)?.id ?? r.organization_id;
-    if (orgId) return `/organization/profile/${orgId}`;
+    if (orgId) return `orgPath(orgId)`;
     const interviewId = r.interview_id;
-    if (n.type?.includes("interview") && interviewId) return `/interviews/${interviewId}`;
-    if ((n.type === "profile_favorited" || n.type === "profile_viewed") && r.user_id) return `/profile`;
-    if (n.type?.includes("interview")) return `/interviews/upcoming`;
+    if (n.type?.includes("interview") && interviewId) return `/in/interviews/${interviewId}`;
+    if ((n.type === "profile_favorited" || n.type === "profile_viewed") && r.user_id) return `/in/profile`;
+    if (n.type?.includes("interview")) return `/in/interviews/upcoming`;
     return null;
   };
 
@@ -373,7 +373,7 @@ export default function Notifications() {
                   <span className="text-[11px] text-gray-400">{formatDate(n.created_at)}</span>
                   {org && (
                     <button
-                      onClick={(e) => { e.stopPropagation(); if (org.id) navigate(`/organization/profile/${org.id}`); }}
+                      onClick={(e) => { e.stopPropagation(); if (org.id) navigate(`orgPath(org)`); }}
                       className="text-[11px] font-medium text-gray-500 hover:text-blue-600 hover:underline truncate"
                     >
                       {org.name}
@@ -381,7 +381,7 @@ export default function Notifications() {
                   )}
                   {post && (
                     <button
-                      onClick={(e) => { e.stopPropagation(); navigate(`/jobs/${post.id}`); }}
+                      onClick={(e) => { e.stopPropagation(); navigate(`/in/jobs/${post.id}`); }}
                       className="text-[11px] font-semibold text-blue-600 hover:underline"
                     >
                       View job →

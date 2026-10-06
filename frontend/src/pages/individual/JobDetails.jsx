@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import IndividualNavbar from "../../components/layout/IndividualNavbar";
-import { getSidebarItems, getBackendUrl, getUploadUrl, getCurrentUserId } from "../../utils/auth";
+import { getSidebarItems, getBackendUrl, getUploadUrl, getCurrentUserId, orgPath } from "../../utils/auth";
 import { useToast } from "../../components/ui/ToastContext";
 import MenteeLoader from "../../components/ui/MenteeLoader";
 import { formatDate } from "../../utils/timezone";
@@ -78,7 +78,7 @@ export default function JobDetails() {
           message: "Job not found",
           type: "error",
         });
-        navigate("/dashboard");
+        navigate("/feed");
       }
     } catch (error) {
       console.error("Error fetching job details:", error);
@@ -300,7 +300,7 @@ export default function JobDetails() {
       {/* Centered narrow column, LinkedIn-style */}
       <div className="w-full max-w-3xl mx-auto">
         <button
-          onClick={() => navigate("/dashboard")}
+          onClick={() => navigate("/feed")}
           className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-gray-900 mb-2"
         >
           <FiArrowLeft className="w-3.5 h-3.5" /> Back to dashboard
@@ -324,7 +324,7 @@ export default function JobDetails() {
               <h1 className="text-[17px] font-semibold text-gray-900 leading-snug">{job.title}</h1>
               {job.organization?.id ? (
                 <Link
-                  to={`/organization/profile/${job.organization.id}`}
+                  to={`orgPath(job.organization)`}
                   className="text-sm text-blue-600 hover:underline"
                 >
                   {orgName}
@@ -423,7 +423,7 @@ export default function JobDetails() {
               <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
                 <h2 className="text-[15px] font-semibold text-gray-900">About the company</h2>
                 <button
-                  onClick={() => job.organization?.id && navigate(`/organization/profile/${job.organization.id}`)}
+                  onClick={() => job.organization?.id && navigate(`orgPath(job.organization)`)}
                   disabled={!job.organization?.id}
                   className="w-full flex items-center gap-2.5 mt-2.5 text-left group"
                 >
@@ -518,7 +518,7 @@ export default function JobDetails() {
                   {recommendedJobs.map((recJob) => (
                     <button
                       key={recJob.id}
-                      onClick={() => navigate(`/jobs/${recJob.id}`)}
+                      onClick={() => navigate(`/in/jobs/${recJob.id}`)}
                       className="w-full flex gap-2.5 py-2.5 text-left group"
                     >
                       <div className="w-9 h-9 rounded bg-gray-800 text-white flex items-center justify-center text-xs font-bold shrink-0">

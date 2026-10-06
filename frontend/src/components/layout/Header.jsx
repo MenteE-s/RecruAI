@@ -1,7 +1,8 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
-import { getCurrentUser, getUploadUrl, getBackendUrl, getAuthHeaders } from "../../utils/auth";
+import { getCurrentUser, getUploadUrl, getBackendUrl, getAuthHeaders, orgPath } from "../../utils/auth";
 import SignOutButton from "../ui/SignOutButton";
+import GlobalSearch from "../search/GlobalSearch";
 import {
   FiHome,
   FiBell,
@@ -18,6 +19,8 @@ import {
   FiVideo,
   FiBarChart2,
   FiCpu,
+  FiPlusCircle,
+  FiGlobe,
 } from "react-icons/fi";
 
 export default function Header({ sidebarItems = [] }) {
@@ -55,16 +58,16 @@ export default function Header({ sidebarItems = [] }) {
   // Role-aware nav: seekers browse jobs/people, orgs work posts/candidates
   const navItems = isOrg
     ? [
-        { name: "Home", link: "/dashboard", icon: FiHome },
-        { name: "Jobs", link: "/organization/jobs", icon: FiBriefcase },
-        { name: "People", link: "/organization/candidates", icon: FiUsers },
-        { name: "Interviews", link: "/organization/interviews", icon: FiVideo },
+        { name: "Home", link: "/feed", icon: FiHome },
+        { name: "Jobs", link: "/org/jobs", icon: FiBriefcase },
+        { name: "People", link: "/org/candidates", icon: FiUsers },
+        { name: "Interviews", link: "/org/interviews", icon: FiVideo },
         { name: "Notifications", link: "/notifications", icon: FiBell, badge: unreadCount > 0 ? unreadCount : null },
       ]
     : [
-        { name: "Home", link: "/dashboard", icon: FiHome },
-        { name: "My Network", link: "/network", icon: FiUsers },
-        { name: "Interviews", link: "/interviews", icon: FiVideo },
+        { name: "Home", link: "/feed", icon: FiHome },
+        { name: "My Network", link: "/in/network", icon: FiUsers },
+        { name: "Interviews", link: "/in/interviews", icon: FiVideo },
         { name: "Notifications", link: "/notifications", icon: FiBell, badge: unreadCount > 0 ? unreadCount : null },
       ];
 
@@ -98,13 +101,16 @@ export default function Header({ sidebarItems = [] }) {
 
   const firstName = headerUser?.name ? headerUser.name.trim().split(/\s+/)[0] : "You";
   const avatarUrl = headerUser?.profile_picture ? getUploadUrl(headerUser.profile_picture) : "";
+  // Individuals may found a company page at any time; if they already did,
+  // offer the page itself instead of a second create action.
+  const canCreatePage = role === "individual" && !headerUser?.organization_id;
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
       <div className="flex items-center gap-2 md:gap-3 h-11 px-3 md:px-4 w-full max-w-5xl mx-auto">
         {/* Brand */}
         <button
-          onClick={() => navigate("/dashboard")}
+          onClick={() => navigate("/feed")}
           className="flex-shrink-0 flex items-center gap-1.5 hover:opacity-80 transition-opacity"
         >
           <img
@@ -117,18 +123,10 @@ export default function Header({ sidebarItems = [] }) {
           </span>
         </button>
 
-        {/* Search Bar - compact, stretches to fill header width */}
-        <div className="flex-1 min-w-0">
-          <div className="relative">
-            <FiSearch className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 w-3.5 h-3.5" />
-            <input
-              type="text"
-              placeholder={isOrg ? "Search candidates, jobs..." : "Search jobs, people..."}
-              readOnly
-              className="w-full h-7 pl-8 pr-3 bg-[#f5f5f5] border border-transparent rounded-md text-xs text-gray-800 placeholder-gray-500 focus:outline-none focus:bg-white focus:border-blue-400 focus:ring-1 focus:ring-blue-100 transition-all cursor-default select-none"
-            />
-          </div>
-        </div>
+        {/* Global search - one query across people, companies and jobs. */}
+        <GlobalSearch
+          placeholder={isOrg ? "Search candidates, companies, jobs..." : "Search people, companies, jobs..."}
+        />
 
         {/* Navigation */}
         <nav className="flex items-center gap-0 md:gap-0.5">
@@ -192,48 +190,87 @@ export default function Header({ sidebarItems = [] }) {
               <div className="py-1">
                 {isOrg ? (
                   <>
-                    <button onClick={() => { navigate("/organization/profile"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
+                    <button onClick={() => { navigate("/org/profile"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
                       <FiUser className="w-3.5 h-3.5 text-gray-400" /> Organization Profile
                     </button>
-                    <button onClick={() => { navigate("/organization/team"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
+                    <button onClick={() => { navigate("/org/team"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
                       <FiUsers className="w-3.5 h-3.5 text-gray-400" /> Team Members
                     </button>
-                    <button onClick={() => { navigate("/organization/candidates"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
+                    <button onClick={() => { navigate("/org/candidates"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
                       <FiSearch className="w-3.5 h-3.5 text-gray-400" /> Find & Hire People
                     </button>
-                    <button onClick={() => { navigate("/organization/pipeline"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
+                    <button onClick={() => { navigate("/org/pipeline"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
                       <FiTrendingUp className="w-3.5 h-3.5 text-gray-400" /> Pipeline
                     </button>
-                    <button onClick={() => { navigate("/organization/analytics"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
+                    <button onClick={() => { navigate("/org/analytics"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
                       <FiBarChart2 className="w-3.5 h-3.5 text-gray-400" /> Analytics
                     </button>
-                    <button onClick={() => { navigate("/organization/ai-agents"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
+                    <button onClick={() => { navigate("/org/ai-agents"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
                       <FiCpu className="w-3.5 h-3.5 text-gray-400" /> AI Agents
                     </button>
                   </>
                 ) : (
                   <>
-                <button onClick={() => { navigate("/profile"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
+                <button onClick={() => { navigate("/in/profile"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
                   <FiUser className="w-3.5 h-3.5 text-gray-400" /> Profile
                 </button>
-                <button onClick={() => { navigate("/analytics"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
+                <button onClick={() => { navigate("/in/analytics"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
                   <FiTrendingUp className="w-3.5 h-3.5 text-gray-400" /> Analytics
                 </button>
-                <button onClick={() => { navigate("/jobs"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
+                <button onClick={() => { navigate("/in/jobs"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
                   <FiBriefcase className="w-3.5 h-3.5 text-gray-400" /> Jobs
                 </button>
-                <button onClick={() => { navigate("/jobs/alerts"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
+                <button onClick={() => { navigate("/in/jobs/alerts"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
                   <FiBell className="w-3.5 h-3.5 text-gray-400" /> Job Alerts
                 </button>
-                <button onClick={() => { navigate("/shareable-profiles"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
+                <button onClick={() => { navigate("/in/shareable-profiles"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
                   <FiLink className="w-3.5 h-3.5 text-gray-400" /> Shareable Profiles
                 </button>
-                <button onClick={() => { navigate("/coaching"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
+                <button onClick={() => { navigate("/in/coaching"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
                   <FiAward className="w-3.5 h-3.5 text-gray-400" /> Career Coaching
                 </button>
-                <button onClick={() => { navigate("/resume/builder"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
+                <button onClick={() => { navigate("/in/resume/builder"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
                   <FiFileText className="w-3.5 h-3.5 text-gray-400" /> Resume Builder
                 </button>
+                  </>
+                )}
+
+                {/* Company pages — individuals only. The page lives alongside the
+                    personal profile, so this never switches the whole app into an
+                    org account. */}
+                {!isOrg && (
+                  <>
+                    <div className="border-t border-gray-100 my-1" />
+                    <p className="px-3 pt-1 pb-0.5 text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                      For Business
+                    </p>
+                    {headerUser?.organization_id && (
+                      <button
+                        onClick={() => { navigate("/page"); setDropdownOpen(false); }}
+                        className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors"
+                      >
+                        <FiBriefcase className="w-3.5 h-3.5 text-blue-500" /> Manage page
+                      </button>
+                    )}
+                    {headerUser?.organization_id && (
+                      <button
+                        onClick={() => {
+                          navigate(`orgPath(headerUser)`);
+                          setDropdownOpen(false);
+                        }}
+                        className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors"
+                      >
+                        <FiGlobe className="w-3.5 h-3.5 text-gray-400" /> View public page
+                      </button>
+                    )}
+                    {canCreatePage && (
+                      <button
+                        onClick={() => { navigate("/page/create"); setDropdownOpen(false); }}
+                        className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors"
+                      >
+                        <FiPlusCircle className="w-3.5 h-3.5 text-gray-400" /> Create a company page
+                      </button>
+                    )}
                   </>
                 )}
                 <div className="border-t border-gray-100 my-1" />

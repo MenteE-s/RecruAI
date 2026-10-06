@@ -1,7 +1,7 @@
 // src/App.js — eager imports: one bundle, instant client-side navigation.
 // (Route-level code-splitting was tried and reverted: per-route chunks put a
 // loading spinner on every first page visit, which felt much slower.)
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -29,6 +29,8 @@ import Community from "./pages/Community";
 import CookiesPolicy from "./pages/CookiesPolicy";
 import NotFound from "./pages/NotFound";
 import PublicProfile from "./pages/PublicProfile";
+import SearchResults from "./pages/SearchResults";
+import PublicProfileBySlug from "./pages/PublicProfileBySlug";
 // Dashboard Pages
 import DashboardSwitcher from "./pages/DashboardSwitcher";
 import SettingsSwitcher from "./pages/SettingsSwitcher";
@@ -70,12 +72,24 @@ import InterviewRoom from "./pages/InterviewRoom";
 import Notifications from "./pages/Notifications";
 import InterviewDetail from "./pages/individual/InterviewDetail";
 
+// Page Manager — the company-side back office for an individual account.
+// PageManagerLayout owns the chrome + sidebar; the existing /organization/*
+// pages render bare inside it (see DashboardLayout).
+import PageManagerLayout from "./components/page/PageManagerLayout";
+import CreatePage from "./pages/page/CreatePage";
+import PageOverview from "./pages/page/Overview";
+import PageProfileEditor from "./pages/page/PageProfile";
+import PageVisibility from "./pages/page/Visibility";
+import PageSettings from "./pages/page/Settings";
+
 import { verifyTokenWithServer } from "./utils/auth";
+import { getBackendUrl, getAuthHeaders } from "./utils/auth";
+import MenteeLoader from "./components/ui/MenteeLoader";
 import socketService from "./utils/socket";
 
 function InterviewAnalysisRedirect() {
   const { interviewId } = useParams();
-  return <Navigate to={`/interviews/${interviewId}/analysis`} replace />;
+  return <Navigate to={`/in/interviews/${interviewId}/analysis`} replace />;
 }
 
 function ScrollToTop() {
@@ -85,6 +99,118 @@ function ScrollToTop() {
     document.querySelectorAll("main").forEach((el) => el.scrollTo(0, 0));
   }, [pathname]);
   return null;
+}
+
+/**
+ * Old-URL redirects for the /organization/* -> /org/* slug rename.
+ *
+ * Bookmarks, emails and shared interview links already in circulation point at
+ * /organization/*. Rather than break them, swap the prefix and keep the rest of
+ * the path (including params) intact.
+ *
+ * Must be declared ABOVE the /:slug public-profile catch-all, otherwise
+ * "/organization/team" would be captured as a profile slug.
+ */
+function LegacyOrgRedirect() {
+  const location = useLocation();
+  const rest = location.pathname.slice("/organization".length);
+  return <Navigate to={`/org${rest}${location.search}`} replace />;
+}
+
+/**
+ * Root -> /in/* redirects for the personal-side move.
+ *
+ * Kept as wildcards so nested paths survive: /jobs/saved -> /in/jobs/saved,
+ * /resume/builder -> /in/resume/builder. Params and the query string are
+ * preserved so shared application links keep resolving.
+ */
+function LegacyPersonalRedirect({ prefix }) {
+  const location = useLocation();
+  const rest = location.pathname.slice(prefix.length);
+  return <Navigate to={`/in${prefix}${rest}${location.search}`} replace />;
+}
+
+/**
+ * /org/profile/:id -> /org/<slug>
+ *
+ * The old URL embedded a database id. Resolving it needs a fetch, so this
+ * shows a spinner rather than pretending it can redirect synchronously.
+ */
+function LegacyOrgIdRedirect() {
+  const { orgId } = useParams();
+  const [slug, setSlug] = useState(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!orgId) return;
+    fetch(`${getBackendUrl()}/api/organizations/${orgId}`, {
+      credentials: "include",
+      headers: getAuthHeaders(),
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (cancelled) return;
+        if (d?.slug) setSlug(d.slug);
+        else setFailed(true);
+      })
+      .catch(() => !cancelled && setFailed(true));
+    return () => { cancelled = true; };
+  }, [orgId]);
+
+  if (slug) return <Navigate to={`orgPath(slug)`} replace />;
+  if (failed) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+        <p className="text-sm text-gray-600">That company page could not be found.</p>
+      </div>
+    );
+  }
+  return (
+    <div className="min-h-[40vh] flex items-center justify-center">
+      <MenteeLoader size={48} />
+    </div>
+  );
+}
+
+/** /org/profile -> the slug of the caller's own company page. */
+function LegacyOwnOrgRedirect() {
+  const [slug, setSlug] = useState(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    verifyTokenWithServer({ forceRefresh: true })
+      .then((user) => {
+        if (cancelled) return;
+        if (user?.organization_id) setSlug(String(user.organization_id));
+        else setFailed(true);
+      })
+      .catch(() => !cancelled && setFailed(true));
+    return () => { cancelled = true; };
+  }, []);
+
+  const [ownSlug, setOwnSlug] = useState(null);
+  useEffect(() => {
+    if (!slug) return;
+    let cancelled = false;
+    fetch(`${getBackendUrl()}/api/organizations/${slug}`, {
+      credentials: "include",
+      headers: getAuthHeaders(),
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (!cancelled && d?.slug) setOwnSlug(d.slug); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [slug]);
+
+  if (ownSlug) return <Navigate to={`orgPath(ownSlug)`} replace />;
+  if (failed) return <Navigate to="/feed" replace />;
+  return (
+    <div className="min-h-[40vh] flex items-center justify-center">
+      <MenteeLoader size={48} />
+    </div>
+  );
 }
 
 function AuthVerifier() {
@@ -123,7 +249,7 @@ function AuthVerifier() {
       (location.pathname === "/signin" || location.pathname === "/register") &&
       localStorage.getItem("isAuthenticated") === "true"
     ) {
-      navigate("/dashboard", { replace: true });
+      navigate("/feed", { replace: true });
     }
   }, [navigate, location.pathname]);
 
@@ -141,6 +267,14 @@ function App() {
           <Route path="/" element={<RecruAILanding />} />
           <Route path="/register" element={<Register />} />
           <Route path="/signin" element={<SignIn />} />
+          <Route
+            path="/search"
+            element={
+              <ProtectedRoute>
+                <SearchResults />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/contact" element={<ContactUs />} />
           <Route path="/terms" element={<TermsAndConditions />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
@@ -152,7 +286,7 @@ function App() {
 
           {/* Protected Routes */}
           <Route
-            path="/dashboard"
+            path="/feed"
             element={
               <ProtectedRoute>
                 <DashboardSwitcher />
@@ -160,7 +294,7 @@ function App() {
             }
           />
           <Route
-            path="/network"
+            path="/in/network"
             element={
               <ProtectedRoute>
                 <MyNetwork />
@@ -176,7 +310,7 @@ function App() {
             }
           />
           <Route
-            path="/interviews"
+            path="/in/interviews"
             element={
               <ProtectedRoute>
                 <Interviews />
@@ -184,7 +318,7 @@ function App() {
             }
           />
           <Route
-            path="/profile"
+            path="/in/profile"
             element={
               <ProtectedRoute>
                 <Profile />
@@ -192,7 +326,7 @@ function App() {
             }
           />
           <Route
-            path="/interviews/upcoming"
+            path="/in/interviews/upcoming"
             element={
               <ProtectedRoute>
                 <UpcomingInterviews />
@@ -200,7 +334,7 @@ function App() {
             }
           />
           <Route
-            path="/interviews/history"
+            path="/in/interviews/history"
             element={
               <ProtectedRoute>
                 <InterviewHistory />
@@ -208,17 +342,17 @@ function App() {
             }
           />
           <Route
-            path="/jobs"
+            path="/in/jobs"
             element={
               <ProtectedRoute>
                 <Jobs />
               </ProtectedRoute>
             }
           />
-          <Route path="/jobs/saved" element={<Navigate to="/jobs" replace />} />
-          <Route path="/jobs/applied" element={<Navigate to="/jobs?tab=applied" replace />} />
+          <Route path="/in/jobs/saved" element={<Navigate to="/in/jobs" replace />} />
+          <Route path="/in/jobs/applied" element={<Navigate to="/in/jobs?tab=applied" replace />} />
           <Route
-            path="/jobs/:id"
+            path="/in/jobs/:id"
             element={
               <ProtectedRoute>
                 <JobDetails />
@@ -226,7 +360,7 @@ function App() {
             }
           />
           <Route
-            path="/analytics"
+            path="/in/analytics"
             element={
               <ProtectedRoute>
                 <Analytics />
@@ -234,7 +368,7 @@ function App() {
             }
           />
           <Route
-            path="/resume/builder"
+            path="/in/resume/builder"
             element={
               <ProtectedRoute>
                 <ResumeBuilder />
@@ -242,7 +376,7 @@ function App() {
             }
           />
           <Route
-            path="/jobs/alerts"
+            path="/in/jobs/alerts"
             element={
               <ProtectedRoute>
                 <JobAlerts />
@@ -250,7 +384,7 @@ function App() {
             }
           />
           <Route
-            path="/coaching"
+            path="/in/coaching"
             element={
               <ProtectedRoute>
                 <CareerCoaching />
@@ -266,7 +400,7 @@ function App() {
             }
           />
           <Route
-            path="/interview/:interviewId/analysis"
+            path="/in/interview/:interviewId/analysis"
             element={
               <ProtectedRoute>
                 <InterviewAnalysisRedirect />
@@ -274,7 +408,7 @@ function App() {
             }
           />
           <Route
-            path="/organization/interviews"
+            path="/org/interviews"
             element={
               <ProtectedRoute>
                 <InterviewManagement />
@@ -282,15 +416,7 @@ function App() {
             }
           />
           <Route
-            path="/organization/profile"
-            element={
-              <ProtectedRoute>
-                <OrganizationProfile />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/organization/browse"
+            path="/org/browse"
             element={
               <ProtectedRoute>
                 <BrowseOrganizations />
@@ -298,15 +424,7 @@ function App() {
             }
           />
           <Route
-            path="/organization/profile/:orgId"
-            element={
-              <ProtectedRoute>
-                <OrganizationProfile />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/organization/hire"
+            path="/org/hire"
             element={
               <ProtectedRoute>
                 <HirePeople />
@@ -314,7 +432,7 @@ function App() {
             }
           />
           <Route
-            path="/organization/pipeline"
+            path="/org/pipeline"
             element={
               <ProtectedRoute>
                 <Pipeline />
@@ -322,7 +440,7 @@ function App() {
             }
           />
           <Route
-            path="/organization/reports"
+            path="/org/reports"
             element={
               <ProtectedRoute>
                 <Reports />
@@ -330,7 +448,7 @@ function App() {
             }
           />
           <Route
-            path="/organization/integrations"
+            path="/org/integrations"
             element={
               <ProtectedRoute>
                 <Integrations />
@@ -338,7 +456,7 @@ function App() {
             }
           />
           <Route
-            path="/organization/insights"
+            path="/org/insights"
             element={
               <ProtectedRoute>
                 <Insights />
@@ -346,7 +464,7 @@ function App() {
             }
           />
           <Route
-            path="/organization/team"
+            path="/org/team"
             element={
               <ProtectedRoute>
                 <TeamMembers />
@@ -354,7 +472,7 @@ function App() {
             }
           />
           <Route
-            path="/organization/user/:userId"
+            path="/org/user/:userId"
             element={
               <ProtectedRoute>
                 <UserProfile />
@@ -362,7 +480,7 @@ function App() {
             }
           />
           <Route
-            path="/organization/candidate-analysis"
+            path="/org/candidate-analysis"
             element={
               <ProtectedRoute>
                 <CandidateAnalysis />
@@ -370,7 +488,7 @@ function App() {
             }
           />
           <Route
-            path="/organization/candidate-analysis/:userId"
+            path="/org/candidate-analysis/:userId"
             element={
               <ProtectedRoute>
                 <CandidateAnalysis />
@@ -378,7 +496,7 @@ function App() {
             }
           />
           <Route
-            path="/organization/jobs"
+            path="/org/jobs"
             element={
               <ProtectedRoute>
                 <JobPosts />
@@ -386,7 +504,7 @@ function App() {
             }
           />
           <Route
-            path="/organization/jobs/:id"
+            path="/org/jobs/:id"
             element={
               <ProtectedRoute>
                 <JobPostDetails />
@@ -394,7 +512,7 @@ function App() {
             }
           />
           <Route
-            path="/organization/ai-agents"
+            path="/org/ai-agents"
             element={
               <ProtectedRoute>
                 <AIAgents />
@@ -402,7 +520,7 @@ function App() {
             }
           />
           <Route
-            path="/organization/candidates"
+            path="/org/candidates"
             element={
               <ProtectedRoute>
                 <Candidates />
@@ -410,7 +528,7 @@ function App() {
             }
           />
           <Route
-            path="/organization/billing"
+            path="/org/billing"
             element={
               <ProtectedRoute>
                 <Billing />
@@ -418,7 +536,7 @@ function App() {
             }
           />
           <Route
-            path="/organization/analytics"
+            path="/org/analytics"
             element={
               <ProtectedRoute>
                 <OrganizationAnalytics />
@@ -426,7 +544,7 @@ function App() {
             }
           />
           <Route
-            path="/interview/:interviewId"
+            path="/in/interview/:interviewId"
             element={
               <ProtectedRoute>
                 <InterviewRoom />
@@ -434,11 +552,11 @@ function App() {
             }
           />
           <Route
-            path="/interviews/analysis"
-            element={<Navigate to="/analytics" replace />}
+            path="/in/interviews/analysis"
+            element={<Navigate to="/in/analytics" replace />}
           />
           <Route
-            path="/interviews/:interviewId/analysis"
+            path="/in/interviews/:interviewId/analysis"
             element={
               <ProtectedRoute>
                 <InterviewAnalysis />
@@ -446,7 +564,7 @@ function App() {
             }
           />
           <Route
-            path="/interviews/:interviewId"
+            path="/in/interviews/:interviewId"
             element={
               <ProtectedRoute>
                 <InterviewDetail />
@@ -454,7 +572,7 @@ function App() {
             }
           />
           <Route
-            path="/practice"
+            path="/in/practice"
             element={
               <ProtectedRoute>
                 <PracticeDashboard />
@@ -462,7 +580,7 @@ function App() {
             }
           />
           <Route
-            path="/practice/:sessionId"
+            path="/in/practice/:sessionId"
             element={
               <ProtectedRoute>
                 <PracticeRoom />
@@ -470,7 +588,7 @@ function App() {
             }
           />
           <Route
-            path="/ai-agents"
+            path="/in/ai-agents"
             element={
               <ProtectedRoute>
                 <IndividualAIAgents />
@@ -478,7 +596,7 @@ function App() {
             }
           />
           <Route
-            path="/shareable-profiles"
+            path="/in/shareable-profiles"
             element={
               <ProtectedRoute>
                 <ShareableProfiles />
@@ -493,6 +611,179 @@ function App() {
               </ProtectedRoute>
             }
           />
+          {/* Backwards compatibility for the /individual-ish root -> /in/*
+              move. These are one-segment paths that used to live at the root. */}
+          <Route path="/profile" element={<Navigate to="/in/profile" replace />} />
+          <Route path="/jobs/*" element={<LegacyPersonalRedirect prefix="/jobs" />} />
+          <Route path="/network" element={<Navigate to="/in/network" replace />} />
+          <Route path="/analytics" element={<Navigate to="/in/analytics" replace />} />
+          <Route path="/coaching" element={<Navigate to="/in/coaching" replace />} />
+          <Route path="/resume/*" element={<LegacyPersonalRedirect prefix="/resume" />} />
+          <Route path="/practice/*" element={<LegacyPersonalRedirect prefix="/practice" />} />
+          <Route path="/ai-agents" element={<Navigate to="/in/ai-agents" replace />} />
+          <Route path="/shareable-profiles" element={<Navigate to="/in/shareable-profiles" replace />} />
+          <Route path="/interviews/*" element={<LegacyPersonalRedirect prefix="/interviews" />} />
+          <Route path="/interview/*" element={<LegacyPersonalRedirect prefix="/interview" />} />
+
+          {/* /dashboard -> /feed rename. */}
+          <Route path="/dashboard" element={<Navigate to="/feed" replace />} />
+
+          {/* Company pages by slug: /org/<slug>. Declared AFTER every static
+              /org/* segment so a slug can never shadow a real page. */}
+          <Route
+            path="/org/:slug"
+            element={
+              <ProtectedRoute>
+                <OrganizationProfile />
+              </ProtectedRoute>
+            }
+          />
+          {/* Old company-page URLs -> the slug. */}
+          <Route path="/org/profile" element={<LegacyOwnOrgRedirect />} />
+          <Route path="/org/profile/:orgId" element={<LegacyOrgIdRedirect />} />
+
+          {/* Backwards compatibility for the /organization/* -> /org/* rename.
+              Above /:slug so it isn't swallowed as a profile slug. */}
+          <Route path="/organization/*" element={<LegacyOrgRedirect />} />
+          {/* Page Manager. Must stay ABOVE the /:slug catch-all. */}
+          <Route
+            path="/page"
+            element={
+              <ProtectedRoute>
+                <PageOverview />
+              </ProtectedRoute>
+            }
+          />
+          {/* Its own screen, not a dialog — must be declared before /page/* 
+              style paths are matched. */}
+          <Route
+            path="/page/create"
+            element={
+              <ProtectedRoute>
+                <CreatePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/page/profile"
+            element={
+              <ProtectedRoute>
+                <PageProfileEditor />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/page/visibility"
+            element={
+              <ProtectedRoute>
+                <PageVisibility />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/page/settings"
+            element={
+              <ProtectedRoute>
+                <PageSettings />
+              </ProtectedRoute>
+            }
+          />
+          {/* Reused org pages, now with the page-manager sidebar around them.
+              Deliberately NOT redirecting /organization/* — existing bookmarks
+              and emails keep working. */}
+          <Route
+            path="/page/posts"
+            element={
+              <ProtectedRoute>
+                <PageManagerLayout title="Job posts" subtitle="Every role you've published.">
+                  <JobPosts />
+                </PageManagerLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/page/posts/:id"
+            element={
+              <ProtectedRoute>
+                <PageManagerLayout>
+                  <JobPostDetails />
+                </PageManagerLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/page/candidates"
+            element={
+              <ProtectedRoute>
+                <PageManagerLayout title="Candidates" subtitle="People you can hire.">
+                  <Candidates />
+                </PageManagerLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/page/interviews"
+            element={
+              <ProtectedRoute>
+                <PageManagerLayout title="Interviews" subtitle="Scheduled and completed sessions.">
+                  <InterviewManagement />
+                </PageManagerLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/page/pipeline"
+            element={
+              <ProtectedRoute>
+                <PageManagerLayout title="Pipeline" subtitle="Applications from applied to hired.">
+                  <Pipeline />
+                </PageManagerLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/page/analytics"
+            element={
+              <ProtectedRoute>
+                <PageManagerLayout title="Analytics" subtitle="How your hiring is performing.">
+                  <OrganizationAnalytics />
+                </PageManagerLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/page/agents"
+            element={
+              <ProtectedRoute>
+                <PageManagerLayout title="AI agents" subtitle="Automations for your hiring process.">
+                  <AIAgents />
+                </PageManagerLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/page/team"
+            element={
+              <ProtectedRoute>
+                <PageManagerLayout title="Team members" subtitle="Who can administer this page.">
+                  <TeamMembers />
+                </PageManagerLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/page/billing"
+            element={
+              <ProtectedRoute>
+                <PageManagerLayout title="Billing" subtitle="Payment methods and invoices.">
+                  <Billing />
+                </PageManagerLayout>
+              </ProtectedRoute>
+            }
+          />
+          {/* Public profile by slug. LAST of the /in routes: every static /in/*
+              segment above wins, so a slug can never shadow a real page. */}
+          <Route path="/in/:slug" element={<PublicProfileBySlug />} />
           {/* Public profile by slug — kept last so static routes win. */}
           <Route path="/:slug" element={<PublicProfile />} />
           {/* 404 Route - must be last */}
