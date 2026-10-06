@@ -123,6 +123,18 @@ ORG_RESERVED = frozenset({
 MAX_ORG_SLUG_LEN = 60
 
 
+def _ascii_slug(text: str, max_len: int) -> str:
+    """Shared slugifier: strip accents, lowercase, collapse to hyphens."""
+    import unicodedata
+
+    s = unicodedata.normalize("NFKD", text or "")
+    s = s.encode("ascii", "ignore").decode()
+    s = s.lower()
+    s = re.sub(r"[^a-z0-9]+", "-", s)
+    s = re.sub(r"-{2,}", "-", s).strip("-")
+    return s[:max_len].strip("-")
+
+
 def slugify_company(name: str) -> str:
     """Turn a company name into a URL fragment.
 
@@ -131,14 +143,7 @@ def slugify_company(name: str) -> str:
     column width. Returns "" for input that has no usable characters, which
     callers must handle (fall back to an id-based slug).
     """
-    import unicodedata
-
-    s = unicodedata.normalize("NFKD", name or "")
-    s = s.encode("ascii", "ignore").decode()
-    s = s.lower()
-    s = re.sub(r"[^a-z0-9]+", "-", s)
-    s = re.sub(r"-{2,}", "-", s).strip("-")
-    return s[:MAX_ORG_SLUG_LEN].strip("-")
+    return _ascii_slug(name, MAX_ORG_SLUG_LEN)
 
 
 def unique_org_slug(name: str, org_model, attempts: int = 50) -> str:
@@ -163,3 +168,31 @@ def unique_org_slug(name: str, org_model, attempts: int = 50) -> str:
         candidate = f"{base}-{n}"
         n += 1
     raise RuntimeError("could not generate a unique company slug")
+
+
+# --- job postings: /in/jobs/<slug> ---------------------------------------
+# Job titles repeat across companies ("Software Engineer" is everywhere), so
+# collisions are the normal case and get a numeric suffix.
+JOB_RESERVED = frozenset({"saved", "applied", "alerts", "new", "edit", "create"})
+MAX_POST_SLUG_LEN = 140
+
+
+def slugify_job(title: str) -> str:
+    """Turn a job title into a URL fragment. "" when nothing usable remains."""
+    return _ascii_slug(title, MAX_POST_SLUG_LEN)
+
+
+def unique_post_slug(title: str, post_model, attempts: int = 60) -> str:
+    """A globally unique slug for a job post."""
+    base = slugify_job(title) or "job"
+    if base in JOB_RESERVED:
+        base = f"{base}-post"
+
+    candidate = base
+    n = 2
+    while n <= attempts:
+        if post_model.query.filter(post_model.slug == candidate).first() is None:
+            return candidate
+        candidate = f"{base}-{n}"
+        n += 1
+    raise RuntimeError("could not generate a unique job slug")

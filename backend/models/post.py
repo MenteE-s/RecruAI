@@ -12,6 +12,9 @@ class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     organization_id = db.Column(db.Integer, db.ForeignKey("organizations.id"), nullable=False)
     title = db.Column(db.String(255), nullable=False)
+    # Public job URL: /in/jobs/<slug>. Title-derived and fixed at creation, so
+    # editing a typo in the title can't break a link already shared.
+    slug = db.Column(db.String(140), nullable=True, unique=True, index=True)
     description = db.Column(db.Text, nullable=True)
     location = db.Column(db.String(255), nullable=True)
     employment_type = db.Column(db.String(64), nullable=True)  # Full-time, Part-time, Contract, etc.
@@ -53,6 +56,7 @@ class Post(db.Model):
         return {
             "id": self.id,
             "title": self.title,
+            "slug": self.slug,
             "description": self.description,
             "location": self.location,
             "employment_type": self.employment_type,

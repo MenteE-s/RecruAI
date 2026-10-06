@@ -3,10 +3,11 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import FollowButton from "../../components/ui/FollowButton";
 import {
-  getSidebarItems,
-  getUploadUrl,
-  getBackendUrl,
-  getAuthHeaders,
+getSidebarItems,
+getUploadUrl,
+getBackendUrl,
+getAuthHeaders,
+postPath
 } from "../../utils/auth";
 import {
   FiX,
@@ -521,7 +522,7 @@ export default function OrganizationProfile() {
               posts.map((post) => {
                 const deadlineSoon = post.application_deadline ? (new Date(post.application_deadline) - new Date()) / (1000 * 60 * 60 * 24) <= 7 && (new Date(post.application_deadline) - new Date()) / (1000 * 60 * 60 * 24) >= 0 : false;
                 return (
-                  <Link key={post.id} to={`/in/jobs/${post.id}`} className="block hover:bg-gradient-to-r hover:from-blue-50/30 hover:to-indigo-50/20 transition-all duration-200 group/card">
+                  <Link key={post.id} to={postPath(post)} className="block hover:bg-gradient-to-r hover:from-blue-50/30 hover:to-indigo-50/20 transition-all duration-200 group/card">
                     <div className="p-5 flex flex-col md:flex-row md:items-start gap-4 md:gap-6">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1.5">

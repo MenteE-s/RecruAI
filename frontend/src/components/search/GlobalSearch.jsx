@@ -8,7 +8,7 @@
 // three-query endpoint and out-of-order responses repaint the list randomly.
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { getBackendUrl, getAuthHeaders, getUploadUrl, orgPath } from "../../utils/auth";
+import { getBackendUrl, getAuthHeaders, getUploadUrl, orgPath, postPath } from "../../utils/auth";
 import {
   FiSearch, FiX, FiFileText, FiArrowRight, FiCornerDownLeft,
 } from "react-icons/fi";
@@ -41,7 +41,7 @@ export function resultTarget(kind, item) {
     case "company":
       return orgPath(item);
     case "job":
-      return `/in/jobs/${item.id}`;
+      return postPath(item);
     default:
       return "/feed";
   }

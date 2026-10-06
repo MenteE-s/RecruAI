@@ -203,6 +203,24 @@ export function orgPath(org) {
   return "/org/browse";
 }
 
+/**
+ * Canonical URL for a job post.
+ *
+ * Prefers the title slug (/in/jobs/software-engineer). Falls back to the id
+ * form, which the API resolves too — GET /api/posts/by-slug/<slug> tries the
+ * slug then treats the segment as a numeric id — so a payload missing a slug
+ * still lands on the right job instead of rendering /in/jobs/undefined.
+ */
+export function postPath(post) {
+  if (post && typeof post === "object") {
+    const handle = post.slug || post.id;
+    if (handle) return `/in/jobs/${handle}`;
+    return "/in/jobs";
+  }
+  if (post) return `/in/jobs/${post}`;
+  return "/in/jobs";
+}
+
 export function getSidebarItems(role, plan) {
   if (role === "individual") {
     if (plan === "trial") {

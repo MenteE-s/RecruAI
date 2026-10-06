@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import IndividualNavbar from "../../components/layout/IndividualNavbar";
-import { getSidebarItems, getBackendUrl, getUploadUrl, getCurrentUserId, orgPath } from "../../utils/auth";
+import { getSidebarItems, getBackendUrl, getUploadUrl, getCurrentUserId, orgPath, postPath } from "../../utils/auth";
 import { useToast } from "../../components/ui/ToastContext";
 import MenteeLoader from "../../components/ui/MenteeLoader";
 import { formatDate } from "../../utils/timezone";
@@ -33,7 +33,9 @@ function timeAgo(dateString) {
 }
 
 export default function JobDetails() {
-  const { id } = useParams();
+  // The route segment is the job slug (e.g. "software-engineer"). Numeric ids
+// still work because the backend resolves both.
+  const { slug } = useParams();
   const navigate = useNavigate();
   const { showToast } = useToast();
 
@@ -56,7 +58,7 @@ export default function JobDetails() {
     checkSavedStatus();
     checkAppliedStatus();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+  }, [slug]);
 
   useEffect(() => {
     if (job) {
@@ -67,12 +69,17 @@ export default function JobDetails() {
 
   const fetchJobDetails = async () => {
     try {
-      const response = await fetch(`${getBackendUrl()}/api/posts/${id}`);
+      // by-slug resolves the title slug and also accepts a numeric id, so both
+      // the canonical URL and any older id link work through one call.
+      const response = await fetch(`${getBackendUrl()}/api/posts/by-slug/${encodeURIComponent(slug)}`);
       if (response.ok) {
         const data = await response.json();
         setJob(data);
-        // Record this detail view (fire-and-forget)
-        fetch(`${getBackendUrl()}/api/posts/${id}/view`, { method: "POST" }).catch(() => {});
+        // Record this detail view (fire-and-forget). Use the resolved id, not
+        // the URL segment, which may be a slug.
+        if (data.id) {
+          fetch(`${getBackendUrl()}/api/posts/${data.id}/view`, { method: "POST" }).catch(() => {});
+        }
       } else {
         showToast({
           message: "Job not found",
@@ -94,7 +101,7 @@ export default function JobDetails() {
   const checkSavedStatus = async () => {
     try {
       const response = await fetch(
-        `${getBackendUrl()}/api/saved-jobs/check?post_id=${id}`
+        `${getBackendUrl()}/api/saved-jobs/check?post_id=${job?.id}`
       );
       if (response.ok) {
         const data = await response.json();
@@ -112,7 +119,7 @@ export default function JobDetails() {
       // Filter server-side to this post: returns 0-1 rows instead of the
       // user's whole application history.
       const response = await fetch(
-        `${getBackendUrl()}/api/applications/user/${userId}?post_id=${id}`
+        `${getBackendUrl()}/api/applications/user/${userId}?post_id=${job?.id}`
       );
       if (response.ok) {
         const data = await response.json();
@@ -141,7 +148,7 @@ export default function JobDetails() {
         const recommended = allJobs
           .filter(
             (j) =>
-              j.id !== parseInt(id) && // Not the current job
+              j.id !== job?.id && // Not the current job
               (j.organization_id === job.organization_id ||
                 j.category === job.category) // Same company or category
           )
@@ -159,7 +166,7 @@ export default function JobDetails() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ post_id: parseInt(id) }),
+        body: JSON.stringify({ post_id: job?.id }),
       });
 
       if (response.ok) {
@@ -186,7 +193,7 @@ export default function JobDetails() {
   const handleUnsaveJob = async () => {
     try {
       const response = await fetch(
-        `${getBackendUrl()}/api/saved-jobs/check?post_id=${id}`
+        `${getBackendUrl()}/api/saved-jobs/check?post_id=${job?.id}`
       );
       if (response.ok) {
         const data = await response.json();
@@ -226,7 +233,7 @@ export default function JobDetails() {
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
-          post_id: parseInt(id),
+          post_id: job?.id,
           cover_letter: "",
           resume_url: "",
         }),
@@ -518,7 +525,7 @@ export default function JobDetails() {
                   {recommendedJobs.map((recJob) => (
                     <button
                       key={recJob.id}
-                      onClick={() => navigate(`/in/jobs/${recJob.id}`)}
+                      onClick={() => navigate(postPath(recJob))}
                       className="w-full flex gap-2.5 py-2.5 text-left group"
                     >
                       <div className="w-9 h-9 rounded bg-gray-800 text-white flex items-center justify-center text-xs font-bold shrink-0">

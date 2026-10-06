@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import FollowButton from "../../components/ui/FollowButton";
 import MenteeLoader from "../../components/ui/MenteeLoader";
-import { getSidebarItems, getBackendUrl, getAuthHeaders, getUploadUrl, orgPath } from "../../utils/auth";
+import { getSidebarItems, getBackendUrl, getAuthHeaders, getUploadUrl, orgPath, postPath } from "../../utils/auth";
 import { getFollows } from "../../utils/follows";
 import { FiBell, FiMapPin, FiBriefcase, FiUsers } from "react-icons/fi";
 
@@ -128,7 +128,7 @@ export default function MyNetwork() {
                   {networkJobs.map((j) => (
                     <button
                       key={`net-${j.id}`}
-                      onClick={() => navigate(`/in/jobs/${j.id}`)}
+                      onClick={() => navigate(postPath(j))}
                       className="w-full flex items-center gap-2.5 py-2 text-left group"
                     >
                       {j.organization?.profile_image ? (
@@ -190,7 +190,7 @@ export default function MyNetwork() {
                         </div>
                         {job ? (
                           <button
-                            onClick={() => navigate(`/in/jobs/${job.id}`)}
+                            onClick={() => navigate(postPath(job))}
                             className="mt-2 w-full text-left bg-gray-50 border border-gray-100 rounded-md px-2.5 py-2 hover:border-blue-200 group"
                           >
                             <p className="text-xs font-semibold text-gray-900 group-hover:text-blue-600 truncate">{job.title}</p>

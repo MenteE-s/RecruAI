@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
-import { getSidebarItems, getBackendUrl, getAuthHeaders, getUploadUrl, getCurrentUser, orgPath } from "../../utils/auth";
+import { getSidebarItems, getBackendUrl, getAuthHeaders, getUploadUrl, getCurrentUser, orgPath, postPath } from "../../utils/auth";
 import { useToast } from "../../components/ui/ToastContext";
 import MenteeLoader from "../../components/ui/MenteeLoader";
 import {
@@ -534,7 +534,7 @@ export default function IndividualDashboard() {
               return (
                 <article
                   key={job.id}
-                  onClick={() => navigate(`/in/jobs/${job.id}`)}
+                  onClick={() => navigate(postPath(job))}
                   className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden hover:shadow hover:border-gray-300 transition-all cursor-pointer"
                 >
                   <div className="p-3">
@@ -629,7 +629,7 @@ export default function IndividualDashboard() {
                         </button>
                       )}
                       <button
-                        onClick={(e) => { e.stopPropagation(); navigate(`/in/jobs/${job.id}`); }}
+                        onClick={(e) => { e.stopPropagation(); navigate(postPath(job)); }}
                         className="ml-auto text-[11px] text-blue-600 font-medium hover:underline px-1 py-1"
                       >
                         Details →
@@ -673,7 +673,7 @@ export default function IndividualDashboard() {
                 return (
                   <button
                     key={`recent-${j.id}`}
-                    onClick={() => navigate(`/in/jobs/${j.id}`)}
+                    onClick={() => navigate(postPath(j))}
                     className="w-full flex items-center gap-2 p-1.5 -mx-1.5 rounded-lg hover:bg-blue-50/60 text-left group transition-colors"
                   >
                     {j.organization?.profile_image ? (
@@ -719,7 +719,7 @@ export default function IndividualDashboard() {
               {popularJobs.map((j) => (
                 <button
                   key={`popular-${j.id}`}
-                  onClick={() => navigate(`/in/jobs/${j.id}`)}
+                  onClick={() => navigate(postPath(j))}
                   className="w-full text-left py-2 group"
                 >
                   <p className="text-xs font-semibold text-gray-900 group-hover:text-blue-600 group-hover:underline leading-tight line-clamp-1">

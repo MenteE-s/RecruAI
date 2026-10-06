@@ -351,8 +351,11 @@ function App() {
           />
           <Route path="/in/jobs/saved" element={<Navigate to="/in/jobs" replace />} />
           <Route path="/in/jobs/applied" element={<Navigate to="/in/jobs?tab=applied" replace />} />
+          {/* Title slug, e.g. /in/jobs/software-engineer. The backend also
+              accepts a numeric id on this path, so existing links keep working
+              with no redirect hop. Declared after the static segments above. */}
           <Route
-            path="/in/jobs/:id"
+            path="/in/jobs/:slug"
             element={
               <ProtectedRoute>
                 <JobDetails />

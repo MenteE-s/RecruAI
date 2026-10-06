@@ -23,6 +23,7 @@ from datetime import datetime
 from ...utils.pagination import Pagination, get_pagination_params, paginated_response, apply_filters_and_sorting, get_request_filters, get_sorting_params
 from ...utils.kafka_service import kafka_service as kafka
 from ...utils.cache import cached, invalidate_job_cache
+from ...utils.security import sanitize_input
 from ...models.post import application_counts
 
 
@@ -131,6 +132,13 @@ def create_post():
             status=payload.get("status", "active"),
         )
         db.session.add(post)
+        db.session.flush()  # post.id, before assigning the slug
+
+        # Public job URL (/in/jobs/<slug>). Title-derived and fixed from here
+        # on, so a later title edit can't break a link already shared.
+        from ...utils.slug import unique_post_slug
+        post.slug = unique_post_slug(post.title, Post)
+
         db.session.commit()
         
         # Invalidate job caches
@@ -334,6 +342,27 @@ def list_posts():
     counts = application_counts([p.id for p in items])
     data = [p.to_dict(application_count=counts.get(p.id, 0)) for p in items]
     return jsonify({"data": data, "pagination": pagination_result['pagination']}), 200
+
+@api_bp.route("/posts/by-slug/<slug>", methods=["GET"])
+@jwt_required(optional=True)
+def get_post_by_slug(slug):
+    """Resolve /in/jobs/<slug> to a post.
+
+    Falls back to treating the segment as a numeric id, so a link that still
+    carries an id keeps working without a separate redirect hop.
+    """
+    clean = sanitize_input(slug or "", max_length=140).strip().lower()
+    if not clean:
+        return jsonify({"error": "Not found"}), 404
+
+    post = Post.query.filter(func.lower(Post.slug) == clean).first()
+    if not post:
+        if clean.isdigit():
+            post = Post.query.get(int(clean))
+    if not post:
+        return jsonify({"error": "Not found"}), 404
+    return get_post(post.id)
+
 
 @api_bp.route("/posts/<int:post_id>", methods=["GET"])
 @jwt_required(optional=True)

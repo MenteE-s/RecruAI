@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import socketService from "../utils/socket";
-import { getBackendUrl, verifyTokenWithServer, getSidebarItems, getUploadUrl, orgPath } from "../utils/auth";
+import { getBackendUrl, verifyTokenWithServer, getSidebarItems, getUploadUrl, orgPath, postPath } from "../utils/auth";
 import { formatDate } from "../utils/timezone";
 import {
   FiBell,
@@ -175,8 +175,12 @@ export default function Notifications() {
 
   const getNotificationLink = (n) => {
     const r = rel(n);
-    const postId = postOf(n)?.id ?? r.post_id;
-    if (postId) return `/in/jobs/${postId}`;
+    const post = postOf(n);
+    const postId = post?.id ?? r.post_id;
+    // postPath prefers the slug; with only an id it falls back to the numeric
+    // form, which GET /api/posts/by-slug/<slug> also resolves.
+    if (post) return postPath(post);
+    if (postId) return postPath(postId);
     const orgId = orgOf(n)?.id ?? r.organization_id;
     if (orgId) return orgPath(orgId);
     const interviewId = r.interview_id;
@@ -381,7 +385,7 @@ export default function Notifications() {
                   )}
                   {post && (
                     <button
-                      onClick={(e) => { e.stopPropagation(); navigate(`/in/jobs/${post.id}`); }}
+                      onClick={(e) => { e.stopPropagation(); navigate(postPath(post)); }}
                       className="text-[11px] font-semibold text-blue-600 hover:underline"
                     >
                       View job →

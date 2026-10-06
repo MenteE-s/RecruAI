@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { getBackendUrl, getAuthHeaders, getSidebarItems, getCurrentUserId } from "../../utils/auth";
+import { getBackendUrl, getAuthHeaders, getSidebarItems, getCurrentUserId, postPath } from "../../utils/auth";
 import { useNavigate, Link } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import { formatDate } from "../../utils/timezone";
@@ -241,7 +241,7 @@ export default function AppliedJobs() {
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
-                            <Link to={`/in/jobs/${job.id}`} className="text-[15px] font-semibold text-gray-900 hover:text-blue-600 leading-tight">{job.title}</Link>
+                            <Link to={postPath(job)} className="text-[15px] font-semibold text-gray-900 hover:text-blue-600 leading-tight">{job.title}</Link>
                             <span className={`inline-flex items-center gap-1.5 text-xs font-medium border px-2.5 py-1 ${meta.color}`}><StatusIcon className="w-3.5 h-3.5" />{meta.label}</span>
                           </div>
                           <p className="text-sm text-gray-600 mt-1 flex flex-wrap items-center gap-1.5">
@@ -258,7 +258,7 @@ export default function AppliedJobs() {
                       </div>
                     </div>
                     <div className="hidden lg:flex flex-col gap-2 shrink-0 w-[160px]">
-                      <button onClick={() => navigate(`/in/jobs/${job.id}`)} className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors"><FiEye className="w-4 h-4" /> View details</button>
+                      <button onClick={() => navigate(postPath(job))} className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors"><FiEye className="w-4 h-4" /> View details</button>
                       {application.status !== "accepted" && application.status !== "rejected" && application.status !== "withdrawn" ? (
                         <button onClick={() => handleCancelApplication(application.id)} disabled={cancelling === application.id} className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white text-red-600 border border-red-200 text-sm font-medium hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"><FiTrash2 className="w-4 h-4" />{cancelling === application.id ? "Cancelling…" : "Cancel"}</button>
                       ) : (
@@ -267,7 +267,7 @@ export default function AppliedJobs() {
                     </div>
                   </div>
                   <div className="mt-4 flex lg:hidden gap-2">
-                    <button onClick={() => navigate(`/in/jobs/${job.id}`)} className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700"><FiEye className="w-4 h-4" /> View</button>
+                    <button onClick={() => navigate(postPath(job))} className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700"><FiEye className="w-4 h-4" /> View</button>
                     {application.status !== "accepted" && application.status !== "rejected" && application.status !== "withdrawn" && (
                       <button onClick={() => handleCancelApplication(application.id)} disabled={cancelling === application.id} className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white text-red-600 border border-red-200 text-sm font-medium disabled:opacity-50"><FiTrash2 className="w-4 h-4" />{cancelling === application.id ? "…" : "Cancel"}</button>
                     )}

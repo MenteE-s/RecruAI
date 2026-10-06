@@ -164,6 +164,7 @@ def _search_jobs(term, limit):
         {
             "id": p.id,
             "title": p.title,
+            "slug": p.slug,
             "category": p.category,
             "location": p.location,
             "employment_type": p.employment_type,
