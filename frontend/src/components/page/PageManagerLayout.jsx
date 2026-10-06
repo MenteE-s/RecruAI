@@ -31,7 +31,7 @@ const SECTIONS = [
     ],
   },
   {
-    group: "Recruiting",
+    group: "Hiring",
     items: [
       { to: "/page/posts", label: "Job posts", icon: FiFileText },
       { to: "/page/candidates", label: "Candidates", icon: FiUsers },
@@ -40,16 +40,11 @@ const SECTIONS = [
     ],
   },
   {
-    group: "Insights",
-    items: [
-      { to: "/page/analytics", label: "Analytics", icon: FiBarChart2 },
-      { to: "/page/agents", label: "AI agents", icon: FiCpu },
-    ],
-  },
-  {
     group: "Manage",
     items: [
       { to: "/page/team", label: "Team members", icon: FiUsers },
+      { to: "/page/analytics", label: "Analytics", icon: FiBarChart2 },
+      { to: "/page/agents", label: "AI agents", icon: FiCpu },
       { to: "/page/settings", label: "Page settings", icon: FiSettings },
     ],
   },
@@ -178,20 +173,24 @@ export default function PageManagerLayout({ children, title, subtitle, action })
           <p className="px-1 mb-1 text-[10px] font-bold uppercase tracking-wider text-gray-400">
             {section.group}
           </p>
-          <ul className="space-y-0.5">
+          <ul className="space-y-px">
             {section.items.map((item) => {
               const active = isActive(item);
               return (
                 <li key={item.to}>
                   <button
                     onClick={() => navigate(item.to)}
-                    className={`w-full flex items-center gap-2.5 px-2 py-1.5 rounded-md text-[12.5px] transition-colors ${
+                    className={`w-full flex items-center gap-2.5 rounded-md py-1.5 pl-2 pr-2 text-[13px] transition-colors ${
                       active
-                        ? "bg-blue-50 text-blue-700 font-semibold"
-                        : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                        ? "bg-gray-100 text-gray-900 font-semibold"
+                        : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                     }`}
                   >
-                    <item.icon className={`w-3.5 h-3.5 shrink-0 ${active ? "text-blue-600" : "text-gray-400"}`} />
+                    {/* Active marker reads as a rail, not a pill-filled button */}
+                    <span
+                      className={`w-0.5 h-4 rounded-full shrink-0 ${active ? "bg-gray-900" : "bg-transparent"}`}
+                    />
+                    <item.icon className={`w-3.5 h-3.5 shrink-0 ${active ? "text-gray-900" : "text-gray-400"}`} />
                     {item.label}
                   </button>
                 </li>
@@ -256,14 +255,12 @@ export default function PageManagerLayout({ children, title, subtitle, action })
                 </button>
               </div>
             )}
-            <div className="w-full max-w-4xl mx-auto">
+            <div className="w-full max-w-2xl mx-auto">
               {(title || action) && (
-                <div className="flex items-start justify-between gap-3 mb-4">
-                  <div className="min-w-0">
-                    {title && <h1 className="text-base font-bold text-gray-900 tracking-tight">{title}</h1>}
-                    {subtitle && <p className="text-[11.5px] text-gray-500 mt-0.5">{subtitle}</p>}
-                  </div>
-                  {action && <div className="shrink-0">{action}</div>}
+                <div className="mb-4">
+                  {title && <h1 className="text-lg font-semibold text-gray-900 tracking-tight">{title}</h1>}
+                  {subtitle && <p className="text-[12.5px] text-gray-500 mt-0.5">{subtitle}</p>}
+                  {action && <div className="mt-3">{action}</div>}
                 </div>
               )}
               {children}
