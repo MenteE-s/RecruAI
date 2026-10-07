@@ -37,8 +37,6 @@ export default function PageProfile() {
   const [saving, setSaving] = useState(false);
   // Page address, edited independently of the company name.
   const [slugValue, setSlugValue] = useState("");
-  const [savingSlug, setSavingSlug] = useState(false);
-  const [slugMsg, setSlugMsg] = useState(null);
   const [uploading, setUploading] = useState(false);
   const logoInput = useRef(null);
   const bannerInput = useRef(null);
@@ -85,39 +83,18 @@ export default function PageProfile() {
 
   // Mirrors slugify_company() in backend/utils/slug.py: lowercase, non
   // alphanumeric runs collapse to a single hyphen, trimmed.
-  const slugifyHint = (form.name || "")
+  // Optional chaining matters here: this runs on the first render, before the
+  // async load has populated `form`, and `form.name` on a null form throws.
+  const slugifyHint = (form?.name || "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 60);
 
-  async function saveSlug() {
-    setSlugMsg(null);
-    setSavingSlug(true);
-    try {
-      const res = await fetch(`${getBackendUrl()}/api/organizations/${org.id}/slug`, {
-        method: "PUT",
-        headers: getAuthHeaders({ "Content-Type": "application/json" }),
-        credentials: "include",
-        body: JSON.stringify({ slug: slugValue.trim().toLowerCase() }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setSlugMsg({ type: "error", text: data.error || "Could not update the address." });
-        return;
-      }
-      setSlugValue(data.slug);
-      setSlugMsg({
-        type: "success",
-        text: `Page address is now /org/${data.slug}. Update the save button for the name too.`,
-      });
-      await load();
-    } catch {
-      setSlugMsg({ type: "error", text: "Network error. Please try again." });
-    } finally {
-      setSavingSlug(false);
-    }
-  }
+  // The page address is edited here but saved by save(), not by its own
+  // button: two buttons on one form invites saving half of it. A separate
+  // endpoint on the server is fine; a separate save on the client is not.
+  const slugDirty = Boolean(org?.slug) && slugValue.trim().toLowerCase() !== org.slug;
 
   async function save(e) {
     e.preventDefault();
@@ -177,7 +154,35 @@ export default function PageProfile() {
         return;
       }
 
-      showToast({ message: "Page profile saved", type: "success", position: "side", duration: 2500 });
+      // Address last, and only when it actually changed, so a taken or
+      // reserved slug can't silently undo the details that just saved.
+      let addressChanged = false;
+      if (slugDirty) {
+        const slugRes = await fetch(`${getBackendUrl()}/api/organizations/${org.id}/slug`, {
+          method: "PUT",
+          headers: getAuthHeaders({ "Content-Type": "application/json" }),
+          credentials: "include",
+          body: JSON.stringify({ slug: slugValue.trim().toLowerCase() }),
+        });
+        if (!slugRes.ok) {
+          const b = await slugRes.json().catch(() => ({}));
+          setError(
+            b.error
+              ? `${b.error} Your other changes were saved.`
+              : "Could not update the page address. Your other changes were saved."
+          );
+          await load();
+          return;
+        }
+        addressChanged = true;
+      }
+
+      showToast({
+        message: addressChanged ? "Page profile and address saved" : "Page profile saved",
+        type: "success",
+        position: "side",
+        duration: 2500,
+      });
       await load();
     } catch {
       setError("Network error. Please try again.");
@@ -238,8 +243,10 @@ export default function PageProfile() {
     );
   }
 
-  const logoUrl = org.profile_image ? getUploadUrl(org.profile_image) : null;
-  const bannerUrl = bannerPreview || (org.banner_image ? getUploadUrl(org.banner_image) : null);
+  // `org` arrives with the same async load as `form`, so treat it as nullable
+  // here too rather than relying on them always landing together.
+  const logoUrl = org?.profile_image ? getUploadUrl(org.profile_image) : null;
+  const bannerUrl = bannerPreview || (org?.banner_image ? getUploadUrl(org.banner_image) : null);
 
   return (
     <PageManagerLayout
@@ -308,7 +315,7 @@ export default function PageProfile() {
                 >
                   <FiUpload className="w-3.5 h-3.5" /> {bannerUrl ? "Replace cover" : "Upload cover"}
                 </button>
-                {org.banner_image && !bannerPreview && (
+                {org?.banner_image && !bannerPreview && (
                   <button
                     type="button"
                     onClick={() => clearImage("banner")}
@@ -380,21 +387,15 @@ export default function PageProfile() {
               </div>
               <p className="mt-1 text-[11px] text-gray-400">
                 Lowercase letters, numbers and hyphens. Leave it alone to keep your
-                current address even if you rename the company.
+                current address even if you rename the company — saved with the
+                rest of this page.
               </p>
-              {slugMsg && (
-                <p className={`mt-1 text-[11.5px] font-medium ${slugMsg.type === "success" ? "text-green-700" : "text-red-700"}`}>
-                  {slugMsg.text}
+              {slugDirty && (
+                <p className="mt-1.5 inline-flex items-center gap-1.5 rounded-md bg-amber-50 border border-amber-200 px-2 py-1 text-[11.5px] font-medium text-amber-900">
+                  <FiAlertTriangle className="w-3 h-3 shrink-0 text-amber-600" />
+                  Your address will change to /org/{slugValue} when you save
                 </p>
               )}
-              <button
-                type="button"
-                onClick={saveSlug}
-                disabled={savingSlug || !slugValue || slugValue === (org?.slug || "")}
-                className="mt-2 px-3.5 py-1.5 bg-gray-900 text-white text-xs font-semibold hover:bg-black rounded-full disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-              >
-                {savingSlug ? "Saving…" : "Update page address"}
-              </button>
             </div>
             <div>
               <label htmlFor="pp-desc" className={labelCls}>Short description</label>

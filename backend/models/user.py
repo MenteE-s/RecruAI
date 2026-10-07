@@ -183,6 +183,10 @@ class User(db.Model):
             "location": self.location,
             "profile_picture": self.profile_picture,
             "employment_status": self.employment_status,
+            # Public handle, so results can link to /in/<slug>. This is
+            # the address a person shares, not private data; what must
+            # stay hidden is which company pages they administer.
+            "profile_slug": self.profile_slug,
         }
 
     def to_public_dict(self):

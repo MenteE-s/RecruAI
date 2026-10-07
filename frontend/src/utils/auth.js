@@ -221,6 +221,28 @@ export function postPath(post) {
   return "/in/jobs";
 }
 
+/**
+ * Canonical URL for a person's public profile (/in/syab).
+ *
+ * Universal search returns people from any organization, so results
+ * must point at the public profile — the org-scoped /org/user/<id>
+ * page only resolves for members of your own organization and shows
+ * "User not found in your organization" for everyone else.
+ *
+ * Falls back to the id form, which the /api/in/<slug> endpoint also
+ * resolves numerically, so a payload without a slug still lands on
+ * the right person instead of a dead link.
+ */
+export function personPath(person) {
+  if (person && typeof person === "object") {
+    const handle = person.profile_slug || person.id;
+    if (handle) return `/in/${handle}`;
+    return "/in";
+  }
+  if (person) return `/in/${person}`;
+  return "/in";
+}
+
 export function getSidebarItems(role, plan) {
   if (role === "individual") {
     if (plan === "trial") {

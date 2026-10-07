@@ -8,7 +8,7 @@
 // three-query endpoint and out-of-order responses repaint the list randomly.
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { getBackendUrl, getAuthHeaders, getUploadUrl, orgPath, postPath } from "../../utils/auth";
+import { getBackendUrl, getAuthHeaders, getUploadUrl, orgPath, postPath, personPath } from "../../utils/auth";
 import {
   FiSearch, FiX, FiFileText, FiArrowRight, FiCornerDownLeft,
 } from "react-icons/fi";
@@ -37,7 +37,10 @@ function buildRows(data) {
 export function resultTarget(kind, item) {
   switch (kind) {
     case "person":
-      return `/org/user/${item.id}`;
+      // Public profile, not /org/user/<id>: search returns people
+      // from every organization, and the org-scoped page only
+      // resolves for members of your own.
+      return personPath(item);
     case "company":
       return orgPath(item);
     case "job":
@@ -60,7 +63,9 @@ function subtitleFor(kind, item) {
 }
 
 function Avatar({ kind, item }) {
-  const url = item.profile_image ? getUploadUrl(item.profile_image) : null;
+  // People and companies name their image field differently.
+  const image = kind === "person" ? item.profile_picture : item.profile_image;
+  const url = image ? getUploadUrl(image) : null;
   if (url) {
     return <img src={url} alt="" className="w-7 h-7 rounded-full object-cover border border-gray-200 shrink-0" />;
   }

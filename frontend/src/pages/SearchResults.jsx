@@ -17,8 +17,10 @@ const TABS = [
   { key: "jobs", label: "Jobs", icon: FiFileText },
 ];
 
-function Avatar({ item }) {
-  const url = item.profile_image ? getUploadUrl(item.profile_image) : null;
+function Avatar({ item, kind }) {
+  // People and companies name their image field differently.
+  const image = kind === "person" ? item.profile_picture : item.profile_image;
+  const url = image ? getUploadUrl(image) : null;
   return url ? (
     <img src={url} alt="" className="w-10 h-10 rounded-full object-cover border border-gray-200 shrink-0" />
   ) : (
@@ -54,7 +56,7 @@ function Section({ title, items, kind, emptyText }) {
                     <FiFileText className="w-4 h-4 text-gray-400" />
                   </div>
                 ) : (
-                  <Avatar item={item} />
+                  <Avatar item={item} kind={kind} />
                 )}
                 <div className="min-w-0 flex-1">
                   <p className="text-[13px] font-semibold text-gray-900 truncate">
@@ -82,12 +84,55 @@ function Section({ title, items, kind, emptyText }) {
 }
 
 export default function SearchResults() {
-  const [params] = useSearchParams();
+  const [params, setSearchParams] = useSearchParams();
   const query = (params.get("q") || "").trim();
+  // Filters live in the URL so a narrowed search can be shared or
+  // bookmarked; the fetch re-runs when any of them changes.
+  const locationFilter = params.get("location") || "";
+  const typeFilter = params.get("employment_type") || "";
+  const postedFilter = params.get("posted") || "";
+  const sortFilter = params.get("sort") || "";
   const [tab, setTab] = useState("all");
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [locInput, setLocInput] = useState(locationFilter);
+
+  // Debounce the location box into the URL — every keystroke would
+  // otherwise fire a three-query search.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        if (locInput.trim() === (prev.get("location") || "")) return prev;
+        if (locInput.trim()) next.set("location", locInput.trim());
+        else next.delete("location");
+        return next;
+      });
+    }, 400);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [locInput]);
+
+  const setParam = (key, value) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (value) next.set(key, value);
+      else next.delete(key);
+      return next;
+    });
+  };
+
+  const clearFilters = () => {
+    setLocInput("");
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      ["location", "employment_type", "posted", "sort"].forEach((k) => next.delete(k));
+      return next;
+    });
+  };
+
+  const anyFilter = Boolean(locationFilter || typeFilter || postedFilter || sortFilter);
 
   useEffect(() => {
     if (query.length < 2) {
@@ -97,7 +142,12 @@ export default function SearchResults() {
     const controller = new AbortController();
     setLoading(true);
     setError(null);
-    fetch(`${getBackendUrl()}/api/search?q=${encodeURIComponent(query)}&limit=20`, {
+    const qs = new URLSearchParams({ q: query, limit: "20" });
+    if (locationFilter) qs.set("location", locationFilter);
+    if (typeFilter) qs.set("employment_type", typeFilter);
+    if (postedFilter) qs.set("posted", postedFilter);
+    if (sortFilter) qs.set("sort", sortFilter);
+    fetch(`${getBackendUrl()}/api/search?${qs.toString()}`, {
       credentials: "include",
       headers: getAuthHeaders(),
       signal: controller.signal,
@@ -107,7 +157,7 @@ export default function SearchResults() {
       .catch((e) => { if (e.name !== "AbortError") setError("Search failed. Please try again."); })
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
-  }, [query]);
+  }, [query, locationFilter, typeFilter, postedFilter, sortFilter]);
 
   const counts = data?.counts ?? { people: 0, companies: 0, jobs: 0 };
   const show = (k) => tab === "all" || tab === k;
@@ -138,6 +188,58 @@ export default function SearchResults() {
             <p className="text-[11.5px] text-gray-500 mt-0.5 mb-3">
               {loading ? "Searching…" : `${data?.total ?? 0} result${data?.total === 1 ? "" : "s"}`}
             </p>
+
+            {/* Filters — time and location narrow the same query, and living
+                them in the URL keeps a narrowed search shareable. */}
+            <div className="flex flex-wrap items-center gap-2 mb-4">
+              <input
+                value={locInput}
+                onChange={(e) => setLocInput(e.target.value)}
+                placeholder="Location"
+                aria-label="Filter by location"
+                className="px-3 py-1.5 text-[12.5px] bg-white border border-gray-200 rounded-full placeholder-gray-400 focus:outline-none focus:border-blue-500 w-36"
+              />
+              <select
+                value={typeFilter}
+                onChange={(e) => setParam("employment_type", e.target.value)}
+                aria-label="Filter by employment type"
+                className="px-2.5 py-1.5 text-[12.5px] bg-white border border-gray-200 rounded-full text-gray-700 focus:outline-none focus:border-blue-500"
+              >
+                <option value="">All types</option>
+                <option>Full-time</option>
+                <option>Part-time</option>
+                <option>Contract</option>
+                <option>Internship</option>
+              </select>
+              <select
+                value={postedFilter}
+                onChange={(e) => setParam("posted", e.target.value)}
+                aria-label="Filter by date posted"
+                className="px-2.5 py-1.5 text-[12.5px] bg-white border border-gray-200 rounded-full text-gray-700 focus:outline-none focus:border-blue-500"
+              >
+                <option value="">Any time</option>
+                <option value="24h">Past 24 hours</option>
+                <option value="week">Past week</option>
+                <option value="month">Past month</option>
+              </select>
+              <select
+                value={sortFilter}
+                onChange={(e) => setParam("sort", e.target.value)}
+                aria-label="Sort results"
+                className="px-2.5 py-1.5 text-[12.5px] bg-white border border-gray-200 rounded-full text-gray-700 focus:outline-none focus:border-blue-500"
+              >
+                <option value="">Most relevant</option>
+                <option value="recent">Most recent</option>
+              </select>
+              {anyFilter && (
+                <button
+                  onClick={clearFilters}
+                  className="text-[12px] font-medium text-blue-600 hover:text-blue-800 px-1"
+                >
+                  Clear all
+                </button>
+              )}
+            </div>
 
             {/* Tabs */}
             <div className="flex gap-1 border-b border-gray-200 mb-4 overflow-x-auto">

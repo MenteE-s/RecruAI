@@ -34,6 +34,11 @@ def get_public_profile_by_slug(slug):
         return jsonify({"error": "Not found"}), 404
 
     user = User.query.filter(func.lower(User.profile_slug) == clean).first()
+    # No slug match: a shared link may carry the numeric id instead,
+    # the same fallback the org and job endpoints offer. Slugs are
+    # generated from names, so a numeric segment can only be an id.
+    if not user and clean.isdigit():
+        user = User.query.get(int(clean))
     if not user:
         return jsonify({"error": "Not found"}), 404
 
