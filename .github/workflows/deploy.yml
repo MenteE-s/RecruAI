@@ -208,12 +208,38 @@ jobs:
           echo "Wrote backend/.env.production"
           ENVEOF
 
-      - name: Start infra + backend (no nginx yet on first boot)
+      - name: Start infra (no backend yet — it needs the fresh schema first)
         run: |
           ssh ${{ env.EC2_USER }}@${{ env.EC2_HOST }} "
             cd ${{ env.DEPLOY_DIR }} && \
             export API_DOMAIN=${{ env.API_DOMAIN }} && \
-            docker compose -f ${{ env.DOCKER_COMPOSE_FILE }} up -d --build redis kafka kafka-init backend
+            docker compose -f ${{ env.DOCKER_COMPOSE_FILE }} up -d --build redis kafka kafka-init
+          "
+
+      - name: Build backend image and run DB migrations
+        # Migrations MUST land before the backend container is expected to
+        # pass its healthcheck. The backend's models reference columns the
+        # schema only gains via these migrations, so the previous order
+        # (backend up → wait healthy → migrate) could never converge: the
+        # container timed out unhealthy and every deploy after a schema
+        # change failed. 'run --no-deps' boots one disposable container —
+        # it did NOT need the (crash-looping) backend to be healthy first.
+        # The migrations directory is passed explicitly because the
+        # container workdir is /app while the code lives at /app/backend.
+        run: |
+          ssh ${{ env.EC2_USER }}@${{ env.EC2_HOST }} "
+            cd ${{ env.DEPLOY_DIR }} && \
+            export API_DOMAIN=${{ env.API_DOMAIN }} && \
+            docker compose -f ${{ env.DOCKER_COMPOSE_FILE }} build backend && \
+            docker compose -f ${{ env.DOCKER_COMPOSE_FILE }} run --rm --no-deps backend flask db --directory /app/backend/migrations upgrade
+          "
+
+      - name: Start backend
+        run: |
+          ssh ${{ env.EC2_USER }}@${{ env.EC2_HOST }} "
+            cd ${{ env.DEPLOY_DIR }} && \
+            export API_DOMAIN=${{ env.API_DOMAIN }} && \
+            docker compose -f ${{ env.DOCKER_COMPOSE_FILE }} up -d --build backend
           "
 
       - name: Issue TLS cert on first boot (standalone, nginx stopped)
@@ -240,7 +266,7 @@ jobs:
           ssh ${{ env.EC2_USER }}@${{ env.EC2_HOST }} "
             cd ${{ env.DEPLOY_DIR }} && \
             export API_DOMAIN=${{ env.API_DOMAIN }} && \
-            docker compose -f ${{ env.DOCKER_COMPOSE_FILE }} up -d nginx certbot && \
+            docker compose -f ${{ env.DOCKER_COMPOSE_FILE }} up -d --remove-orphans nginx certbot && \
             docker compose -f ${{ env.DOCKER_COMPOSE_FILE }} restart nginx
           "
 
@@ -260,17 +286,6 @@ jobs:
             ssh ${{ env.EC2_USER }}@${{ env.EC2_HOST }} "cd ${{ env.DEPLOY_DIR }} && docker compose -f ${{ env.DOCKER_COMPOSE_FILE }} logs --tail=100 backend nginx"
             exit 1
           fi
-
-      - name: Run DB migrations
-        # NOTE: container workdir is /app but code lives at /app/backend, so
-        # the migrations directory must be given explicitly (bare
-        # 'flask db upgrade' looks for /app/migrations and errors out).
-        run: |
-          ssh ${{ env.EC2_USER }}@${{ env.EC2_HOST }} "
-            cd ${{ env.DEPLOY_DIR }} && \
-            export API_DOMAIN=${{ env.API_DOMAIN }} && \
-            docker compose -f ${{ env.DOCKER_COMPOSE_FILE }} exec -T backend flask db --directory /app/backend/migrations upgrade
-          "
 
       - name: Clean up old Docker images
         if: always()
