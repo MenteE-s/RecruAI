@@ -25,11 +25,27 @@ class Config:
         or os.getenv("FLASK_ENV") == "production"
     )
 
-    SQLALCHEMY_DATABASE_URI = os.getenv(
+    _db_url = os.getenv(
         "DATABASE_URL",
         # Local dev default: prefer Postgres at default creds per developer request.
         "postgresql://recruai:recruai_pass@localhost:5432/recruai",
     )
+    # The entire stack is built on psycopg2 (psycopg2-binary in
+    # requirements.txt, pgvector.psycopg2 in app.py). A psycopg (v3)
+    # scheme from the host/secret — e.g. RDS_DATABASE_URL set to
+    # postgresql+psycopg://… on the EC2 deploy — installs no error
+    # until first DB touch, when SQLAlchemy asks the driver registry
+    # for "psycopg" and it isn't there. Normalize all v2/v3 variants
+    # to the driver actually installed.
+    if _db_url.startswith("postgresql+psycopg3://"):
+        _db_url = "postgresql+psycopg2://" + _db_url[len("postgresql+psycopg3://"):]
+    elif _db_url.startswith("postgresql+psycopg://"):
+        _db_url = "postgresql+psycopg2://" + _db_url[len("postgresql+psycopg://"):]
+    elif _db_url.startswith("postgresql+asyncpg://"):
+        # asyncpg is asyncio-only; this app is sync. Same driver-swap
+        # rationale.
+        _db_url = "postgresql+psycopg2://" + _db_url[len("postgresql+asyncpg://"):]
+    SQLALCHEMY_DATABASE_URI = _db_url
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # Security: Strong secret keys required
