@@ -83,7 +83,7 @@ export default function ApplicantCard({ application, timeLabel, scheduled, onSta
           </select>
           {scheduled ? (
             <button
-              onClick={() => navigate("/organization/interviews")}
+              onClick={() => navigate("/org/interviews")}
               title="Interview already scheduled — view interviews"
               className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-green-50 text-green-700 border border-green-200 text-[11px] font-semibold hover:bg-green-100 rounded-md"
             >

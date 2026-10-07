@@ -101,7 +101,7 @@ export default function UserProfile() {
       <div className="flex items-center justify-between mb-4">
         <button onClick={() => navigate(-1)} className="inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900"><FiArrowLeft className="w-4 h-4" /> Back</button>
         {currentUser && String(currentUser.id) === String(userId) && (
-          <button onClick={() => navigate("/profile")} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 text-xs font-semibold text-blue-600 hover:bg-blue-50 rounded-md">
+          <button onClick={() => navigate("/in/profile")} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 text-xs font-semibold text-blue-600 hover:bg-blue-50 rounded-md">
             <FiEdit2 className="w-3.5 h-3.5" /> Edit my profile
           </button>
         )}
@@ -132,7 +132,7 @@ export default function UserProfile() {
               {currentUser && currentUser.id !== parseInt(userId) && (
                 <div className="flex gap-2">
                   <button onClick={() => toggleLike(userId)} className={`p-2.5 ${likedProfiles.has(String(userId)) ? "bg-red-500 text-white" : "bg-white/10 border border-white/20 text-white hover:bg-white/20"}`}><FiHeart className={`w-5 h-5 ${likedProfiles.has(String(userId)) ? "fill-white" : ""}`} /></button>
-                  <button onClick={() => window.open(`/profile/${userId}`, "_blank")} className="p-2.5 bg-white/10 border border-white/20 text-white hover:bg-white/20"><FiGlobe className="w-5 h-5" /></button>
+                  <button onClick={() => window.open(`/in/profile/${userId}`, "_blank")} className="p-2.5 bg-white/10 border border-white/20 text-white hover:bg-white/20"><FiGlobe className="w-5 h-5" /></button>
                 </div>
               )}
             </div>

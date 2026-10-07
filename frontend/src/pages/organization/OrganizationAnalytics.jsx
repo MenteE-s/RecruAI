@@ -161,7 +161,7 @@ export default function OrganizationAnalytics() {
               <h3 className="text-sm font-semibold text-gray-900">Recent analyses</h3>
               <div className="mt-4 space-y-3">
                 {analytics.analytics.slice(0, 5).map((analysis) => (
-                  <div key={analysis.id} onClick={() => navigate(`/interviews/${analysis.interview_id}/analysis`)} className="border border-gray-200 p-4 hover:border-gray-300 hover:bg-gray-50 cursor-pointer flex items-center justify-between">
+                  <div key={analysis.id} onClick={() => navigate(`/in/interviews/${analysis.interview_id}/analysis`)} className="border border-gray-200 p-4 hover:border-gray-300 hover:bg-gray-50 cursor-pointer flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-gray-900">Interview #{analysis.interview_id}</p>
                       <p className="text-xs text-gray-500">{formatDate(analysis.created_at)}</p>
@@ -185,7 +185,7 @@ export default function OrganizationAnalytics() {
               <h3 className="text-sm font-semibold text-gray-900">Recent interviews</h3>
               <div className="mt-4 space-y-3">
                 {analytics.recent_interviews.slice(0, 5).map((interview) => (
-                  <div key={interview.id} onClick={() => navigate(`/interviews/${interview.id}/analysis`)} className="border border-gray-200 p-4 hover:bg-gray-50 cursor-pointer flex items-center justify-between">
+                  <div key={interview.id} onClick={() => navigate(`/in/interviews/${interview.id}/analysis`)} className="border border-gray-200 p-4 hover:bg-gray-50 cursor-pointer flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-gray-900">{interview.title || `Interview #${interview.id}`}</p>
                       <p className="text-xs text-gray-500"><DualTime value={interview.scheduled_at_iso || interview.scheduled_at} otherTimezone={interview.candidate_timezone} otherLabel={interview.user_name} variant="compact" showRelative={false} /> • {interview.duration_minutes} min • {interview.interview_type}</p>

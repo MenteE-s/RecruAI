@@ -232,6 +232,14 @@ def update_me():
             value = sanitize_input(data[field]) if data[field] else None
             setattr(user, field, value)
 
+    # Global-search opt-out. Handled separately because it is a real boolean,
+    # not a sanitised string — passing "false" must not store truthy.
+    if 'is_discoverable' in data:
+        value = data['is_discoverable']
+        if not isinstance(value, bool):
+            return jsonify({"error": "is_discoverable must be true or false"}), 400
+        user.is_discoverable = value
+
     if 'email' in data:
         # Security: addresses change only through the verified flow
         # (POST /auth/email/change-request + /auth/email/change-verify),

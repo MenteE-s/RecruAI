@@ -1,11 +1,14 @@
 from flask import request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from sqlalchemy import func
 from .. import api_bp
 from ...extensions import db
 from ...models import Organization, TeamMember, User, AIInterviewAgent
 from ...utils.timezone_utils import is_valid_timezone, get_current_time_info, utc_iso, utc_now_iso
 from ...utils.kafka_service import kafka_service as kafka
 from ...utils.cache import cached, invalidate_org_cache
+from ...utils.security import sanitize_input, log_security_event
+from ...utils.slug import slugify_company, ORG_RESERVED
 import json
 import secrets
 from datetime import datetime
@@ -504,13 +507,16 @@ def suggest_organizations():
     ql = q.lower()
     exact = func.lower(Organization.name) == ql
     prefix = func.lower(Organization.name).like(ql + "%")
+    # A page whose admin set it to private must not surface in autocomplete.
     orgs = (Organization.query
             .filter(Organization.name.ilike(f"%{q}%"))
+            .filter(Organization.is_public.is_(True))
             .order_by(exact.desc(), prefix.desc(), Organization.name.asc())
             .limit(limit).all())
     return jsonify([{
         "id": o.id,
         "name": o.name,
+        "slug": o.slug,
         "profile_image": o.profile_image,
         "industry": o.industry,
         "location": o.location,
@@ -521,10 +527,14 @@ def suggest_organizations():
 @jwt_required()
 @cached("org_listings", ttl=600)
 def list_organizations():
-    orgs = Organization.query.order_by(Organization.id.asc()).all()
+    # Directory listing only ever shows public pages.
+    orgs = (Organization.query
+            .filter(Organization.is_public.is_(True))
+            .order_by(Organization.id.asc()).all())
     return jsonify([{
         "id": o.id,
         "name": o.name,
+        "slug": o.slug,
         "description": o.description,
         "website": o.website,
         "location": o.location,
@@ -533,53 +543,247 @@ def list_organizations():
         "created_at": utc_iso(o.created_at),
     } for o in orgs]), 200
 
-@api_bp.route("/organizations", methods=["POST"])
-@jwt_required()
-def create_organization():
-    from ...utils.security import sanitize_input, log_security_event
-    payload = request.get_json(silent=True) or {}
-    raw_name = payload.get("name", "") or ""
-    name = sanitize_input(raw_name, max_length=255).strip()
-    if not name or len(name) < 2:
-        return jsonify({"error": "name required (min 2 characters)"}), 400
-    if len(name) > 255:
-        return jsonify({"error": "name must be at most 255 characters"}), 400
+# NOTE: there is deliberately no `POST /organizations`. Company creation is
+# individuals-only-then-internal: an authenticated person creates their own
+# page via `POST /organizations/page`, which also grants them Admin. A generic
+# create endpoint would let any caller spawn unowned orgs with no admin at all.
 
-    if Organization.query.filter_by(name=name).first():
-        return jsonify({"error": "organization already exists"}), 400
+# Canonical option sets for the page wizard. The frontend renders these exact
+# values so the picker and the validator can never disagree.
+COMPANY_SIZE_OPTIONS = (
+    "1-10", "11-50", "51-200", "201-500",
+    "501-1000", "1000+", "1001-5000", "5001-10000", "10000+",
+)
+# "1000+" is legacy: it was the only option offered before the wizard split the
+# range into 1001-5000 / 5001-10000 / 10000+. It stays valid so editing an
+# existing page doesn't 400 on its own stored value.
+COMPANY_TYPE_OPTIONS = (
+    "startup", "private", "public", "nonprofit",
+    "agency", "education", "government",
+)
+MIN_FOUNDED_YEAR = 1800
+MAX_EMPLOYEES = 10_000_000
+
+
+@api_bp.route("/organizations/page/options", methods=["GET"])
+@jwt_required()
+def organization_page_options():
+    """Option lists + defaults for the page-creation wizard."""
+    return jsonify({
+        "company_size_options": list(COMPANY_SIZE_OPTIONS),
+        "company_type_options": list(COMPANY_TYPE_OPTIONS),
+        "current_year": datetime.utcnow().year,
+        "min_founded_year": MIN_FOUNDED_YEAR,
+    }), 200
+
+
+def _parse_int(value, field, minimum, maximum):
+    """Parse an optional int field. Returns (value, None) or (None, error)."""
+    if value is None or value == "":
+        return None, None
+    try:
+        n = int(value)
+    except (TypeError, ValueError):
+        return None, f"{field} must be a whole number."
+    if n < minimum or n > maximum:
+        return None, f"{field} must be between {minimum} and {maximum}."
+    return n, None
+
+
+@api_bp.route("/organizations/page", methods=["POST"])
+@jwt_required()
+def create_organization_page():
+    """Create a company page for the signed-in user, who becomes its Admin.
+
+    This is the ONLY way an organization comes into existence now that signup
+    is individuals-only. It mirrors the LinkedIn model: a person signs up once
+    and later opens a page for themselves or their company. The creator keeps
+    their individual account and gains Admin rights over the page via a
+    TeamMember row.
+
+    The logo is uploaded separately (POST /organizations/<id>/upload-profile-image)
+    so a failed image never costs the user the page they just filled in.
+    """
+    from flask import request as _req
+    from sqlalchemy import func
+    from ...utils.security import sanitize_input, log_security_event, validate_email
+    from ...utils.free_email import contact_email_warning
+    from sqlalchemy import func
+
+    payload = request.get_json(silent=True) or {}
+
+    try:
+        caller = User.query.get(int(get_jwt_identity()))
+    except (TypeError, ValueError):
+        caller = None
+    if not caller:
+        return jsonify({"error": "User not found"}), 404
+
+    # Security: an org account is a company delegate, not a founder. Only a
+    # real person can found a page — otherwise a company admin could spawn
+    # competitor pages from inside another company's account.
+    if caller.role != "individual":
+        return jsonify({"error": "Only individual accounts can create a company page."}), 403
+
+    def clean(key, max_length=255):
+        return sanitize_input(payload.get(key, "") or "", max_length=max_length).strip() or None
+
+    name = clean("name")
+    if not name or len(name) < 2:
+        return jsonify({"error": "Company name required (min 2 characters)"}), 400
+
+    contact_email = clean("contact_email")
+    if contact_email and not validate_email(contact_email):
+        return jsonify({"error": "That doesn't look like a valid email address."}), 400
+
+    founded_year, err = _parse_int(
+        payload.get("founded_year"), "Founded year", MIN_FOUNDED_YEAR, datetime.utcnow().year)
+    if err:
+        return jsonify({"error": err}), 400
+
+    employee_count, err = _parse_int(
+        payload.get("employee_count"), "Employee count", 1, MAX_EMPLOYEES)
+    if err:
+        return jsonify({"error": err}), 400
+
+    company_size = clean("company_size", 50)
+    if company_size and company_size not in COMPANY_SIZE_OPTIONS:
+        return jsonify({"error": "Unrecognised company size."}), 400
+
+    company_type = clean("company_type", 50)
+    if company_type and company_type not in COMPANY_TYPE_OPTIONS:
+        return jsonify({"error": "Unrecognised company type."}), 400
+
+    # Security: never let a claim silently attach the caller to an existing org
+    # — that would hand a stranger Admin rights over it. Joining an existing
+    # company is only possible via team invitation.
+    if Organization.query.filter(func.lower(Organization.name) == name.lower()).first():
+        log_security_event("org_name_taken", ip_address=_req.remote_addr, email=caller.email)
+        return jsonify({"error": "A company with this name already exists. Ask an admin to invite you instead."}), 400
+
+    warnings = []
+    if contact_email:
+        free_warn = contact_email_warning(contact_email)
+        if free_warn:
+            warnings.append(free_warn)
 
     org = Organization(
         name=name,
-        description=payload.get("description"),
-        website=payload.get("website"),
-        contact_email=payload.get("contact_email"),
-        contact_name=payload.get("contact_name"),
-        location=payload.get("location"),
+        description=clean("description", 2000),
+        website=clean("website"),
+        contact_email=contact_email,
+        contact_name=clean("contact_name"),
+        location=clean("location"),
+        industry=clean("industry"),
+        company_size=company_size,
+        company_type=company_type,
+        employee_count=employee_count,
+        founded_year=founded_year,
     )
     db.session.add(org)
+    db.session.flush()
+
+    # Page URL (/org/<slug>). Name-derived and fixed from here on, so renaming
+    # the company later can't break the URL shared on job ads.
+    from ...utils.slug import unique_org_slug
+    try:
+        org.slug = unique_org_slug(org.name, Organization)
+    except RuntimeError:
+        db.session.rollback()
+        log_security_event("org_slug_generation_failed", ip_address=_req.remote_addr, email=caller.email)
+        return jsonify({"error": "Could not create the page. Please try again."}), 500
+
+    # Founder = Admin of the page they just created.
+    db.session.add(TeamMember(organization_id=org.id, user_id=caller.id, role="Admin"))
+
+    # Point the founder's own account at the new page so every org surface
+    # (profile, jobs, pipeline, analytics) resolves an org id for them. Their
+    # role stays "individual" — the page rides alongside their personal profile.
+    if not caller.organization_id:
+        caller.organization_id = org.id
+
     db.session.commit()
 
-    try:
-        from flask import request as _req
-        log_security_event("organization_created", ip_address=_req.remote_addr,
-                           details={"org_id": org.id, "name": org.name})
-    except Exception:
-        pass
+    log_security_event("organization_page_created", user_id=caller.id,
+                       ip_address=_req.remote_addr,
+                       details={"org_id": org.id, "name": org.name})
 
-    # Emit Kafka event for organization creation
     kafka.emit_event('organization_created', {
         'org_id': org.id,
         'name': org.name,
-        'timestamp': utc_now_iso()
+        'created_by': caller.id,
+        'timestamp': utc_now_iso(),
     })
 
-    # Invalidate org caches
     invalidate_org_cache()
-
-    # Create default AI agents for the new organization
     create_default_ai_agents_for_org(org.id)
 
-    return jsonify({"id": org.id, "name": org.name}), 201
+    return jsonify({
+        "id": org.id,
+        "name": org.name,
+        "organization": org.to_dict(),
+        "user": caller.to_dict(),
+        "warnings": warnings,
+    }), 201
+
+
+@api_bp.route("/organizations/mine", methods=["GET"])
+@jwt_required()
+def list_my_organization_pages():
+    """Pages the signed-in user administers (founded + invited to)."""
+    try:
+        caller = User.query.get(int(get_jwt_identity()))
+    except (TypeError, ValueError):
+        caller = None
+    if not caller:
+        return jsonify({"error": "User not found"}), 404
+
+    rows = {}
+    if caller.organization_id:
+        org = Organization.query.get(caller.organization_id)
+        if org:
+            rows[org.id] = org
+    for tm in TeamMember.query.filter_by(user_id=caller.id).all():
+        if tm.organization_id not in rows:
+            org = Organization.query.get(tm.organization_id)
+            if org:
+                rows[org.id] = org
+
+    return jsonify([{
+        "id": o.id,
+        "name": o.name,
+        "slug": o.slug,
+        "industry": o.industry,
+        "location": o.location,
+        "profile_image": o.profile_image,
+        "company_size": o.company_size,
+        "is_primary": o.id == caller.organization_id,
+    } for o in rows.values()]), 200
+
+
+@api_bp.route("/organizations/by-slug/<slug>", methods=["GET"])
+@jwt_required()
+def get_organization_by_slug(slug):
+    """Resolve /org/<slug> to an organization id.
+
+    Kept separate from the id-based route so the public page URL never has to
+    know about numeric ids. Managers get the full record; everyone else gets
+    the public-safe view, and a private page is invisible either way.
+    """
+    clean = sanitize_input(slug or "", max_length=60).strip().lower()
+    if not clean:
+        return jsonify({"error": "Not found"}), 404
+
+    org = Organization.query.filter(func.lower(Organization.slug) == clean).first()
+    if not org:
+        return jsonify({"error": "Not found"}), 404
+    if not _manages_org(org.id) and not org.is_public:
+        return jsonify({"error": "Not found"}), 404
+
+    # Reuse the id-based handler so manager/private/cache behaviour stays in
+    # exactly one place instead of drifting between two copies.
+    return get_organization(org.id)
+
 
 @api_bp.route("/organizations/<int:org_id>", methods=["GET"])
 @jwt_required()
@@ -595,6 +799,7 @@ def get_organization(org_id):
         return jsonify({
             "id": org.id,
             "name": org.name,
+            "slug": org.slug,
             "description": org.description,
             "website": org.website,
             "contact_email": org.contact_email,
@@ -602,14 +807,24 @@ def get_organization(org_id):
             "location": org.location,
             "company_size": org.company_size,
             "industry": org.industry,
+            "employee_count": org.employee_count,
+            "founded_year": org.founded_year,
+            "company_type": org.company_type,
             "mission": org.mission,
             "vision": org.vision,
             "social_media_links": org.social_media_links,
             "profile_image": org.profile_image,
             "banner_image": org.banner_image,
+            "is_public": bool(org.is_public),
+            "accepting_applications": bool(org.accepting_applications),
+            "show_public_stats": bool(org.show_public_stats),
             "created_at": utc_iso(org.created_at),
             "posts": posts,
         })
+    # A private page is invisible to everyone who doesn't administer it.
+    # 404 rather than 403 so existence isn't confirmed to outsiders.
+    if not org.is_public:
+        return jsonify({"error": "Not found"}), 404
     # Non-managers get public-safe view: no contacts, active posts only.
     public = org.to_public_dict()
     active_posts = [p.to_dict() for p in org.posts if p.status == "active"]
@@ -626,11 +841,24 @@ def update_organization(org_id):
 
     # Update basic fields
     if "name" in payload:
-        org.name = payload["name"]
+        new_name = sanitize_input(payload["name"] or "", max_length=255).strip()
+        if len(new_name) < 2:
+            return jsonify({"error": "Company name must be at least 2 characters."}), 400
+        # Case-insensitive, matching the check at creation time. Without this the
+        # unique index rejects the write and the caller sees a 500 plus a leaked
+        # database traceback instead of a message they can act on.
+        clash = Organization.query.filter(
+            func.lower(Organization.name) == new_name.lower()
+        ).filter(Organization.id != org.id).first()
+        if clash:
+            return jsonify({
+                "error": "A company with this name already exists. Ask an admin to invite you instead."
+            }), 400
+        org.name = new_name
     if "description" in payload:
-        org.description = payload["description"]
+        org.description = sanitize_input(payload["description"] or "", max_length=2000).strip() or None
     if "website" in payload:
-        org.website = payload["website"]
+        org.website = sanitize_input(payload["website"] or "", max_length=255).strip() or None
     if "contact_email" in payload:
         org.contact_email = payload["contact_email"]
     if "contact_name" in payload:
@@ -701,11 +929,45 @@ def update_organization_profile(org_id):
     org = Organization.query.get_or_404(org_id)
     payload = request.get_json(silent=True) or {}
 
-    # Update profile fields
+    # Same validation as page creation — otherwise editing a page would be a
+    # way to store values the create endpoint rejects.
     if "company_size" in payload:
-        org.company_size = payload["company_size"]
+        value = (payload["company_size"] or "").strip()
+        if value and value not in COMPANY_SIZE_OPTIONS:
+            return jsonify({"error": "Unrecognised company size."}), 400
+        org.company_size = value or None
+
+    if "company_type" in payload:
+        value = (payload["company_type"] or "").strip()
+        if value and value not in COMPANY_TYPE_OPTIONS:
+            return jsonify({"error": "Unrecognised company type."}), 400
+        org.company_type = value or None
+
+    if "founded_year" in payload:
+        value, err = _parse_int(
+            payload["founded_year"], "Founded year", MIN_FOUNDED_YEAR, datetime.utcnow().year)
+        if err:
+            return jsonify({"error": err}), 400
+        org.founded_year = value
+
+    if "employee_count" in payload:
+        value, err = _parse_int(
+            payload["employee_count"], "Employee count", 1, MAX_EMPLOYEES)
+        if err:
+            return jsonify({"error": err}), 400
+        org.employee_count = value
+
+    # Update profile fields
     if "industry" in payload:
         org.industry = payload["industry"]
+    if "location" in payload:
+        org.location = payload["location"]
+    if "contact_email" in payload:
+        from ...utils.security import sanitize_input, validate_email
+        value = sanitize_input(payload["contact_email"] or "", max_length=255).strip()
+        if value and not validate_email(value):
+            return jsonify({"error": "That doesn't look like a valid email address."}), 400
+        org.contact_email = value or None
     if "mission" in payload:
         org.mission = payload["mission"]
     if "vision" in payload:
@@ -721,6 +983,86 @@ def update_organization_profile(org_id):
     invalidate_org_cache(org_id)
 
     return jsonify(org.to_dict()), 200
+
+@api_bp.route("/organizations/<int:org_id>/slug", methods=["PUT"])
+@jwt_required()
+def update_organization_slug(org_id):
+    """Change the page URL: /org/<slug>.
+
+    Separate from the name on purpose. The name is a display label and the slug
+    is a permanent address — renaming "Acme" to "Acme Corp" should not silently
+    break a URL that has already been printed on a job ad or pasted into an
+    email, so the admin opts in to the move.
+    """
+    if not _manages_org(org_id):
+        return jsonify({"error": "Forbidden for this organization"}), 403
+    org = Organization.query.get_or_404(org_id)
+    payload = request.get_json(silent=True) or {}
+
+    requested = sanitize_input(payload.get("slug", "") or "", max_length=60).strip().lower()
+    if not requested:
+        return jsonify({"error": "Enter a page address."}), 400
+
+    base = slugify_company(requested)
+    if not base:
+        return jsonify({"error": "Use lowercase letters, numbers and hyphens."}), 400
+    if base in ORG_RESERVED:
+        return jsonify({"error": "That address is reserved. Pick something else."}), 400
+
+    clash = Organization.query.filter(
+        func.lower(Organization.slug) == base
+    ).filter(Organization.id != org.id).first()
+    if clash:
+        return jsonify({"error": "That page address is already taken."}), 409
+
+    previous = org.slug
+    org.slug = base
+    try:
+        db.session.commit()
+    except Exception:
+        # Lost the race against a concurrent claim; the unique index caught it.
+        db.session.rollback()
+        log_security_event("org_slug_collision", ip_address=request.remote_addr,
+                           details={"slug": base})
+        return jsonify({"error": "That page address is already taken."}), 409
+
+    invalidate_org_cache()
+    log_security_event("organization_slug_changed", details={
+        "org_id": org.id, "from": previous, "to": base,
+    })
+    return jsonify({"slug": org.slug, "organization": org.to_dict()}), 200
+
+
+@api_bp.route("/organizations/<int:org_id>/visibility", methods=["PUT"])
+@jwt_required()
+def update_organization_visibility(org_id):
+    """Toggle how a page appears to people who don't administer it."""
+    if not _manages_org(org_id):
+        return jsonify({"error": "Forbidden for this organization"}), 403
+    org = Organization.query.get_or_404(org_id)
+    payload = request.get_json(silent=True) or {}
+
+    # Explicit `is True/False` only: a missing key means "leave unchanged", and
+    # a truthy string like "false" must not read as True.
+    for field in ("is_public", "accepting_applications", "show_public_stats"):
+        if field in payload:
+            value = payload[field]
+            if not isinstance(value, bool):
+                return jsonify({"error": f"{field} must be true or false"}), 400
+            setattr(org, field, value)
+
+    db.session.commit()
+    # Public listings and the org directory are cached — a visibility change has
+    # to drop them or a newly-private page keeps leaking from cache.
+    invalidate_org_cache()
+    invalidate_org_cache(org_id)
+
+    return jsonify({
+        "is_public": bool(org.is_public),
+        "accepting_applications": bool(org.accepting_applications),
+        "show_public_stats": bool(org.show_public_stats),
+    }), 200
+
 
 @api_bp.route("/organizations/<int:org_id>/team-members", methods=["GET"])
 @jwt_required()
@@ -915,11 +1257,13 @@ def invite_team_member(org_id):
             return jsonify({"error": "user is already a team member"}), 400
         user_id = user.id
     else:
-        # Create new user with temporary password
+        # Invited colleagues are people, so they get an `individual` account
+        # like everyone else. Their page access comes from the team_members row
+        # written below — there are no organization-role accounts any more.
         user = User(
             email=email,
             name=email.split('@')[0],  # Use email prefix as name
-            role="organization",
+            role="individual",
             organization_id=org_id
         )
         # Random temporary password (must pass strength policy); share out-of-band.

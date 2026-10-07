@@ -204,7 +204,7 @@ export default function TeamMembers() {
                     {member.user?.email && <p className="flex items-center gap-1.5"><FiMail className="w-3.5 h-3.5" />{member.user.email}</p>}
                   </div>
                   <div className="mt-4 flex gap-2">
-                    <button onClick={() => navigate(`/organization/user/${member.user?.id}`)} className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-white border border-gray-200 text-xs font-medium text-blue-600 hover:bg-blue-50"><FiEye className="w-3.5 h-3.5" /> Profile</button>
+                    <button onClick={() => navigate(`/org/user/${member.user?.id}`)} className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-white border border-gray-200 text-xs font-medium text-blue-600 hover:bg-blue-50"><FiEye className="w-3.5 h-3.5" /> Profile</button>
                     <button onClick={() => { setEditingMember(member); setShowEditModal(true); }} className="p-2 bg-white border border-gray-200 text-gray-500 hover:bg-gray-50"><FiEdit2 className="w-4 h-4" /></button>
                     <button onClick={() => { setEditingMember(member); setShowDeleteConfirm(true); }} className="p-2 bg-white border border-gray-200 text-gray-400 hover:text-red-600 hover:bg-red-50"><FiTrash2 className="w-4 h-4" /></button>
                   </div>
@@ -218,7 +218,7 @@ export default function TeamMembers() {
           <div className="w-14 h-14 bg-gray-100 flex items-center justify-center mx-auto mb-4"><FiCheckCircle className="w-7 h-7 text-gray-400" /></div>
           <h3 className="text-lg font-semibold text-gray-900">No hired candidates yet</h3>
           <p className="text-sm text-gray-500 mt-1">Candidates who pass interviews will appear here.</p>
-          <button onClick={() => navigate("/organization/candidates")} className="mt-6 inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700"><FiBriefcase className="w-4 h-4" /> View candidates</button>
+          <button onClick={() => navigate("/org/candidates")} className="mt-6 inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700"><FiBriefcase className="w-4 h-4" /> View candidates</button>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -238,7 +238,7 @@ export default function TeamMembers() {
                   <p className="flex items-center gap-1.5 mt-1">{candidate.onboarded ? <><FiCheckCircle className="w-3.5 h-3.5 text-green-600" /><span className="text-green-700 font-medium">Onboarded</span></> : <><FiXCircle className="w-3.5 h-3.5 text-amber-500" /><span className="text-amber-700 font-medium">Not onboarded</span></>}</p>
                 </div>
                 <div className="mt-4 flex gap-2">
-                  <button onClick={() => navigate(`/organization/user/${candidate.user?.id}`)} className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-white border border-gray-200 text-xs font-medium text-blue-600 hover:bg-blue-50"><FiEye className="w-3.5 h-3.5" /> Profile</button>
+                  <button onClick={() => navigate(`/org/user/${candidate.user?.id}`)} className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-white border border-gray-200 text-xs font-medium text-blue-600 hover:bg-blue-50"><FiEye className="w-3.5 h-3.5" /> Profile</button>
                   <button onClick={() => toggleOnboardingStatus(candidate.id, candidate.onboarded, candidate.user?.name || "Unnamed")} className={`inline-flex items-center px-3 py-2 text-xs font-medium border ${candidate.onboarded ? "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100" : "bg-green-600 text-white border-green-600 hover:bg-green-700"}`}>{candidate.onboarded ? "Offboard" : "Onboard"}</button>
                 </div>
               </div>

@@ -73,7 +73,7 @@ const RecruAINavbar = () => {
               </>
             ) : (
               <>
-                <Link to="/dashboard" className="text-sm font-medium text-gray-700 hover:text-gray-900 px-4 py-2 transition-colors">
+                <Link to="/feed" className="text-sm font-medium text-gray-700 hover:text-gray-900 px-4 py-2 transition-colors">
                   Dashboard
                 </Link>
                 <SignOutButton variant="solid" onSignedOut={() => setSignedIn(false)} />
@@ -123,7 +123,7 @@ const RecruAINavbar = () => {
               </div>
             ) : (
               <div className="space-y-2">
-                <Link to="/dashboard" className="block w-full text-center px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded transition-colors">
+                <Link to="/feed" className="block w-full text-center px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded transition-colors">
                   Dashboard
                 </Link>
                 <SignOutButton variant="solid" onSignedOut={() => setSignedIn(false)} />

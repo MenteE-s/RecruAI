@@ -167,7 +167,7 @@ export default function CandidateAnalysis() {
             <div className="relative p-6 md:p-8">
               <h1 className="text-2xl md:text-3xl font-bold">Candidate analysis</h1>
               <p className="text-gray-300 mt-2 max-w-xl text-sm">Select a candidate from Hire to see AI-powered skill comparison.</p>
-              <button onClick={() => navigate("/organization/hire")} className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 bg-white text-gray-900 text-sm font-medium hover:bg-gray-100">
+              <button onClick={() => navigate("/org/hire")} className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 bg-white text-gray-900 text-sm font-medium hover:bg-gray-100">
                 <FiBriefcase className="w-4 h-4" /> Go to Hire People
               </button>
             </div>
@@ -176,7 +176,7 @@ export default function CandidateAnalysis() {
             <div className="w-14 h-14 bg-gray-100 flex items-center justify-center mx-auto mb-4"><FiBriefcase className="w-7 h-7 text-gray-400" /></div>
             <h3 className="text-lg font-semibold text-gray-900">No candidate selected</h3>
             <p className="text-sm text-gray-500 mt-1 max-w-md mx-auto">Go to <span className="font-medium text-gray-700">Hire People</span>, search for a candidate, and click the briefcase icon to view their analysis. Or open <span className="font-mono text-xs bg-gray-100 border border-gray-200 px-1.5 py-0.5">/organization/candidate-analysis/:userId</span> directly.</p>
-            <button onClick={() => navigate("/organization/hire")} className="mt-6 inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700">Browse candidates</button>
+            <button onClick={() => navigate("/org/hire")} className="mt-6 inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700">Browse candidates</button>
           </div>
         </div>
       </DashboardLayout>
@@ -195,7 +195,7 @@ export default function CandidateAnalysis() {
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Candidate Not Found</h3>
               <p className="text-gray-500 text-sm mb-6">{error}</p>
               <button
-                onClick={() => navigate("/organization/hire")}
+                onClick={() => navigate("/org/hire")}
                 className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
               >
                 Back to Hire People
@@ -223,13 +223,13 @@ export default function CandidateAnalysis() {
           <div className="relative p-6 md:p-8">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
-                <button onClick={() => navigate("/organization/hire")} className="inline-flex items-center gap-1.5 text-sm text-blue-200 hover:text-white mb-2">
+                <button onClick={() => navigate("/org/hire")} className="inline-flex items-center gap-1.5 text-sm text-blue-200 hover:text-white mb-2">
                   <FiArrowLeft className="w-4 h-4" /> Back to hire
                 </button>
                 <h1 className="text-2xl md:text-3xl font-bold">Candidate analysis</h1>
                 <p className="text-gray-300 mt-1 text-sm max-w-xl">AI-powered comparison of candidate skills vs job requirements.</p>
               </div>
-              <button onClick={() => navigate(`/organization/user/${userId}`)} className="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-gray-900 text-sm font-medium hover:bg-gray-100 self-start md:self-auto">
+              <button onClick={() => navigate(`/org/user/${userId}`)} className="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-gray-900 text-sm font-medium hover:bg-gray-100 self-start md:self-auto">
                 <FiExternalLink className="w-4 h-4" /> View full profile
               </button>
             </div>

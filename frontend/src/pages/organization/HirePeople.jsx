@@ -116,7 +116,7 @@ export default function HirePeople() {
   const totalPages = searchMode ? searchTotalPages : Math.max(1, Math.ceil(filteredUsers.length / pageSize));
   const paginated = searchMode ? filteredUsers : filteredUsers.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   const clearSearch = () => { setQuery(""); setSearchMode(false); setAiResults(null); setExpandedRow(null); setExplanations({}); setSearchTotal(0); setSearchTotalPages(1); lastSearchedQuery.current = ""; lastSearchKey.current = ""; };
-  const viewProfile = (userId) => navigate(`/organization/user/${userId}`);
+  const viewProfile = (userId) => navigate(`/org/user/${userId}`);
   const getUserId = (c) => c.user_id || c.id;
   const MatchBadge = ({ level, similarity }) => {
     const colors = MATCH_COLORS[level] || MATCH_COLORS.poor;
@@ -270,7 +270,7 @@ export default function HirePeople() {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                navigate(`/organization/candidate-analysis/${cid}`);
+                                navigate(`/org/candidate-analysis/${cid}`);
                               }}
                               className="p-1.5 text-green-600 hover:bg-green-50 border border-transparent hover:border-green-200"
                               title="Analysis"

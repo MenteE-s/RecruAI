@@ -92,7 +92,7 @@ export default function Analytics() {
           <div className="w-14 h-14 bg-gray-100 flex items-center justify-center mx-auto mb-4"><FiBarChart2 className="w-7 h-7 text-gray-400" /></div>
           <h3 className="text-lg font-semibold text-gray-900">No interview data yet</h3>
           <p className="text-sm text-gray-500 mt-1 max-w-md mx-auto">Complete some interviews to see your performance analytics and feedback here.</p>
-          <button onClick={() => navigate("/interviews/upcoming")} className="mt-6 inline-flex items-center gap-2 bg-gray-900 text-white px-5 py-2.5 text-sm font-medium hover:bg-black transition-colors">View upcoming <FiArrowRight className="w-4 h-4" /></button>
+          <button onClick={() => navigate("/in/interviews/upcoming")} className="mt-6 inline-flex items-center gap-2 bg-gray-900 text-white px-5 py-2.5 text-sm font-medium hover:bg-black transition-colors">View upcoming <FiArrowRight className="w-4 h-4" /></button>
         </div>
       ) : (
         <>
@@ -225,7 +225,7 @@ export default function Analytics() {
               </div>
               <div className="mt-4 space-y-3">
                 {analytics.analytics.slice(0, 3).map((analysis) => (
-                  <div key={analysis.id} onClick={() => navigate(`/interviews/${analysis.interview_id}/analysis`)} className="border border-gray-200 p-4 hover:border-blue-200 hover:bg-blue-50/30 cursor-pointer group transition-colors">
+                  <div key={analysis.id} onClick={() => navigate(`/in/interviews/${analysis.interview_id}/analysis`)} className="border border-gray-200 p-4 hover:border-blue-200 hover:bg-blue-50/30 cursor-pointer group transition-colors">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1">
                         <p className="text-sm font-medium text-gray-900 group-hover:text-blue-600">Interview #{analysis.interview_id}</p>
@@ -259,7 +259,7 @@ export default function Analytics() {
               <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2"><FiClock className="w-4 h-4 text-gray-500" /> Recent interviews</h3>
               <div className="mt-4 space-y-3">
                 {analytics.recent_interviews.slice(0, 5).map((interview) => (
-                  <div key={interview.id} onClick={() => navigate(`/interviews/${interview.id}/analysis`)} className="border border-gray-200 p-4 hover:border-gray-300 hover:bg-gray-50 cursor-pointer flex items-center justify-between gap-4">
+                  <div key={interview.id} onClick={() => navigate(`/in/interviews/${interview.id}/analysis`)} className="border border-gray-200 p-4 hover:border-gray-300 hover:bg-gray-50 cursor-pointer flex items-center justify-between gap-4">
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-gray-900 truncate">{interview.title || `Interview #${interview.id}`}</p>
                       <p className="text-xs text-gray-500 mt-0.5"><DualTime value={interview.scheduled_at_iso || interview.scheduled_at} otherTimezone={interview.organization_timezone} otherLabel={interview.organization} variant="compact" showRelative={false} /> • {interview.duration_minutes} min • <span className="capitalize">{interview.interview_type}</span></p>

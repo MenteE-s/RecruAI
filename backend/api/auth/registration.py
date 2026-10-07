@@ -1,7 +1,7 @@
 from flask import request, jsonify, current_app
 from .. import api_bp
 from ...extensions import db
-from ...models import User, Organization, TeamMember
+from ...models import User
 from ...utils.security import log_security_event, sanitize_input, validate_email
 from ...utils.kafka_service import kafka_service
 from .verification import _send_otp
@@ -17,8 +17,7 @@ def register():
     email = sanitize_input(data.get("email", ""))
     password = data.get("password")
     name = sanitize_input(data.get("name", ""))
-    role = sanitize_input(data.get("role", "individual"))
-    organization_name = sanitize_input(data.get("organization_name", ""))
+    role = sanitize_input(data.get("role") or "individual") or "individual"
     referral_email = sanitize_input(data.get("referral_email", ""))
 
     if not email or not password:
@@ -34,12 +33,27 @@ def register():
         kafka_service.emit_event("registration_failed", {"email": email, "reason": "email_exists", "ip": request.remote_addr})
         return jsonify({"error": "email already registered"}), 400
 
-    if role not in ["individual", "organization"]:
-        log_security_event("invalid_role_registration", ip_address=request.remote_addr, email=email)
-        kafka_service.emit_event("registration_failed", {"email": email, "reason": "invalid_role", "role": role, "ip": request.remote_addr})
-        return jsonify({"error": "Invalid role specified"}), 400
+    # Signup is individuals-only. Companies are created from inside the app by
+    # an already-signed-in user (POST /api/organizations/page), so no org can
+    # ever be conjured up during registration. An absent/blank role is treated
+    # as the default rather than a rejected request; any explicit non-individual
+    # role is a hard 400 so a stale client cannot still register companies.
+    if role != "individual":
+        log_security_event("organization_signup_rejected", ip_address=request.remote_addr, email=email)
+        kafka_service.emit_event("registration_failed", {"email": email, "reason": "role_not_individual", "role": role, "ip": request.remote_addr})
+        return jsonify({"error": "Company signups are not available here. Create your individual account first, then create a company page from inside your account."}), 400
 
-    user = User(email=email, name=name, role=role, plan="trial")
+    user = User(email=email, name=name, role="individual", plan="trial")
+
+    # Public profile handle (/in/<slug>). Generated up front so the unique
+    # index can never reject the insert; retried on the (practically
+    # impossible) collision rather than looping forever.
+    from ...utils.slug import generate_unique_slug
+    try:
+        user.profile_slug = generate_unique_slug(User)
+    except RuntimeError:
+        log_security_event("profile_slug_generation_failed", email=email)
+        return jsonify({"error": "Could not create your account. Please try again."}), 500
 
     # Referral tracking — lenient: store whatever email was typed; link only on match.
     referred_by_user = None
@@ -55,37 +69,8 @@ def register():
         log_security_event("weak_password_registration", ip_address=request.remote_addr, email=email)
         return jsonify({"error": str(e)}), 400
 
-    if role == "organization":
-        if not organization_name:
-            log_security_event("missing_org_name", ip_address=request.remote_addr, email=email)
-            return jsonify({"error": "organization_name is required for organization signups"}), 400
-        # Security: never attach a new signup to an existing organization —
-        # that would grant the stranger Admin rights over someone else's org.
-        # Joining an existing org is only possible via team invitation.
-        org = Organization.query.filter_by(name=organization_name).first()
-        if org:
-            log_security_event("org_name_taken", ip_address=request.remote_addr, email=email)
-            return jsonify({"error": "An organization with this name already exists. Ask an admin to invite you instead."}), 400
-        org = Organization(name=organization_name)
-        db.session.add(org)
-        # flush so org.id is available
-        db.session.flush()
-        user.organization = org
-
     try:
         db.session.add(user)
-        # flush so user.id is available for team member creation
-        db.session.flush()
-
-        # if this is an organization signup, add the user as an Admin team member
-        if role == "organization":
-            team_member = TeamMember(
-                organization_id=org.id,
-                user_id=user.id,
-                role="Admin"
-            )
-            db.session.add(team_member)
-
         db.session.commit()
 
         # Referral notification (best-effort — never fail registration)
@@ -101,11 +86,11 @@ def register():
             except Exception:
                 current_app.logger.debug("Failed to create referral notification", exc_info=True)
 
-        log_security_event("registration_success", user_id=user.id, ip_address=request.remote_addr, email=email, details={"role": role})
+        log_security_event("registration_success", user_id=user.id, ip_address=request.remote_addr, email=email, details={"role": "individual"})
         kafka_service.emit_event("user_registered", {
             "user_id": user.id,
             "email": email,
-            "role": role,
+            "role": "individual",
             "organization_id": user.organization_id,
             "referred_by_email": referral_email or None,
             "referred_by_user_id": user.referred_by_user_id,

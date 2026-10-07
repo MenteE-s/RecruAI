@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import FollowButton from "../../components/ui/FollowButton";
 import MenteeLoader from "../../components/ui/MenteeLoader";
-import { getSidebarItems, getBackendUrl, getAuthHeaders, getUploadUrl } from "../../utils/auth";
+import { getSidebarItems, getBackendUrl, getAuthHeaders, getUploadUrl, orgPath, postPath } from "../../utils/auth";
 import { getFollows } from "../../utils/follows";
 import { FiBell, FiMapPin, FiBriefcase, FiUsers } from "react-icons/fi";
 
@@ -128,7 +128,7 @@ export default function MyNetwork() {
                   {networkJobs.map((j) => (
                     <button
                       key={`net-${j.id}`}
-                      onClick={() => navigate(`/jobs/${j.id}`)}
+                      onClick={() => navigate(postPath(j))}
                       className="w-full flex items-center gap-2.5 py-2 text-left group"
                     >
                       {j.organization?.profile_image ? (
@@ -177,7 +177,7 @@ export default function MyNetwork() {
                           )}
                           <div className="flex-1 min-w-0">
                             <button
-                              onClick={() => org.id && navigate(`/organization/profile/${org.id}`)}
+                              onClick={() => org.id && navigate(orgPath(org))}
                               className="text-[13px] font-semibold text-gray-900 hover:text-blue-600 hover:underline truncate block max-w-full"
                             >
                               {org.name || "Unknown"}
@@ -190,7 +190,7 @@ export default function MyNetwork() {
                         </div>
                         {job ? (
                           <button
-                            onClick={() => navigate(`/jobs/${job.id}`)}
+                            onClick={() => navigate(postPath(job))}
                             className="mt-2 w-full text-left bg-gray-50 border border-gray-100 rounded-md px-2.5 py-2 hover:border-blue-200 group"
                           >
                             <p className="text-xs font-semibold text-gray-900 group-hover:text-blue-600 truncate">{job.title}</p>
@@ -261,7 +261,7 @@ export default function MyNetwork() {
                       )}
                       <div className="flex-1 min-w-0">
                         <button
-                          onClick={() => navigate(`/organization/profile/${c.id}`)}
+                          onClick={() => navigate(orgPath(c))}
                           className="text-[13px] font-semibold text-gray-900 hover:text-blue-600 hover:underline truncate block max-w-full text-left"
                         >
                           {c.name}
@@ -289,11 +289,11 @@ export default function MyNetwork() {
 
             {/* Saved / applied shortcuts */}
             <div className="grid grid-cols-2 gap-2.5">
-              <button onClick={() => navigate("/jobs")} className="bg-white border border-gray-200 rounded-lg shadow-sm p-3 text-left hover:border-blue-200 transition-colors">
+              <button onClick={() => navigate("/in/jobs")} className="bg-white border border-gray-200 rounded-lg shadow-sm p-3 text-left hover:border-blue-200 transition-colors">
                 <p className="text-xs font-bold text-gray-900 flex items-center gap-1.5"><FiBriefcase className="w-3.5 h-3.5 text-gray-400" /> Saved jobs</p>
                 <p className="text-[11px] text-blue-600 font-medium mt-1">View →</p>
               </button>
-              <button onClick={() => navigate("/jobs?tab=applied")} className="bg-white border border-gray-200 rounded-lg shadow-sm p-3 text-left hover:border-blue-200 transition-colors">
+              <button onClick={() => navigate("/in/jobs?tab=applied")} className="bg-white border border-gray-200 rounded-lg shadow-sm p-3 text-left hover:border-blue-200 transition-colors">
                 <p className="text-xs font-bold text-gray-900">Applied jobs</p>
                 <p className="text-[11px] text-blue-600 font-medium mt-1">View →</p>
               </button>

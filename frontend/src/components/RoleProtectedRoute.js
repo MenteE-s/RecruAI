@@ -6,7 +6,7 @@ import { verifyTokenWithServer } from "../utils/auth";
 export default function RoleProtectedRoute({
   children,
   allowedRoles = [],
-  fallbackRoute = "/dashboard",
+  fallbackRoute = "/feed",
 }) {
   const [checking, setChecking] = useState(true);
   const [ok, setOk] = useState(false);

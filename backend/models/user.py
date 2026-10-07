@@ -59,6 +59,16 @@ class User(db.Model):
     email_verified = db.Column(db.Boolean, nullable=False, default=False)
     email_verified_at = db.Column(db.DateTime, nullable=True)
 
+    # Whether this person can be found by other people via universal search.
+    # Distinct from email verification: you can be unverified and still
+    # discoverable. Companies have the equivalent organizations.is_public.
+    is_discoverable = db.Column(db.Boolean, nullable=False, default=True)
+
+    # Public profile handle: /in/<slug>. Nullable only so a signup insert can
+    # never race the unique index; assigned immediately after and backfilled
+    # for pre-existing rows by migration c9e1f2a3b4d8.
+    profile_slug = db.Column(db.String(30), nullable=True, unique=True, index=True)
+
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     interviews = db.relationship("Interview", back_populates="user", cascade="all, delete-orphan")
@@ -128,6 +138,8 @@ class User(db.Model):
             "plan": self.plan,
             "organization_id": self.organization_id,
             "organization": self.organization.name if self.organization else None,
+            # Lets the client link to /org/<slug> without a second lookup.
+            "organization_slug": self.organization.slug if self.organization else None,
             "profile_picture": self.profile_picture,
             "banner": self.banner,
             "timezone": self.timezone or "UTC",
@@ -151,6 +163,30 @@ class User(db.Model):
             "referred_by_user_id": self.referred_by_user_id,
             # Email verification (drives the verified-only gate)
             "email_verified": bool(self.email_verified),
+            "is_discoverable": bool(self.is_discoverable),
+            "profile_slug": self.profile_slug,
+        }
+
+    def to_search_dict(self):
+        """Minimal projection for universal search results.
+
+        Deliberately NOT to_dict(): that exposes email, phone, referral address
+        and subscription state, none of which belong in a response that any
+        signed-in user can request about any other user.
+        """
+        return {
+            "id": self.id,
+            "name": self.name,
+            "headline": self.headline,
+            "current_position": self.current_position,
+            "current_company": self.current_company,
+            "location": self.location,
+            "profile_picture": self.profile_picture,
+            "employment_status": self.employment_status,
+            # Public handle, so results can link to /in/<slug>. This is
+            # the address a person shares, not private data; what must
+            # stay hidden is which company pages they administer.
+            "profile_slug": self.profile_slug,
         }
 
     def to_public_dict(self):

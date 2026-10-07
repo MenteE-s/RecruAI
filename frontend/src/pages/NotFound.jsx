@@ -10,10 +10,10 @@ import {
 } from "react-icons/fi";
 
 const SHORTCUTS = [
-  { label: "Dashboard", desc: "Back to your home base", to: "/dashboard", icon: FiHome },
-  { label: "Find jobs", desc: "Browse open roles", to: "/dashboard", icon: FiBriefcase },
-  { label: "Hire people", desc: "Meet your next hire", to: "/organization/hire", icon: FiUsers },
-  { label: "Search talent", desc: "Look up candidates", to: "/network", icon: FiSearch },
+  { label: "Feed", desc: "Back to your home base", to: "/feed", icon: FiHome },
+  { label: "Find jobs", desc: "Browse open roles", to: "/feed", icon: FiBriefcase },
+  { label: "Hire people", desc: "Meet your next hire", to: "/org/hire", icon: FiUsers },
+  { label: "Search talent", desc: "Look up candidates", to: "/in/network", icon: FiSearch },
 ];
 
 export default function NotFound() {
@@ -80,7 +80,7 @@ export default function NotFound() {
             <FiArrowLeft className="h-4 w-4" /> Go back
           </button>
           <Link
-            to="/dashboard"
+            to="/feed"
             className="inline-flex items-center justify-center gap-2 rounded-lg border border-neutral-200 bg-white px-6 py-3 text-sm font-bold text-neutral-900 transition hover:border-neutral-900"
           >
             <FiHome className="h-4 w-4" /> Dashboard

@@ -249,7 +249,7 @@ export default function OrganizationDashboard() {
   };
 
   const handleViewProfile = useCallback((userId) => {
-    if (userId) navigate(`/organization/user/${userId}`);
+    if (userId) navigate(`/org/user/${userId}`);
   }, [navigate]);
 
   const filtered = useMemo(() => {
@@ -317,13 +317,13 @@ export default function OrganizationDashboard() {
                   </p>
                 )}
                 <button
-                  onClick={() => navigate("/organization/profile")}
+                  onClick={() => navigate("/org/profile")}
                   className="text-[11px] font-semibold text-blue-600 hover:underline px-0 py-0.5"
                 >
                   View organization profile →
                 </button>
                 <button
-                  onClick={() => navigate("/organization/team")}
+                  onClick={() => navigate("/org/team")}
                   className="block text-[11px] font-semibold text-blue-600 hover:underline px-0 py-0.5"
                 >
                   Manage team →
@@ -349,7 +349,7 @@ export default function OrganizationDashboard() {
           <div className="bg-white border border-gray-200 rounded-xl px-3 py-2.5 shadow-sm">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-bold text-gray-900 flex items-center gap-1.5"><FiLayers className="w-3.5 h-3.5 text-gray-400" /> Pipeline</h3>
-              <button onClick={() => navigate("/organization/pipeline")} className="text-[11px] font-semibold text-blue-600 hover:underline">
+              <button onClick={() => navigate("/org/pipeline")} className="text-[11px] font-semibold text-blue-600 hover:underline">
                 All →
               </button>
             </div>
@@ -360,7 +360,7 @@ export default function OrganizationDashboard() {
             ) : (
               <div className="mt-2 space-y-1.5">
                 {stageCounts.map(([stage, count]) => (
-                  <button key={stage} onClick={() => navigate("/organization/pipeline")} className="w-full group">
+                  <button key={stage} onClick={() => navigate("/org/pipeline")} className="w-full group">
                     <div className="flex items-center justify-between text-[11px]">
                       <span className="font-medium text-gray-700 capitalize truncate group-hover:text-blue-700">{stage}</span>
                       <span className="font-bold text-gray-900">{count}</span>
@@ -389,7 +389,7 @@ export default function OrganizationDashboard() {
                 </p>
               </div>
               <button
-                onClick={() => navigate("/organization/candidates")}
+                onClick={() => navigate("/org/candidates")}
                 className="shrink-0 inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 hover:underline"
               >
                 All candidates <FiArrowRight className="w-3 h-3" />
@@ -445,10 +445,10 @@ export default function OrganizationDashboard() {
                 <div className="mt-4 flex justify-center gap-2">
                   {applications.length === 0 ? (
                     <>
-                      <button onClick={() => navigate("/organization/jobs")} className="inline-flex items-center gap-1.5 bg-gray-900 text-white px-4 py-2 text-xs font-semibold hover:bg-black rounded-md">
+                      <button onClick={() => navigate("/org/jobs")} className="inline-flex items-center gap-1.5 bg-gray-900 text-white px-4 py-2 text-xs font-semibold hover:bg-black rounded-md">
                         <FiBriefcase className="w-3.5 h-3.5" /> Job posts
                       </button>
-                      <button onClick={() => navigate("/organization/hire")} className="inline-flex items-center gap-1.5 bg-white border border-gray-200 px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 rounded-md">
+                      <button onClick={() => navigate("/org/hire")} className="inline-flex items-center gap-1.5 bg-white border border-gray-200 px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 rounded-md">
                         <FiSearch className="w-3.5 h-3.5" /> Hire people
                       </button>
                     </>
@@ -494,7 +494,7 @@ export default function OrganizationDashboard() {
           <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-3">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-bold text-gray-900">Open posts</h3>
-              <button onClick={() => navigate("/organization/jobs")} className="text-[11px] font-semibold text-blue-600 hover:underline">
+              <button onClick={() => navigate("/org/jobs")} className="text-[11px] font-semibold text-blue-600 hover:underline">
                 Manage →
               </button>
             </div>
@@ -507,7 +507,7 @@ export default function OrganizationDashboard() {
                 openPosts.map((p) => (
                   <button
                     key={p.id}
-                    onClick={() => navigate(`/organization/jobs/${p.id}`)}
+                    onClick={() => navigate(`/org/jobs/${p.id}`)}
                     className="w-full flex items-center gap-2 p-1.5 -mx-1.5 rounded-lg hover:bg-blue-50/60 text-left group transition-colors"
                   >
                     <div className="w-8 h-8 rounded-lg bg-gray-900 text-white flex items-center justify-center text-[11px] font-bold shrink-0">
@@ -525,7 +525,7 @@ export default function OrganizationDashboard() {
               )}
             </div>
             <button
-              onClick={() => navigate("/organization/jobs")}
+              onClick={() => navigate("/org/jobs")}
               className="mt-2 w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-600 text-white text-[11px] font-semibold hover:bg-blue-700 rounded-md"
             >
               <FiPlus className="w-3.5 h-3.5" /> New post
@@ -535,7 +535,7 @@ export default function OrganizationDashboard() {
           <div className="bg-white border border-gray-200 rounded-xl px-3 py-2.5 shadow-sm">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-bold text-gray-900 flex items-center gap-1.5"><FiVideo className="w-3.5 h-3.5 text-gray-400" /> Upcoming interviews</h3>
-              <button onClick={() => navigate("/organization/interviews")} className="text-[11px] font-semibold text-blue-600 hover:underline">
+              <button onClick={() => navigate("/org/interviews")} className="text-[11px] font-semibold text-blue-600 hover:underline">
                 All →
               </button>
             </div>
@@ -548,7 +548,7 @@ export default function OrganizationDashboard() {
                 {interviews.map((iv) => (
                   <button
                     key={iv.id}
-                    onClick={() => navigate("/organization/interviews")}
+                    onClick={() => navigate("/org/interviews")}
                     className="w-full text-left p-1.5 -mx-1.5 rounded-lg hover:bg-blue-50/60 group transition-colors"
                   >
                     <p className="text-xs font-semibold text-gray-900 group-hover:text-blue-700 leading-tight truncate">{iv.title || "Interview"}</p>
@@ -567,11 +567,11 @@ export default function OrganizationDashboard() {
           <div className="bg-white border border-gray-200 rounded-xl px-3 py-2.5 shadow-sm">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-bold text-gray-900">Needs review</h3>
-              <button onClick={() => navigate("/organization/candidates")} className="text-[11px] font-semibold text-blue-600 hover:underline">
+              <button onClick={() => navigate("/org/candidates")} className="text-[11px] font-semibold text-blue-600 hover:underline">
                 Review →
               </button>
             </div>
-            <button onClick={() => navigate("/organization/candidates")} className="w-full text-left mt-1.5 group">
+            <button onClick={() => navigate("/org/candidates")} className="w-full text-left mt-1.5 group">
               <p className="text-sm font-extrabold text-gray-900 leading-none group-hover:text-blue-700">
                 {loading ? "—" : applications.filter((a) => a.status === "pending").length}
               </p>
@@ -579,7 +579,7 @@ export default function OrganizationDashboard() {
             </button>
             <p className="text-[11px] text-gray-500 mt-1.5 flex items-center gap-1">
               <FiMapPin className="w-3 h-3 text-gray-400 shrink-0" />
-              <button onClick={() => navigate("/organization/hire")} className="font-semibold text-blue-600 hover:underline">Browse talent</button>
+              <button onClick={() => navigate("/org/hire")} className="font-semibold text-blue-600 hover:underline">Browse talent</button>
               <span>to source proactively</span>
             </p>
           </div>

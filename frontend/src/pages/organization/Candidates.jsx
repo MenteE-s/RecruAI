@@ -258,7 +258,7 @@ export default function Candidates() {
             </p>
           </div>
           <button
-            onClick={() => navigate("/organization/hire")}
+            onClick={() => navigate("/org/hire")}
             className="shrink-0 inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 hover:underline"
           >
             AI talent search <FiArrowRight className="w-3 h-3" />
@@ -305,7 +305,7 @@ export default function Candidates() {
                   <PersonCard
                     key={u.id}
                     person={u}
-                    onView={() => navigate(`/organization/user/${u.id}`)}
+                    onView={() => navigate(`/org/user/${u.id}`)}
                     footer={
                       <button
                         onClick={() => handleUnstar(u.id)}
@@ -345,7 +345,7 @@ export default function Candidates() {
             ) : (
               <div className="grid grid-cols-2 gap-2.5">
                 {directoryFiltered.map((u) => (
-                  <PersonCard key={u.id} person={u} onView={() => navigate(`/organization/user/${u.id}`)} />
+                  <PersonCard key={u.id} person={u} onView={() => navigate(`/org/user/${u.id}`)} />
                 ))}
               </div>
             )}
@@ -447,7 +447,7 @@ export default function Candidates() {
                   const id = candidateProfile.id || candidateProfile.user_id;
                   setShowCandidateProfile(false);
                   setCandidateProfile(null);
-                  if (id) navigate(`/organization/user/${id}`);
+                  if (id) navigate(`/org/user/${id}`);
                 }}
                 className="inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-700"
               >

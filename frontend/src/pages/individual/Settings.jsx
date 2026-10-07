@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import { getSidebarItems, getBackendUrl, getAuthHeaders, getCurrentUser } from "../../utils/auth";
 import TimezoneSelector from "../../components/ui/TimezoneSelector";
 import PaymentMethods from "../../components/ui/PaymentMethods";
 import OtpVerify from "../../components/auth/OtpVerify";
+import { useToast } from "../../components/ui/ToastContext";
 import {
   FiUser,
   FiAward,
@@ -21,10 +23,14 @@ import {
   FiTrash2,
   FiZap,
   FiArrowRight,
+  FiBriefcase,
+  FiUsers,
+  FiLink,
 } from "react-icons/fi";
 
 const SECTIONS = [
   { id: "account", label: "Account", icon: FiUser },
+  { id: "page", label: "Company Page", icon: FiBriefcase },
   { id: "plan", label: "Subscription", icon: FiAward },
   { id: "billing", label: "Billing", icon: FiCreditCard },
   { id: "notifications", label: "Notifications", icon: FiBell },
@@ -62,6 +68,138 @@ function Row({ icon: Icon, title, desc, right, onClick }) {
   );
 }
 
+// Public profile handle: /in/<slug>. Generated automatically at signup and
+// changeable here. Mirrors the reserved-word rule in backend/utils/slug.py so
+// the field can explain the problem before a round-trip.
+function ProfileSlugRow({ slug, onSaved }) {
+  const [open, setOpen] = useState(false);
+  const [value, setValue] = useState(slug || "");
+  const [msg, setMsg] = useState(null);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => { setValue(slug || ""); }, [slug]);
+
+  async function save() {
+    setMsg(null);
+    setSaving(true);
+    try {
+      const res = await fetch(`${getBackendUrl()}/api/auth/me/profile-slug`, {
+        method: "PUT",
+        headers: getAuthHeaders({ "Content-Type": "application/json" }),
+        credentials: "include",
+        body: JSON.stringify({ slug: value.trim().toLowerCase() }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setMsg({ type: "error", text: data.error || "Could not update." });
+        return;
+      }
+      onSaved?.(data.slug);
+      setValue(data.slug);
+      setMsg({ type: "success", text: "Saved. Your old link still works via redirect." });
+    } catch {
+      setMsg({ type: "error", text: "Network error. Please try again." });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function reroll() {
+    setMsg(null);
+    setSaving(true);
+    try {
+      const res = await fetch(`${getBackendUrl()}/api/auth/me/profile-slug/random`, {
+        method: "POST",
+        credentials: "include",
+        headers: getAuthHeaders(),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setMsg({ type: "error", text: data.error || "Could not generate." });
+        return;
+      }
+      onSaved?.(data.slug);
+      setValue(data.slug);
+      setMsg({ type: "success", text: "New name generated." });
+    } catch {
+      setMsg({ type: "error", text: "Network error. Please try again." });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <>
+      <Row
+        icon={FiLink}
+        title="Public profile link"
+        desc={slug ? `recruai.menteeai.org/in/${slug}` : "Your public profile address."}
+        onClick={() => setOpen((o) => !o)}
+      />
+      {open && (
+        <div className="pb-4 space-y-2.5">
+          <div>
+            <label className="block text-[11px] font-medium text-gray-500 mb-1">
+              Your profile name
+            </label>
+            <div className="flex items-stretch gap-2">
+              <span className="inline-flex items-center px-2.5 rounded-md bg-gray-100 border border-gray-200 text-[12px] text-gray-500 shrink-0">
+                recruai.menteeai.org/in/
+              </span>
+              <input
+                value={value}
+                onChange={(e) => setValue(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
+                maxLength={30}
+                placeholder="yourname"
+                className="w-full px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded-md text-[13px] text-gray-900 focus:outline-none focus:border-blue-500 focus:bg-white"
+              />
+            </div>
+            <p className="mt-1 text-[10.5px] text-gray-400">
+              Lowercase letters, numbers and hyphens. 3–30 characters. Some names
+              are reserved because they clash with app pages.
+            </p>
+          </div>
+
+          {msg && (
+            <p className={`text-[11.5px] font-medium ${msg.type === "success" ? "text-green-700" : "text-red-700"}`}>
+              {msg.text}
+            </p>
+          )}
+
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={save}
+              disabled={saving || value.trim().toLowerCase() === (slug || "")}
+              className="px-3.5 py-1.5 bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 rounded-full disabled:opacity-50 transition-colors"
+            >
+              {saving ? "Saving…" : "Save"}
+            </button>
+            <button
+              type="button"
+              onClick={reroll}
+              disabled={saving}
+              className="px-3.5 py-1.5 border border-gray-200 bg-white text-gray-700 text-xs font-semibold hover:bg-gray-50 rounded-full disabled:opacity-50 transition-colors"
+            >
+              Generate random
+            </button>
+            {slug && (
+              <a
+                href={`/in/${slug}`}
+                target="_blank"
+                rel="noreferrer"
+                className="text-[11.5px] font-semibold text-blue-600 hover:text-blue-800"
+              >
+                View profile
+              </a>
+            )}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 export default function Settings() {
   const role = typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
   const plan = typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
@@ -84,6 +222,7 @@ export default function Settings() {
         if (cancelled || !user) return;
         setUserId(user?.id ?? null);
         setUserData(user);
+        setDiscoverable(user?.is_discoverable !== false);
         setEmailForm({
           email: user?.email || "",
           name: user?.name || "",
@@ -101,6 +240,78 @@ export default function Settings() {
   }, []);
 
   const [pendingEmail, setPendingEmail] = useState(null);
+
+  // Company pages are created at /page/create, after signup — there is no
+  // company registration. The founder stays an `individual` account and
+  // administers the page through its team members.
+  const [myPages, setMyPages] = useState([]);
+  const [pagesLoading, setPagesLoading] = useState(true);
+  const [pageError, setPageError] = useState(null);
+  const navigate = useNavigate();
+  const { showToast } = useToast();
+
+  // Global-search opt-out. Distinct from email verification: you can stay
+  // findable by name while your address is still unverified.
+  const [discoverable, setDiscoverable] = useState(true);
+  const [savingDiscoverable, setSavingDiscoverable] = useState(false);
+
+  const toggleDiscoverable = async () => {
+    const next = !discoverable;
+    setDiscoverable(next); // optimistic
+    setSavingDiscoverable(true);
+    try {
+      const res = await fetch(`${getBackendUrl()}/api/auth/me`, {
+        method: "PUT",
+        headers: getAuthHeaders({ "Content-Type": "application/json" }),
+        credentials: "include",
+        body: JSON.stringify({ is_discoverable: next }),
+      });
+      if (!res.ok) throw new Error();
+      showToast({
+        message: next ? "You're findable in search again" : "You've been hidden from search",
+        type: "success",
+        position: "side",
+        duration: 2400,
+      });
+    } catch {
+      setDiscoverable(!next); // revert
+      showToast({ message: "Could not update. Please try again.", type: "error", position: "side", duration: 3000 });
+    } finally {
+      setSavingDiscoverable(false);
+    }
+  };
+
+  const loadPages = async () => {
+    setPagesLoading(true);
+    setPageError(null);
+    try {
+      const res = await fetch(`${getBackendUrl()}/api/organizations/mine`, {
+        credentials: "include",
+        headers: getAuthHeaders(),
+      });
+      const data = await res.json().catch(() => ([]));
+      if (!res.ok) {
+        setPageError(data?.error || "Could not load your company pages.");
+        return;
+      }
+      setMyPages(Array.isArray(data) ? data : []);
+    } catch {
+      setPageError("Network error. Please try again.");
+    } finally {
+      setPagesLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadPages();
+  }, []);
+
+  // Coming back from the create-page redirect — refetch so the new page shows.
+  useEffect(() => {
+    if (active !== "page") return;
+    loadPages();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active]);
 
   const handleEmailSave = async (e) => {
     e.preventDefault();
@@ -279,8 +490,127 @@ export default function Settings() {
                   title="Profile"
                   desc="Edit your public candidate profile."
                   right={<span className="text-xs font-semibold text-blue-600">Open</span>}
-                  onClick={() => (window.location.href = "/profile")}
+                  onClick={() => (window.location.href = "/in/profile")}
                 />
+                <ProfileSlugRow
+                  slug={userData?.profile_slug}
+                  onSaved={(s) => {
+                    setUserData((p) => ({ ...p, profile_slug: s }));
+                    showToast({ message: `Your profile is now /in/${s}`, type: "success", position: "side", duration: 2600 });
+                  }}
+                />
+              </div>
+            )}
+
+            {active === "page" && (
+              <div className="divide-y divide-gray-100">
+                <div className="py-3">
+                  <p className="text-[13px] font-semibold text-gray-900">Company pages</p>
+                  <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
+                    Your account is personal. A company page is a separate presence on
+                    RecruAI for your business — you administer it as the first Admin, and
+                    your personal profile stays untouched.
+                  </p>
+
+                  {myPages.length > 0 && (
+                    <button
+                      onClick={() => navigate("/page")}
+                      className="mt-3 w-full inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-gray-900 text-white text-xs font-semibold hover:bg-black rounded-full transition-colors"
+                    >
+                      <FiBriefcase className="w-3.5 h-3.5" /> Manage your page
+                    </button>
+                  )}
+
+                  {pageError && (
+                    <div className="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-[12.5px] font-medium text-red-700">
+                      {pageError}
+                    </div>
+                  )}
+
+                  {pagesLoading ? (
+                    <div className="mt-3 text-xs text-gray-400">Loading your pages…</div>
+                  ) : myPages.length > 0 ? (
+                    <ul className="mt-3 space-y-1.5">
+                      {myPages.map((p) => (
+                        <li key={p.id}>
+                          <button
+                            onClick={() => navigate("/page")}
+                            className="w-full flex items-center gap-3 rounded-lg border border-gray-200 px-3 py-2.5 text-left transition-colors hover:bg-gray-50"
+                          >
+                            <div className="w-8 h-8 shrink-0 rounded-md bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-white text-[11px] font-bold uppercase">
+                              {p.name.charAt(0)}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-[13px] font-semibold text-gray-900 truncate">
+                                {p.name}
+                              </p>
+                              {(p.industry || p.location) && (
+                                <p className="text-xs text-gray-500 truncate">
+                                  {[p.industry, p.location].filter(Boolean).join(" · ")}
+                                </p>
+                              )}
+                            </div>
+                            {p.is_primary && (
+                              <span className="text-[10px] font-bold bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded shrink-0">
+                                PRIMARY
+                              </span>
+                            )}
+                            <FiChevronRight className="w-4 h-4 text-gray-300 shrink-0" />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <div className="mt-3 rounded-lg border border-dashed border-gray-300 px-3.5 py-5 text-center">
+                      <FiBriefcase className="w-6 h-6 mx-auto text-gray-300" />
+                      <p className="mt-2 text-[13px] font-semibold text-gray-900">
+                        No company page yet
+                      </p>
+                      <p className="mt-1 text-xs text-gray-500 leading-relaxed">
+                        Create one to post jobs, hire candidates and invite teammates.
+                      </p>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => navigate("/page/create")}
+                    className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 rounded-full transition-colors"
+                  >
+                    <FiBriefcase className="w-3.5 h-3.5" />
+                    {myPages.length > 0 ? "Create another page" : "Create a company page"}
+                  </button>
+                </div>
+
+                {myPages.length > 0 && (
+                  <div className="py-3">
+                    <p className="text-[13px] font-semibold text-gray-900 mb-1.5">
+                      Admin tools
+                    </p>
+                    <div className="space-y-1">
+                      <Row
+                        icon={FiBriefcase}
+                        title="Post jobs"
+                        desc="Create and manage job posts on your page."
+                        right={<span className="text-xs font-semibold text-blue-600">Open</span>}
+                        onClick={() => navigate("/page/posts")}
+                      />
+                      <Row
+                        icon={FiUsers}
+                        title="Team members"
+                        desc="Invite colleagues and manage their access."
+                        right={<span className="text-xs font-semibold text-blue-600">Open</span>}
+                        onClick={() => navigate("/page/team")}
+                      />
+                      <Row
+                        icon={FiSliders}
+                        title="Visibility"
+                        desc="Decide who can find this page and apply."
+                        right={<span className="text-xs font-semibold text-blue-600">Open</span>}
+                        onClick={() => navigate("/page/visibility")}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -399,6 +729,32 @@ export default function Settings() {
                     <input type="checkbox" defaultChecked className="sr-only peer" />
                     <div className="w-9 h-5 rounded-full bg-gray-200 peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:w-4 after:h-4 after:transition-all peer-checked:after:translate-x-4"></div>
                   </label>
+                </div>
+
+                <div className="flex items-center justify-between gap-3 py-3 border-t border-gray-100">
+                  <div className="min-w-0">
+                    <p className="text-[13px] font-semibold text-gray-900 leading-tight">Findable in search</p>
+                    <p className="text-xs text-gray-500 mt-0.5 leading-snug">
+                      Lets other people find you by name, headline or company in global search.
+                      Turning this off hides you from results but keeps your profile link working.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={discoverable}
+                    onClick={toggleDiscoverable}
+                    disabled={savingDiscoverable}
+                    className={`relative inline-flex items-center w-9 h-5 rounded-full transition-colors shrink-0 disabled:opacity-50 ${
+                      discoverable ? "bg-blue-600" : "bg-gray-300"
+                    }`}
+                  >
+                    <span
+                      className={`absolute w-4 h-4 rounded-full bg-white shadow transition-all ${
+                        discoverable ? "left-[18px]" : "left-[2px]"
+                      }`}
+                    />
+                  </button>
                 </div>
               </div>
             )}

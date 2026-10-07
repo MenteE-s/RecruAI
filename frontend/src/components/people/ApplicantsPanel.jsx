@@ -56,13 +56,13 @@ export default function ApplicantsPanel({ recentApps, acceptedApps, scheduledSet
         <h3 className="text-sm font-bold">Hire faster</h3>
         <p className="text-[11px] text-gray-400 mt-1 leading-snug">Source talent, open roles, and move people through your pipeline.</p>
         <div className="mt-3 space-y-1.5">
-          <button onClick={() => navigate("/organization/hire")} className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-white text-gray-900 text-xs font-semibold hover:bg-gray-100 rounded-md">
+          <button onClick={() => navigate("/org/hire")} className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-white text-gray-900 text-xs font-semibold hover:bg-gray-100 rounded-md">
             <FiSearch className="w-3.5 h-3.5" /> AI talent search
           </button>
-          <button onClick={() => navigate("/organization/jobs")} className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 rounded-md">
+          <button onClick={() => navigate("/org/jobs")} className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 rounded-md">
             <FiPlus className="w-3.5 h-3.5" /> New job post
           </button>
-          <button onClick={() => navigate("/organization/pipeline")} className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-white/10 border border-white/15 text-white text-xs font-semibold hover:bg-white/15 rounded-md">
+          <button onClick={() => navigate("/org/pipeline")} className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-white/10 border border-white/15 text-white text-xs font-semibold hover:bg-white/15 rounded-md">
             <FiLayers className="w-3.5 h-3.5" /> Open pipeline
           </button>
         </div>
