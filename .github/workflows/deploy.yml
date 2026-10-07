@@ -159,6 +159,14 @@ jobs:
              bash -s" << 'ENVEOF'
           set -euo pipefail
           URL="$RDS_DATABASE_URL"
+          # This codebase's SQLAlchemy stack is built on psycopg2
+          # (psycopg2-binary in requirements.txt; pgvector.psycopg2 in
+          # app.py). A postgresql+psycopg:// (v3) scheme from the secret
+          # makes EVERY DB touch crash with
+          # ModuleNotFoundError: No module named 'psycopg' — the backend
+          # container fails to boot and 'flask db' vanishes with it.
+          URL="$(printf '%s' "$URL" | sed -E 's#^postgresql\+psycopg://#postgresql+psycopg2://#')"
+          echo "DB scheme after normalizing: $(printf '%s' "$URL" | sed -E 's#://.*#://***#')"
           DB_USER="$(echo "$URL" | sed -E 's|.*://([^:]+):.*|\1|')"
           DB_PASS="$(echo "$URL" | sed -E 's|.*://[^:]+:([^@]+)@.*|\1|')"
           DB_HOST="$(echo "$URL" | sed -E 's|.*@([^:/]+).*|\1|')"
