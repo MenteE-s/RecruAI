@@ -267,6 +267,13 @@ def level_rank(level):
     return LEVELS.index(canonical) + 1
 
 
+# De-spaced slugs ("scikit learn" -> scikit-learn) resolved once instead of
+# scanning every skill on each miss. setdefault keeps first-wins ordering.
+_DE_SPACED = {}
+for _slug in SKILLS:
+    _DE_SPACED.setdefault(_slug.replace("-", ""), _slug)
+
+
 def resolve(raw):
     """Map free text onto the canonical set.
 
@@ -285,14 +292,20 @@ def resolve(raw):
     # "Node JS" gets "node-js" — covered above. The last case is a spacing
     # variant of a catalogued slug that no alias lists, e.g. "scikit learn".
     de_spaced = key.replace("-", "")
-    for slug, entry in SKILLS.items():
-        if slug.replace("-", "") == de_spaced:
-            return entry
-    return None
+    slug = _DE_SPACED.get(de_spaced)
+    return SKILLS[slug] if slug else None
 
 
 def is_known(raw):
     return resolve(raw) is not None
+
+
+# Precomputed once at import: name/alias haystacks per skill. Rebuilding these
+# inside search() made every keystroke of a typeahead rebuild 137 entries.
+_SEARCH_INDEX = [
+    (entry, (entry["slug"], entry["name"].lower(), *(a.lower() for a in entry["aliases"])))
+    for entry in SKILLS.values()
+]
 
 
 def search(term, limit=20):
@@ -301,9 +314,7 @@ def search(term, limit=20):
     if not key:
         return []
     matches = []
-    for entry in SKILLS.values():
-        haystacks = [entry["slug"], entry["name"].lower()]
-        haystacks.extend(normalize_key(a) for a in entry["aliases"])
+    for entry, haystacks in _SEARCH_INDEX:
         if any(key in h for h in haystacks):
             matches.append(entry)
     matches.sort(key=lambda e: (not e["slug"].startswith(key), e["name"]))
@@ -312,6 +323,26 @@ def search(term, limit=20):
 
 def skills_in_category(category):
     return [e for e in SKILLS.values() if e["category"] == category]
+
+
+def level_for_score(percent_correct):
+    """Map a percentage correct onto a proficiency level.
+
+    Thresholds live next to LEVELS because they define what the scale means:
+    below 50% is not "unknown", it is Beginner — the band means the user
+    demonstrably cannot do this yet. The top band stops short of requiring
+    perfection, so a small wrong-answer count does not read as Expert and
+    then disagree with the level a retake awards.
+    """
+    if percent_correct is None:
+        return None
+    if percent_correct >= 90:
+        return "Expert"
+    if percent_correct >= 70:
+        return "Advanced"
+    if percent_correct >= 50:
+        return "Intermediate"
+    return "Beginner"
 
 
 def taxonomy_payload():

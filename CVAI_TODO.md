@@ -14,7 +14,11 @@ Derived from the feature brain-dump. Grouped by track, ordered by dependency
       three ways the keyword matcher inflated scores. 28/28 checks green.
 - [ ] **A2. Learner skill profile** — *blocked on a decision*: needs a migration,
       and the migration chain currently has an uncommitted head. See log.
-- [ ] A4. Assessment/test engine
+- [x] **A4. Assessment/test engine** — `SkillQuestion` bank + `SkillAssessment`
+      attempts, migration `a4b5c6d7e8f9`, endpoints for authoring, taking,
+      grading and level history, plus `scripts/seed_skill_questions.py`
+      (16 questions across 9 skills). 40/40 checks green, and the whole
+      migration chain verified from an empty database.
 - [ ] A5. Data consent + retention rules for assessment results and learner data.
 
 ---
@@ -134,6 +138,69 @@ the LLM spend bounded.
 ---
 
 ## Progress log
+
+### A4 — assessment engine (done)
+
+**Shipped:** `skill_questions` + `skill_assessments` tables
+(migration `a4b5c6d7e8f9`), `backend/api/profile/assessments.py`,
+`scripts/seed_skill_questions.py`.
+
+Endpoints: `POST/PUT/DELETE /api/skills/questions`, `POST /api/skills/assessments`,
+`POST /api/skills/assessments/<id>/submit`, `GET /api/skills/assessments`,
+`GET /api/skills/assessments/<id>`, `GET /api/skills/levels`.
+
+Integrity properties, each pinned by a check:
+
+- **`correct_index` never leaves the server before submit**, so a score cannot be
+  forged client-side.
+- **The attempt snapshots the graded content** — prompt, options, correct index,
+  explanation. Ids alone were not enough: grading against the live row meant a
+  question edited mid-attempt marked an answer wrong for content the user never
+  saw. This was caught by the test suite, not by review.
+- **Attempts are append-only.** B2.2 re-measures over time, which needs history.
+- **Re-submitting is refused (409)**, not re-graded — otherwise a second payload
+  could overwrite a recorded score.
+- **Deleting a question retires it** (`is_active=False`) instead of removing the
+  row, so ids in in-flight snapshots stay resolvable.
+- **Other users cannot read an attempt** (403).
+
+**Level scoring:** `level_for_score()` in `skill_taxonomy.py` — 90+ Expert,
+70+ Advanced, 50+ Intermediate, else Beginner. The top band deliberately stops
+short of requiring perfection so a small wrong-answer count doesn't read as
+Expert and then disagree with the next retake. Below 50% is Beginner (evidence
+the user cannot do this), **not** "unknown" — only a missing assessment is
+unknown.
+
+**Authoring is gated to accounts that administer a page**, provisional pending
+the open product question about who authors content. Note this admits team
+members of any org, not just the page owner.
+
+**Not built, deliberately:** an attempt left `in_progress` forever accumulates.
+`backend/scheduler.py` is the natural home for a job that abandons stale
+attempts, and B2 will want it.
+
+### Production-readiness pass (A1/A3/A4)
+
+- Rate limits on all six new views, using the `api.<view_function>` convention;
+  verified no "rate-limit target missing" warnings at startup.
+- Input caps: `q` truncated to 80 chars, each resolved name to 120, 100 names per
+  call — the resolver runs a ~350-alternative phrase matcher, so unbounded text
+  was a DoS vector. Measured 0.2 ms on a 5000-char input.
+- `search()` and `resolve()` precompute their lookup tables at import instead of
+  rebuilding 137 entries per keystroke.
+- **A latent fresh-database failure found and fixed:** committing
+  `48e75664236e` exposed that it used a bare `DROP TABLE` on three tables the
+  initial migration never created. On any fresh database (i.e. CI's
+  from-scratch `flask db upgrade`) the chain died with `UndefinedTable`. Now
+  `DROP TABLE IF EXISTS`. Verified by applying the whole chain to an empty
+  database: 49 tables, stamped at head.
+- Gotcha worth remembering: `config.py` calls `load_dotenv(..., override=True)`,
+  so `backend/.env` beats an exported `DATABASE_URL`. Pointing a migration run
+  at another database requires setting `Config.SQLALCHEMY_DATABASE_URI` after
+  import, not the environment variable.
+
+**Regression status:** 134 checks green across four suites (taxonomy 45, skill
+gap 28, search 21, assessments 40).
 
 ### A3 — skill-gap engine (done)
 

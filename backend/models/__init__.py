@@ -14,6 +14,8 @@ from .profile_section import ProfileSection
 from .experience import Experience
 from .education import Education
 from .skill import Skill
+from .skill_question import SkillQuestion
+from .skill_assessment import SkillAssessment
 from .project import Project
 from .publication import Publication
 from .award import Award
@@ -61,6 +63,8 @@ __all__ = [
     "Experience",
     "Education",
     "Skill",
+"SkillQuestion",
+"SkillAssessment",
     "Project",
     "Publication",
     "Award",

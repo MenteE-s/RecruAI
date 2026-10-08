@@ -296,6 +296,20 @@ def create_app(config_object: object | None = None):
 		# Omnibox fires on every keystroke (the client debounces), and each call
 		# fans out to three queries.
 		_limit("api.universal_search", "60 per minute")
+		# Skill taxonomy typeahead: same keystroke pattern as search, but the
+		# payload is static reference data so it can be generous.
+		_limit("api.get_skill_taxonomy", "120 per minute")
+		# Skill resolution runs a phrase matcher over caller-supplied text, so
+		# cap it rather than letting it be an amplifier.
+		_limit("api.resolve_skill", "60 per minute")
+		# Assessment lifecycle: starting an attempt and submitting are the
+		# writes that produce the evidence everything else trusts.
+		_limit("api.start_skill_assessment", "20 per minute")
+		_limit("api.submit_skill_assessment", "30 per minute")
+		# Authoring writes into the shared bank that everyone is measured
+		# against, so it is far tighter than a per-user read.
+		_limit("api.create_skill_question", "60 per hour")
+		_limit("api.update_skill_question", "60 per hour")
 
 	# Register practice AI agents blueprint separately to avoid circular imports
 	try:
