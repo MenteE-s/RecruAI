@@ -30,6 +30,7 @@ from .. import api_bp
 from ...extensions import db
 from ...models import SkillQuestion, SkillAssessment
 from ...utils import skill_taxonomy as taxonomy
+from ...utils.subscription import CVAI_SKILL_ASSESSMENT, require_subscription
 
 # A short assessment has to fit in one sitting; a long one gets abandoned and
 # teaches nothing. 20 is also the max we can show without a pager.
@@ -206,6 +207,7 @@ def delete_skill_question(question_id):
 # --------------------------------------------------------------------------
 @api_bp.route('/skills/assessments', methods=['POST'])
 @jwt_required()
+@require_subscription(CVAI_SKILL_ASSESSMENT)
 def start_skill_assessment():
     """Start an attempt and snapshot the questions being served."""
     user = _current_user()
@@ -276,6 +278,7 @@ def start_skill_assessment():
 
 @api_bp.route('/skills/assessments/<int:assessment_id>/submit', methods=['POST'])
 @jwt_required()
+@require_subscription(CVAI_SKILL_ASSESSMENT)
 def submit_skill_assessment(assessment_id):
     """Grade the attempt server-side and award a level."""
     user = _current_user()
@@ -370,6 +373,7 @@ def submit_skill_assessment(assessment_id):
 # --------------------------------------------------------------------------
 @api_bp.route('/skills/assessments', methods=['GET'])
 @jwt_required()
+@require_subscription(CVAI_SKILL_ASSESSMENT)
 def list_skill_assessments():
     """My assessment history, newest first."""
     user = _current_user()
@@ -390,6 +394,7 @@ def list_skill_assessments():
 
 @api_bp.route('/skills/assessments/<int:assessment_id>', methods=['GET'])
 @jwt_required()
+@require_subscription(CVAI_SKILL_ASSESSMENT)
 def get_skill_assessment(assessment_id):
     """One attempt with its feedback. Owner only."""
     user = _current_user()
@@ -405,6 +410,7 @@ def get_skill_assessment(assessment_id):
 
 @api_bp.route('/skills/levels', methods=['GET'])
 @jwt_required()
+@require_subscription(CVAI_SKILL_ASSESSMENT)
 def get_skill_levels():
     """The level each assessed skill last earned.
 

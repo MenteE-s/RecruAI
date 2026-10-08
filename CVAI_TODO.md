@@ -1,5 +1,12 @@
 # CVAI — Feature Todo List
 
+> **What "CVAI" means here:** it is *our internal name for the individual-profile
+> capability set* — skill taxonomy, assessments, quizzes, guided projects, mock
+> interviews. It is **not a separate product or service**. All of it ships inside
+> RecruAI, on individual accounts, and it is switched on when an individual
+> **subscribes**. A lapsed individual keeps the basics (profile, job search,
+> basic matching) and loses CVAI.
+
 Derived from the feature brain-dump. Grouped by track, ordered by dependency
 (what must exist before what can be built on it).
 
@@ -128,9 +135,8 @@ the LLM spend bounded.
 - "Resource budget" — budget of the learner's *time/money*, or the AI compute
   budget per plan? Assumed both; needs a decision.
 - Who authors the quiz bank, projects and interview scripts — in-house, or
-  employer-supplied? Changes C1.1/C2.1 ownership.
-- Is CVAI a rename of RecruAI or a separate product? Affects whether Track D
-  reuses the existing page/people/job models.
+  employer-supplied? Changes C1.1/C2.1 ownership. (Interim answer: authoring is
+  gated to accounts that administer a page.)
 - **A2 blocker:** commit or revert the untracked migration
   `backend/migrations/versions/48e75664236e_new_change.py` before adding any
   migration of ours.
@@ -138,6 +144,42 @@ the LLM spend bounded.
 ---
 
 ## Progress log
+
+### Entitlements — "subscribe to get CVAI" is now a real rule
+
+`backend/utils/subscription.py` now defines the feature keys and the basic tier
+in one place: `CVAI_SKILL_ASSESSMENT`, `CVAI_QUIZZES`, `CVAI_PROJECTS`,
+`CVAI_MOCK_INTERVIEW`, and `BASIC_INDIVIDUAL_FEATURES`. `User.can_access_feature`
+reads that list instead of its own hardcoded copy.
+
+The rule: **paid unlocks everything, an unexpired trial unlocks everything (a
+trial exists to demonstrate the paid thing), a lapsed account keeps the basics.**
+No CVAI key is in the basic list — that is what makes "subscribe to get CVAI"
+true rather than aspirational.
+
+Gated: the five assessment endpoints. Deliberately **not** gated: the taxonomy
+and resolve endpoints, because a lapsed user still has to be able to render and
+edit the skill list on their profile. Question authoring keeps its separate
+page-admin gate — it is not an individual-side feature.
+
+Two things worth knowing, both learned the hard way:
+
+- **`require_subscription` routes org admins through the ORGANISATION's
+  entitlement.** User 30 owns a page, so testing "does an individual get CVAI"
+  against that account silently tests the org. Any future entitlement test must
+  use an account with `organization_id IS NULL` and no team membership.
+- **The decorator is a no-op outside `IS_PRODUCTION`** (unchanged, deliberately
+  left alone). So the gate is invisible in ordinary dev use — the checks flip
+  `Config.IS_PRODUCTION` on to exercise the real path, and assert the bypass
+  separately so it stays a known behaviour rather than an accident.
+
+14/14 entitlement checks green, alongside 134 from the four feature suites.
+
+**Still no way to become a subscriber.** There is no payment processor;
+`SubscriptionManager.upgrade_to_paid()` is never called by any route. Until one
+exists, "active + paid_plan" can only be set manually, so the paid path is
+tested but unreachable in the product. That is the gap between "gated" and
+"sellable".
 
 ### A4 — assessment engine (done)
 

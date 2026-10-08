@@ -12,6 +12,41 @@ from backend.extensions import db
 from backend.models.user import User
 from backend.models.organization import Organization
 
+# ---------------------------------------------------------------------------
+# Feature keys.
+#
+# A feature key is a string, and until now each call site invented its own
+# ("ai_chat", "practice_ai_agents"). Nothing could tell a typo from a deliberate
+# entitlement, because the only list that mattered — User.basic_features — only
+# listed what a LAPSED user may still do. A key nobody had heard of therefore
+# silently meant "not basic", which is the correct default but a poor way to
+# discover that a feature was never gated at all.
+#
+# CVAI is the individual-profile capability set (skill taxonomy, assessments,
+# quizzes, guided projects, mock interviews). It is not a separate product and
+# not a separate service: it ships inside RecruAI and turns on when an
+# individual subscribes. These are the keys that subscription unlocks.
+# ---------------------------------------------------------------------------
+CVAI_SKILL_ASSESSMENT = "cvai_skill_assessment"
+CVAI_QUIZZES = "cvai_quizzes"
+CVAI_PROJECTS = "cvai_projects"
+CVAI_MOCK_INTERVIEW = "cvai_mock_interview"
+
+CVAI_FEATURES = (
+    CVAI_SKILL_ASSESSMENT,
+    CVAI_QUIZZES,
+    CVAI_PROJECTS,
+    CVAI_MOCK_INTERVIEW,
+)
+
+# What a lapsed individual may still do. Deliberately does NOT include any CVAI
+# key: the whole point of subscribing is to switch these on.
+BASIC_INDIVIDUAL_FEATURES = (
+    "profile_management",
+    "job_search",
+    "basic_matching",
+)
+
 
 class SubscriptionManager:
     """Centralized subscription management"""
