@@ -11,6 +11,14 @@ from flask_jwt_extended import jwt_required
 from .. import api_bp
 from ...utils import skill_taxonomy as taxonomy
 
+# The resolver runs a ~350-alternative phrase matcher over caller-supplied
+# text, so lengths are capped here rather than trusting the client. 120 chars
+# is wider than the longest catalogued skill name ("Natural Language
+# Processing" + aliases) with room for a pasted "Node.js (Express/K8s)".
+MAX_NAME_LEN = 120
+MAX_TERM_LEN = 80
+MAX_NAMES_PER_CALL = 100
+
 
 @api_bp.route('/skills/taxonomy', methods=['GET'])
 @jwt_required()
@@ -21,7 +29,7 @@ def get_skill_taxonomy():
     can never disagree. Pass ?q= for typeahead instead of downloading the
     whole list on every keystroke.
     """
-    term = (request.args.get('q') or '').strip()
+    term = (request.args.get('q') or '').strip()[:MAX_TERM_LEN]
     payload = taxonomy.taxonomy_payload()
     if term:
         payload['skills'] = taxonomy.search(term)
@@ -50,14 +58,17 @@ def resolve_skill():
         return jsonify({'error': 'names must be a list of strings'}), 400
 
     resolved, unmatched = [], []
-    for raw in names[:100]:
+    for raw in names[:MAX_NAMES_PER_CALL]:
         if not isinstance(raw, str):
             continue
-        entry = taxonomy.resolve(raw)
+        # Truncate rather than reject: a pasted "Senior Backend Engineer, Node.js
+        # (Express/Kubernetes), AWS — 6 yrs" should still resolve the skills in
+        # it, and truncation only risks losing a trailing mention.
+        entry = taxonomy.resolve(raw[:MAX_NAME_LEN])
         if entry:
             resolved.append(entry)
         elif raw.strip():
-            unmatched.append(raw.strip())
+            unmatched.append(raw.strip()[:MAX_NAME_LEN])
 
     return jsonify({
         'resolved': resolved,
