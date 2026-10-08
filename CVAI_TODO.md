@@ -8,12 +8,12 @@ Derived from the feature brain-dump. Grouped by track, ordered by dependency
 - [x] **A1. Skill taxonomy** — `backend/utils/skill_taxonomy.py` (137 skills,
       215 aliases, 13 categories, 4 proficiency levels) + `GET /api/skills/taxonomy`
       (`?q=` typeahead) and `POST /api/skills/resolve` (free text → canonical).
-      45/45 checks green. See the log at the bottom for what this unblocked and
-      what it found.
+      45/45 checks green.
+- [x] **A3. Skill-gap engine** — `backend/utils/skill_gap.py`, wired into
+      `compare_candidate_with_job()` and the candidate-ranking rerank. Replaced
+      three ways the keyword matcher inflated scores. 28/28 checks green.
 - [ ] **A2. Learner skill profile** — *blocked on a decision*: needs a migration,
       and the migration chain currently has an uncommitted head. See log.
-- [ ] A3. Skill-gap engine — extend the existing keyword-overlap logic in
-      `recommendations/tools/supervisor.py` rather than writing a second one.
 - [ ] A4. Assessment/test engine
 - [ ] A5. Data consent + retention rules for assessment results and learner data.
 
@@ -29,8 +29,10 @@ do?" before any AI can plan, track, or recommend anything.
       rather than a table so it needs no migration (see log).
 - [ ] A2. Learner skill profile — user's current skillset, self-declared and
       evidence-backed (from assessments, projects, experience).
-- [ ] A3. Skill-gap engine — compare a profile against a target role/job to
-      produce the gap list the rest of the AI consumes.
+- [ ] A3. Skill-gap engine — ~~compare a profile against a target role/job to
+      produce the gap list the rest of the AI consumes~~ **DONE.**
+      `backend/utils/skill_gap.py`, taxonomy-aware, wired into both existing
+      call sites. See log for the three scoring bugs it removed.
 - [ ] A4. Assessment/test engine — the diagnostic test that measures skill
       levels. This is the single biggest signal in the product; A2/A3 and all
       progress tracking are downstream of it.
@@ -132,6 +134,52 @@ the LLM spend bounded.
 ---
 
 ## Progress log
+
+### A3 — skill-gap engine (done)
+
+**Shipped:** `backend/utils/skill_gap.py` (pure logic, no Flask/DB), wired into
+`RecommendationSupervisor.compare_candidate_with_job()` and into the candidate
+ranking rerank. Existing response keys are unchanged, so the frontend keeps
+working; the response gains `level_gaps`, `missing_skill_details`,
+`matched_skill_details`, `unclassified_requirements` and `candidate_skills`.
+
+**Three scoring bugs it removed** — all inflated a candidate's score:
+
+1. `if not req_keywords: matched.append(req)` — a requirement that produced no
+   keywords was counted as **matched**. "Experience with R" passed for everyone.
+2. `len(w) > 2` dropped short tokens, so `Go`, `R`, `C` and `C#` could never
+   match anything.
+3. `rs in cs or cs in rs` in the ranking rerank scored **"Go" as held for anyone
+   listing "Google Cloud", "Django" or "MongoDB"**.
+
+Plus a fourth: a compound requirement matched on a *single* keyword, so
+"Kubernetes and Terraform" passed for someone who had only used Terraform.
+Requirements are now split into one demand per skill, so partial credit shows
+up as a partial gap rather than a pass.
+
+**Two design calls worth knowing:**
+
+- **Free-text descriptions no longer count as evidence.** Project and experience
+  descriptions used to be added to the keyword bag, so writing "migrated off
+  jQuery" in a paragraph registered as having jQuery. Only structured fields
+  count now: skill rows, project technology lists, certification names, job
+  titles, fields of study.
+- **Unclassifiable requirements are excluded from the ratio and reported
+  separately** instead of being silently counted as passes. "Must be a team
+  player" cannot be scored, so it does not inflate anyone's match.
+
+**New behaviour to be aware of:** a skill held below the demanded level is a
+`level_gap`, not a `missing` — and not a match either. Someone with React at
+*Advanced* against "Expert React" is now correctly short. **Scores will drop for
+candidates who previously benefited from the substring and single-keyword
+matches.** That is the point, but it will look like a regression in the UI.
+
+`match_required_skills()` was extracted out of the ranking function so it could
+be tested directly; the checks for it live with the rest in `test_skillgap.py`.
+
+**Still open:** `recommend_candidates_for_job()` cannot be exercised end-to-end
+without an embedded job (`JobEmbedding`) — the route returns 400 "embed the job
+first" for any new posting. That path is verified at unit level only.
 
 ### A1 — skill taxonomy (done)
 

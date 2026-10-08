@@ -42,6 +42,35 @@ def _extract_keywords(text: str) -> set:
     )
 
 
+def match_required_skills(skill_names, required_skills):
+    """Which of a job's required skills does a candidate actually have?
+
+    Extracted so it can be tested on its own: this used to be inline and
+    substring-compared (`rs in cs or cs in rs`), which scored "Go" as held for
+    anyone listing "Google Cloud", "Django" or "MongoDB". Both sides resolve
+    through the skill taxonomy and are compared as canonical slugs;
+    uncatalogued text falls back to exact equality, which is still far
+    stricter than a substring test.
+    """
+    from ...utils.skill_taxonomy import resolve as resolve_skill
+
+    candidate_slugs = set()
+    for name in skill_names or []:
+        entry = resolve_skill(name)
+        if entry:
+            candidate_slugs.add(entry['slug'])
+    candidate_lower = {str(s).lower().strip() for s in skill_names or [] if s}
+
+    matched = []
+    for required in required_skills or []:
+        entry = resolve_skill(required)
+        if entry and entry['slug'] in candidate_slugs:
+            matched.append(required)
+        elif not entry and required and str(required).lower().strip() in candidate_lower:
+            matched.append(required)
+    return list(set(matched))
+
+
 class RecommendationSupervisor:
     """
     Main orchestrator for the recommendation system.
@@ -672,14 +701,7 @@ class RecommendationSupervisor:
                     continue
 
                 # Skill reranking: cross-reference candidate skills vs required skills
-                candidate_skills_lower = set(s.lower().strip() for s in skill_names)
-                matched_required = []
-                for rs in required_skills:
-                    for cs in candidate_skills_lower:
-                        if rs == cs or rs in cs or cs in rs:
-                            matched_required.append(rs)
-                            break
-                matched_required = list(set(matched_required))
+                matched_required = match_required_skills(skill_names, required_skills)
                 skill_match_ratio = len(matched_required) / len(required_skills) if required_skills else 1.0
 
                 # Adjusted similarity: penalize when no required skills are present
@@ -940,13 +962,22 @@ class RecommendationSupervisor:
 
             # ---- Collect ALL technology mentions from the entire profile ----
             all_techs = []
+            # Structured evidence only — project technology lists, certification
+            # names, job titles, fields of study. Descriptions are deliberately
+            # NOT included: the old keyword matcher treated any word in a
+            # paragraph as proof of a skill, so writing "migrated off jQuery" in
+            # a project description counted as having jQuery.
+            structured_techs = []
+
             def add_text(t):
                 if t:
                     all_techs.append(t)
 
-            # 1. Formal skills
-            skills = [s.name for s in session.query(Skill).filter_by(user_id=candidate.id).all() if s.name]
+            # 1. Formal skills (kept with their level for the gap engine)
+            skill_rows = [s for s in session.query(Skill).filter_by(user_id=candidate.id).all() if s.name]
+            skills = [s.name for s in skill_rows]
             all_techs.extend(skills)
+            structured_skill_rows = [{"name": s.name, "level": s.level} for s in skill_rows]
 
             # 2. Projects (name + technologies + full description)
             projects_count = 0
@@ -957,8 +988,11 @@ class RecommendationSupervisor:
                 if proj.technologies:
                     if isinstance(proj.technologies, list):
                         all_techs.extend(proj.technologies)
+                        structured_techs.extend(t for t in proj.technologies if t)
                     elif isinstance(proj.technologies, str):
-                        all_techs.extend(t.strip() for t in proj.technologies.split(','))
+                        parts = [t.strip() for t in proj.technologies.split(',')]
+                        all_techs.extend(parts)
+                        structured_techs.extend(t for t in parts if t)
 
             # 3. Experience (title + company + description)
             experiences_list = []
@@ -966,6 +1000,8 @@ class RecommendationSupervisor:
                 add_text(exp.title)
                 add_text(exp.company)
                 add_text(exp.description)
+                if exp.title:
+                    structured_techs.append(exp.title)
                 experiences_list.append({
                     'title': exp.title,
                     'company': exp.company,
@@ -980,12 +1016,14 @@ class RecommendationSupervisor:
                 add_text(c.name)
                 add_text(c.issuer)
                 certs.append({'name': c.name, 'issuer': c.issuer})
+                structured_techs.extend(t for t in (c.name, c.issuer) if t)
 
             # 5. Education fields
             educations_list = []
             for edu in session.query(Edu).filter_by(user_id=candidate.id).all():
                 add_text(edu.field)
                 add_text(edu.degree)
+                structured_techs.extend(t for t in (edu.field, edu.degree) if t)
                 educations_list.append({
                     'degree': edu.degree,
                     'school': edu.school,
@@ -1012,27 +1050,20 @@ class RecommendationSupervisor:
                 except (json.JSONDecodeError, TypeError):
                     requirements_list = []
 
-            # ---- Match each requirement across the FULL profile ----
-            corpus_words = set()
-            for source in all_techs:
-                if source:
-                    corpus_words.update(_extract_keywords(source))
-
-            matched = []
-            missing = []
-            for req in requirements_list:
-                req_keywords = _extract_keywords(req)
-                if not req_keywords:
-                    matched.append(req)
-                    continue
-                match_count = sum(1 for kw in req_keywords if kw in corpus_words)
-                # Match if at least one keyword is found in the candidate's profile
-                if match_count > 0:
-                    matched.append(req)
-                else:
-                    missing.append(req)
-
-            skill_ratio = len(matched) / len(requirements_list) if requirements_list else 1.0
+            # ---- Match requirements against the candidate's canonical skills ----
+            # Both sides resolve through the skill taxonomy, so "Postgres" and
+            # "PostgreSQL" are one skill, "Go" is no longer unmatchable, and a
+            # requirement is met only when every skill it names is actually
+            # held at the demanded level.
+            from ...utils.skill_gap import compute_gap
+            gap = compute_gap(
+                skills=structured_skill_rows,
+                technologies=structured_techs,
+                requirements=requirements_list,
+            )
+            matched = gap["matched"]
+            missing = gap["missing"]
+            skill_ratio = gap["skill_match_ratio"]
 
             # Candidate education
             edu = None
@@ -1067,12 +1098,20 @@ class RecommendationSupervisor:
                     'skill_match': matched,
                     'missing_skills': missing,
                     'skill_match_ratio': round(skill_ratio, 2),
-                    'total_required_skills': len(requirements_list),
-                    'matched_skill_count': len(matched),
-                    'missing_skill_count': len(missing),
+                    'total_required_skills': gap['total_required_skills'],
+                    'matched_skill_count': gap['matched_skill_count'],
+                    'missing_skill_count': gap['missing_skill_count'],
                     'candidate_experience_years': round(exp_years, 1),
                     'skills_source_count': len(skills),
                     'project_techs_count': len([t for t in all_techs if t.lower() not in [s.lower() for s in skills]]),
+                    # Structured detail: the gap engine reports per-skill
+                    # verdicts so a client can explain *why* something is a
+                    # gap, and separate "not held" from "held but too junior".
+                    'level_gaps': gap['level_gaps'],
+                    'missing_skill_details': gap['missing_skills'],
+                    'matched_skill_details': gap['matched_skills'],
+                    'unclassified_requirements': gap['unclassified_requirements'],
+                    'candidate_skills': gap['candidate_skills'],
                 }
             }
         finally:
