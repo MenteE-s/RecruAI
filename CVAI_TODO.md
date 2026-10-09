@@ -89,7 +89,12 @@ it is the usual reason this track stalls.
         stack/experience/skills vs the job post → questions → goodbye).
   - [ ] C3.2. AI interviewer conduct + adaptive follow-ups.
   - [ ] C3.3. Post-interview feedback/scoring → writes to skill profile.
-- [ ] C4. Subscription gating + entitlements for C1–C3 (and B).
+- [x] **E1b. Grant path + AI budget** (billing deliberately deferred) —
+      `scripts/grant_subscription.py` and `backend/utils/ai_budget.py`.
+      See log.
+- [ ] **C4. Subscription gating** — the entitlement keys exist and the five
+      assessment endpoints are gated. Still to do: gate the C-track content
+      (quizzes/projects/mock interviews) when those land.
 - [ ] C5. Content quality bar: minimum viable bank before launch for each of C1–C3.
 
 ## Track D — Real employer access
@@ -144,6 +149,55 @@ the LLM spend bounded.
 ---
 
 ## Progress log
+
+### E1b — grant path + AI budget (billing deferred)
+
+Billing is out of scope for the MVP, which does **not** make cost control
+optional. Two pieces, both shipped.
+
+**1. `scripts/grant_subscription.py`** — the only way to put an account into the
+paid state, since `SubscriptionManager.upgrade_to_paid()` has no caller.
+`--grant`, `--trial [--days N]`, `--revoke`, `--status` (bare `--email`),
+`--list`, `--reset-ai-usage`. Prints before/after including the AI budget.
+
+It is a script and not an endpoint on purpose: the model has **no admin role**
+(`role` is only 'individual' or 'organization'), so an admin endpoint would
+require inventing a role — a bigger decision than the MVP deserves. Worth
+revisiting if staff need to grant from the app.
+
+Both fields are always set together, because `is_subscription_active()` needs
+`subscription_status == "active"` **and** `paid_plan is True`. Setting only one
+produces an account that looks paid and gets 403'd everywhere, which reads as a
+bug rather than a config error.
+
+**2. `backend/utils/ai_budget.py`** — daily per-account token ceiling, checked in
+`AIService.generate_response` **before** the provider call, so a refused turn
+costs nothing.
+
+Why this was not hypothetical: `User.can_schedule_interview()` applies **no
+count limit to individuals** (organizations cap trial usage at 5). So a single
+trial account could drive unbounded LLM traffic through interview chat. That is
+a live exposure, not a future one.
+
+- Limits by tier (paid 2M / trial 250k / default 50k tokens per UTC day), each
+  overridable by `AI_DAILY_TOKEN_LIMIT_<TIER>`; `0` means unlimited.
+- `AI_BUDGET_ENABLED=0` disables enforcement.
+- Measured from the `token_usage` rows the AI service already writes — **no new
+  column, no migration**.
+- Org usage is charged to the org, not the individual admin, so one admin cannot
+  exhaust a colleague's allowance.
+- Enforced even outside `IS_PRODUCTION`, unlike the entitlement gate. An
+  entitlement is a product decision; this is a bill.
+
+Known limit, fine for MVP: a call already in flight can overshoot by one turn.
+
+**What "no billing" actually means:** there is still no way for a user to become
+a subscriber, so in practice every individual is trial-or-lapsed, and the 7-day
+trial means CVAI locks everyone out on day 8 until someone runs the grant script.
+That is a deliberate MVP shape, not an oversight.
+
+24/24 checks green, including the grant script driven as a subprocess against a
+throwaway account. 172 checks green across six suites.
 
 ### Entitlements — "subscribe to get CVAI" is now a real rule
 

@@ -49,6 +49,15 @@ class AIService:
                 if not SubscriptionManager.check_user_access(user, "ai_chat"):
                     return "Your trial has expired or subscription is inactive. Please upgrade to continue using AI features."
 
+        # Cost control. Deliberately NOT behind the IS_PRODUCTION bypass that
+        # sits above: an entitlement is a product decision, but this is a bill,
+        # and an unbounded account is a support incident. Checked before the
+        # provider call, so a refused turn costs nothing.
+        from backend.utils.ai_budget import check_ai_budget
+        allowed, budget_message = check_ai_budget(user, operation_type)
+        if not allowed:
+            return budget_message
+
         try:
             print(f"DEBUG: AI Service - Provider: {self.provider_manager.config.AI_PROVIDER}, Model: {self.provider_manager.config.AI_MODEL}")
             print(f"DEBUG: API Key loaded: {'Yes' if self._has_api_key() else 'No'}")
