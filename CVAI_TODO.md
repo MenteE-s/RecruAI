@@ -106,10 +106,40 @@ it is the usual reason this track stalls.
 - [x] **E1c. 50k AI allowance for every account** — migration
       `b7c8d9e0f1a2` adds `users.token_allowance` (default 50000, existing rows
       backfilled), replacing the daily tier ceiling.
-- [ ] **C4. Subscription gating** — the entitlement keys exist and the five
-      assessment endpoints are gated. Still to do: gate the C-track content
-      (quizzes/projects/mock interviews) when those land.
+- [x] **C4. Subscription gating** — the entitlement keys exist; the five
+      assessment endpoints, the five quiz endpoints and the eight project
+      endpoints are gated. Quizzes and projects use `check_content_access()`,
+      which decides on the *item* rather than the route so a free preview stays
+      reachable by a lapsed account. Mock interviews still to be gated.
 - [ ] C5. Content quality bar: minimum viable bank before launch for each of C1–C3.
+      Bank is 21 questions / 4 quizzes / 3 projects — demonstrable, not shippable.
+
+### F. Packaging — CVAI inside Docker (in progress)
+
+Nothing here changes product behaviour; it is the difference between "the code
+exists" and "an operator can actually run it". Two real gaps found:
+
+- **Build context was `./backend`**, so root `scripts/` was not in the image at
+  all. `grant_subscription.py` — the *only* way to make someone a subscriber,
+  since billing is deferred — was unrunnable in the deployed container, as were
+  the three CVAI seed scripts.
+- **No compose file ran migrations.** Every deploy has required a manual
+  `flask db upgrade` over SSH, which is exactly how a chain gets left behind.
+
+  - [ ] F1. Root `.dockerignore` + build context `.` so the image is
+        self-contained: app code, migrations and scripts.
+  - [ ] F2. One-shot `migrate` service in vps/aws compose; backend
+        `depends_on: service_completed_successfully`. A separate service rather
+        than an entrypoint because N replicas racing on `db upgrade` is a real
+        failure mode and a silently divergent schema is worse than a failed boot.
+  - [ ] F3. One-shot `cvai-seed` service (question bank → quizzes → projects),
+        idempotent, opt-in via a compose profile so it never fires unattended.
+  - [ ] F4. **Build the image and run migrate + a seed + the grant script inside
+        it.** No claim of "works in Docker" without having run it.
+  - [ ] F5. `grant_subscription.py` documented as a `docker compose exec` one-liner
+        — it is the substitute for billing and must be usable by support.
+  - [ ] F6. Note: `docker stack deploy` ignores `depends_on`, so `prod.yml` needs
+        the migrate step as an explicit deploy-time action.
 
 ## Track D — Real employer access
 
@@ -144,9 +174,34 @@ Independent track; benefits most from A (skill signal) and C2.3 (proof of work).
    question bank and a phase state machine on top of the existing interviewer).
 5. **D** once real skill evidence exists — employers pay for signal, not promises.
 
-**MVP cut:** A1–A4 + B1 + B3 + C1 + C2 + C4 + E1/E2. That is: assess a user,
+**MVP cut:** A1–A4 + B1 + B3 + C1 + C2 + C4 + E1/E2 + F. That is: assess a user,
 produce a budgeted plan, recommend the next action, let subscribers take quizzes
-and build something, and keep the LLM spend bounded.
+and build something, keep the LLM spend bounded, and make all of it runnable from
+a container.
+
+---
+
+## Where the CVAI code lives
+
+Recorded here because it is spread across five directories and there is no other
+index of it.
+
+| Area | Files |
+|---|---|
+| Taxonomy, gap, review | `backend/utils/skill_taxonomy.py`, `skill_gap.py`, `guided_project_review.py` |
+| Shared grading | `backend/utils/assessment_grading.py` |
+| Mentorship logic | `backend/utils/mentorship_planner.py`, `mentorship_progress.py`, `mentorship_suggestions.py`, `backend/mentorship/generator.py`, `nudges.py` |
+| Money/tokens | `backend/utils/ai_budget.py`, `backend/utils/subscription.py` |
+| API | `backend/api/profile/assessments.py`, `backend/api/mentorship/routes.py`, `backend/api/quizzes/routes.py`, `backend/api/projects/routes.py` |
+| Models | `skill_question.py`, `skill_assessment.py`, `skill_quiz.py`, `quiz_attempt.py`, `guided_project.py`, `guided_project_attempt.py`, `mentorship_plan.py`, `mentorship_step.py` |
+| Migrations | `backend/migrations/versions/` — linear, single head `a2b3c4d5e6f7` |
+| Operators | `scripts/grant_subscription.py`, `seed_skill_questions.py`, `seed_quizzes.py`, `seed_guided_projects.py` |
+| Reading | `docs/cvai-journey.md` — every user path, with what is live and what is not |
+
+Deliberate rule: **the model never does arithmetic and never gets the last
+word.** Budgets, scores and level mappings are computed in
+`backend/utils/`, with tests that pin them. Anything the learner is shown a
+number for comes from Python.
 
 ---
 
