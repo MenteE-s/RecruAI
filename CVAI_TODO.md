@@ -19,8 +19,11 @@ Derived from the feature brain-dump. Grouped by track, ordered by dependency
 - [x] **A3. Skill-gap engine** — `backend/utils/skill_gap.py`, wired into
       `compare_candidate_with_job()` and the candidate-ranking rerank. Replaced
       three ways the keyword matcher inflated scores. 28/28 checks green.
-- [ ] **A2. Learner skill profile** — *blocked on a decision*: needs a migration,
-      and the migration chain currently has an uncommitted head. See log.
+- [x] **A2. Learner skill profile** — `skills` gains `skill_slug`, `evidence_source`,
+      `evidence_detail`, `verified`, `last_assessed_at` (migration
+      `c8d9e0f1a2b3`), backfilled from the taxonomy and normalized to Title-Case
+      levels. Assessment results now write themselves onto the profile.
+      See log.
 - [x] **A4. Assessment/test engine** — `SkillQuestion` bank + `SkillAssessment`
       attempts, migration `a4b5c6d7e8f9`, endpoints for authoring, taking,
       grading and level history, plus `scripts/seed_skill_questions.py`
@@ -152,6 +155,63 @@ the LLM spend bounded.
 ---
 
 ## Progress log
+
+### A2 — learner skill profile (done)
+
+Migration `c8d9e0f1a2b3` adds to `skills`: `skill_slug`, `evidence_source`,
+`evidence_detail`, `verified`, `last_assessed_at`. Then backfills in Python,
+because mapping historical free text to canonical slugs cannot be done in SQL:
+
+- `skill_slug` resolved through the taxonomy
+- `level` normalized to canonical Title-Case (rows stored `expert`, `BEGINNER`, …)
+
+The backfill was verified for real, not assumed: the dev DB had **zero** skill
+rows, so the migration ran over an empty set. Reverted it, inserted five
+legacy-shaped rows (`ReactJS`/`expert`, `node.js`/`advanced`, `Postgres`/
+`intermediate`, `K8s`/`BEGINNER`, `Figma tokens`/no level), re-applied, and
+confirmed 4/4 mappable skills resolved and normalized while `Figma tokens` kept
+its name and was given **no invented slug and no invented level**. Refusing to
+guess is the point — a wrong slug is worse than none.
+
+**The payoff: an assessment now writes itself onto the profile.** Submitting an
+attempt upserts the `skills` row — level, `evidence_source='assessment'`,
+`verified`, `last_assessed_at`, and provenance JSON
+(`assessment_id`, `score_percent`, `correct_count`, `total_questions`). That is
+what finally connects A4 → A3 → B1: an assessment that only lived in
+`/api/skills/levels` informed nothing.
+
+- **The measured level replaces the claimed one.** Someone who claimed "Expert"
+  and scores 55% now sees Intermediate; a retake is a fresh measurement, not a
+  ratchet.
+- **Upsert, not append** — one row per (user, slug), no duplicates.
+- **A mixed assessment writes nothing back.** Its level applies to the whole
+  paper, so attributing it to each skill covered would be a lie.
+
+**Two security holes closed while adding the fields:**
+
+1. `update_skill` was a mass-assign loop with `hasattr(skill, key)`. Adding the
+   evidence columns would have let a client PUT `verified: true` and mark their
+   own skill "verified by assessment" without sitting a test. Now an explicit
+   allowlist (`CLIENT_SETTABLE_SKILL_FIELDS`), and the evidence fields are
+   server-written only.
+2. **A verified assessment level can no longer be hand-edited** (409). Retaking
+   the assessment is the only way to change it.
+
+**One pre-existing bug fixed:** neither `Skill` nor `SkillAssessment` cascaded on
+user delete, so deleting an account with skills or attempts made SQLAlchemy null
+out a NOT NULL foreign key and the delete died with an `IntegrityError`. Both now
+`cascade="all, delete-orphan"`. Found by the test's own cleanup, which is a decent
+argument for deleting your fixtures.
+
+**Frontend:** `UserProfile.jsx` compared `skill.level === "expert"` (lowercase)
+while the model comment said Title-Case — so normalizing levels would have made
+every bar render grey. Now a `LEVEL_BAR_CLASS` map with a case-insensitive
+lookup, plus a "Verified" badge driven by the new flag.
+
+202 checks green across seven suites; frontend build compiles; full migration
+chain re-verified on an empty database (49 tables at `c8d9e0f1a2b3`).
+
+**Still open:** B1 (planning) is now unblocked — it can read real skill evidence.
 
 ### E1c — 50k AI allowance for every account
 

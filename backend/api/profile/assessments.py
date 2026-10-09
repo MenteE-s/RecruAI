@@ -40,6 +40,52 @@ DEFAULT_QUESTIONS = 8
 PASS_MARK_PERCENT = 50.0
 
 
+def _write_back_result(user, attempt):
+    """Fold an assessment result into the user's skill profile.
+
+    This is the whole point of A4 meeting A2: an assessment that only lives in
+    `/api/skills/levels` informs nothing. Writing it onto the profile is what
+    turns "I know React" into evidence-backed evidence, and what the gap engine
+    (A3) and the mentorship planner (B1) will read.
+
+    Only completed attempts, and only when the attempt was scoped to a single
+    skill — a mixed assessment's level applies to the whole paper, not to any
+    one skill, so attributing it to each would be a lie.
+    """
+    if not attempt.skill_slug or attempt.status != 'completed':
+        return None
+
+    from ...models import Skill
+    from ...models.skill import EVIDENCE_ASSESSMENT, VERIFIED_EVIDENCE
+
+    entry = taxonomy.resolve(attempt.skill_slug)
+    if not entry:
+        return None
+
+    skill = Skill.query.filter_by(user_id=user.id, skill_slug=entry['slug']).first()
+    created = skill is None
+    if created:
+        skill = Skill(user_id=user.id, name=entry['name'], skill_slug=entry['slug'])
+        db.session.add(skill)
+
+    # An assessment is a fresh measurement, so it replaces the claimed level
+    # rather than only ever raising it: someone who used to claim "Expert" and
+    # now scores 55% should see Intermediate, not have their stale claim kept.
+    skill.name = entry['name']
+    skill.level = attempt.level_awarded
+    skill.evidence_source = EVIDENCE_ASSESSMENT
+    skill.verified = EVIDENCE_ASSESSMENT in VERIFIED_EVIDENCE
+    skill.last_assessed_at = attempt.completed_at or datetime.utcnow()
+    skill.set_evidence_detail({
+        'assessment_id': attempt.id,
+        'score_percent': attempt.score_percent,
+        'correct_count': attempt.correct_count,
+        'total_questions': attempt.total_questions,
+    })
+    db.session.commit()
+    return skill
+
+
 def _current_user():
     from ...models import User
     try:
@@ -361,10 +407,15 @@ def submit_skill_assessment(assessment_id):
     attempt.completed_at = datetime.utcnow()
     db.session.commit()
 
+    # Fold the result onto the profile before responding, so the client can show
+    # the updated skill immediately rather than after a refetch.
+    updated_skill = _write_back_result(user, attempt)
+
     return jsonify({
         'assessment': attempt.to_dict(include_answers=True),
         'passed': percent >= PASS_MARK_PERCENT,
         'feedback': feedback,
+        'skill_profile': updated_skill.to_dict() if updated_skill else None,
     }), 200
 
 

@@ -40,7 +40,12 @@ class SkillAssessment(db.Model):
     completed_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    user = db.relationship("User", backref=db.backref("skill_assessments", lazy="dynamic"))
+    # delete-orphan cascade is required, not decorative: without it, deleting a
+    # user makes SQLAlchemy null out skill_assessments.user_id, which is NOT
+    # NULL, so account deletion dies with an IntegrityError instead of cleaning
+    # up. Every row here is owned by the user.
+    user = db.relationship("User", backref=db.backref(
+        "skill_assessments", lazy="dynamic", cascade="all, delete-orphan"))
 
     def get_answers(self):
         import json
