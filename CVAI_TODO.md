@@ -68,8 +68,10 @@ credible week to week.
       `GET /api/mentorship/plans/<id>/progress` and
       `GET /api/mentorship/progress`. Plan-vs-actual pace, projected finish,
       overdue steps, and per-skill level trends re-measured over time.
-- [ ] **B3. Suggestions** — the "what should I do next" layer. Now unblocked:
-      B1 knows the goal and B2 knows the pace.
+- [x] **B3. Suggestions** — `backend/utils/mentorship_suggestions.py`,
+      `GET /api/mentorship/suggestions`, `backend/mentorship/nudges.py`.
+      Deterministic and explainable; every suggestion cites its evidence.
+      See log.
 - [ ] **B3. Suggestions** — the "what should I do next" layer.
   - [ ] B3.1. Next-best-action from current gap + progress.
   - [ ] B3.2. Nudges/reminders when a plan goes stale.
@@ -157,6 +159,65 @@ the LLM spend bounded.
 ---
 
 ## Progress log
+
+### B3 — suggestions (done). Track B complete
+
+**Shipped:** `backend/utils/mentorship_suggestions.py` (pure),
+`GET /api/mentorship/suggestions`, `backend/mentorship/nudges.py`, and
+migration `e0f1a2b3c4d5` adding `notifications.related_mentorship_plan_id`.
+
+**Deliberately not a model call.** A suggestion someone acts on has to be
+explainable: *"do this because you are 32 points behind the plan you started"*
+is actionable, *"based on your recent activity, consider…"* is not. Anything
+needing model judgement was already handled by plan generation (B1); this only
+ranks what is already known. Every suggestion carries a `reason` citing its
+evidence (B3.3), and the tests assert no suggestion ships without one.
+
+Priority bands: **urgent** (behind schedule, or a skill that measurably
+declined), **high** (next step due), **normal** (gap with no plan, or a skill
+measured once), **low** (caught up).
+
+Two wordings worth noting, because both are decisions:
+
+- **Behind schedule suggests renegotiating, not trying harder.** The plan
+  promised dates; if the pace is wrong, the plan is what should change.
+- **A nudge offers an out.** *"Pick the next step, change the plan, or close it —
+  reopening a finished plan is fine, it is just noise."* A learner nudged back
+  into a plan they already finished will stop opening the product.
+
+**Two bugs the tests found, both real:**
+
+1. `review_empty_plan` was **dead code** — skipped steps are excluded from
+   `actionable`, so "actionable but nothing pending and nothing done" cannot
+   exist. Replaced with a reachable `finish_plan` case: every actionable step
+   done but the plan still open, which *is* reachable.
+2. **Un-marking a done step left the plan `completed`** while a step was
+   outstanding. `PATCH .../steps/<id>` now reopens the plan, so it can't read as
+   finished with work pending.
+
+**Idleness needed `updated_at` on steps.** `MentorshipStep.to_dict()` didn't
+expose it, so "last activity" could only fall back to the plan's timestamp —
+and a plan whose steps were created later than the plan looked fresh forever.
+The field is exposed now; no migration, the column already existed.
+
+**Nudges don't spam, and this is enforced three ways:** one per plan per idle
+window, never while an unread nudge for the same plan is outstanding, and
+`dry_run` for inspection. Verified that a second run creates nothing, that
+touching the plan stops it being stale, and that dry run writes nothing.
+
+**The scheduler is disabled**, so `register_nudge_job()` is written and tested
+but dormant. Re-enabling `init_scheduler` in app.py would also revive
+`update_expired_interviews` and `check_trial_expiration`, which is not this
+change's decision to make. Meanwhile idleness is surfaced directly in the
+suggestions payload, so a learner who opens CVAI sees what a notification would
+have said rather than waiting to be told.
+
+390 checks green across twelve suites; single migration head at `e0f1a2b3c4d5`,
+verified against an empty database.
+
+**Track B is complete.** What remains is Track C content (quizzes, guided
+projects, mock interviews) and Track D (employer access), plus B1.4's
+plan-editing gap — steps are editable, budgets deliberately are not.
 
 ### B2 — progress tracking (done)
 

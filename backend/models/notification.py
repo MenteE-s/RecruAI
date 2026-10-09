@@ -23,6 +23,12 @@ class Notification(db.Model):
     related_interview_id = db.Column(db.Integer, db.ForeignKey("interviews.id"), nullable=True)
     related_application_id = db.Column(db.Integer, db.ForeignKey("applications.id"), nullable=True)
     related_post_id = db.Column(db.Integer, db.ForeignKey("posts.id"), nullable=True)
+    # B3 stale-plan nudges. Nullable and unindexed for now: the only writer is a
+    # scheduled scan that filters by type and user, so a user+type index covers
+    # the query shape far better than indexing this alone.
+    related_mentorship_plan_id = db.Column(db.Integer,
+                                           db.ForeignKey("mentorship_plans.id"),
+                                           nullable=True)
 
     # Status fields
     is_read = db.Column(db.Boolean, default=False)
@@ -71,7 +77,8 @@ class Notification(db.Model):
             related_organization_id=kwargs.get('related_organization_id'),
             related_interview_id=kwargs.get('related_interview_id'),
             related_application_id=kwargs.get('related_application_id'),
-            related_post_id=kwargs.get('related_post_id')
+            related_post_id=kwargs.get('related_post_id'),
+            related_mentorship_plan_id=kwargs.get('related_mentorship_plan_id')
         )
         return notification
 
@@ -108,12 +115,14 @@ class Notification(db.Model):
             "related_interview_id": self.related_interview_id,
             "related_application_id": self.related_application_id,
             "related_post_id": self.related_post_id,
+            "related_mentorship_plan_id": self.related_mentorship_plan_id,
             "related_entities": {
                 "user_id": self.related_user_id,
                 "organization_id": self.related_organization_id,
                 "interview_id": self.related_interview_id,
                 "application_id": self.related_application_id,
                 "post_id": self.related_post_id,
+                "mentorship_plan_id": self.related_mentorship_plan_id,
             },
             "organization": {
                 "id": org.id,

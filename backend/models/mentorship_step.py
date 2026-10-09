@@ -68,4 +68,7 @@ class MentorshipStep(db.Model):
             "status": self.status,
             "target_date": utc_iso(self.target_date),
             "completed_at": utc_iso(self.completed_at),
+            # Needed to tell when a plan was last touched; without it "idle for
+            # N days" can only fall back to the plan's own timestamp.
+            "updated_at": utc_iso(self.updated_at),
         }

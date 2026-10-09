@@ -21,6 +21,7 @@ from ...models import (
 )
 from ...utils import mentorship_planner as planner
 from ...utils import mentorship_progress as progress_utils
+from ...utils import mentorship_suggestions as suggestions_utils
 from ...utils.mentorship_planner import VALID_STEP_STATUSES, clamp_int
 from ...utils.mentorship_progress import parse_iso
 from ...utils.skill_taxonomy import LEVELS, SKILLS
@@ -297,8 +298,15 @@ def update_mentorship_step(plan_id, step_id):
 
     active = [s for s in plan.steps if s.status != 'skipped']
     if active and all(s.status == 'done' for s in active):
-        plan.status = 'completed'
-        plan.completed_at = datetime.utcnow()
+        if plan.status != 'completed':
+            plan.status = 'completed'
+            plan.completed_at = datetime.utcnow()
+            db.session.commit()
+    elif plan.status == 'completed':
+        # Moving a step back out of done reopens work, so the plan must reopen
+        # too — otherwise it reads as finished while a step is outstanding.
+        plan.status = 'active'
+        plan.completed_at = None
         db.session.commit()
 
     return jsonify({'plan': plan.to_dict(), 'step': step.to_dict()}), 200
@@ -466,6 +474,49 @@ def get_learner_progress():
     return jsonify({
         'summary': summary,
         'skill_history': history,
+    }), 200
+
+
+@api_bp.route('/mentorship/suggestions', methods=['GET'])
+@jwt_required()
+@require_subscription(CVAI_MENTORSHIP)
+def get_mentorship_suggestions():
+    """What to do next, ranked, each with the reason behind it.
+
+    Deterministic and model-free on purpose. A suggestion the learner acts on
+    has to be explainable, and everything needed to explain one is already
+    recorded: the gap the plan was built from, the pace against the dates it
+    promised, and what the assessments have since measured.
+    """
+    user = _me()
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    plans = (MentorshipPlan.query
+             .filter_by(user_id=user.id)
+             .order_by(MentorshipPlan.id.desc())
+             .limit(20).all())
+    plan_dicts = [p.to_dict() for p in plans]
+    progresses = {p['id']: progress_utils.plan_progress(p) for p in plan_dicts}
+
+    attempts = (SkillAssessment.query
+                .filter_by(user_id=user.id, status='completed')
+                .order_by(SkillAssessment.completed_at.asc(), SkillAssessment.id.asc())
+                .all())
+    history = progress_utils.skill_level_history([a.to_dict() for a in attempts])
+
+    suggestions = suggestions_utils.build_suggestions(plan_dicts, progresses, history)
+
+    # Idleness is surfaced here as well as by the scheduled nudge, because a
+    # learner who opens CVAI should see the same thing a notification would say
+    # rather than having to wait to be told.
+    idle = suggestions_utils.stale_plans(plan_dicts)
+
+    return jsonify({
+        'suggestions': suggestions,
+        'count': len(suggestions),
+        'idle_plans': [{'plan_id': e['plan'].get('id'), 'idle_days': e['idle_days'],
+                         'goal': e['plan'].get('goal')} for e in idle],
     }), 200
 
 

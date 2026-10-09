@@ -321,6 +321,8 @@ def create_app(config_object: object | None = None):
 		# Progress views call no model and are polled while a step is open.
 		_limit("api.get_mentorship_progress", "60 per minute")
 		_limit("api.get_learner_progress", "60 per minute")
+		# Suggestions call no model; polled whenever the CVAI panel is open.
+		_limit("api.get_mentorship_suggestions", "60 per minute")
 
 	# Register practice AI agents blueprint separately to avoid circular imports
 	try:
