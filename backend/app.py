@@ -318,6 +318,9 @@ def create_app(config_object: object | None = None):
 		_limit("api.list_mentorship_plans", "60 per minute")
 		_limit("api.get_mentorship_plan", "60 per minute")
 		_limit("api.update_mentorship_step", "120 per minute")
+		# Progress views call no model and are polled while a step is open.
+		_limit("api.get_mentorship_progress", "60 per minute")
+		_limit("api.get_learner_progress", "60 per minute")
 
 	# Register practice AI agents blueprint separately to avoid circular imports
 	try:

@@ -20,13 +20,25 @@ from ...models import (
     MentorshipPlan, MentorshipStep, Post, Skill, SkillAssessment,
 )
 from ...utils import mentorship_planner as planner
+from ...utils import mentorship_progress as progress_utils
 from ...utils.mentorship_planner import VALID_STEP_STATUSES, clamp_int
+from ...utils.mentorship_progress import parse_iso
 from ...utils.skill_taxonomy import LEVELS, SKILLS
 from ...utils.subscription import CVAI_MENTORSHIP, require_subscription
 from ...mentorship.generator import gaps_from_targets, propose_steps, propose_targets
 
 MAX_GOAL_LEN = 255
 MAX_PLANS_PER_USER = 20
+
+# Wording the UI can show directly, so the verdict is not re-invented (and
+# mis-spelled) per screen.
+_VERDICT_LABELS = {
+    "done": "Finished",
+    "on_track": "On track",
+    "behind": "Behind schedule",
+    "off_track": "Well behind schedule",
+    "not_started": "Not started yet",
+}
 
 
 def _me():
@@ -381,6 +393,80 @@ def regenerate_mentorship_plan(plan_id):
         ))
     db.session.commit()
     return jsonify({'plan': plan.to_dict()}), 200
+
+
+@api_bp.route('/mentorship/plans/<int:plan_id>/progress', methods=['GET'])
+@jwt_required()
+@require_subscription(CVAI_MENTORSHIP)
+def get_mentorship_progress(plan_id):
+    """Plan versus actual for one plan.
+
+    Cheap by construction: no model call, so this stays available to a learner
+    who has spent their allowance, and cheap enough to poll while a step is
+    open.
+    """
+    user = _me()
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    plan = MentorshipPlan.query.filter_by(id=plan_id, user_id=user.id).first()
+    if not plan:
+        return jsonify({'error': 'Plan not found'}), 404
+
+    payload = plan.to_dict()
+    progress = progress_utils.plan_progress(payload)
+
+    # Which steps are overdue against the dates the plan showed the learner.
+    now = datetime.utcnow()
+    overdue = []
+    for step in payload.get('steps', []):
+        if step.get('status') in ('done', 'skipped') or not step.get('target_date'):
+            continue
+        due = parse_iso(step['target_date'])
+        if due and due < now:
+            overdue.append({'step_id': step['id'], 'title': step['title'],
+                            'target_date': step['target_date']})
+
+    return jsonify({
+        'plan_id': plan.id,
+        'progress': progress,
+        'overdue_steps': overdue,
+        'status_label': _VERDICT_LABELS.get(progress['verdict'], progress['verdict']),
+    }), 200
+
+
+@api_bp.route('/mentorship/progress', methods=['GET'])
+@jwt_required()
+@require_subscription(CVAI_MENTORSHIP)
+def get_learner_progress():
+    """Everything at once: plan pace plus skill-level trends over time.
+
+    This is B2's "am I getting anywhere" view. Skill trends come from completed
+    assessments rather than from plans, because a retaken assessment is the only
+    thing in the product that re-measures a skill.
+    """
+    user = _me()
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    plans = (MentorshipPlan.query
+             .filter_by(user_id=user.id)
+             .order_by(MentorshipPlan.id.desc())
+             .limit(20).all())
+    plan_dicts = [p.to_dict() for p in plans]
+
+    attempts = (SkillAssessment.query
+                .filter_by(user_id=user.id, status='completed')
+                .order_by(SkillAssessment.completed_at.asc(), SkillAssessment.id.asc())
+                .all())
+    attempt_dicts = [a.to_dict() for a in attempts]
+
+    history = progress_utils.skill_level_history(attempt_dicts)
+    summary = progress_utils.learner_progress(plan_dicts, history)
+
+    return jsonify({
+        'summary': summary,
+        'skill_history': history,
+    }), 200
 
 
 @api_bp.route('/mentorship/plans/options', methods=['GET'])

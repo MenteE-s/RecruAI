@@ -64,10 +64,12 @@ credible week to week.
       allowance. See log.
 - [ ] **B1.4. Plan editing** — partially shipped: steps can be completed,
       skipped and in-progress; budgets deliberately not editable post-hoc.
-- [ ] **B2. Progress tracking** — measure movement against the plan.
-  - [ ] B2.1. Milestone completion per plan step.
-  - [ ] B2.2. Re-measure skill levels over time (same assessment, re-taken).
-  - [ ] B2.3. Plan-vs-actual view; detect falling behind.
+- [x] **B2. Progress tracking** — `backend/utils/mentorship_progress.py` plus
+      `GET /api/mentorship/plans/<id>/progress` and
+      `GET /api/mentorship/progress`. Plan-vs-actual pace, projected finish,
+      overdue steps, and per-skill level trends re-measured over time.
+- [ ] **B3. Suggestions** — the "what should I do next" layer. Now unblocked:
+      B1 knows the goal and B2 knows the pace.
 - [ ] **B3. Suggestions** — the "what should I do next" layer.
   - [ ] B3.1. Next-best-action from current gap + progress.
   - [ ] B3.2. Nudges/reminders when a plan goes stale.
@@ -155,6 +157,40 @@ the LLM spend bounded.
 ---
 
 ## Progress log
+
+### B2 — progress tracking (done)
+
+**Shipped:** `backend/utils/mentorship_progress.py` (pure), two endpoints.
+B2.1 (step completion) was already carried by B1's step status, so this is
+really B2.3 (plan versus actual) and B2.2 (re-measure over time).
+
+Everything is arithmetic over plain dicts, so the awkward cases are tested
+directly instead of by arranging fixtures: a plan with no steps, a plan finished
+on day one, nonsense hour strings, a missing date, an assessment with no level.
+
+**Three decisions worth knowing:**
+
+- **Skipped steps are excluded from the denominator.** A learner who marked
+  three steps skipped has not failed them; counting them as incomplete would
+  report 0% forever on a plan they deliberately narrowed.
+- **On-track has 15 points of tolerance, and "not started" is not "behind".**
+  Day 3 of a four-week plan legitimately looks like 0% done against 25% elapsed.
+  Only an untouched plan past its halfway mark is called behind.
+- **Trend compares first to last, not the last two.** Otherwise one bad
+  afternoon reads as a decline. A genuine decline *is* reported — a skill that
+  went Advanced → Beginner shows `declining`, because hiding that would be
+  dishonest.
+
+**Progress costs nothing.** No model call, so both endpoints keep working for a
+learner who has spent their 50k allowance — checked explicitly, since being
+unable to record that you finished something would be perverse. That is why they
+are rate limited at 60/minute while generation is 10/hour.
+
+**A `/mentorship/progress` view answering 200 to any caller is correct**, because
+it is a "my progress" endpoint filtered by the caller's id — the test asserts it
+returns *no* other account's plans rather than asserting a 403.
+
+330 checks green across ten suites.
 
 ### B1 — mentorship planning (done)
 
