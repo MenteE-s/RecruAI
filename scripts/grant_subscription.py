@@ -15,12 +15,17 @@ deserves right now.
     python scripts/grant_subscription.py --email you@example.com --grant --days 30
     python scripts/grant_subscription.py --email you@example.com --trial --days 7
     python scripts/grant_subscription.py --email you@example.com --revoke
-    python scripts/grant_subscription.py --email you@example.com --reset-ai-usage
+    python scripts/grant_subscription.py --email you@example.com --tokens 200000
+    python scripts/grant_subscription.py --email you@example.com --reset-tokens
 
 Both fields are always set together on purpose. `User.is_subscription_active()`
 requires `subscription_status == "active"` AND `paid_plan is True`, so setting
 only the status produces an account that looks paid and is denied by every
 gated endpoint with a 403 that reads like a bug.
+
+--tokens and --reset-tokens act on the AI allowance (`token_allowance`) and the
+`tokens_used` counter. The allowance does not refill on a schedule, so topping
+up is the intended support move.
 """
 import argparse
 import os
@@ -62,9 +67,9 @@ def _describe(user):
         f"  trial active   : {user.is_trial_active()}",
     ]
     status = budget_status(user)
+    allowance = "unlimited" if status["unlimited"] else format(status["token_allowance"], ",")
     lines.append(
-        f"  AI today       : {status['tokens_used_today']:,} / "
-        f"{'unlimited' if status['unlimited'] else format(status['daily_limit'], ',')}"
+        f"  AI tokens      : {status['tokens_used']:,} used / {allowance} allowance"
         f"{'  EXHAUSTED' if status['exhausted'] else ''}"
     )
     return "\n".join(lines)
@@ -84,14 +89,16 @@ def main():
     parser.add_argument("--trial", action="store_true", help="start/refresh a trial instead")
     parser.add_argument("--revoke", action="store_true", help="cancel paid access")
     parser.add_argument("--days", type=int, default=None,
-                        help="expiry horizon recorded for a trial (default: 7)")
-    parser.add_argument("--reset-ai-usage", action="store_true",
-                        help="clear today's token rows so a budget-blocked account is unblocked now")
+                        help="trial horizon in days (default: 7)")
+    parser.add_argument("--tokens", type=int, default=None,
+                        help="set the account's total AI token allowance, e.g. 200000")
+    parser.add_argument("--reset-tokens", action="store_true",
+                        help="zero the tokens_used counter (token_usage rows are kept)")
     parser.add_argument("--list", action="store_true", help="list accounts and their tiers")
     args = parser.parse_args()
 
     actions = sum([bool(args.grant), bool(args.trial), bool(args.revoke),
-                   bool(args.reset_ai_usage)])
+                   args.tokens is not None, bool(args.reset_tokens)])
     if not args.list and not args.email:
         parser.error("pass --email <account>, or --list")
     if actions > 1:
@@ -139,13 +146,22 @@ def main():
             user.subscription_status = "expired"
             user.paid_plan = False
             changed += ["subscription_status -> expired", "paid_plan -> False"]
-        elif args.reset_ai_usage:
-            from backend.utils.ai_budget import reset_today_usage
-            removed = reset_today_usage(user)
-            print(f"\nRemoved {removed} token_usage row(s) for today.")
+        elif args.reset_tokens:
+            from backend.utils.ai_budget import reset_token_usage
+            previous = reset_token_usage(user)
+            print(f"\nToken counter was {previous:,}, now 0. "
+                  "Usage history rows were kept.")
             print("=== after ===")
             print(_describe(user))
             return
+        elif args.tokens is not None:
+            if args.tokens < 0:
+                print("--tokens must be zero (unlimited) or greater")
+                return
+            before = user.token_allowance
+            user.token_allowance = args.tokens
+            changed.append(f"token_allowance {before} -> {args.tokens}"
+                           + ("  (0 = unlimited)" if args.tokens == 0 else ""))
 
         if changed:
             db.session.commit()

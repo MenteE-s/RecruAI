@@ -92,6 +92,9 @@ it is the usual reason this track stalls.
 - [x] **E1b. Grant path + AI budget** (billing deliberately deferred) —
       `scripts/grant_subscription.py` and `backend/utils/ai_budget.py`.
       See log.
+- [x] **E1c. 50k AI allowance for every account** — migration
+      `b7c8d9e0f1a2` adds `users.token_allowance` (default 50000, existing rows
+      backfilled), replacing the daily tier ceiling.
 - [ ] **C4. Subscription gating** — the entitlement keys exist and the five
       assessment endpoints are gated. Still to do: gate the C-track content
       (quizzes/projects/mock interviews) when those land.
@@ -149,6 +152,47 @@ the LLM spend bounded.
 ---
 
 ## Progress log
+
+### E1c — 50k AI allowance for every account
+
+Migration `b7c8d9e0f1a2` adds `users.token_allowance` (integer, NOT NULL,
+`server_default 50000`). Two halves, both needed:
+
+- **the column default** → every account created from now on gets 50k
+- **an explicit `UPDATE users`** → every existing account gets it too
+
+The `UPDATE` is redundant on PostgreSQL (it backfills from the default) but is
+stated explicitly rather than relying on that behaviour, and it keeps this
+correct on backends that don't. Verified: 7/7 dev accounts at exactly 50000,
+zero nulls, and the full chain on an empty database ends at
+`b7c8d9e0f1a2` with the column default present.
+
+**This replaced the daily tier ceiling from E1b**, not added alongside it. Two
+ceilings would have been confusing to support ("daily limit" vs "allowance"),
+and with no way to become a real paid subscriber the tier differences were
+theoretical anyway. Enforcement is now simply `tokens_used < token_allowance`,
+measured against the cumulative counter `User.track_token_usage` already
+maintains — no per-call aggregate query.
+
+The counter is read **fresh from the database** on every check, deliberately:
+`track_token_usage` bumps it with raw SQL "to avoid session-mismatch issues",
+which leaves an already-loaded ORM attribute stale. Trusting the in-memory
+value would let one account blow through its whole allowance inside a single
+session. There's a check for exactly that.
+
+**No refill on a schedule.** `grant_subscription.py --tokens N` tops up;
+`--reset-tokens` zeroes the counter and deliberately keeps the `token_usage`
+rows, because those rows are the record of what was actually spent and deleting
+them to unblock someone destroys the history that explains the block.
+
+**What 50k actually buys:** the CVAI features built so far cost **zero**
+tokens — taxonomy, gap engine and assessments are deterministic code, no LLM.
+Only LLM-backed features spend: roughly 500–2,500 tokens per chat turn, so 50k
+is about 25–100 short turns, or one to a few full mock interviews. Plenty for
+testing everything currently built; thin for heavy mock-interview testing.
+Bump it per account when someone runs out.
+
+176 checks green across six suites.
 
 ### E1b — grant path + AI budget (billing deferred)
 

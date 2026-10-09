@@ -4,6 +4,11 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from backend.extensions import db
 from backend.utils.timezone_utils import utc_iso
 
+# Every account gets this much AI spend while there is no billing. Lives here
+# rather than in ai_budget.py because the column default needs it at class
+# definition time, and ai_budget imports from this module.
+DEFAULT_TOKEN_ALLOWANCE = 50_000
+
 
 class User(db.Model):
     __tablename__ = "users"
@@ -22,6 +27,13 @@ class User(db.Model):
     trial_start_date = db.Column(db.DateTime, nullable=True, default=datetime.utcnow)
     paid_plan = db.Column(db.Boolean, nullable=True, default=False)
     tokens_used = db.Column(db.Integer, nullable=True, default=0)
+    # Total tokens this account may ever spend on AI, regardless of tier. Set to
+    # 50k for every account (existing and new) while there is no billing, so
+    # nobody is locked out of the AI features during testing. Adjust per account
+    # with scripts/grant_subscription.py --tokens N.
+    token_allowance = db.Column(db.Integer, nullable=False,
+                                default=DEFAULT_TOKEN_ALLOWANCE,
+                                server_default=str(DEFAULT_TOKEN_ALLOWANCE))
     interviews_count = db.Column(db.Integer, nullable=True, default=0)
     # optional organization FK
     organization_id = db.Column(db.Integer, db.ForeignKey("organizations.id"), nullable=True)
