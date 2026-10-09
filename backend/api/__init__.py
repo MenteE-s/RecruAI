@@ -15,8 +15,9 @@ from . import rag  # noqa: E402, F401
 from . import notifications  # noqa: E402, F401
 from . import billing  # noqa: E402, F401
 from . import search  # noqa: E402, F401
-# CVAI mentorship (B1). On api_bp rather than its own blueprint so the
-# email-verification guard in guards.py applies to it.
+# CVAI mentorship (B1) and quizzes (C1). On api_bp rather than their own
+# blueprints so the email-verification guard in guards.py applies to them.
 from . import mentorship  # noqa: E402, F401
+from . import quizzes  # noqa: E402, F401
 # Removed practice_ai_agents import to avoid circular import - registered in app.py instead
 from . import guards  # noqa: E402, F401 - blueprint guards, registered once here

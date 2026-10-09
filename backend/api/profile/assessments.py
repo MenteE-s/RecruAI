@@ -29,6 +29,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from .. import api_bp
 from ...extensions import db
 from ...models import SkillQuestion, SkillAssessment
+from ...utils import assessment_grading as grading
 from ...utils import skill_taxonomy as taxonomy
 from ...utils.subscription import CVAI_SKILL_ASSESSMENT, require_subscription
 
@@ -353,56 +354,38 @@ def submit_skill_assessment(assessment_id):
                if isinstance(a, dict)}
     snapshot = attempt.get_answers()
 
-    graded, feedback = [], []
-    correct_count = 0
+    # Grading lives in one place (utils/assessment_grading.py) because quizzes
+    # grade the same kind of snapshot. The legacy fallback for rows written
+    # before content was snapshotted stays here, where the model is available.
     for row in snapshot:
-        qid = row.get('question_id')
-        # Grade from the snapshot. The live row is only consulted for attempts
-        # created before content was snapshotted.
-        options = row.get('options')
-        correct_index = row.get('correct_index')
-        if not options or correct_index is None:
-            question = db.session.get(SkillQuestion, qid)
-            if question is None:
-                continue
-            options = question.get_options()
-            correct_index = question.correct_index
-            row.setdefault('prompt', question.prompt)
-            row.setdefault('explanation', question.explanation)
-            row.setdefault('level_tested', question.level_tested)
+        if row.get('options') and row.get('correct_index') is not None:
+            continue
+        question = db.session.get(SkillQuestion, row.get('question_id'))
+        if question is None:
+            continue
+        row['options'] = question.get_options()
+        row['correct_index'] = question.correct_index
+        row.setdefault('prompt', question.prompt)
+        row.setdefault('explanation', question.explanation)
+        row.setdefault('level_tested', question.level_tested)
 
-        selected = answers.get(qid)
-        valid = isinstance(selected, int) and 0 <= selected < len(options)
-        is_correct = valid and selected == correct_index
-        if is_correct:
-            correct_count += 1
-        row['selected'] = selected
-        row['correct'] = is_correct
-        graded.append(qid)
-        feedback.append({
-            'question_id': qid,
-            'prompt': row.get('prompt'),
-            'selected': selected if valid else None,
-            'correct': is_correct,
-            'correct_index': correct_index,
-            'explanation': row.get('explanation'),
-            'level_tested': row.get('level_tested'),
-        })
+    result, feedback = grading.grade(snapshot, answers)
+    correct_count = result['correct_count']
+    total = result['total_questions']
+    percent = result['score_percent']
 
-    total = len(feedback)
     if total == 0:
         attempt.status = 'abandoned'
         attempt.completed_at = datetime.utcnow()
         db.session.commit()
         return jsonify({'error': 'None of the submitted questions still exist'}), 409
 
-    percent = round(correct_count / total * 100, 1)
     attempt.set_answers(snapshot)
     attempt.set_feedback(feedback)
     attempt.correct_count = correct_count
     attempt.total_questions = total
     attempt.score_percent = percent
-    attempt.level_awarded = taxonomy.level_for_score(percent)
+    attempt.level_awarded = result['level_awarded']
     attempt.status = 'completed'
     attempt.completed_at = datetime.utcnow()
     db.session.commit()
@@ -413,7 +396,7 @@ def submit_skill_assessment(assessment_id):
 
     return jsonify({
         'assessment': attempt.to_dict(include_answers=True),
-        'passed': percent >= PASS_MARK_PERCENT,
+        'passed': grading.passed(percent, PASS_MARK_PERCENT),
         'feedback': feedback,
         'skill_profile': updated_skill.to_dict() if updated_skill else None,
     }), 200

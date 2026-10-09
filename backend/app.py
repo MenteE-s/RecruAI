@@ -323,6 +323,13 @@ def create_app(config_object: object | None = None):
 		_limit("api.get_learner_progress", "60 per minute")
 		# Suggestions call no model; polled whenever the CVAI panel is open.
 		_limit("api.get_mentorship_suggestions", "60 per minute")
+		# Quizzes call no model, but an attempt is a long piece of work worth
+		# keeping on a tight leash: no reason to start many in a minute.
+		_limit("api.list_quizzes", "60 per minute")
+		_limit("api.get_quiz", "60 per minute")
+		_limit("api.start_quiz_attempt", "20 per minute")
+		_limit("api.submit_quiz_attempt", "30 per minute")
+		_limit("api.list_quiz_attempts", "60 per minute")
 
 	# Register practice AI agents blueprint separately to avoid circular imports
 	try:

@@ -40,10 +40,32 @@ QUESTIONS = [
      ["Values with type coercion", "Identity and type without coercion",
       "Only references", "Only primitives"], 1,
      "=== compares both value and type; == coerces types first."),
+    ("javascript", 2, "Intermediate", "What is typeof null?",
+     ["'null'", "'object'", "'undefined'", "Throws a TypeError"], 1,
+     "A long-standing quirk from the original implementation: typeof null is "
+     "'object'."),
+    ("javascript", 2, "Intermediate", "Which array method returns a new array?",
+     ["push", "map", "sort", "splice"], 1,
+     "map returns a new array; push/splice mutate in place and return a length "
+     "or removed items."),
+    ("javascript", 3, "Advanced", "What does 'use strict' change?",
+     ["Nothing at runtime", "Turns silent failures into errors and blocks "
+      "undeclared assignment", "Compiles faster", "Enables async/await"], 1,
+     "Strict mode surfaces errors that would otherwise fail silently, which is "
+     "the whole point of opting in."),
     ("react", 2, "Intermediate", "What does useEffect with an empty dependency array do?",
      ["Runs on every render", "Runs once after the first render",
       "Runs before the first render", "Runs on unmount only"], 1,
      "[] means the effect runs once after mount and cleans up on unmount."),
+    ("react", 2, "Intermediate", "What is useCallback for?",
+     ["Caching an effect", "Returning a memoised function reference",
+      "Caching a computed value", "Fetching data"], 1,
+     "useCallback memoises the function itself, so it can be handed to a "
+     "memoised child without defeating the memo."),
+    ("react", 3, "Advanced", "What does React.memo do?",
+     ["Deep-compares props", "Skips re-render when props are shallowly equal",
+      "Memoises state", "Preloads a component"], 1,
+     "It is a shallow comparison by reference; a fresh object prop defeats it."),
     ("react", 3, "Advanced", "Why is state not updated when you mutate it in place?",
      ["React ignores objects", "Mutation keeps the same reference so React "
       "cannot see a change", "State is read-only only in strict mode",
