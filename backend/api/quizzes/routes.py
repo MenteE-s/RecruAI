@@ -19,7 +19,7 @@ from ...extensions import db
 from ...models import QuizAttempt, SkillQuestion, SkillQuiz
 from ...utils import assessment_grading as grading
 from ...utils.skill_taxonomy import resolve
-from ...utils.subscription import CVAI_QUIZZES, require_subscription
+from ...utils.subscription import CVAI_QUIZZES, check_content_access
 
 MAX_QUIZ_QUESTIONS = 40
 
@@ -73,30 +73,6 @@ def _public_questions(snapshot):
     } for q in snapshot]
 
 
-def _require_subscriber(feature=CVAI_QUIZZES):
-    """Free previews are open; the rest need the entitlement.
-
-    Not a decorator, because the decision depends on the quiz rather than the
-    route.
-    """
-    from ...config import Config
-    if Config.IS_PRODUCTION:
-        from ...utils.subscription import SubscriptionManager
-        user = _me()
-        if user and user.organization:
-            if not SubscriptionManager.check_organization_access(user.organization, feature):
-                return False, jsonify({
-                    'error': 'Subscription required',
-                    'message': f"Feature '{feature}' requires an active subscription",
-                }), 403
-        elif user and not SubscriptionManager.check_user_access(user, feature):
-            return False, jsonify({
-                'error': 'Subscription required',
-                'message': f"Feature '{feature}' requires an active subscription",
-            }), 403
-    return True, None, None
-
-
 @api_bp.route('/quizzes', methods=['GET'])
 @jwt_required()
 def list_quizzes():
@@ -139,7 +115,8 @@ def get_quiz(slug):
 
     payload = quiz.to_dict()
     if not quiz.is_free_preview:
-        allowed, error, code = _require_subscriber()
+        allowed, error, code = check_content_access(
+            CVAI_QUIZZES, free_preview=quiz.is_free_preview)
         if not allowed:
             payload.pop("question_count", None)
             payload["locked"] = True
@@ -171,7 +148,8 @@ def start_quiz_attempt(slug):
         return jsonify({'error': 'Quiz not found'}), 404
 
     if not quiz.is_free_preview:
-        allowed, error, code = _require_subscriber()
+        allowed, error, code = check_content_access(
+            CVAI_QUIZZES, free_preview=quiz.is_free_preview)
         if not allowed:
             return error, code
 

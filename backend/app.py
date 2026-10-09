@@ -330,6 +330,15 @@ def create_app(config_object: object | None = None):
 		_limit("api.start_quiz_attempt", "20 per minute")
 		_limit("api.submit_quiz_attempt", "30 per minute")
 		_limit("api.list_quiz_attempts", "60 per minute")
+		# Guided projects. The review endpoint calls a model, so it is the
+		# tightest limit in CVAI: a retry storm must not become a bill.
+		_limit("api.list_guided_projects", "60 per minute")
+		_limit("api.get_guided_project", "60 per minute")
+		_limit("api.start_guided_project", "20 per minute")
+		_limit("api.save_guided_project_progress", "120 per minute")  # autosave
+		_limit("api.submit_guided_project", "10 per minute")
+		_limit("api.retry_guided_project_review", "5 per minute")
+		_limit("api.list_guided_project_attempts", "60 per minute")
 
 	# Register practice AI agents blueprint separately to avoid circular imports
 	try:

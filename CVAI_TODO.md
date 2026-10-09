@@ -83,14 +83,18 @@ Gated by subscription. Each item needs both the authoring/publishing pipeline
 and the learner-facing experience — content without a way to create and maintain
 it is the usual reason this track stalls.
 
-- [ ] **C1. Quizzes**
-  - [ ] C1.1. Question bank + authoring UI (who writes and maintains these).
-  - [ ] C1.2. Skill tagging per question → feeds the gap engine (A3).
-  - [ ] C1.3. Scoring + explanation feedback; results write to the skill profile.
-- [ ] **C2. Guided projects**
-  - [ ] C2.1. Project templates with steps, deliverables, and pass criteria.
-  - [ ] C2.2. Submission + review/feedback loop.
-  - [ ] C2.3. Completed projects as proof on the profile (feeds employer track D).
+- [x] **C1. Quizzes** — `8c36329`. Multi-skill, ordered, pass mark, free preview.
+  - [x] C1.1. Question bank + authoring API (UI still missing; authoring itself is done).
+  - [x] C1.2. Skill tagging per question → feeds the gap engine (A3).
+  - [x] C1.3. Scoring + explanation feedback; results write to the skill profile.
+- [x] **C2. Guided projects** — 8 endpoints, migration `a2b3c4d5e6f7`, 76 checks.
+  - [x] C2.1. Project templates with steps and pass criteria (`guided_projects`).
+  - [x] C2.2. Submission + review/feedback loop, with quotable evidence only.
+  - [x] C2.3. Completed projects recorded on the profile as `evidence_source='project'`,
+        deliberately **unverified** — a write-up cannot show the code runs.
+  - [ ] C2.4. Attach a completed project to the profile `projects` table so it shows
+        on the public profile as a portfolio item (needs an employer-facing decision:
+        whose name on it, and does it need a repo URL?). Blocked on D.
 - [ ] **C3. Mock interviews**
   - [ ] C3.1. Interview format/steps (see `TODO.md` — greeting → role discussion →
         stack/experience/skills vs the job post → questions → goodbye).
@@ -136,12 +140,13 @@ Independent track; benefits most from A (skill signal) and C2.3 (proof of work).
 2. **B1** (planning, incl. resource budget) → **B2** (tracking) → **B3** (suggestions).
 3. **C4 + E1** (gating/billing) then **C1 quizzes** — cheapest subscriber content,
    reuses A3/A4 scoring immediately.
-4. **C2 guided projects**, then **C3 mock interviews** (both heavier on content + AI cost).
+4. **C2 guided projects** ✅ done → then **C3 mock interviews** (heavier: needs a
+   question bank and a phase state machine on top of the existing interviewer).
 5. **D** once real skill evidence exists — employers pay for signal, not promises.
 
-**MVP cut:** A1–A4 + B1 + B3 + C1 + C4 + E1/E2. That is: assess a user, produce a
-budgeted plan, recommend the next action, let subscribers take quizzes, and keep
-the LLM spend bounded.
+**MVP cut:** A1–A4 + B1 + B3 + C1 + C2 + C4 + E1/E2. That is: assess a user,
+produce a budgeted plan, recommend the next action, let subscribers take quizzes
+and build something, and keep the LLM spend bounded.
 
 ---
 

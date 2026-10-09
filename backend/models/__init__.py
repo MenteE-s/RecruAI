@@ -19,6 +19,8 @@ from .skill_assessment import SkillAssessment
 from .mentorship_plan import MentorshipPlan
 from .mentorship_step import MentorshipStep
 from .skill_quiz import SkillQuiz
+from .guided_project import GuidedProject
+from .guided_project_attempt import GuidedProjectAttempt
 from .quiz_attempt import QuizAttempt
 from .project import Project
 from .publication import Publication
@@ -72,6 +74,8 @@ __all__ = [
 "MentorshipPlan",
 "MentorshipStep",
 "SkillQuiz",
+"GuidedProject",
+"GuidedProjectAttempt",
 "QuizAttempt",
     "Project",
     "Publication",

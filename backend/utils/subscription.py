@@ -212,6 +212,53 @@ def require_subscription(feature: str):
     return decorator
 
 
+def check_content_access(feature: str, free_preview: bool = False):
+    """Entitlement for content that may be sampled free, as a function not a decorator.
+
+    Quizzes (C1) and guided projects (C2) both have items marked free to try by
+    any signed-in account, because being able to sample one is the only way to
+    decide whether to subscribe. The decision depends on the *item*, so it
+    cannot be the `@require_subscription` decorator: a decorator runs before the
+    route body and would refuse a free preview before the route ever saw it.
+    Gating the start endpoint that way left `is_free_preview` set but unreachable.
+
+    Returns (allowed, error_response, status_code). error_response is None when
+    allowed, so callers write `allowed, err, code = check_content_access(...)`
+    and then `return err, code`.
+    """
+    if free_preview:
+        return True, None, None
+
+    # Mirrors require_subscription: dev is open, so a laptop is not a paywall.
+    from backend.config import Config
+    if not Config.IS_PRODUCTION:
+        return True, None, None
+
+    from flask_jwt_extended import get_jwt_identity
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+    if not user:
+        return False, {"error": "User not found"}, 404
+
+    if user.organization:
+        allowed = SubscriptionManager.check_organization_access(user.organization, feature)
+        holder = user.organization
+    else:
+        allowed = SubscriptionManager.check_user_access(user, feature)
+        holder = user
+
+    if allowed:
+        return True, None, None
+
+    return False, {
+        "error": "Subscription required",
+        "message": f"Feature '{feature}' requires an active subscription",
+        "subscription_status": SubscriptionManager.get_subscription_status(org=holder)
+        if user.organization else
+        SubscriptionManager.get_subscription_status(user=user),
+    }, 403
+
+
 def require_interview_access():
     """
     Decorator to require interview scheduling access

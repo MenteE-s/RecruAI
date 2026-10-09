@@ -71,7 +71,18 @@ hit today:
       → Verified badge appears ✅
       → provenance stored (which assessment, what score) ✅
 
-7. Build a mentorship plan
+7. OR build something instead of being tested on it
+      → POST /api/guided-projects/<slug>/attempts ✅
+      → a brief: ordered steps + acceptance criteria ✅
+      → you work through it, autosaving notes and your place ✅
+      → submit → the reviewer quotes YOUR text per criterion ✅
+      → a criterion it cannot quote is NOT counted as met ✅
+      → your score is computed in Python from those verdicts, not by the model ✅
+      → if the reviewer is down: work saved, "not scored", free to retry ✅
+      → recorded on the profile as evidence_source=project, UNVERIFIED ✅
+        (a write-up cannot show the code runs)
+
+8. Build a mentorship plan
       → POST /api/mentorship/plans ✅
       → you give a goal and two budgets: hours/week + money 🟡
       → the model proposes steps ✅
@@ -80,37 +91,37 @@ hit today:
         hours → reported ("this is 9 weeks, not 6"), never silently enforced
       → you get an ordered plan with target dates ✅
 
-8. Work the steps
+9. Work the steps
       → mark each done / in progress / skipped ✅
       → a hand-edited level cannot overwrite a measured one ✅
 
-9. See how you are doing
+10. See how you are doing
       → GET /api/mentorship/plans/<id>/progress ✅
       → % done vs % of time elapsed, projected finish date, overdue steps ✅
       → verdict: on track / behind / well behind / not started ✅
 
-10. Ask "what next?"
+11. Ask "what next?"
       → GET /api/mentorship/suggestions ✅
       → ranked: urgent → high → normal → low ✅
       → EVERY suggestion states its reason ✅
         "you are 32 points behind the plan you started"
       → never a model guess — only what is already recorded 🟡
 
-11. Come back weeks later and retake an assessment
+12. Come back weeks later and retake an assessment
       → level trend appears: improving / flat / declining ✅
       → trends compare first-to-last, so one bad afternoon is not a decline ✅
       → a genuine Advanced → Beginner regression IS reported ✅
 
-12. Your gaps close
+13. Your gaps close
       → the plan reports itself stale and names the skill ✅
       → regenerate rebuilds it against current evidence ✅
 
-13. Go quiet for 7 days
+14. Go quiet for 7 days
       → you are nudged once, with an opt-out 🟡
       → surface: currently shown in the suggestions payload
       → notification: written and tested, but NOT SENDING (scheduler disabled) ⛔
 
-14. Find a job
+15. Find a job
       → your profile shows measured, verified skills
       → employer searches → matches on skills, not keywords 🟡
       ⛔ employer-side matching view not built
@@ -119,13 +130,17 @@ hit today:
 ### The two branches worth knowing
 
 **Free preview.** A lapsed individual can still take quizzes marked
-`is_free_preview`. Being able to try one is the only way to decide whether to
-subscribe — and a free preview never writes to your profile, so "free" costs
-nothing measurable. ✅
+`is_free_preview` and start projects marked the same. Being able to try one is
+the only way to decide whether to subscribe — and a free preview never writes to
+your profile, so "free" costs nothing measurable. ✅
+
+Note the ordering this forces: entitlement is checked on the *item*, inside the
+route, not by a decorator on it. A decorator runs before the route body and
+would refuse a free preview before the route ever saw which project it was. ✅
 
 **AI allowance runs out mid-plan.** Assessments, quizzes, progress tracking and
 suggestions keep working, because none of them call the model. Only regenerating
-or creating a plan needs tokens. ✅
+a plan or getting a project reviewed needs tokens. ✅
 
 ---
 
@@ -197,11 +212,10 @@ or creating a plan needs tokens. ✅
 |---|---|
 | **No billing** | Day 8, CVAI locks for everyone. Grants are manual. |
 | **Scheduler disabled** | Stale-plan nudges never send; trial expiry never runs. |
-| **No quiz authoring UI** | Quizzes are seeded by script or via the API. |
+| **No quiz or project authoring UI** | Content is seeded by script or written via the API. |
 | **No browser pass** | Every endpoint is verified by script, but no page has been rendered end to end. |
 | **Employer-side matching UI** | The gap engine is built and exposed; no employer screen uses it yet. |
 | **Mock interviews (C3)** | An AI interviewer exists, but with no question bank and no phase state machine. |
-| **Guided projects (C2)** | Nothing built. |
 | **Plan editing (B1.4)** | Steps editable; budgets deliberately not — they shaped the steps. |
 
 ---
@@ -210,13 +224,18 @@ or creating a plan needs tokens. ✅
 
 These are not conventions, they are invariants with tests:
 
-- **The model never does arithmetic.** It proposes; the server disposes. Hours
-  and costs are clamped, then summed in Python.
+- **The model never does arithmetic.** It proposes; the server disposes. Hours,
+  costs and review scores are clamped or computed in Python.
 - **The model never invents a skill.** Only catalogued, in-scope skills survive.
 - **The model never invents a URL.** No catalogue yet, so steps name their
   resource instead.
+- **The model never claims praise it cannot quote.** A project criterion is
+  counted as met only if the reviewer quoted the learner's own text for it.
+- **A failed AI call is reported as a failed AI call.** Never a zero, never a
+  guess, never a fabricated score.
 - **A measurement replaces a claim.** Retaking an assessment can lower a level.
 - **A retake is history, not an overwrite.** Attempts are append-only.
 - **Correct answers never reach the browser before you submit.**
+- **Acceptance criteria never reach a locked project.** They are the answer key.
 - **Grading uses what was served**, not what the question row says now.
 - **No invented slugs.** Uncatalogued text keeps its name and gets no slug.
