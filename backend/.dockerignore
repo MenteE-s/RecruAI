@@ -1,3 +1,9 @@
+# SUPERSEDED — do not add rules here.
+#
+# The build context for backend/Dockerfile is now the REPOSITORY ROOT, not
+# ./backend, so Docker reads the root .dockerignore and ignores this file.
+# Adding an exclusion here would silently do nothing.
+
 __pycache__
 *.pyc
 *.pyo

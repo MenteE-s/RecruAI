@@ -1,0 +1,49 @@
+# Build context for backend/Dockerfile is the REPOSITORY ROOT, not ./backend, so
+# that scripts/ ships inside the image. That makes this file a security control
+# rather than only a size control: everything is excluded by default and only the
+# two directories the image actually needs are re-included.
+#
+# This supersedes backend/.dockerignore, which is no longer consulted — Docker
+# reads only the file at the root of the build context.
+#
+# Rules are last-match-wins, so the re-includes come first and the exclusions
+# that protect them come after.
+
+# 1. Exclude everything.
+**
+
+# 2. Re-include what the Dockerfile copies. Parent directories must be
+#    un-excluded before their children, or Docker never descends into them.
+!backend
+!backend/**
+!scripts
+!scripts/**
+
+# 3. Never bake these in, even under a re-included directory.
+#    Secrets first: .env files hold live database credentials and API keys.
+**/.env
+**/.env.*
+**/*.key
+**/*.pem
+
+# Dependencies and build artefacts — enormous, and never needed at runtime.
+backend/.venv
+backend/env
+backend/venv
+**/__pycache__
+**/*.py[cod]
+**/.pytest_cache
+**/.mypy_cache
+**/.coverage
+**/node_modules
+**/build
+**/dist
+**/*.egg-info
+
+# Editor and OS noise.
+**/.git
+**/.gitignore
+**/.DS_Store
+**/.idea
+**/.vscode
+**/*.log

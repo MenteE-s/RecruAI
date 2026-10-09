@@ -62,10 +62,50 @@ services:
     command: >
       bash -c "kafka-topics --create --topic recruai_events --bootstrap-server kafka:29092 --if-not-exists --partitions 1 --replication-factor 1"
 
+  # One-shot schema migration, run before the API starts. See the note in
+  # docker-compose.vps.yml for why this is a separate service. Run by hand:
+  #   docker compose -f docker-compose.aws.yml run --rm migrate
+  migrate:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    image: recruai_backend:latest
+    container_name: recruai_migrate
+    restart: "no"
+    env_file:
+      - ./backend/.env.production
+    environment:
+      FLASK_ENV: production
+      IS_PRODUCTION: "1"
+    command: ["sh", "-c", "flask --app backend.app db upgrade --directory backend/migrations"]
+    # No depends_on here: this stack has no `db` service, it uses RDS. The
+    # DATABASE_URL in backend/.env.production points at it.
+
+  # CVAI content: question bank -> quizzes -> projects. Idempotent and opt-in:
+  #   docker compose -f docker-compose.aws.yml --profile seed run --rm cvai-seed
+  cvai-seed:
+    profiles: ["seed"]
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    image: recruai_backend:latest
+    container_name: recruai_cvai_seed
+    restart: "no"
+    env_file:
+      - ./backend/.env.production
+    environment:
+      FLASK_ENV: production
+      IS_PRODUCTION: "1"
+    command:
+      - sh
+      - -c
+      - "python scripts/seed_skill_questions.py && python scripts/seed_quizzes.py && python scripts/seed_guided_projects.py"
+
   backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/Dockerfile
+    image: recruai_backend:latest
     container_name: recruai_backend
     restart: unless-stopped
     env_file:
@@ -82,12 +122,14 @@ services:
       # Persist user/org uploads outside the container filesystem
       - backend_uploads:/app/backend/uploads
     depends_on:
+      migrate:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
       kafka:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8000/api/health || exit 1"]
+      test: ["CMD-SHELL", "curl -fsS -H 'X-Forwarded-Proto: https' -o /dev/null http://localhost:8000/api/health || exit 1"]
       interval: 30s
       timeout: 10s
       start_period: 90s

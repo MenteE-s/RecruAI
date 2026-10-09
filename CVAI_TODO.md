@@ -126,20 +126,49 @@ exists" and "an operator can actually run it". Two real gaps found:
 - **No compose file ran migrations.** Every deploy has required a manual
   `flask db upgrade` over SSH, which is exactly how a chain gets left behind.
 
-  - [ ] F1. Root `.dockerignore` + build context `.` so the image is
+  - [x] F1. Root `.dockerignore` + build context `.` so the image is
         self-contained: app code, migrations and scripts.
-  - [ ] F2. One-shot `migrate` service in vps/aws compose; backend
+  - [x] F2. One-shot `migrate` service in vps/aws compose; backend
         `depends_on: service_completed_successfully`. A separate service rather
         than an entrypoint because N replicas racing on `db upgrade` is a real
         failure mode and a silently divergent schema is worse than a failed boot.
-  - [ ] F3. One-shot `cvai-seed` service (question bank → quizzes → projects),
+  - [x] F3. One-shot `cvai-seed` service (question bank → quizzes → projects),
         idempotent, opt-in via a compose profile so it never fires unattended.
-  - [ ] F4. **Build the image and run migrate + a seed + the grant script inside
-        it.** No claim of "works in Docker" without having run it.
-  - [ ] F5. `grant_subscription.py` documented as a `docker compose exec` one-liner
-        — it is the substitute for billing and must be usable by support.
-  - [ ] F6. Note: `docker stack deploy` ignores `depends_on`, so `prod.yml` needs
-        the migrate step as an explicit deploy-time action.
+        Also added `migrate` + `backend` + `cvai-seed` to the dev compose behind
+        profiles, so the whole stack can run in Docker without disturbing the
+        existing host-based dev loop.
+  - [x] F4. **Built the image and ran migrate + all three seeds + the grant
+        script inside it.** Verified: 55 tables at head `a2b3c4d5e6f7` on a fresh
+        database, single head; seeds idempotent on re-run (created 0, skipped N);
+        grant → token top-up → revoke all confirmed against the database; 39 CVAI
+        endpoints registered; `/api/health` 200 with `database: healthy`.
+  - [x] F5. `grant_subscription.py` documented as a `docker compose exec`
+        one-liner — it is the substitute for billing and must be usable by support.
+  - [x] F6. Noted that `docker stack deploy` ignores `depends_on`, so `prod.yml`
+        needs the migrate step as an explicit deploy-time action.
+
+  Bugs found and fixed while doing this:
+
+  - **`COPY requirements.txt` broke** — it was context-root-relative, so the build
+    failed the moment the context became the repo root.
+  - **The container healthcheck was a no-op.** Flask-Talisman runs with
+    `force_https` in production and redirects `/api/health` (302), and `curl -f`
+    counts 3xx as success — so the container reported *healthy* with a dead
+    database. Verified directly: with the redirect bypassed the same endpoint
+    correctly returns 503. Fixed by sending `X-Forwarded-Proto: https`, which is
+    the header nginx already sets, so the in-container check now behaves like the
+    public one.
+  - **Dev `DATABASE_URL` pointed at a database that does not exist.** Interpolating
+    `${DB_NAME}` picked up `recruai_dev` from the root `.env`, while the `db`
+    service hardcodes `POSTGRES_DB=recruai`. Pinned to literals so there is one
+    source of truth.
+  - **The AWS compose has no `db` service** (it uses RDS), so a `depends_on: db`
+    there made the file invalid. Removed.
+  - **Kafka reconnect noise** filling dev container logs — the client falls back
+    to `localhost:9092`, which inside a container is itself. Set
+    `KAFKA_BOOTSTRAP_SERVERS` on the dev services.
+
+  Full runbook: `docs/cvai-docker.md`.
 
 ## Track D — Real employer access
 
@@ -197,6 +226,7 @@ index of it.
 | Migrations | `backend/migrations/versions/` — linear, single head `a2b3c4d5e6f7` |
 | Operators | `scripts/grant_subscription.py`, `seed_skill_questions.py`, `seed_quizzes.py`, `seed_guided_projects.py` |
 | Reading | `docs/cvai-journey.md` — every user path, with what is live and what is not |
+| Running it | `docs/cvai-docker.md` — migrations, seeds, and the grant path in Docker |
 
 Deliberate rule: **the model never does arithmetic and never gets the last
 word.** Budgets, scores and level mappings are computed in
