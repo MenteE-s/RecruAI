@@ -57,13 +57,13 @@ do?" before any AI can plan, track, or recommend anything.
 The three sub-items from the dump. B2 is the product; B1/B3 are what make it
 credible week to week.
 
-- [ ] **B1. Planning** — given a goal role + current skillset + assessment
-      results, produce a plan.
-  - [ ] B1.1. Resource selection — which courses/docs/projects to assign.
-  - [ ] B1.2. **Resource budget** — the plan must account for cost/time of the
-            resources it recommends (free vs paid, hours per week, total to goal).
-  - [ ] B1.3. Plan sequencing — order the steps, set target dates.
-  - [ ] B1.4. Plan editing — user can override/re-plan, not a one-shot answer.
+- [x] **B1. Planning** — `backend/utils/mentorship_planner.py` (deterministic gap →
+      steps → budget), `backend/mentorship/generator.py` (model proposes),
+      `mentorship_plans` + `mentorship_steps` tables, six endpoints.
+      Resource budget covers **both** the learner's money and hours *and* the AI
+      allowance. See log.
+- [ ] **B1.4. Plan editing** — partially shipped: steps can be completed,
+      skipped and in-progress; budgets deliberately not editable post-hoc.
 - [ ] **B2. Progress tracking** — measure movement against the plan.
   - [ ] B2.1. Milestone completion per plan step.
   - [ ] B2.2. Re-measure skill levels over time (same assessment, re-taken).
@@ -155,6 +155,62 @@ the LLM spend bounded.
 ---
 
 ## Progress log
+
+### B1 — mentorship planning (done)
+
+**Shipped:** `mentorship_plans` + `mentorship_steps` (migration `d9e0f1a2b3c4`),
+`backend/utils/mentorship_planner.py` (pure), `backend/mentorship/generator.py`
+(model-facing), six endpoints on `api_bp`.
+
+**"Resource budget" is implemented as both things it could mean**, which is the
+answer to the open question rather than a dodge: the learner's **money**
+(`budget_amount`, drops optional steps dearest-first so a stated budget is
+respected) and their **hours** (`weekly_hours`, reported not silently enforced —
+over-running time says "this is 9 weeks at 5h/week", it does not drop work
+someone needs). The AI compute side is metered separately and automatically by
+the 50k allowance, since `AIService` counts the plan call like any other.
+
+**The rule that matters: the model never does arithmetic.** It proposes; the
+server disposes.
+
+- Proposed steps are filtered to skills in the *measured* gap. The model cannot
+  widen scope with its own idea.
+- One step per skill — three courses for one gap is padding.
+- Hours clamped to 1–80, cost to 0–2000, max 24 steps. A hallucinated "400
+  hours" cannot reach a total.
+- Totals, weeks and trimming are computed in Python and stored. `trimmed` and
+  `trim_reason` exist so a trimmed plan is presented as trimmed.
+- **Resource URLs are left empty on purpose.** There is no course catalogue yet
+  (Track C), so a model-invented URL is a dead link at best. Steps name their
+  resource; linking arrives when there is something real to link to.
+
+**Target skills are never invented.** With a posting attached, the requirements
+are a fact. With free text, the model names skills and code keeps only ones that
+are catalogued *and* in scope — which is how `select_targets_from_text()` caught
+its own bug during testing: it ignored the `skill_slug` key the prompt asks for,
+so every model response would have produced an empty plan.
+
+**Progress tracking calls no model.** Step status changes, plan status and
+regeneration-sees-staleness all work even for a learner who has exhausted their
+token allowance — being unable to record what you finished would be perverse.
+
+**Staleness is detected, not guessed.** A plan stores the skills it was built
+from and what the learner held at the time. If they have since gained one — new
+skill, or a self-declared one that an assessment verified — the plan reports
+`stale: true` and names the skill, rather than silently rewriting itself
+underneath someone halfway through it.
+
+**Entitlement:** gated on `cvai_mentorship`; the six views are rate limited with
+generation and regeneration at 10/hour (they call the model) and progress
+tracking at 60–120/minute (they do not).
+
+**Note:** routes live on `api_bp`, not a new blueprint, deliberately — the
+email-verification guard is an `api_bp.before_request` hook, and
+`recommendations_bp` / `practice_ai_bp` already skip it.
+
+66/66 checks green; 268 across eight suites; fresh-database chain verified at 51
+tables. The model is stubbed at the route boundary in tests: what is worth
+testing is our budget arithmetic, not whether Groq returns tidy JSON tonight.
 
 ### A2 — learner skill profile (done)
 

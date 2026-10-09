@@ -31,11 +31,13 @@ CVAI_SKILL_ASSESSMENT = "cvai_skill_assessment"
 CVAI_QUIZZES = "cvai_quizzes"
 CVAI_PROJECTS = "cvai_projects"
 CVAI_MOCK_INTERVIEW = "cvai_mock_interview"
+CVAI_MENTORSHIP = "cvai_mentorship"
 
 CVAI_FEATURES = (
     CVAI_SKILL_ASSESSMENT,
     CVAI_QUIZZES,
     CVAI_PROJECTS,
+    CVAI_MENTORSHIP,
     CVAI_MOCK_INTERVIEW,
 )
 

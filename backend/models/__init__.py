@@ -16,6 +16,8 @@ from .education import Education
 from .skill import Skill
 from .skill_question import SkillQuestion
 from .skill_assessment import SkillAssessment
+from .mentorship_plan import MentorshipPlan
+from .mentorship_step import MentorshipStep
 from .project import Project
 from .publication import Publication
 from .award import Award
@@ -65,6 +67,8 @@ __all__ = [
     "Skill",
 "SkillQuestion",
 "SkillAssessment",
+"MentorshipPlan",
+"MentorshipStep",
     "Project",
     "Publication",
     "Award",

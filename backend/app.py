@@ -310,6 +310,14 @@ def create_app(config_object: object | None = None):
 		# against, so it is far tighter than a per-user read.
 		_limit("api.create_skill_question", "60 per hour")
 		_limit("api.update_skill_question", "60 per hour")
+		# Mentorship: plan generation and regeneration each call the model, so
+		# they are the most expensive CVAI surface there is.
+		_limit("api.create_mentorship_plan", "10 per hour")
+		_limit("api.regenerate_mentorship_plan", "10 per hour")
+		# Progress tracking calls no model and must stay cheap to record.
+		_limit("api.list_mentorship_plans", "60 per minute")
+		_limit("api.get_mentorship_plan", "60 per minute")
+		_limit("api.update_mentorship_step", "120 per minute")
 
 	# Register practice AI agents blueprint separately to avoid circular imports
 	try:
