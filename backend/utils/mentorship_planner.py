@@ -197,41 +197,50 @@ def validate_proposed_steps(proposed, gaps: List[Dict]) -> List[Dict]:
 
 def enforce_budget(steps: List[Dict], budget_amount: int, weekly_hours: int,
                    target_weeks: Optional[int] = None) -> Tuple[List[Dict], Dict]:
-    """Fit steps inside the money budget, and report whether the time fits.
+    """Fit steps to the time a learner actually has, and report the rest.
 
-    Money enforcement drops optional steps first, dearest first, because a
-    learner who said "£100" means it: the required steps stay, the nice-to-haves
-    go. Time is NOT enforced destructively — over-running the hours is reported
-    so the UI can say "this is 11 weeks at 5h/week, not 6" rather than quietly
-    dropping work the learner needs.
+    Money is NOT an input any more. It used to be, and it was wrong: a learner
+    who entered $5 got a thinner curriculum than one who entered $100, and
+    neither of them was paying us differently for it. That invented a
+    difference that had nothing to do with whether they were subscribed, and it
+    cost real machinery to maintain. What subscribers get is the whole
+    curriculum; gating is the subscription's job, not a number in a form.
+
+    Time is the one constraint left, and it is not enforced destructively.
+    Over-running the hours is reported so the UI can say "this is 9 weeks at
+    5h/week" rather than quietly dropping work the learner needs. Steps are
+    only dropped when they are optional AND the schedule is impossible.
+
+    `budget_amount` is still accepted so old callers and stored plans keep
+    working; it is deliberately ignored.
     """
     kept = [dict(s) for s in steps]
     dropped = []
-    spent = sum(s["cost"] for s in kept)
-    budget = max(0, int(budget_amount or 0))
+    per_week = max(1, int(weekly_hours or 1))
 
-    if spent > budget:
+    # Only cut when the learner named a deadline AND the plan cannot fit it.
+    # Optional steps go, dearest-first, and only as far as needed.
+    total_hours = sum(s["hours_estimate"] for s in kept)
+    weeks_needed = -(-total_hours // per_week)
+
+    if target_weeks and weeks_needed > target_weeks:
         optional = sorted(
             [s for s in kept if s["optional"]],
-            key=lambda s: (-s["cost"], -s["hours_estimate"]),
+            key=lambda s: (-s["hours_estimate"], -s["cost"]),
         )
         for step in optional:
-            if spent <= budget:
+            if weeks_needed <= target_weeks:
                 break
-            spent -= step["cost"]
             dropped.append(step)
             kept.remove(step)
+            total_hours = sum(s["hours_estimate"] for s in kept)
+            weeks_needed = -(-total_hours // per_week)
 
-    total_hours = sum(s["hours_estimate"] for s in kept)
-    per_week = max(1, int(weekly_hours or 1))
-    weeks_needed = -(-total_hours // per_week)  # ceiling division
-
-    trimmed = bool(dropped)
     reasons = []
     if dropped:
         reasons.append(
-            f"{len(dropped)} optional step(s) removed to stay within the "
-            f"{budget} budget"
+            f"{len(dropped)} optional step(s) removed to fit the "
+            f"{target_weeks}-week target at {per_week}h/week"
         )
     if target_weeks and weeks_needed > target_weeks:
         reasons.append(
@@ -239,15 +248,19 @@ def enforce_budget(steps: List[Dict], budget_amount: int, weekly_hours: int,
             f"the {target_weeks}-week target"
         )
 
+    # total_cost is reported for transparency about what the plan references.
+    # Nothing gates on it any more.
+    total_cost = sum(s["cost"] for s in kept)
+
     return kept, {
-        "trimmed": trimmed,
+        "trimmed": bool(dropped),
         "trim_reason": "; ".join(reasons) or None,
         "dropped_count": len(dropped),
         "total_hours": total_hours,
-        "total_cost": spent,
+        "total_cost": total_cost,
         "weeks_needed": weeks_needed,
-        "within_budget": spent <= budget,
         "within_time": (not target_weeks) or weeks_needed <= target_weeks,
+        "within_budget": True,
     }
 
 

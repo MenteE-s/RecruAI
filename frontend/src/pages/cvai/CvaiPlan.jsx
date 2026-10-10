@@ -9,10 +9,14 @@ import { FiCheckCircle, FiClock, FiPlusCircle } from "react-icons/fi";
  * Your plan: what you are working towards, how far through it you are, and what
  * to do next.
  *
- * The two budget numbers are shown the way the backend treats them. Money is a
- * hard limit and the server drops optional steps to fit it. Hours are reported
- * but never silently enforced, because a plan that quietly hides 9 weeks behind
- * a 6-week promise is worse than one that says it out loud.
+ * There is no money input, deliberately. A $5 learner used to get a thinner
+ * curriculum than a $100 learner, which had nothing to do with what either of
+ * them paid us — the subscription is what unlocks this, so the plan is the same
+ * for everyone who has it.
+ *
+ * One question remains: how many hours a week do you actually have? That shapes
+ * the schedule and is reported honestly. If the work needs nine weeks, the plan
+ * says nine weeks rather than trimming steps to make the number look better.
  */
 export default function CvaiPlan() {
   const [plans, setPlans] = useState([]);
@@ -25,7 +29,7 @@ export default function CvaiPlan() {
   const [creating, setCreating] = useState(false);
   const [busyStep, setBusyStep] = useState(null);
 
-  const [form, setForm] = useState({ goal: "", budget_amount: 0, weekly_hours: 5 });
+  const [form, setForm] = useState({ goal: "", weekly_hours: 5 });
   const [expanded, setExpanded] = useState(null);
   const [detail, setDetail] = useState(null);
 
@@ -58,12 +62,11 @@ export default function CvaiPlan() {
     setError("");
     const res = await cvai.createPlan({
       goal: form.goal,
-      budget_amount: Number(form.budget_amount) || 0,
       weekly_hours: Number(form.weekly_hours) || 5,
     });
     setCreating(false);
     if (!res.ok) { setError(messageOf(res, "Could not build a plan.")); return; }
-    setForm({ goal: "", budget_amount: 0, weekly_hours: 5 });
+    setForm({ goal: "", weekly_hours: 5 });
     await load();
   }
 
@@ -92,7 +95,7 @@ export default function CvaiPlan() {
   return (
     <CvaiShell
       title="Your plan"
-      subtitle="Built from what has actually been measured on your profile, then fitted to the budget you can afford."
+      subtitle="Built from what has actually been measured on your profile, then spread across the time you can give it."
     >
       {locked ? (
         <LockedNote what="Mentorship planning" />
@@ -137,10 +140,12 @@ export default function CvaiPlan() {
                 </Panel>
               ) : null}
 
-              <Panel title="Build a plan" hint="Costs AI tokens. Free resources are preferred.">
-                <form onSubmit={createPlan} className="grid gap-3 md:grid-cols-[2fr_1fr_1fr_auto] md:items-end">
+              <Panel title="Build a plan" hint="Costs AI tokens. Every subscriber gets the full plan.">
+                <form onSubmit={createPlan} className="grid gap-3 md:grid-cols-[3fr_1fr_auto] md:items-end">
                   <label className="block">
-                    <span className="text-xs font-medium text-gray-700">Goal</span>
+                    <span className="text-xs font-medium text-gray-700">
+                      What are you aiming for?
+                    </span>
                     <input
                       value={form.goal}
                       onChange={(e) => setForm({ ...form, goal: e.target.value })}
@@ -150,22 +155,12 @@ export default function CvaiPlan() {
                   </label>
                   <label className="block">
                     <span className="text-xs font-medium text-gray-700">
-                      Budget (USD)
+                      Hours you can give each week
                     </span>
                     <input
                       type="number"
-                      min="0"
-                      value={form.budget_amount}
-                      onChange={(e) => setForm({ ...form, budget_amount: e.target.value })}
-                      className="mt-1 w-full border border-gray-200 px-3 py-2 text-sm outline-none focus:border-blue-500"
-                    />
-                  </label>
-                  <label className="block">
-                    <span className="text-xs font-medium text-gray-700">Hours / week</span>
-                    <input
-                      type="number"
                       min="1"
-                      max="60"
+                      max="40"
                       value={form.weekly_hours}
                       onChange={(e) => setForm({ ...form, weekly_hours: e.target.value })}
                       className="mt-1 w-full border border-gray-200 px-3 py-2 text-sm outline-none focus:border-blue-500"
@@ -178,8 +173,8 @@ export default function CvaiPlan() {
                 {options?.levels ? (
                   <p className="mt-2 text-xs text-gray-500">
                     Levels run {options.levels[0]} → {options.levels[options.levels.length - 1]}.
-                    Money is a hard limit — optional steps are dropped to fit. Hours are reported,
-                    never silently trimmed.
+                    The plan is built from what you have already measured and spread across the
+                    hours you have. If the work needs nine weeks, it says nine weeks.
                   </p>
                 ) : null}
               </Panel>
@@ -187,8 +182,8 @@ export default function CvaiPlan() {
               <Panel title="Your plans">
                 {plans.length === 0 ? (
                   <EmptyNote>
-                    No plan yet. Build one above and it will be fitted to your measured gaps and your
-                    real budget.
+                    No plan yet. Build one above and it will be fitted to your measured gaps and
+                    the hours you can give it.
                   </EmptyNote>
                 ) : (
                   <div className="space-y-4">
@@ -233,8 +228,12 @@ function PlanCard({ plan, expanded, detail, busyStep, onExpand, onToggleStep }) 
             <span className="inline-flex items-center gap-1">
               <FiClock className="h-3 w-3" /> {plan.total_hours || 0}h over {plan.weeks || "?"}w
             </span>
-            <span>{plan.total_cost ? `${plan.total_cost} spend` : "free"}</span>
             <span>{plan.weekly_hours}h/week</span>
+            {plan.total_cost ? (
+              <span className="text-gray-400">{plan.total_cost} of paid resources</span>
+            ) : (
+              <span>free resources</span>
+            )}
           </div>
         </div>
         <div className="w-full max-w-[200px]">
@@ -250,7 +249,7 @@ function PlanCard({ plan, expanded, detail, busyStep, onExpand, onToggleStep }) 
 
       {plan.trimmed ? (
         <div className="border-t border-gray-100 bg-amber-50 px-4 py-2 text-xs text-amber-800">
-          Trimmed to fit your budget. {plan.trim_reason}
+          Trimmed to fit the time you have. {plan.trim_reason}
         </div>
       ) : null}
 

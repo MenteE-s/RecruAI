@@ -575,4 +575,13 @@ if __name__ == "__main__":
 	# quick dev runner - PORT read from backend/.env (no hardcoded fallback duplicated).
 	# Debug defaults OFF and is forced off in production; opt in with FLASK_DEBUG=1.
 	_debug = os.getenv("FLASK_DEBUG", "0") == "1" and not app.config.get("IS_PRODUCTION")
-	app.run(host="0.0.0.0", port=app.config.get("PORT", int(os.getenv("PORT", "8000"))), debug=_debug)
+
+	# Bind both stacks. On Windows `localhost` resolves to ::1 before 127.0.0.1,
+	# so binding IPv4 only (0.0.0.0) made the browser hit a closed IPv6 socket:
+	# the request never reached Flask, nothing was logged, and the browser
+	# reported "TypeError: Failed to fetch" with an empty backend log.
+	#
+	# "::" is dual-stack on every platform Werkzeug supports. DEV_HOST overrides
+	# it for anyone who needs to pin a single family.
+	_host = os.getenv("DEV_HOST", "::") if _debug is False else os.getenv("DEV_HOST", "0.0.0.0")
+	app.run(host=_host, port=app.config.get("PORT", int(os.getenv("PORT", "8000"))), debug=_debug)

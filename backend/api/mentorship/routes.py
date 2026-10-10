@@ -104,8 +104,12 @@ def create_mentorship_plan():
         return jsonify({'error': 'Describe the role or goal you are aiming for'}), 400
 
     weekly_hours = clamp_int(data.get('weekly_hours', 5), 1, 40, 5)
-    budget_amount = clamp_int(data.get('budget_amount', 0), 0, 1_000_000, 0)
-    budget_currency = (data.get('budget_currency') or 'USD').strip().upper()[:8] or 'USD'
+    # Money is no longer an input. It used to shape the curriculum, which meant
+    # a $5 learner got less than a $100 learner for no difference in what they
+    # paid us. Entitlement is the subscription's job. Accepted and ignored so
+    # older clients and stored plans keep working.
+    budget_amount = 0
+    budget_currency = 'USD'
     target_weeks = data.get('target_weeks')
     target_weeks = clamp_int(target_weeks, 1, 520, None) if target_weeks else None
 
@@ -203,7 +207,6 @@ def create_mentorship_plan():
         'gaps_addressed': [{'slug': g['slug'], 'name': g['name'], 'state': g['state']}
                            for g in gaps],
         'dropped_optional_steps': budget['dropped_count'],
-        'within_budget': budget['within_budget'],
         'within_time': budget['within_time'],
     }), 201
 
@@ -523,12 +526,16 @@ def get_mentorship_suggestions():
 @api_bp.route('/mentorship/plans/options', methods=['GET'])
 @jwt_required()
 def mentorship_options():
-    """Levels and the budget shape the planner accepts, so the client cannot
-    offer a control the server would reject."""
+    """Levels and the time shape the planner accepts, so the client cannot offer
+    a control the server would reject.
+
+    No money. The plan is the same for every subscriber — what they pay for is
+    access to it, not a thinner version of it.
+    """
     return jsonify({
         'levels': list(LEVELS),
         'weekly_hours_range': {'min': 1, 'max': 40, 'default': 5},
         'target_weeks_range': {'min': 1, 'max': 520},
-        'budget_currency_default': 'USD',
+        'budget_enabled': False,
         'max_active_plans': MAX_PLANS_PER_USER,
     }), 200
