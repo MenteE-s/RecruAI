@@ -41,7 +41,9 @@ import Jobs from "./pages/individual/Jobs";
 import Analytics from "./pages/individual/Analytics";
 import ResumeBuilder from "./pages/individual/ResumeBuilder";
 import JobAlerts from "./pages/individual/JobAlerts";
-import CareerCoaching from "./pages/individual/CareerCoaching";
+// CareerCoaching.jsx was the old hardcoded coaching mockup (a fictional coach,
+// fabricated session counts). Its route now serves the real product; the file is
+// kept only until the sidebar removal decides nothing still wants it.
 import CvaiOverview from "./pages/cvai/CvaiOverview";
 import CvaiSkills from "./pages/cvai/CvaiSkills";
 import CvaiQuizzes from "./pages/cvai/CvaiQuizzes";
@@ -391,19 +393,12 @@ function App() {
               </ProtectedRoute>
             }
           />
+          {/* Career Coaching: a separate page per capability, not tabs inside a
+              dashboard. They are different kinds of work — measure, be tested,
+              build, follow — so each gets its own page and its own URL.
+              Mock interviews will join this list when C3 lands. */}
           <Route
             path="/in/coaching"
-            element={
-              <ProtectedRoute>
-                <CareerCoaching />
-              </ProtectedRoute>
-            }
-          />
-          {/* CVAI: a separate page per capability, not tabs inside a dashboard.
-              They are different kinds of work — measure, be tested, build, follow —
-              so each gets its own page and its own URL. */}
-          <Route
-            path="/in/cvai"
             element={
               <ProtectedRoute>
                 <CvaiOverview />
@@ -411,7 +406,7 @@ function App() {
             }
           />
           <Route
-            path="/in/cvai/skills"
+            path="/in/coaching/skills"
             element={
               <ProtectedRoute>
                 <CvaiSkills />
@@ -419,7 +414,7 @@ function App() {
             }
           />
           <Route
-            path="/in/cvai/quizzes"
+            path="/in/coaching/quizzes"
             element={
               <ProtectedRoute>
                 <CvaiQuizzes />
@@ -427,7 +422,7 @@ function App() {
             }
           />
           <Route
-            path="/in/cvai/projects"
+            path="/in/coaching/projects"
             element={
               <ProtectedRoute>
                 <CvaiProjects />
@@ -435,13 +430,16 @@ function App() {
             }
           />
           <Route
-            path="/in/cvai/plan"
+            path="/in/coaching/plan"
             element={
               <ProtectedRoute>
                 <CvaiPlan />
               </ProtectedRoute>
             }
           />
+          {/* Old CVAI paths, so any link already in circulation still lands
+              somewhere real rather than 404ing. */}
+          <Route path="/in/cvai/*" element={<Navigate to="/in/coaching" replace />} />
           <Route
             path="/billing"
             element={
@@ -670,7 +668,7 @@ function App() {
           <Route path="/analytics" element={<Navigate to="/in/analytics" replace />} />
           <Route path="/coaching" element={<Navigate to="/in/coaching" replace />} />
           {/* Legacy unprefixed CVAI paths, kept so old links still land somewhere sane. */}
-          <Route path="/cvai/*" element={<Navigate to="/in/cvai" replace />} />
+          <Route path="/cvai/*" element={<Navigate to="/in/coaching" replace />} />
           <Route path="/resume/*" element={<LegacyPersonalRedirect prefix="/resume" />} />
           <Route path="/practice/*" element={<LegacyPersonalRedirect prefix="/practice" />} />
           <Route path="/ai-agents" element={<Navigate to="/in/ai-agents" replace />} />

@@ -14,11 +14,13 @@ import { FiActivity, FiCheckSquare, FiCode, FiHelpCircle, FiTarget } from "react
  */
 
 const TABS = [
-  { to: "/in/cvai", label: "Overview", icon: FiActivity, end: true },
-  { to: "/in/cvai/skills", label: "Skills", icon: FiCheckSquare },
-  { to: "/in/cvai/quizzes", label: "Quizzes", icon: FiHelpCircle },
-  { to: "/in/cvai/projects", label: "Projects", icon: FiCode },
-  { to: "/in/cvai/plan", label: "My plan", icon: FiTarget },
+  // /in/coaching is the product name; "cvai" is only ever our internal name.
+  // Keeping it in the URL would mean shipping a codename to users for no reason.
+  { to: "/in/coaching", label: "Overview", icon: FiActivity, end: true },
+  { to: "/in/coaching/skills", label: "Skills", icon: FiCheckSquare },
+  { to: "/in/coaching/quizzes", label: "Quizzes", icon: FiHelpCircle },
+  { to: "/in/coaching/projects", label: "Projects", icon: FiCode },
+  { to: "/in/coaching/plan", label: "My plan", icon: FiTarget },
 ];
 
 export { TABS as CVAI_TABS };

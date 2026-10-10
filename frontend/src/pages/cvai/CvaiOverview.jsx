@@ -90,21 +90,21 @@ export default function CvaiOverview() {
                 </p>
                 <div className="mt-4 flex flex-wrap gap-2">
                   {!hasEvidence ? (
-                    <Link to="/in/cvai/skills" className="bg-white px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-100">
+                    <Link to="/in/coaching/skills" className="bg-white px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-100">
                       Start an assessment
                     </Link>
                   ) : top?.action?.type === "start_assessment" ? (
-                    <Link to="/in/cvai/skills" className="bg-white px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-100">
+                    <Link to="/in/coaching/skills" className="bg-white px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-100">
                       Start an assessment
                     </Link>
                   ) : (
-                    <Link to="/in/cvai/plan" className="bg-white px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-100">
+                    <Link to="/in/coaching/plan" className="bg-white px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-100">
                       Open my plan
                     </Link>
                   )}
                   {freeQuiz ? (
                     <Link
-                      to="/in/cvai/quizzes"
+                      to="/in/coaching/quizzes"
                       className="border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-white hover:bg-white/15"
                     >
                       Try a free quiz
@@ -152,7 +152,7 @@ export default function CvaiOverview() {
                         </div>
                       ))}
                       {measured.length > 6 ? (
-                        <Link to="/in/cvai/skills" className="inline-flex items-center gap-1 pt-1 text-sm font-medium text-blue-600 hover:text-blue-700">
+                        <Link to="/in/coaching/skills" className="inline-flex items-center gap-1 pt-1 text-sm font-medium text-blue-600 hover:text-blue-700">
                           See all {measured.length} <FiArrowRight className="h-4 w-4" />
                         </Link>
                       ) : null}
@@ -187,20 +187,20 @@ export default function CvaiOverview() {
 
                   <Panel title="Jump back in">
                     <div className="space-y-2">
-                      <Link to="/in/cvai/skills" className="flex items-center justify-between border border-gray-200 p-3 transition-colors hover:border-blue-300 hover:bg-blue-50">
+                      <Link to="/in/coaching/skills" className="flex items-center justify-between border border-gray-200 p-3 transition-colors hover:border-blue-300 hover:bg-blue-50">
                         <span className="flex items-center gap-2 text-sm font-medium text-gray-900">
                           <FiTarget className="h-4 w-4 text-gray-500" /> Assess a skill
                         </span>
                         <FiArrowRight className="h-4 w-4 text-gray-400" />
                       </Link>
-                      <Link to="/in/cvai/quizzes" className="flex items-center justify-between border border-gray-200 p-3 transition-colors hover:border-blue-300 hover:bg-blue-50">
+                      <Link to="/in/coaching/quizzes" className="flex items-center justify-between border border-gray-200 p-3 transition-colors hover:border-blue-300 hover:bg-blue-50">
                         <span className="flex items-center gap-2 text-sm font-medium text-gray-900">
                           <FiHelpCircle className="h-4 w-4 text-gray-500" /> Take a quiz
                           {freeQuiz ? <Badge className="border-green-200 bg-green-50 text-green-700">1 free</Badge> : null}
                         </span>
                         <FiArrowRight className="h-4 w-4 text-gray-400" />
                       </Link>
-                      <Link to="/in/cvai/projects" className="flex items-center justify-between border border-gray-200 p-3 transition-colors hover:border-blue-300 hover:bg-blue-50">
+                      <Link to="/in/coaching/projects" className="flex items-center justify-between border border-gray-200 p-3 transition-colors hover:border-blue-300 hover:bg-blue-50">
                         <span className="flex items-center gap-2 text-sm font-medium text-gray-900">
                           <FiCode className="h-4 w-4 text-gray-500" /> Build a project
                         </span>
