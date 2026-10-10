@@ -208,6 +208,15 @@ export default function Header({ sidebarItems = [] }) {
                     <button onClick={() => { navigate("/org/ai-agents"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
                       <FiCpu className="w-3.5 h-3.5 text-gray-400" /> AI Agents
                     </button>
+                    {/* These two lived only in the dashboard sidebar. With that
+                        sidebar going they need a home here or they become
+                        unreachable — see nav_diff in the CVAI_TODO log. */}
+                    <button onClick={() => { navigate("/org/candidate-analysis"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
+                      <FiSearch className="w-3.5 h-3.5 text-gray-400" /> Candidate Analysis
+                    </button>
+                    <button onClick={() => { navigate("/org/reports"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
+                      <FiFileText className="w-3.5 h-3.5 text-gray-400" /> Reports
+                    </button>
                   </>
                 ) : (
                   <>
@@ -231,6 +240,10 @@ export default function Header({ sidebarItems = [] }) {
                 </button>
                 <button onClick={() => { navigate("/in/resume/builder"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
                   <FiFileText className="w-3.5 h-3.5 text-gray-400" /> Resume Builder
+                </button>
+                {/* Lived only in the dashboard sidebar; this is now its only way in. */}
+                <button onClick={() => { navigate("/in/ai-agents"); setDropdownOpen(false); }} className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
+                  <FiCpu className="w-3.5 h-3.5 text-gray-400" /> My AI Agents
                 </button>
                   </>
                 )}
