@@ -4,7 +4,7 @@ import DashboardLayout from "../../components/layout/DashboardLayout";
 import PersonCard from "../../components/people/PersonCard";
 import ApplicantsPanel from "../../components/people/ApplicantsPanel";
 import { ClearFiltersButton } from "../../components/people/peopleMeta";
-import { getSidebarItems, getBackendUrl, getAuthHeaders } from "../../utils/auth";
+import { getBackendUrl, getAuthHeaders } from "../../utils/auth";
 import { useToast } from "../../components/ui/ToastContext";
 import { FiUsers, FiSearch, FiX, FiArrowRight, FiStar } from "react-icons/fi";
 
@@ -12,9 +12,6 @@ const STARRED_FIRST_ROW = 4;
 
 export default function Candidates() {
   const navigate = useNavigate();
-  const role = typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
-  const plan = typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
-  const sidebarItems = getSidebarItems(role, plan);
   const { showToast } = useToast();
 
   // Applicants
@@ -235,7 +232,7 @@ export default function Candidates() {
 
   if (loading && applications.length === 0 && directoryLoading) {
     return (
-      <DashboardLayout sidebarItems={sidebarItems}>
+      <DashboardLayout >
         <div className="w-full max-w-5xl mx-auto space-y-2.5">
           <div className="h-8 w-48 bg-gray-200 animate-pulse rounded-lg" />
           <div className="grid grid-cols-2 gap-2.5">
@@ -247,7 +244,7 @@ export default function Candidates() {
   }
 
   return (
-    <DashboardLayout sidebarItems={sidebarItems}>
+    <DashboardLayout >
       <div className="w-full max-w-5xl mx-auto space-y-2.5">
         {/* Header */}
         <div className="flex items-center gap-2 justify-between">

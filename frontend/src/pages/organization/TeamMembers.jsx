@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
-import { getSidebarItems, getBackendUrl, getAuthHeaders } from "../../utils/auth";
+import { getBackendUrl, getAuthHeaders } from "../../utils/auth";
 import {
   FiPlus,
   FiEdit2,
@@ -35,9 +35,6 @@ const formatDate = (dateString) => {
 
 export default function TeamMembers() {
   const navigate = useNavigate();
-  const role = typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
-  const plan = typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
-  const sidebarItems = getSidebarItems(role, plan);
   const [teamMembers, setTeamMembers] = useState([]);
   const [candidates, setCandidates] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -122,7 +119,7 @@ export default function TeamMembers() {
   };
 
   return (
-    <DashboardLayout sidebarItems={sidebarItems}>
+    <DashboardLayout >
       {/* Hero */}
       <div className="relative overflow-hidden rounded-2xl bg-gray-900 text-white mb-6">
         <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-transparent to-indigo-600/20" />

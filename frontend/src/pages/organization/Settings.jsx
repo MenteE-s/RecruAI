@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
-import { getSidebarItems, verifyTokenWithServer, getBackendUrl, getAuthHeaders } from "../../utils/auth";
+import { verifyTokenWithServer, getBackendUrl, getAuthHeaders } from "../../utils/auth";
 import TimezoneSelector from "../../components/ui/TimezoneSelector";
 import PaymentMethods from "../../components/ui/PaymentMethods";
 import OtpVerify from "../../components/auth/OtpVerify";
@@ -24,9 +24,7 @@ import {
 } from "react-icons/fi";
 
 export default function OrganizationSettings() {
-  const role = typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
-  const plan = typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
-  const sidebarItems = getSidebarItems(role, plan);
+
   const [user, setUser] = useState(null);
   const [organization, setOrganization] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -276,7 +274,7 @@ export default function OrganizationSettings() {
   const orgName = organization?.name || user?.organization_name || "Organization";
 
   return (
-    <DashboardLayout sidebarItems={sidebarItems}>
+    <DashboardLayout >
       {/* Hero */}
       <div className="relative overflow-hidden rounded-2xl bg-gray-900 text-white mb-6">
         <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-transparent to-indigo-600/20" />

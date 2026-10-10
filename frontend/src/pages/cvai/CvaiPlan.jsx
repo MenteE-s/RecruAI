@@ -269,8 +269,7 @@ function PlanCard({ plan, expanded, detail, busyStep, onExpand, onToggleStep }) 
                       ? "border-green-600 bg-green-600 text-white"
                       : "border-gray-300 bg-white text-transparent hover:border-blue-500"
                   }`}
-                  title={isDone ? "Mark not done" : "Mark done"}
-                >
+                  title={isDone ? "Mark not done" : "Mark done"}>
                   <FiCheckCircle className="h-4 w-4" />
                 </button>
                 <div className="min-w-0 flex-1">

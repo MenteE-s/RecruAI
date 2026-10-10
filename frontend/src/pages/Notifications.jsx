@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import socketService from "../utils/socket";
-import { getBackendUrl, verifyTokenWithServer, getSidebarItems, getUploadUrl, orgPath, postPath } from "../utils/auth";
+import { getBackendUrl, verifyTokenWithServer, getUploadUrl, orgPath, postPath } from "../utils/auth";
 import { formatDate } from "../utils/timezone";
 import {
   FiBell,
@@ -19,9 +19,6 @@ import {
 
 export default function Notifications() {
   const navigate = useNavigate();
-  const role = typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
-  const plan = typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
-  const sidebarItems = getSidebarItems(role, plan);
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -226,7 +223,7 @@ export default function Notifications() {
 
   if (loading) {
     return (
-      <DashboardLayout sidebarItems={sidebarItems}>
+      <DashboardLayout >
         <div className="w-full max-w-3xl mx-auto space-y-2.5">
           <div className="h-8 w-48 bg-gray-200 animate-pulse rounded-lg" />
           {[1, 2, 3].map((i) => (
@@ -238,7 +235,7 @@ export default function Notifications() {
   }
 
   return (
-    <DashboardLayout sidebarItems={sidebarItems}>
+    <DashboardLayout >
       <div className="w-full max-w-3xl mx-auto space-y-2.5">
         {/* Title + accurate counts */}
         <div className="flex items-center justify-between gap-2">
@@ -287,8 +284,7 @@ export default function Notifications() {
                 filters.read === p.value
                   ? "bg-gray-900 text-white border-gray-900"
                   : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
-              }`}
-            >
+              }`}>
               {p.label}
             </button>
           ))}
@@ -296,16 +292,14 @@ export default function Notifications() {
             onClick={() => handleFilterChange("favorited", !filters.favorited)}
             className={`px-2.5 py-1 text-[11px] font-semibold rounded-full border transition-colors ${
               filters.favorited ? "bg-amber-100 text-amber-700 border-amber-200" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
-            }`}
-          >
+            }`}>
             ★ Starred{filters.favorited && stats.favorited > 0 ? ` (${stats.favorited})` : ""}
           </button>
           <button
             onClick={() => handleFilterChange("archived", !filters.archived)}
             className={`px-2.5 py-1 text-[11px] font-semibold rounded-full border transition-colors ${
               filters.archived ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
-            }`}
-          >
+            }`}>
             Archived
           </button>
           {hasActiveFilters && (
@@ -343,8 +337,7 @@ export default function Notifications() {
               }}
               className={`bg-white border rounded-lg shadow-sm p-3 flex gap-2.5 cursor-pointer hover:shadow transition-shadow ${
                 !n.is_read ? "border-blue-200" : "border-gray-200"
-              }`}
-            >
+              }`}>
               {org?.profile_image ? (
                 <img
                   src={getUploadUrl(org.profile_image)}
@@ -409,8 +402,7 @@ export default function Notifications() {
                 <button
                   onClick={(e) => { e.stopPropagation(); filters.archived ? unarchiveNotification(n.id) : archiveNotification(n.id); }}
                   className="p-1.5 text-gray-300 hover:text-gray-600 hover:bg-gray-100 rounded-md"
-                  title={filters.archived ? "Unarchive" : "Archive"}
-                >
+                  title={filters.archived ? "Unarchive" : "Archive"}>
                   {filters.archived ? <FiInbox className="w-3.5 h-3.5" /> : <FiArchive className="w-3.5 h-3.5" />}
                 </button>
                 <button onClick={(e) => { e.stopPropagation(); deleteNotification(n.id); }} className="p-1.5 text-gray-300 hover:text-red-600 hover:bg-red-50 rounded-md" title="Delete">

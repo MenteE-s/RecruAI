@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
 import {
-  getSidebarItems,
+
   getBackendUrl,
   getUploadUrl,
   getAuthHeaders,
@@ -27,11 +27,6 @@ import {
 export default function CandidateAnalysis() {
   const { userId } = useParams();
   const navigate = useNavigate();
-  const role =
-    typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
-  const plan =
-    typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
-  const sidebarItems = getSidebarItems(role, plan);
 
   const [candidate, setCandidate] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -144,9 +139,7 @@ export default function CandidateAnalysis() {
   if (loading) {
     return (
       <DashboardLayout
-        NavbarComponent={OrganizationNavbar}
-        sidebarItems={sidebarItems}
-      >
+        NavbarComponent={OrganizationNavbar}>
         <div className="flex justify-center items-center py-20">
           <div className="text-center animate-pulse">
             <div className="w-8 h-8 mx-auto mb-4 rounded-full bg-gray-300" />
@@ -159,7 +152,7 @@ export default function CandidateAnalysis() {
 
   if (!userId) {
     return (
-      <DashboardLayout sidebarItems={sidebarItems}>
+      <DashboardLayout >
         <div className="space-y-6">
           <div className="relative overflow-hidden rounded-2xl bg-gray-900 text-white">
             <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-transparent to-indigo-600/20" />
@@ -185,7 +178,7 @@ export default function CandidateAnalysis() {
 
   if (error || !candidate) {
     return (
-      <DashboardLayout sidebarItems={sidebarItems}>
+      <DashboardLayout >
         <div className="p-4 md:p-8">
           <div className="rounded-2xl p-6 bg-white border border-gray-200 shadow-sm">
             <div className="text-center py-12">
@@ -212,9 +205,7 @@ export default function CandidateAnalysis() {
 
   return (
     <DashboardLayout
-      NavbarComponent={OrganizationNavbar}
-      sidebarItems={sidebarItems}
-    >
+      NavbarComponent={OrganizationNavbar}>
       <div className="space-y-6">
         {/* Hero */}
         <div className="relative overflow-hidden rounded-2xl bg-gray-900 text-white">
@@ -539,8 +530,7 @@ export default function CandidateAnalysis() {
                   <span
                     className={`text-lg font-bold ${
                       matchPct >= 50 ? "text-green-600" : matchPct > 0 ? "text-yellow-600" : "text-red-600"
-                    }`}
-                  >
+                    }`}>
                     {matchPct.toFixed(0)}%
                   </span>
                 </div>

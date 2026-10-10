@@ -243,8 +243,7 @@ function Workspace({ open, setOpen, busy, onSave, onSubmit, onClose }) {
         <Button variant="ghost" onClick={onClose}>
           Close
         </Button>
-      }
-    >
+      }>
       <div className="grid gap-6 lg:grid-cols-2">
         <div>
           <h3 className="text-sm font-semibold text-gray-900">Steps</h3>
@@ -257,14 +256,12 @@ function Workspace({ open, setOpen, busy, onSave, onSubmit, onClose }) {
                 key={index}
                 className={`border p-3 ${
                   open.step === index ? "border-blue-300 bg-blue-50" : "border-gray-200"
-                }`}
-              >
+                }`}>
                 <div className="flex items-start gap-2.5">
                   <span
                     className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center text-[11px] font-bold ${
                       open.step === index ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-600"
-                    }`}
-                  >
+                    }`}>
                     {index + 1}
                   </span>
                   <div>
@@ -355,8 +352,7 @@ function ProjectReview({ review, onClose }) {
             {data.criteria_met}/{data.criteria_total} criteria met
           </p>
           <Badge
-            className={`mt-3 ${attempt.passed ? "border-green-200 bg-green-50 text-green-700" : "border-red-200 bg-red-50 text-red-700"}`}
-          >
+            className={`mt-3 ${attempt.passed ? "border-green-200 bg-green-50 text-green-700" : "border-red-200 bg-red-50 text-red-700"}`}>
             {attempt.passed ? `Passed (${review.pass_mark}%)` : `Below ${review.pass_mark}%`}
           </Badge>
         </div>

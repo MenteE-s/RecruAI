@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
-import { getSidebarItems, getBackendUrl, getUploadUrl, getAuthHeaders } from "../../utils/auth";
+import { getBackendUrl, getUploadUrl, getAuthHeaders } from "../../utils/auth";
 import { FiMail, FiBriefcase, FiAward, FiBook, FiCode, FiFolder, FiFileText, FiHeart, FiGlobe, FiStar, FiArrowLeft, FiMapPin, FiCalendar, FiEdit2, FiCheckCircle } from "react-icons/fi";
 import EmploymentBadge, { employmentMeta } from "../../components/ui/EmploymentStatus";
 
@@ -19,9 +19,6 @@ const LEVEL_BAR_CLASS = {
 export default function UserProfile() {
   const { userId } = useParams();
   const navigate = useNavigate();
-  const role = typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
-  const plan = typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
-  const sidebarItems = getSidebarItems(role, plan);
   const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -79,7 +76,7 @@ export default function UserProfile() {
 
   if (loading) {
     return (
-      <DashboardLayout sidebarItems={sidebarItems}>
+      <DashboardLayout >
         <div className="space-y-4">
           <div className="rounded-2xl bg-gray-900 h-64 animate-pulse" />
           <div className="grid grid-cols-3 gap-4">
@@ -92,7 +89,7 @@ export default function UserProfile() {
   }
   if (error) {
     return (
-      <DashboardLayout sidebarItems={sidebarItems}>
+      <DashboardLayout >
         <div className="max-w-4xl mx-auto p-6">
           <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 mb-4"><FiArrowLeft className="w-4 h-4" /> Back</button>
           <div className="bg-white border border-gray-200 p-12 text-center">
@@ -107,7 +104,7 @@ export default function UserProfile() {
   const { user, experiences, educations, skills, projects, publications, awards, certifications, languages, social_media_links, team_member_info, is_team_member, hired_organizations } = profileData;
 
   return (
-    <DashboardLayout sidebarItems={sidebarItems}>
+    <DashboardLayout >
       {/* Back + own-profile edit */}
       <div className="flex items-center justify-between mb-4">
         <button onClick={() => navigate(-1)} className="inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900"><FiArrowLeft className="w-4 h-4" /> Back</button>

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import {
-  getSidebarItems,
+
   getBackendUrl,
   getAuthHeaders,
   getUploadUrl,
@@ -263,9 +263,6 @@ const AnalyticsModal = ({ isOpen, onClose, profile }) => {
 };
 
 const ShareableProfiles = () => {
-  const role = typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
-  const plan = typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
-  const sidebarItems = getSidebarItems(role || "individual", plan);
   const [profiles, setProfiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -316,7 +313,7 @@ const ShareableProfiles = () => {
 
   if (loading) {
     return (
-      <DashboardLayout sidebarItems={sidebarItems}>
+      <DashboardLayout >
         <div className="space-y-4 mt-6">
           <div className="flex items-center gap-3">
             <div className="h-10 w-[320px] bg-gray-200 animate-pulse rounded-lg" />
@@ -331,7 +328,7 @@ const ShareableProfiles = () => {
   }
 
   return (
-    <DashboardLayout sidebarItems={sidebarItems}>
+    <DashboardLayout >
       {/* Filter */}
       <div className="flex items-center gap-3 mb-4 mt-6">
         <div className="relative flex-1 max-w-xl min-w-[260px]">

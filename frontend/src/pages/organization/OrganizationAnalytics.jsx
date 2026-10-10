@@ -1,16 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
-import { getSidebarItems, getBackendUrl, getAuthHeaders } from "../../utils/auth";
+import { getBackendUrl, getAuthHeaders } from "../../utils/auth";
 import { formatDate } from "../../utils/timezone";
 import DualTime from "../../components/ui/DualTime";
 import { FiBarChart2, FiAward, FiUsers, FiTarget, FiCheckCircle, FiAlertTriangle, FiArrowRight } from "react-icons/fi";
 
 export default function OrganizationAnalytics() {
   const navigate = useNavigate();
-  const role = typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
-  const plan = typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
-  const sidebarItems = getSidebarItems(role, plan);
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [orgId] = useState(1);
@@ -27,7 +24,7 @@ export default function OrganizationAnalytics() {
 
   if (loading) {
     return (
-      <DashboardLayout sidebarItems={sidebarItems}>
+      <DashboardLayout >
         <div className="space-y-4">
           <div className="rounded-2xl bg-gray-900 h-48 animate-pulse" />
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -41,7 +38,7 @@ export default function OrganizationAnalytics() {
   const hasData = analytics && analytics.total_interviews_analyzed > 0;
 
   return (
-    <DashboardLayout sidebarItems={sidebarItems}>
+    <DashboardLayout >
       {/* Hero */}
       <div className="relative overflow-hidden rounded-2xl bg-gray-900 text-white mb-6">
         <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-transparent to-indigo-600/20" />

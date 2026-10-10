@@ -4,7 +4,7 @@ import DashboardLayout from "../components/layout/DashboardLayout";
 import IndividualNavbar from "../components/layout/IndividualNavbar";
 import OrganizationNavbar from "../components/layout/OrganizationNavbar";
 import Card from "../components/ui/Card";
-import { getSidebarItems, getBackendUrl, getAuthHeaders } from "../utils/auth";
+import { getBackendUrl, getAuthHeaders } from "../utils/auth";
 import DualTime from "../components/ui/DualTime";
 
 const InterviewAnalysis = () => {
@@ -24,9 +24,6 @@ const InterviewAnalysis = () => {
 
   // Get user role and determine navbar
   const userRole = localStorage.getItem("authRole");
-  const userPlan = localStorage.getItem("authPlan");
-  const sidebarItems = getSidebarItems(userRole, userPlan);
-
   useEffect(() => {
     if (interviewId) {
       fetchInterviewData();
@@ -152,9 +149,7 @@ const InterviewAnalysis = () => {
       <DashboardLayout
         NavbarComponent={
           userRole === "organization" ? OrganizationNavbar : IndividualNavbar
-        }
-        sidebarItems={sidebarItems}
-      >
+        }>
         <div className="flex justify-center items-center py-8">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-3"></div>
@@ -170,9 +165,7 @@ const InterviewAnalysis = () => {
       <DashboardLayout
         NavbarComponent={
           userRole === "organization" ? OrganizationNavbar : IndividualNavbar
-        }
-        sidebarItems={sidebarItems}
-      >
+        }>
         <div className="max-w-4xl mx-auto p-4">
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
             <div className="text-red-500 text-3xl mb-3">⚠️</div>
@@ -195,9 +188,7 @@ const InterviewAnalysis = () => {
     <DashboardLayout
       NavbarComponent={
         userRole === "organization" ? OrganizationNavbar : IndividualNavbar
-      }
-      sidebarItems={sidebarItems}
-    >
+      }>
       <div className="max-w-6xl mx-auto p-4 space-y-4">
         {/* Header */}
         <div
@@ -205,8 +196,7 @@ const InterviewAnalysis = () => {
             userRole === "organization"
               ? "bg-gradient-to-br from-yellow-600/90 via-amber-600/80 to-purple-700/70"
               : "bg-gradient-to-br from-indigo-600/90 via-purple-600/80 to-cyan-700/70"
-          }`}
-        >
+          }`}>
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-xl font-bold mb-2">Interview Analysis</h1>
@@ -221,8 +211,7 @@ const InterviewAnalysis = () => {
                     : interview.status === "cancelled"
                     ? "bg-red-500 text-white"
                     : "bg-yellow-500 text-white"
-                }`}
-              >
+                }`}>
                 {interview.status}
               </span>
             </div>
@@ -362,8 +351,7 @@ const InterviewAnalysis = () => {
                             <span
                               className={`text-sm font-bold px-2 py-1 rounded ${getScoreColor(
                                 item.score
-                              )}`}
-                            >
+                              )}`}>
                               {item.score}/100
                             </span>
                           </div>
@@ -523,8 +511,7 @@ const InterviewAnalysis = () => {
                                     "interviewer_response"
                                   ? "bg-green-100 text-green-800"
                                   : "bg-gray-100 text-gray-800"
-                              }`}
-                            >
+                              }`}>
                               {message.content}
                             </div>
                             <div className="text-xs text-gray-400 mt-1">

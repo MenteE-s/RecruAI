@@ -1,14 +1,9 @@
 import DashboardLayout from "../../components/layout/DashboardLayout";
-import { getSidebarItems } from "../../utils/auth";
 import { FiBell, FiMapPin, FiBriefcase, FiClock, FiEye, FiBookmark, FiMail, FiSmartphone, FiCalendar, FiZap, FiSettings, FiPlus, FiSearch } from "react-icons/fi";
 
 export default function JobAlerts() {
-  const role = typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
-  const plan = typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
-  const sidebarItems = getSidebarItems(role, plan);
-
   return (
-    <DashboardLayout sidebarItems={sidebarItems}>
+    <DashboardLayout >
       {/* Filter */}
       <div className="flex items-center gap-3 mb-4 mt-6">
         <div className="relative flex-1 max-w-xl min-w-[260px]">

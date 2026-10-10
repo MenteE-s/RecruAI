@@ -198,8 +198,7 @@ export default function ItemModal({ isOpen, onClose, itemType, itemData, onSave,
             data.is_active = false;
           }
           onSave(data);
-        }}
-      >
+        }}>
         <div className="space-y-4">
           {config.fields.map((field) => (
             <div key={field.name}>
@@ -226,8 +225,7 @@ export default function ItemModal({ isOpen, onClose, itemType, itemData, onSave,
                   name={field.name}
                   defaultValue={itemData?.[field.name] || ""}
                   className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 focus:ring-2 focus:ring-blue-500"
-                  required={field.required}
-                >
+                  required={field.required}>
                   <option value="">Select...</option>
                   {field.options.map((opt) => (
                     <option key={opt} value={opt}>{opt}</option>

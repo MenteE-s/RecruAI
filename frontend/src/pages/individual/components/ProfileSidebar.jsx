@@ -28,8 +28,7 @@ export default function ProfileSidebar({
               userData?.subscription_status?.is_paid_active
                 ? "border-blue-600"
                 : "border-gray-200"
-            } ${employmentMeta(userData?.employment_status).ring}`}
-          >
+            } ${employmentMeta(userData?.employment_status).ring}`}>
             {userData?.profile_picture ? (
               <img
                 src={getUploadUrl(userData.profile_picture)}

@@ -31,8 +31,7 @@ export default function Chip({
         variantClasses[variant] || variantClasses.secondary,
         sizeClasses[size] || sizeClasses.default,
         className
-      )}
-    >
+      )}>
       {children}
     </span>
   );

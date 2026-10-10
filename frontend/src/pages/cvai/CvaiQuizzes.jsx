@@ -153,8 +153,7 @@ export default function CvaiQuizzes() {
               {running ? (
                 <Panel
                   title={running.quiz.title}
-                  hint={`${Object.keys(running.answers).length} of ${running.questions.length} answered · pass at ${running.quiz.pass_percent}%`}
-                >
+                  hint={`${Object.keys(running.answers).length} of ${running.questions.length} answered · pass at ${running.quiz.pass_percent}%`}>
                   <div className="space-y-4">
                     {running.questions.map((q, index) => (
                       <fieldset key={q.question_id} className="border border-gray-200 p-4">
@@ -171,8 +170,7 @@ export default function CvaiQuizzes() {
                                   selected
                                     ? "border-blue-500 bg-blue-50"
                                     : "border-gray-200 text-gray-700 hover:bg-gray-50"
-                                }`}
-                              >
+                                }`}>
                                 <input
                                   type="radio"
                                   name={`qq-${q.question_id}`}
@@ -196,8 +194,7 @@ export default function CvaiQuizzes() {
                     <div className="flex flex-wrap gap-2">
                       <Button
                         onClick={submit}
-                        disabled={busy || Object.keys(running.answers).length === 0}
-                      >
+                        disabled={busy || Object.keys(running.answers).length === 0}>
                         {busy ? "Grading…" : "Submit answers"}
                       </Button>
                       <Button variant="secondary" onClick={() => setRunning(null)}>
@@ -237,8 +234,7 @@ export default function CvaiQuizzes() {
                                   a.passed
                                     ? "border-green-200 bg-green-50 text-green-700"
                                     : "border-gray-200 bg-gray-50 text-gray-600"
-                                }
-                              >
+                                }>
                                 {a.passed ? "Passed" : "Not passed"}
                               </Badge>
                             </td>
@@ -275,8 +271,7 @@ function QuizOutcome({ outcome, onClose }) {
             {attempt.correct_count}/{attempt.total_questions} correct
           </p>
           <Badge
-            className={`mt-3 ${attempt.passed ? "border-green-200 bg-green-50 text-green-700" : "border-red-200 bg-red-50 text-red-700"}`}
-          >
+            className={`mt-3 ${attempt.passed ? "border-green-200 bg-green-50 text-green-700" : "border-red-200 bg-red-50 text-red-700"}`}>
             {attempt.passed ? `Passed (${outcome.pass_mark}%)` : `Below ${outcome.pass_mark}%`}
           </Badge>
         </div>
@@ -285,8 +280,7 @@ function QuizOutcome({ outcome, onClose }) {
           {(outcome.feedback || []).map((item, index) => (
             <div
               key={item.question_id}
-              className={`border p-3 ${item.correct ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50"}`}
-            >
+              className={`border p-3 ${item.correct ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50"}`}>
               <p className="text-sm font-medium text-gray-900">
                 {index + 1}. {item.prompt}
               </p>

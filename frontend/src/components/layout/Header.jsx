@@ -23,7 +23,7 @@ import {
   FiGlobe,
 } from "react-icons/fi";
 
-export default function Header({ sidebarItems = [] }) {
+export default function Header() {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -139,8 +139,7 @@ export default function Header({ sidebarItems = [] }) {
                   ? "text-blue-600"
                   : "text-gray-500 hover:text-gray-800 hover:bg-gray-50"
               }`}
-              title={item.name}
-            >
+              title={item.name}>
               <div className="relative">
                 <item.icon className="w-4 h-4" />
                 {item.badge ? (

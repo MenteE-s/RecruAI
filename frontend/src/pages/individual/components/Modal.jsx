@@ -8,8 +8,7 @@ export default function Modal({ isOpen, onClose, children }) {
       aria-modal="true"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
-      }}
-    >
+      }}>
       <div className="bg-white rounded-xl p-6 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto shadow-xl">
         {children}
       </div>

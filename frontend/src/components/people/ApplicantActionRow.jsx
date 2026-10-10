@@ -35,15 +35,13 @@ export default function ApplicantActionRow({ app, scheduled, onOpenProfile, onSt
           onClick={onSchedule}
           disabled={scheduled}
           title={scheduled ? "Interview already scheduled" : "Schedule interview"}
-          className={`p-1.5 rounded-md shrink-0 ${scheduled ? "bg-green-50 text-green-700 border border-green-200 cursor-not-allowed" : "bg-blue-600 text-white hover:bg-blue-700"}`}
-        >
+          className={`p-1.5 rounded-md shrink-0 ${scheduled ? "bg-green-50 text-green-700 border border-green-200 cursor-not-allowed" : "bg-blue-600 text-white hover:bg-blue-700"}`}>
           {scheduled ? <FiCheckCircle className="w-3.5 h-3.5" /> : <FiVideo className="w-3.5 h-3.5" />}
         </button>
         <button
           onClick={onToggleOnboard}
           title={app.onboarded ? "Offboard" : "Mark as onboarded"}
-          className={`px-2 py-1 text-[11px] font-semibold rounded-md border shrink-0 ${app.onboarded ? "bg-red-50 text-red-700 border-red-200 hover:bg-red-100" : "bg-green-50 text-green-700 border-green-200 hover:bg-green-100"}`}
-        >
+          className={`px-2 py-1 text-[11px] font-semibold rounded-md border shrink-0 ${app.onboarded ? "bg-red-50 text-red-700 border-red-200 hover:bg-red-100" : "bg-green-50 text-green-700 border-green-200 hover:bg-green-100"}`}>
           {app.onboarded ? "Hired ✓" : "Onboard"}
         </button>
       </div>

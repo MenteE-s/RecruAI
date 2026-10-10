@@ -19,8 +19,7 @@ export default function Card({
           "border border-gray-200",
           className
         )
-      )}
-    >
+      )}>
       {children}
     </div>
   );

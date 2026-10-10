@@ -1,20 +1,12 @@
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
 import Card from "../../components/ui/Card";
-import { getSidebarItems } from "../../utils/auth";
 
 export default function Integrations() {
-  const role =
-    typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
-  const plan =
-    typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
-  const sidebarItems = getSidebarItems(role, plan);
 
   return (
     <DashboardLayout
-      NavbarComponent={OrganizationNavbar}
-      sidebarItems={sidebarItems}
-    >
+      NavbarComponent={OrganizationNavbar}>
       <div className="mb-6">
         <div className="rounded-2xl p-6 bg-white border border-gray-200 shadow-sm">
           <div className="flex items-center justify-between">

@@ -329,8 +329,7 @@ const SystemStatus = () => {
                   <span
                     className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
                       service.status
-                    )}`}
-                  >
+                    )}`}>
                     {service.status.charAt(0).toUpperCase() +
                       service.status.slice(1)}
                   </span>
@@ -451,15 +450,13 @@ const SystemStatus = () => {
                                 <span
                                   className={`px-2 py-1 rounded-full text-xs font-medium ${getIssueStatusColor(
                                     issue.status
-                                  )}`}
-                                >
+                                  )}`}>
                                   {issue.status.replace("_", " ").toUpperCase()}
                                 </span>
                                 <span
                                   className={`ml-2 px-2 py-1 rounded-full text-xs font-medium ${getSeverityColor(
                                     issue.severity
-                                  )}`}
-                                >
+                                  )}`}>
                                   {issue.severity.toUpperCase()}
                                 </span>
                               </div>
@@ -511,15 +508,13 @@ const SystemStatus = () => {
                                 <span
                                   className={`px-2 py-1 rounded-full text-xs font-medium ${getIssueStatusColor(
                                     issue.status
-                                  )}`}
-                                >
+                                  )}`}>
                                   {issue.status.toUpperCase()}
                                 </span>
                                 <span
                                   className={`ml-2 px-2 py-1 rounded-full text-xs font-medium ${getSeverityColor(
                                     issue.severity
-                                  )}`}
-                                >
+                                  )}`}>
                                   {issue.severity.toUpperCase()}
                                 </span>
                               </div>
@@ -570,8 +565,7 @@ const SystemStatus = () => {
                             currentPage === page
                               ? "bg-indigo-600 text-white border-indigo-600"
                               : "border-gray-300 hover:bg-gray-50"
-                          }`}
-                        >
+                          }`}>
                           {page}
                         </button>
                       )

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
-import { getSidebarItems, verifyTokenWithServer, getBackendUrl, getAuthHeaders } from "../../utils/auth";
+import { verifyTokenWithServer, getBackendUrl, getAuthHeaders } from "../../utils/auth";
 import { useToast } from "../../components/ui/ToastContext";
 import { COUNTRIES, CURRENCIES, formatSalaryRange, splitLocation, joinLocation } from "../../utils/jobMeta";
 import {
@@ -20,9 +20,6 @@ import {
 export default function JobPosts() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const role = typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
-  const plan = typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
-  const sidebarItems = getSidebarItems(role, plan);
   const { showToast } = useToast();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -138,7 +135,7 @@ export default function JobPosts() {
 
   if (loading) {
     return (
-      <DashboardLayout sidebarItems={sidebarItems}>
+      <DashboardLayout >
         <div className="space-y-4">
           <div className="rounded-2xl bg-gray-900 h-44 animate-pulse" />
           <div className="bg-white border border-gray-200 h-64 animate-pulse" />
@@ -148,7 +145,7 @@ export default function JobPosts() {
   }
 
   return (
-    <DashboardLayout sidebarItems={sidebarItems}>
+    <DashboardLayout >
       {/* Hero */}
       <div className="relative overflow-hidden rounded-2xl bg-gray-900 text-white mb-6">
         <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-transparent to-indigo-600/20" />

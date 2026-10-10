@@ -3,7 +3,7 @@ import { FiChevronDown } from "react-icons/fi";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import IndividualNavbar from "../../components/layout/IndividualNavbar";
 import {
-  getSidebarItems,
+
   getBackendUrl,
   getAuthHeaders,
   getCurrentUser,
@@ -53,11 +53,6 @@ export const formatDate = (dateString, format = "year") => {
 };
 
 export default function Profile() {
-  const role =
-    typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
-  const plan =
-    typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
-  const sidebarItems = getSidebarItems(role, plan);
 
   const [profileData, setProfileData] = useState({
     about: { summary: "" },
@@ -459,7 +454,7 @@ export default function Profile() {
 
   if (loading) {
     return (
-      <DashboardLayout NavbarComponent={IndividualNavbar} sidebarItems={sidebarItems}>
+      <DashboardLayout NavbarComponent={IndividualNavbar} >
         <div className="flex justify-center items-center py-8">
           <div className="animate-pulse">
             <div className="text-gray-500 mb-2">Loading profile...</div>
@@ -495,7 +490,7 @@ export default function Profile() {
   };
 
   return (
-    <DashboardLayout NavbarComponent={IndividualNavbar} sidebarItems={sidebarItems}>
+    <DashboardLayout NavbarComponent={IndividualNavbar} >
       {error && (
         <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg">
           <div className="flex items-center justify-between">

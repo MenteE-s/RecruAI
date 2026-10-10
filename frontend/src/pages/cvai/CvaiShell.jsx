@@ -1,7 +1,6 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
-import { getSidebarItems } from "../../utils/auth";
 import { FiActivity, FiCheckSquare, FiCode, FiHelpCircle, FiTarget } from "react-icons/fi";
 
 /**
@@ -26,12 +25,8 @@ const TABS = [
 export { TABS as CVAI_TABS };
 
 export default function CvaiShell({ title, subtitle, actions, children }) {
-  const role = typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
-  const plan = typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
-  const sidebarItems = getSidebarItems(role, plan);
-
   return (
-    <DashboardLayout sidebarItems={sidebarItems}>
+    <DashboardLayout>
       <div className="mb-5 border border-gray-200 bg-white">
         <div className="flex flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between">
           <div>
@@ -59,8 +54,7 @@ export default function CvaiShell({ title, subtitle, actions, children }) {
                       ? "border-blue-600 text-blue-700"
                       : "border-transparent text-gray-600 hover:border-gray-300 hover:text-gray-900"
                   }`
-                }
-              >
+                }>
                 <Icon className="h-4 w-4" />
                 {tab.label}
               </NavLink>
@@ -103,8 +97,7 @@ export function Stat({ value, label, tone = "text-gray-900", hint }) {
 export function Badge({ children, className = "" }) {
   return (
     <span
-      className={`inline-flex items-center gap-1 border px-2 py-0.5 text-[11px] font-medium ${className}`}
-    >
+      className={`inline-flex items-center gap-1 border px-2 py-0.5 text-[11px] font-medium ${className}`}>
       {children}
     </span>
   );
@@ -121,8 +114,7 @@ export function Button({ children, variant = "primary", className = "", ...rest 
     <button
       type="button"
       className={`inline-flex items-center justify-center gap-1.5 px-3.5 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${variants[variant]} ${className}`}
-      {...rest}
-    >
+      {...rest}>
       {children}
     </button>
   );

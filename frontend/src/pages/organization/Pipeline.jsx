@@ -1,14 +1,11 @@
 import React, { useState, useEffect, useCallback } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
-import { getSidebarItems, getBackendUrl, getAuthHeaders, getCurrentUser } from "../../utils/auth";
+import { getBackendUrl, getAuthHeaders, getCurrentUser } from "../../utils/auth";
 import { formatDate } from "../../utils/timezone";
 import socketService from "../../utils/socket";
 import { FiBriefcase, FiBarChart2 } from "react-icons/fi";
 
 export default function Pipeline() {
-  const role = typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
-  const plan = typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
-  const sidebarItems = getSidebarItems(role, plan);
   const [pipelineData, setPipelineData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedPost, setSelectedPost] = useState(null);
@@ -79,7 +76,7 @@ export default function Pipeline() {
 
   if (loading) {
     return (
-      <DashboardLayout sidebarItems={sidebarItems}>
+      <DashboardLayout >
         <div className="space-y-4">
           <div className="rounded-2xl bg-gray-900 h-48 animate-pulse" />
           <div className="bg-white border border-gray-200 h-64 animate-pulse" />
@@ -91,7 +88,7 @@ export default function Pipeline() {
   const currentPostData = getCurrentPostData();
 
   return (
-    <DashboardLayout sidebarItems={sidebarItems}>
+    <DashboardLayout >
       {/* Hero */}
       <div className="relative overflow-hidden rounded-2xl bg-gray-900 text-white mb-6">
         <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-transparent to-indigo-600/20" />

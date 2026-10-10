@@ -184,8 +184,7 @@ export default function PageManagerLayout({ children, title, subtitle, action })
                       active
                         ? "bg-gray-100 text-gray-900 font-semibold"
                         : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                    }`}
-                  >
+                    }`}>
                     {/* Active marker reads as a rail, not a pill-filled button */}
                     <span
                       className={`w-0.5 h-4 rounded-full shrink-0 ${active ? "bg-gray-900" : "bg-transparent"}`}

@@ -482,8 +482,7 @@ const InterviewRoom = () => {
                           interviewMode === "auto"
                             ? "bg-indigo-600 text-white border-indigo-600"
                             : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
-                        }`}
-                      >
+                        }`}>
                         🤖 Auto (AI)
                       </button>
                       <button
@@ -492,8 +491,7 @@ const InterviewRoom = () => {
                           interviewMode === "manual"
                             ? "bg-indigo-600 text-white border-indigo-600"
                             : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
-                        }`}
-                      >
+                        }`}>
                         ✍️ Manual
                       </button>
                     </div>

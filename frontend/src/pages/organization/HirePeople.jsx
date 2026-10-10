@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
-import { getSidebarItems, getBackendUrl, getUploadUrl, getAuthHeaders } from "../../utils/auth";
+import { getBackendUrl, getUploadUrl, getAuthHeaders } from "../../utils/auth";
 import { useToast } from "../../components/ui/ToastContext";
 import { FiUsers, FiSearch, FiEye, FiChevronDown, FiChevronUp, FiX, FiLoader, FiBriefcase } from "react-icons/fi";
 import EmploymentBadge, { employmentMeta } from "../../components/ui/EmploymentStatus";
@@ -16,9 +16,7 @@ const MATCH_COLORS = {
 export default function HirePeople() {
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const role = typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
-  const plan = typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
-  const sidebarItems = getSidebarItems(role, plan);
+
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -135,7 +133,7 @@ export default function HirePeople() {
 
   if (loading) {
     return (
-      <DashboardLayout sidebarItems={sidebarItems}>
+      <DashboardLayout >
         <div className="space-y-4">
           <div className="rounded-2xl bg-gray-900 h-48 animate-pulse" />
           <div className="bg-white border border-gray-200 h-32 animate-pulse" />
@@ -146,7 +144,7 @@ export default function HirePeople() {
   }
 
   return (
-    <DashboardLayout sidebarItems={sidebarItems}>
+    <DashboardLayout >
       {/* Hero */}
       <div className="relative overflow-hidden rounded-2xl bg-gray-900 text-white mb-6">
         <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-transparent to-indigo-600/20" />
@@ -225,8 +223,7 @@ export default function HirePeople() {
                       <tr
                         key={cid}
                         onClick={() => viewProfile(cid)}
-                        className={`hover:bg-blue-50/50 cursor-pointer ${isExpanded ? "bg-blue-50/30" : ""}`}
-                      >
+                        className={`hover:bg-blue-50/50 cursor-pointer ${isExpanded ? "bg-blue-50/30" : ""}`}>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-3">
                             <div className="shrink-0">

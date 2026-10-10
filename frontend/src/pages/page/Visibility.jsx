@@ -19,8 +19,7 @@ function Toggle({ checked, onChange, disabled }) {
       onClick={() => onChange(!checked)}
       className={`relative inline-flex items-center w-10 h-[22px] rounded-full transition-colors shrink-0 disabled:opacity-50 ${
         checked ? "bg-blue-600" : "bg-gray-300"
-      }`}
-    >
+      }`}>
       <span
         className={`absolute w-[18px] h-[18px] rounded-full bg-white shadow transition-all ${
           checked ? "left-[21px]" : "left-[2px]"

@@ -4,7 +4,7 @@ import DashboardLayout from "../../components/layout/DashboardLayout";
 import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
 import Card from "../../components/ui/Card";
 import {
-getSidebarItems,
+
 getUploadUrl,
 getBackendUrl,
 getAuthHeaders,
@@ -21,11 +21,6 @@ import {
 
 export default function BrowseOrganizations() {
   const navigate = useNavigate();
-  const role =
-    typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
-  const plan =
-    typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
-  const sidebarItems = getSidebarItems(role, plan);
 
   const [organizations, setOrganizations] = useState([]);
   const [filteredOrganizations, setFilteredOrganizations] = useState([]);
@@ -82,9 +77,7 @@ export default function BrowseOrganizations() {
   if (loading) {
     return (
       <DashboardLayout
-        NavbarComponent={OrganizationNavbar}
-        sidebarItems={sidebarItems}
-      >
+        NavbarComponent={OrganizationNavbar}>
         <div className="flex justify-center items-center py-12">
           <div className="animate-pulse">
             <div className="text-gray-500 mb-4">Loading organizations...</div>
@@ -98,9 +91,7 @@ export default function BrowseOrganizations() {
 
   return (
     <DashboardLayout
-      NavbarComponent={OrganizationNavbar}
-      sidebarItems={sidebarItems}
-    >
+      NavbarComponent={OrganizationNavbar}>
       {/* Error Message */}
       {error && (
         <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">

@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
-import { getSidebarItems, getBackendUrl, getAuthHeaders } from '../../utils/auth';
+import { getBackendUrl, getAuthHeaders } from '../../utils/auth';
 import Chip from '../../components/ui/Chip';
 import { FiCreditCard, FiZap, FiFileText, FiSettings, FiTrendingUp, FiAlertTriangle, FiDownload, FiArrowRight } from 'react-icons/fi';
 
 export default function Billing() {
-  const role = typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
-  const plan = typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
-  const sidebarItems = getSidebarItems(role, plan);
+
   const [userData, setUserData] = useState(null);
   const [organization, setOrganization] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -55,7 +53,7 @@ export default function Billing() {
 
   if (loading) {
     return (
-      <DashboardLayout sidebarItems={sidebarItems}>
+      <DashboardLayout >
         <div className="space-y-4">
           <div className="rounded-2xl bg-gray-900 h-44 animate-pulse" />
           <div className="bg-white border border-gray-200 h-64 animate-pulse" />
@@ -66,7 +64,7 @@ export default function Billing() {
 
   if (error) {
     return (
-      <DashboardLayout sidebarItems={sidebarItems}>
+      <DashboardLayout >
         <div className="bg-red-50 border border-red-200 px-4 py-3 flex items-center gap-2">
           <FiAlertTriangle className="w-5 h-5 text-red-600" />
           <p className="text-sm text-red-700">{error}</p>
@@ -85,7 +83,7 @@ export default function Billing() {
   const tokensUsed = userData?.subscription_status?.tokens_used || 0;
 
   return (
-    <DashboardLayout sidebarItems={sidebarItems}>
+    <DashboardLayout >
       {/* Hero */}
       <div className="relative overflow-hidden rounded-2xl bg-gray-900 text-white mb-6">
         <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-transparent to-indigo-600/20" />

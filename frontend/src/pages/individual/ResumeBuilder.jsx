@@ -1,14 +1,9 @@
 import DashboardLayout from "../../components/layout/DashboardLayout";
-import { getSidebarItems } from "../../utils/auth";
 import { FiFileText, FiLayout, FiZap, FiCheckCircle, FiEye, FiDownload, FiPlus, FiArrowRight } from "react-icons/fi";
 
 export default function ResumeBuilder() {
-  const role = typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
-  const plan = typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
-  const sidebarItems = getSidebarItems(role, plan);
-
   return (
-    <DashboardLayout sidebarItems={sidebarItems}>
+    <DashboardLayout >
       {/* Hero */}
       <div className="relative overflow-hidden rounded-2xl bg-gray-900 text-white mb-6">
         <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-transparent to-indigo-600/20" />

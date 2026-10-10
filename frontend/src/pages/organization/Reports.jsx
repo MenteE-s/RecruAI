@@ -3,18 +3,13 @@ import DashboardLayout from "../../components/layout/DashboardLayout";
 import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
 import Card from "../../components/ui/Card";
 import {
-  getSidebarItems,
+
   getBackendUrl,
   getAuthHeaders,
   getCurrentUser,
 } from "../../utils/auth";
 
 export default function Reports() {
-  const role =
-    typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
-  const plan =
-    typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
-  const sidebarItems = getSidebarItems(role, plan);
 
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -54,9 +49,7 @@ export default function Reports() {
   if (loading) {
     return (
       <DashboardLayout
-        NavbarComponent={OrganizationNavbar}
-        sidebarItems={sidebarItems}
-      >
+        NavbarComponent={OrganizationNavbar}>
         <div className="flex justify-center items-center py-12">
           <div className="text-gray-500">Loading analytics...</div>
         </div>
@@ -66,9 +59,7 @@ export default function Reports() {
 
   return (
     <DashboardLayout
-      NavbarComponent={OrganizationNavbar}
-      sidebarItems={sidebarItems}
-    >
+      NavbarComponent={OrganizationNavbar}>
       <div className="mb-6">
         <div className="rounded-2xl p-6 bg-white border border-gray-200 shadow-sm">
           <div className="flex items-center justify-between">

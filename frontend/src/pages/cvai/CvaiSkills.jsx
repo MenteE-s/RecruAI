@@ -153,8 +153,7 @@ export default function CvaiSkills() {
                         <Button
                           variant="secondary"
                           className="mt-3"
-                          onClick={() => start(slug)}
-                        >
+                          onClick={() => start(slug)}>
                           <FiTarget className="h-4 w-4" /> Retake assessment
                         </Button>
                       </div>
@@ -292,8 +291,7 @@ function AssessmentRunner({ quiz, answers, setAnswers, onSubmit, onCancel, submi
   return (
     <Panel
       title="Assessment in progress"
-      hint={`${answered} of ${questions.length} answered`}
-    >
+      hint={`${answered} of ${questions.length} answered`}>
       <div className="space-y-5">
         {questions.map((q, index) => (
           <fieldset key={q.question_id} className="border border-gray-200 p-4">
@@ -310,8 +308,7 @@ function AssessmentRunner({ quiz, answers, setAnswers, onSubmit, onCancel, submi
                       selected
                         ? "border-blue-500 bg-blue-50 text-gray-900"
                         : "border-gray-200 text-gray-700 hover:bg-gray-50"
-                    }`}
-                  >
+                    }`}>
                     <input
                       type="radio"
                       name={`q-${q.question_id}`}
@@ -380,8 +377,7 @@ function AssessmentResult({ result, onClose }) {
           {feedback.map((item, index) => (
             <div
               key={item.question_id}
-              className={`border p-3 ${item.correct ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50"}`}
-            >
+              className={`border p-3 ${item.correct ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50"}`}>
               <p className="text-sm font-medium text-gray-900">
                 {index + 1}. {item.prompt}
               </p>

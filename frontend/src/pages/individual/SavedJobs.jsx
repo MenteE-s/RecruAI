@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
-import { getSidebarItems, getBackendUrl, getAuthHeaders, getCurrentUserId, postPath } from "../../utils/auth";
+import { getBackendUrl, getAuthHeaders, getCurrentUserId, postPath } from "../../utils/auth";
 import { formatDate } from "../../utils/timezone";
 import {
   FiBookmark,
@@ -18,10 +18,6 @@ import {
 
 export default function SavedJobs() {
   const navigate = useNavigate();
-  const role = typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
-  const plan = typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
-  const sidebarItems = getSidebarItems(role, plan);
-
   const [savedJobs, setSavedJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [appliedJobs, setAppliedJobs] = useState(new Set());
@@ -118,7 +114,7 @@ export default function SavedJobs() {
 
   if (loading) {
     return (
-      <DashboardLayout sidebarItems={sidebarItems}>
+      <DashboardLayout >
         <div className="space-y-4 mt-6">
           <div className="flex items-center gap-3">
             <div className="h-10 w-[320px] bg-gray-200 animate-pulse rounded-lg" />
@@ -136,7 +132,7 @@ export default function SavedJobs() {
   }
 
   return (
-    <DashboardLayout sidebarItems={sidebarItems}>
+    <DashboardLayout >
       {/* Filter */}
       <div className="flex items-center gap-3 mb-4 mt-6">
         <div className="relative flex-1 max-w-xl">
