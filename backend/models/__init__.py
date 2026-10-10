@@ -22,6 +22,8 @@ from .skill_quiz import SkillQuiz
 from .guided_project import GuidedProject
 from .guided_project_attempt import GuidedProjectAttempt
 from .quiz_attempt import QuizAttempt
+from .mock_interview import MockInterview
+from .mock_interview_question import MockInterviewQuestion
 from .project import Project
 from .publication import Publication
 from .award import Award
@@ -77,6 +79,8 @@ __all__ = [
 "GuidedProject",
 "GuidedProjectAttempt",
 "QuizAttempt",
+"MockInterview",
+"MockInterviewQuestion",
     "Project",
     "Publication",
     "Award",

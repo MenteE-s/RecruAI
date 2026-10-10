@@ -95,11 +95,19 @@ it is the usual reason this track stalls.
   - [ ] C2.4. Attach a completed project to the profile `projects` table so it shows
         on the public profile as a portfolio item (needs an employer-facing decision:
         whose name on it, and does it need a repo URL?). Blocked on D.
-- [ ] **C3. Mock interviews**
-  - [ ] C3.1. Interview format/steps (see `TODO.md` — greeting → role discussion →
-        stack/experience/skills vs the job post → questions → goodbye).
-  - [ ] C3.2. AI interviewer conduct + adaptive follow-ups.
-  - [ ] C3.3. Post-interview feedback/scoring → writes to skill profile.
+- [x] **C3. Mock interviews** — migration `b3c4d5e6f7a8`, 8 endpoints, 60 checks.
+      The phase belongs to the server, not the model.
+  - [x] C3.1. Six phases (greeting → background → technical → behavioural →
+        their questions → closing), each with min/max turns. The model may pick a
+        question inside a phase; it can never move the phase or skip one.
+  - [x] C3.2. Content comes from a bank of 29 authored questions first; the model
+        is only asked when the bank has nothing, so a session keeps its shape even
+        if the provider is down.
+  - [x] C3.3. Post-interview scoring across four dimensions, computed in Python.
+        Every strength and weakness must quote the candidate's own words or it is
+        discarded. Writes to the profile as `evidence_source='mock_interview'`,
+        unverified — the reviewer scored what was said, not what was built.
+  - [ ] C3.4. UI. Endpoint-complete, no page yet.
 - [x] **E1b. Grant path + AI budget** (billing deliberately deferred) —
       `scripts/grant_subscription.py` and `backend/utils/ai_budget.py`.
       See log.

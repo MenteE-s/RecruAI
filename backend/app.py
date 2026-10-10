@@ -339,6 +339,14 @@ def create_app(config_object: object | None = None):
 		_limit("api.submit_guided_project", "10 per minute")
 		_limit("api.retry_guided_project_review", "5 per minute")
 		_limit("api.list_guided_project_attempts", "60 per minute")
+		# Mock interviews. The review endpoint costs a model call per attempt, so
+		# it is the tightest limit in CVAI.
+		_limit("api.mock_interview_meta", "60 per minute")
+		_limit("api.start_mock_interview", "10 per minute")
+		_limit("api.answer_mock_interview", "120 per minute")   # one per turn
+		_limit("api.mock_interview_feedback", "10 per minute")
+		_limit("api.abandon_mock_interview", "20 per minute")
+		_limit("api.list_mock_interviews", "60 per minute")
 
 	# Register practice AI agents blueprint separately to avoid circular imports
 	try:
