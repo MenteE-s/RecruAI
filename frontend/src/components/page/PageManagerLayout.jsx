@@ -184,8 +184,7 @@ export default function PageManagerLayout({ children, title, subtitle, action })
                       active
                         ? "bg-gray-100 text-gray-900 font-semibold"
                         : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                    }`}
-                  >
+                    }`}>
                     {/* Active marker reads as a rail, not a pill-filled button */}
                     <span
                       className={`w-0.5 h-4 rounded-full shrink-0 ${active ? "bg-gray-900" : "bg-transparent"}`}
@@ -255,7 +254,10 @@ export default function PageManagerLayout({ children, title, subtitle, action })
                 </button>
               </div>
             )}
-            <div className="w-full max-w-2xl mx-auto">
+            {/* max-w-4xl, not max-w-2xl: with a 224px rail a 672px column left
+                roughly 500px of the viewport empty on a normal screen. The nav
+                was never the thing taking up too much room. */}
+            <div className="w-full max-w-4xl mx-auto">
               {(title || action) && (
                 <div className="mb-4">
                   {title && <h1 className="text-lg font-semibold text-gray-900 tracking-tight">{title}</h1>}

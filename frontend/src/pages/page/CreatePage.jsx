@@ -292,15 +292,13 @@ export default function CreatePage() {
                       disabled={!done}
                       className={`flex items-center gap-1.5 text-[11.5px] font-semibold transition-colors ${
                         active ? "text-blue-700" : done ? "text-gray-600 hover:text-blue-700" : "text-gray-300"
-                      }`}
-                    >
+                      }`}>
                       <span
                         className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${
                           active ? "bg-blue-600 text-white"
                             : done ? "bg-green-100 text-green-700"
                             : "bg-gray-100 text-gray-400"
-                        }`}
-                      >
+                        }`}>
                         {done ? <FiCheck className="w-3 h-3" /> : s.id}
                       </span>
                       <span className="hidden sm:inline">{s.label}</span>
@@ -438,8 +436,7 @@ export default function CreatePage() {
                         id="page-industry"
                         className={inputCls}
                         value={form.industry}
-                        onChange={set("industry")}
-                      >
+                        onChange={set("industry")}>
                         <option value="">Select an industry</option>
                         {INDUSTRIES.map((i) => (
                           <option key={i} value={i}>{i}</option>
@@ -540,8 +537,7 @@ export default function CreatePage() {
                           key={size}
                           type="button"
                           onClick={() => setForm((p) => ({ ...p, company_size: p.company_size === size ? "" : size }))}
-                          className={optCls(form.company_size === size)}
-                        >
+                          className={optCls(form.company_size === size)}>
                           {size}
                         </button>
                       ))}
@@ -577,8 +573,7 @@ export default function CreatePage() {
                           key={value}
                           type="button"
                           onClick={() => setForm((p) => ({ ...p, company_type: p.company_type === value ? "" : value }))}
-                          className={optCls(form.company_type === value)}
-                        >
+                          className={optCls(form.company_type === value)}>
                           {label}
                         </button>
                       ))}

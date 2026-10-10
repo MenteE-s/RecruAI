@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
-import { getSidebarItems, verifyTokenWithServer } from "../../utils/auth";
+import { verifyTokenWithServer } from "../../utils/auth";
 import {
   FiTarget,
   FiClock,
@@ -16,8 +16,6 @@ import {
 
 export default function PracticeDashboard() {
   const role = typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
-  const plan = typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
-  const sidebarItems = getSidebarItems(role, plan);
   const [duration, setDuration] = useState(15);
   const [title, setTitle] = useState("Practice Interview");
   const [type, setType] = useState("text");
@@ -44,7 +42,7 @@ export default function PracticeDashboard() {
   };
 
   return (
-    <DashboardLayout sidebarItems={sidebarItems}>
+    <DashboardLayout >
       {/* Hero */}
       <div className="relative overflow-hidden rounded-2xl bg-gray-900 text-white mb-6">
         <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-transparent to-indigo-600/20" />

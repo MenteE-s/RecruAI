@@ -31,12 +31,12 @@ class Config:
         "postgresql://recruai:recruai_pass@localhost:5432/recruai",
     )
     # The entire stack is built on psycopg2 (psycopg2-binary in
-    # requirements.txt, pgvector.psycopg2 in app.py). A psycopg (v3)
-    # scheme from the host/secret — e.g. RDS_DATABASE_URL set to
-    # postgresql+psycopg://… on the EC2 deploy — installs no error
-    # until first DB touch, when SQLAlchemy asks the driver registry
-    # for "psycopg" and it isn't there. Normalize all v2/v3 variants
-    # to the driver actually installed.
+    # requirements.txt, pgvector.psycopg2 in app.py). A URL without an
+    # explicit driver is the dangerous case: SQLAlchemy 2.1 changed the
+    # default dialect of a bare "postgresql://" to psycopg (v3), so a
+    # clean-looking URL raised "ModuleNotFoundError: No module named
+    # 'psycopg'" at create_app() — dev (SQLAlchemy 2.0.x) never saw it.
+    # Pin the driver explicitly so the default dialect is irrelevant.
     if _db_url.startswith("postgresql+psycopg3://"):
         _db_url = "postgresql+psycopg2://" + _db_url[len("postgresql+psycopg3://"):]
     elif _db_url.startswith("postgresql+psycopg://"):
@@ -45,6 +45,10 @@ class Config:
         # asyncpg is asyncio-only; this app is sync. Same driver-swap
         # rationale.
         _db_url = "postgresql+psycopg2://" + _db_url[len("postgresql+asyncpg://"):]
+    elif _db_url.startswith("postgres://"):
+        _db_url = "postgresql+psycopg2://" + _db_url[len("postgres://"):]
+    elif _db_url.startswith("postgresql://"):
+        _db_url = "postgresql+psycopg2://" + _db_url[len("postgresql://"):]
     SQLALCHEMY_DATABASE_URI = _db_url
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 

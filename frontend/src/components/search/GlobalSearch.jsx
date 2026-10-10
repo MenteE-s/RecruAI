@@ -83,8 +83,7 @@ function Avatar({ kind, item }) {
     <div
       className={`w-7 h-7 rounded-full flex items-center justify-center text-white text-[11px] font-bold shrink-0 ${
         kind === "person" ? "bg-gradient-to-br from-blue-600 to-indigo-700" : "bg-gray-800"
-      }`}
-    >
+      }`}>
       {glyph}
     </div>
   );
@@ -261,8 +260,7 @@ export default function GlobalSearch({ placeholder = "Search people, companies, 
                       onClick={() => go(row.kind, row.item)}
                       className={`w-full text-left flex items-center gap-2.5 px-3.5 py-1.5 transition-colors ${
                         isActive ? "bg-blue-50" : "hover:bg-gray-50"
-                      }`}
-                    >
+                      }`}>
                       <Avatar kind={row.kind} item={row.item} />
                       <div className="min-w-0 flex-1">
                         <p className="text-xs font-semibold text-gray-900 truncate">

@@ -51,8 +51,7 @@ const RecommendationCard = ({
   return (
     <Card
       className={`group hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border-0 shadow-md cursor-pointer ${className}`}
-      onClick={onClick}
-    >
+      onClick={onClick}>
       <div className="p-6">
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center">

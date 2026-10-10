@@ -1,16 +1,24 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
-import { getSidebarItems, getBackendUrl, getUploadUrl, getAuthHeaders } from "../../utils/auth";
-import { FiMail, FiBriefcase, FiAward, FiBook, FiCode, FiFolder, FiFileText, FiHeart, FiGlobe, FiStar, FiArrowLeft, FiMapPin, FiCalendar, FiEdit2 } from "react-icons/fi";
+import { getBackendUrl, getUploadUrl, getAuthHeaders } from "../../utils/auth";
+import { FiMail, FiBriefcase, FiAward, FiBook, FiCode, FiFolder, FiFileText, FiHeart, FiGlobe, FiStar, FiArrowLeft, FiMapPin, FiCalendar, FiEdit2, FiCheckCircle } from "react-icons/fi";
 import EmploymentBadge, { employmentMeta } from "../../components/ui/EmploymentStatus";
+
+// Proficiency bars, keyed lowercase. Backend levels are canonical Title-Case
+// from the skill taxonomy, so the lookup normalizes rather than comparing
+// against lowercase literals (which is what this used to do, and why a
+// normalized "Expert" rendered as an empty grey bar).
+const LEVEL_BAR_CLASS = {
+  expert: "bg-green-600 w-full",
+  advanced: "bg-blue-600 w-4/5",
+  intermediate: "bg-amber-500 w-3/5",
+  beginner: "bg-gray-400 w-2/5",
+};
 
 export default function UserProfile() {
   const { userId } = useParams();
   const navigate = useNavigate();
-  const role = typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
-  const plan = typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
-  const sidebarItems = getSidebarItems(role, plan);
   const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -68,7 +76,7 @@ export default function UserProfile() {
 
   if (loading) {
     return (
-      <DashboardLayout sidebarItems={sidebarItems}>
+      <DashboardLayout >
         <div className="space-y-4">
           <div className="rounded-2xl bg-gray-900 h-64 animate-pulse" />
           <div className="grid grid-cols-3 gap-4">
@@ -81,7 +89,7 @@ export default function UserProfile() {
   }
   if (error) {
     return (
-      <DashboardLayout sidebarItems={sidebarItems}>
+      <DashboardLayout >
         <div className="max-w-4xl mx-auto p-6">
           <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 mb-4"><FiArrowLeft className="w-4 h-4" /> Back</button>
           <div className="bg-white border border-gray-200 p-12 text-center">
@@ -96,7 +104,7 @@ export default function UserProfile() {
   const { user, experiences, educations, skills, projects, publications, awards, certifications, languages, social_media_links, team_member_info, is_team_member, hired_organizations } = profileData;
 
   return (
-    <DashboardLayout sidebarItems={sidebarItems}>
+    <DashboardLayout >
       {/* Back + own-profile edit */}
       <div className="flex items-center justify-between mb-4">
         <button onClick={() => navigate(-1)} className="inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900"><FiArrowLeft className="w-4 h-4" /> Back</button>
@@ -161,8 +169,21 @@ export default function UserProfile() {
               <div className="mt-4 space-y-3">
                 {skills.map((skill) => (
                   <div key={skill.id}>
-                    <div className="flex justify-between text-sm"><span className="font-medium text-gray-900">{skill.name}</span><span className="text-xs text-gray-500 capitalize">{skill.level}</span></div>
-                    <div className="mt-1 h-1.5 bg-gray-100"><div className={`h-1.5 ${skill.level === "expert" ? "bg-green-600 w-full" : skill.level === "advanced" ? "bg-blue-600 w-4/5" : skill.level === "intermediate" ? "bg-amber-500 w-3/5" : "bg-gray-400 w-2/5"}`} /></div>
+                    <div className="flex justify-between text-sm">
+                      <span className="font-medium text-gray-900">
+                        {skill.name}
+                        {skill.verified && (
+                          <span className="ml-1.5 inline-flex items-center gap-0.5 align-middle text-[10px] font-semibold text-green-700 bg-green-50 border border-green-200 px-1 py-px rounded" title={skill.evidence_source === "assessment" ? "Level confirmed by a skills assessment" : `Backed by ${String(skill.evidence_source || "").replace(/_/g, " ")}`}>
+                            <FiCheckCircle className="w-2.5 h-2.5" /> Verified
+                          </span>
+                        )}
+                      </span>
+                      <span className="text-xs text-gray-500 capitalize">{skill.level}</span>
+                    </div>
+                    {/* Levels are canonical Title-Case from the backend taxonomy
+                        (BEGINNER/EXPERT etc.), so compare case-insensitively
+                        rather than against lowercase literals. */}
+                    <div className="mt-1 h-1.5 bg-gray-100"><div className={`h-1.5 ${LEVEL_BAR_CLASS[(skill.level || "").toLowerCase()] || "bg-gray-400 w-2/5"}`} /></div>
                   </div>
                 ))}
               </div>

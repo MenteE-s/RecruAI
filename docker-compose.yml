@@ -114,6 +114,104 @@ services:
       timeout: 5s
       retries: 3
 
+  # Optional: the API itself, in Docker.
+  #
+  # The usual dev loop runs the API on the host from backend/.venv, which is
+  # faster to reload and easier to step through, so this is behind a profile and
+  # never starts unless asked:
+  #   docker compose --profile app up -d --build backend
+  #
+  # DATABASE_URL and REDIS_URL are set explicitly rather than interpolated,
+  # and they are literals on purpose.
+  #
+  # The root .env carries DB_NAME=recruai_dev, but the db service above
+  # hardcodes POSTGRES_DB=recruai and the existing volume holds a database named
+  # `recruai`. Interpolating ${DB_NAME} here silently produced a connection to a
+  # database that has never existed, and the failure surfaced as a migration
+  # crash rather than as a config mistake. Pinning to what db actually creates
+  # removes the second source of truth.
+  #
+  # They are also overridden at all: backend/.env points at 127.0.0.1, which is
+  # the host from the app's point of view but this container's own loopback.
+  migrate:
+    profiles: ["app"]
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    image: recruai_backend:dev
+    container_name: recruai_migrate_dev
+    restart: "no"
+    env_file:
+      - ./backend/.env
+    environment:
+      DATABASE_URL: postgresql+psycopg2://recruai:recruai_pass@db:5432/recruai
+      REDIS_URL: redis://redis:6379/0
+      # Without this the Kafka client falls back to localhost:9092, which inside
+      # the container is itself, and the logs fill with reconnect errors that
+      # look like a fault but are only a missing env var.
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      KAFKA_DEFAULT_TOPIC: recruai_events
+    command: ["sh", "-c", "flask --app backend.app db upgrade --directory backend/migrations"]
+    depends_on:
+      db:
+        condition: service_healthy
+
+  backend:
+    profiles: ["app"]
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    image: recruai_backend:dev
+    container_name: recruai_backend_dev
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    environment:
+      PORT: 8000
+      DATABASE_URL: postgresql+psycopg2://recruai:recruai_pass@db:5432/recruai
+      REDIS_URL: redis://redis:6379/0
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      KAFKA_DEFAULT_TOPIC: recruai_events
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -H 'X-Forwarded-Proto: https' -o /dev/null http://localhost:8000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      start_period: 40s
+      retries: 3
+
+  # CVAI content: question bank -> quizzes -> projects. Idempotent, and behind
+  # its own profile so it never runs on `up`:
+  #   docker compose --profile seed run --rm cvai-seed
+  cvai-seed:
+    profiles: ["seed"]
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    image: recruai_backend:dev
+    container_name: recruai_cvai_seed_dev
+    restart: "no"
+    env_file:
+      - ./backend/.env
+    environment:
+      DATABASE_URL: postgresql+psycopg2://recruai:recruai_pass@db:5432/recruai
+      REDIS_URL: redis://redis:6379/0
+    command:
+      - sh
+      - -c
+      - "python scripts/seed_skill_questions.py && python scripts/seed_quizzes.py && python scripts/seed_guided_projects.py"
+    depends_on:
+      db:
+        condition: service_healthy
+
   # Recording worker for dev (bind-mounted so host backend can serve /uploads/recordings/*).
   egress:
     image: livekit/egress:v1.8.4

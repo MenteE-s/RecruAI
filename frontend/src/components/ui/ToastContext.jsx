@@ -44,8 +44,7 @@ export function ToastProvider({ children }) {
                   : t.type === "success"
                   ? "bg-green-600 text-white border-green-700"
                   : "bg-white text-neutral-900 border-secondary-200"
-              }`}
-            >
+              }`}>
               <div className="text-sm">{t.message}</div>
             </div>
           ))}
@@ -64,8 +63,7 @@ export function ToastProvider({ children }) {
                   : t.type === "success"
                   ? "bg-emerald-600 text-white border-emerald-700"
                   : "bg-white text-neutral-900 border-secondary-200"
-              }`}
-            >
+              }`}>
               <div className="text-base font-medium">{t.message}</div>
             </div>
           ))}

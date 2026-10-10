@@ -133,6 +133,14 @@ def delete_education(edu_id):
 
     return jsonify({'message': 'Education record deleted successfully'}), 200
 
+# Fields a client may set on its own skills. Everything else is server-owned:
+# verified / evidence_source / evidence_detail / last_assessed_at are written
+# only by the assessment write-back, and letting a client set them would let
+# anyone mark their own skill "verified by assessment" without taking a test.
+CLIENT_SETTABLE_SKILL_FIELDS = frozenset({'name', 'level', 'years_experience',
+                                           'skill_slug'})
+
+
 # Skills endpoints
 @api_bp.route('/profile/skills', methods=['GET'])
 @jwt_required()
@@ -145,18 +153,43 @@ def get_skills():
 @api_bp.route('/profile/skills', methods=['POST'])
 @jwt_required()
 def create_skill():
-    """Create a new skill"""
+    """Create a new skill.
+
+    The slug is resolved from the taxonomy when the client does not send a
+    valid one, so a user typing "Postgres" gets a skill the rest of CVAI can
+    count. An uncatalogued name is still accepted with a NULL slug rather than
+    rejected: refusing to let someone list a skill we have never heard of is a
+    worse failure than storing it uncatalogued.
+    """
     user_id = int(get_jwt_identity())
     data = request.get_json()
 
     if not data or 'name' not in data:
         return jsonify({'error': 'Missing required fields'}), 400
 
+    name = (data.get('name') or '').strip()
+    if not name:
+        return jsonify({'error': 'Skill name cannot be empty'}), 400
+
+    from ...utils.skill_taxonomy import normalize_level, resolve
+    from ...models.skill import EVIDENCE_SELF_DECLARED
+
+    entry = resolve(data.get('skill_slug') or name)
+    level = normalize_level(data.get('level'))
+    if data.get('level') and level is None:
+        return jsonify({
+            'error': 'level must be one of: Beginner, Intermediate, Advanced, Expert'
+        }), 400
+
     skill = Skill(
         user_id=user_id,
-        name=data['name'],
-        level=data.get('level'),
-        years_experience=data.get('years_experience')
+        name=name,
+        skill_slug=entry['slug'] if entry else None,
+        level=level,
+        years_experience=data.get('years_experience'),
+        evidence_source=EVIDENCE_SELF_DECLARED,
+        # A skill someone just typed is a claim, never evidence.
+        verified=False,
     )
 
     db.session.add(skill)
@@ -174,9 +207,30 @@ def update_skill(skill_id):
     if not skill:
         return jsonify({'error': 'Skill not found'}), 404
 
-    data = request.get_json()
+    data = request.get_json() or {}
+    from ...utils.skill_taxonomy import normalize_level, resolve
+
     for key, value in data.items():
-        if key not in ('id', 'user_id', 'created_at', 'updated_at', 'organization_id') and hasattr(skill, key):
+        if key not in CLIENT_SETTABLE_SKILL_FIELDS:
+            continue
+        if key == 'level':
+            canonical = normalize_level(value)
+            if value and canonical is None:
+                return jsonify({
+                    'error': 'level must be one of: Beginner, Intermediate, Advanced, Expert'
+                }), 400
+            # Only overwrite a measurement with another measurement: an edit by
+            # the user must not quietly discard an assessment result.
+            if skill.evidence_source == 'assessment' and skill.verified and value:
+                return jsonify({
+                    'error': 'This skill level comes from an assessment and cannot be '
+                             'edited by hand. Retake the assessment to change it.'
+                }), 409
+            skill.level = canonical
+        elif key == 'skill_slug':
+            entry = resolve(value) if value else None
+            skill.skill_slug = entry['slug'] if entry else None
+        else:
             setattr(skill, key, value)
 
     db.session.commit()

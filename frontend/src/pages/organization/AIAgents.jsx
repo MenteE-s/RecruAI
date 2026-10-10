@@ -1,14 +1,11 @@
 import React, { useCallback, useState, useEffect } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
-import { getSidebarItems, verifyTokenWithServer, getBackendUrl, getAuthHeaders } from "../../utils/auth";
+import { verifyTokenWithServer, getBackendUrl, getAuthHeaders } from "../../utils/auth";
 import { useToast } from "../../components/ui/ToastContext";
 import { formatDate } from "../../utils/timezone";
 import { FiCpu, FiPlus, FiEdit2, FiTrash2, FiPlay, FiCalendar, FiAlertCircle } from "react-icons/fi";
 
 export default function AIAgents() {
-  const role = typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
-  const plan = typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
-  const sidebarItems = getSidebarItems(role, plan);
   const { showToast } = useToast();
   const [agents, setAgents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -86,7 +83,7 @@ export default function AIAgents() {
   const getInitials = (name) => name ? name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase() : "AI";
 
   return (
-    <DashboardLayout sidebarItems={sidebarItems}>
+    <DashboardLayout >
       {/* Hero */}
       <div className="relative overflow-hidden rounded-2xl bg-gray-900 text-white mb-6">
         <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-transparent to-indigo-600/20" />

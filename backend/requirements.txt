@@ -3,6 +3,11 @@ Flask-SQLAlchemy>=3.0
 Flask-Migrate>=4.0
 python-dotenv>=1.0
 psycopg2-binary>=2.9
+# Pin below 2.1: 2.1 changed the default dialect of a bare "postgresql://"
+# URL to psycopg (v3), which is not installed here, so create_app() died with
+# "ModuleNotFoundError: No module named 'psycopg'". config.py now forces the
+# psycopg2 driver explicitly; this pin keeps builds reproducible.
+SQLAlchemy>=2.0,<2.1
 Flask-JWT-Extended>=4.5
 Flask-Cors>=4.0
 Flask-Limiter>=3.5

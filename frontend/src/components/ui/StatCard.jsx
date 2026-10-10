@@ -63,8 +63,7 @@ export default function StatCard({
               trend === "up"
                 ? "bg-green-50 text-green-600"
                 : "bg-red-50 text-red-600"
-            }`}
-          >
+            }`}>
             {trend === "up" ? "↑" : "↓"} &nbsp; {change}
           </p>
         )}

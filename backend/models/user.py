@@ -4,6 +4,11 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from backend.extensions import db
 from backend.utils.timezone_utils import utc_iso
 
+# Every account gets this much AI spend while there is no billing. Lives here
+# rather than in ai_budget.py because the column default needs it at class
+# definition time, and ai_budget imports from this module.
+DEFAULT_TOKEN_ALLOWANCE = 50_000
+
 
 class User(db.Model):
     __tablename__ = "users"
@@ -22,6 +27,13 @@ class User(db.Model):
     trial_start_date = db.Column(db.DateTime, nullable=True, default=datetime.utcnow)
     paid_plan = db.Column(db.Boolean, nullable=True, default=False)
     tokens_used = db.Column(db.Integer, nullable=True, default=0)
+    # Total tokens this account may ever spend on AI, regardless of tier. Set to
+    # 50k for every account (existing and new) while there is no billing, so
+    # nobody is locked out of the AI features during testing. Adjust per account
+    # with scripts/grant_subscription.py --tokens N.
+    token_allowance = db.Column(db.Integer, nullable=False,
+                                default=DEFAULT_TOKEN_ALLOWANCE,
+                                server_default=str(DEFAULT_TOKEN_ALLOWANCE))
     interviews_count = db.Column(db.Integer, nullable=True, default=0)
     # optional organization FK
     organization_id = db.Column(db.Integer, db.ForeignKey("organizations.id"), nullable=True)
@@ -226,7 +238,16 @@ class User(db.Model):
         return self.subscription_status == "active" and self.paid_plan
 
     def can_access_feature(self, feature: str) -> bool:
-        """Check if user can access a specific feature based on subscription"""
+        """Check if user can access a specific feature based on subscription.
+
+        The order matters and encodes the product rule: paying unlocks
+        everything, an unexpired trial unlocks everything (a trial exists to
+        demonstrate the paid thing), and a lapsed account falls back to the
+        basics. No CVAI key is in that basic list, which is what makes
+        "subscribe to get CVAI" true rather than aspirational.
+        """
+        from backend.utils.subscription import BASIC_INDIVIDUAL_FEATURES
+
         if self.is_subscription_active():
             return True
 
@@ -235,8 +256,7 @@ class User(db.Model):
             return True
 
         # Trial expired - restrict features
-        basic_features = ["profile_management", "job_search", "basic_matching"]
-        return feature in basic_features
+        return feature in BASIC_INDIVIDUAL_FEATURES
 
     def can_schedule_interview(self) -> bool:
         """Check if user can schedule more interviews"""

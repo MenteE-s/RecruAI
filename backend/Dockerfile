@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements and install Python dependencies
-COPY requirements.txt .
+COPY backend/requirements.txt .
 RUN pip install --no-cache-dir --user -r requirements.txt
 
 # Stage 2: Runtime
@@ -36,8 +36,16 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     FLASK_APP=backend.app \
     PYTHONPATH=/app
 
-# Copy application code into /app/backend to support package imports
-COPY . /app/backend
+# Copy application code into /app/backend to support package imports.
+#
+# Build context is the REPOSITORY ROOT, so both paths are relative to it. This
+# changed from `COPY . /app/backend` because the context used to be ./backend,
+# which left scripts/ out of the image entirely — including
+# grant_subscription.py, which is the only way to make an account a subscriber
+# while billing is deferred, and which therefore has to be runnable in the
+# deployed container. See .dockerignore at the repo root for what is kept out.
+COPY backend/ /app/backend/
+COPY scripts/ /app/scripts/
 
 # Create non-root user for security
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
@@ -48,9 +56,17 @@ ARG PORT=8000
 ENV PORT=${PORT}
 EXPOSE ${PORT}
 
-# Health check - uses PORT env var
+# Health check - uses PORT env var.
+#
+# X-Forwarded-Proto matters. Flask-Talisman runs with force_https in production
+# and redirects any request it believes is plain http, so /api/health answered
+# 302 from inside the container. `curl -f` treats 3xx as success, so this check
+# reported "healthy" without the app or the database ever answering — a dead
+# database looked fine. Sending the header nginx already sets in front of us
+# makes this request look like the production one, and the check becomes real:
+# verified that it returns 503 when the database is genuinely unreachable.
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD sh -c "curl -f http://localhost:${PORT}/api/health || exit 1"
+    CMD sh -c "curl -fsS -H 'X-Forwarded-Proto: https' -o /dev/null http://localhost:${PORT}/api/health || exit 1"
 
 # Run the application with gunicorn - bind port from .env PORT
 # NOTE: factory target must be quoted — bare create_app() parens are

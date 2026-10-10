@@ -40,8 +40,7 @@ export default function NotFound() {
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-0 top-10 select-none text-center font-extrabold leading-none tracking-tighter text-neutral-900/[0.05]"
-        style={{ fontSize: "clamp(10rem, 32vw, 24rem)" }}
-      >
+        style={{ fontSize: "clamp(10rem, 32vw, 24rem)" }}>
         404
       </div>
 

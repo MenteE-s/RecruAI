@@ -17,7 +17,7 @@ export default function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col overflow-hidden">
-      <Header sidebarItems={sidebarItems} />
+      <Header />
 
       <main className="flex-1 overflow-y-auto overflow-x-hidden scroll-smooth px-3 md:px-4 py-3">
         <div className="w-full max-w-5xl mx-auto">

@@ -576,8 +576,7 @@ export default function InterviewDetail() {
                                         star <= round.rating
                                           ? "text-yellow-400"
                                           : "text-gray-300"
-                                      }`}
-                                    >
+                                      }`}>
                                       ★
                                     </span>
                                   ))}
@@ -684,8 +683,7 @@ export default function InterviewDetail() {
                   <button
                     onClick={loadConversation}
                     className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
-                    disabled={chatLoading}
-                  >
+                    disabled={chatLoading}>
                     Refresh
                   </button>
                 </div>
@@ -716,15 +714,13 @@ export default function InterviewDetail() {
                             key={msg.id}
                             className={`flex ${
                               alignRight ? "justify-end" : "justify-start"
-                            }`}
-                          >
+                            }`}>
                             <div
                               className={`max-w-[75%] px-4 py-2 rounded-2xl text-sm shadow-sm ${
                                 alignRight
                                   ? "bg-blue-600 text-white rounded-br-md"
                                   : "bg-white text-gray-900 border border-gray-200 rounded-bl-md"
-                              }`}
-                            >
+                              }`}>
                               <div className="whitespace-pre-wrap break-words">
                                 {msg.content}
                               </div>
@@ -733,8 +729,7 @@ export default function InterviewDetail() {
                                   alignRight
                                     ? "text-blue-100 text-right"
                                     : "text-gray-500"
-                                }`}
-                              >
+                                }`}>
                                 {msg.sender_name}
                                 {msg.created_at
                                   ? <> • <DualTime value={msg.created_at} variant="compact" showRelative={false} /></>

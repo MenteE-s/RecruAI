@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
-import { getSidebarItems, getBackendUrl, getAuthHeaders, getCurrentUserId } from "../../utils/auth";
+import { getBackendUrl, getAuthHeaders, getCurrentUserId } from "../../utils/auth";
 import { formatDate } from "../../utils/timezone";
 import DualTime from "../../components/ui/DualTime";
 import {
@@ -22,9 +22,6 @@ import {
 
 export default function Analytics() {
   const navigate = useNavigate();
-  const role = typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
-  const plan = typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
-  const sidebarItems = getSidebarItems(role, plan);
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState(null);
@@ -54,7 +51,7 @@ export default function Analytics() {
 
   if (loading) {
     return (
-      <DashboardLayout sidebarItems={sidebarItems}>
+      <DashboardLayout >
         <div className="space-y-4 mt-6">
           <div className="flex items-center gap-3">
             <div className="h-10 w-[320px] bg-gray-200 animate-pulse rounded-lg" />
@@ -74,7 +71,7 @@ export default function Analytics() {
   const hasData = analytics && analytics.total_interviews > 0;
 
   return (
-    <DashboardLayout sidebarItems={sidebarItems}>
+    <DashboardLayout >
       {/* Filter */}
       <div className="flex items-center gap-3 mb-4 mt-6">
         <div className="relative flex-1 max-w-xl min-w-[260px]">

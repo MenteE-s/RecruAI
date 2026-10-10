@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
-import { getSidebarItems, getBackendUrl, getAuthHeaders } from "../../utils/auth";
+import { getBackendUrl, getAuthHeaders } from "../../utils/auth";
 import { useToast } from "../../components/ui/ToastContext";
 import { COUNTRIES, CURRENCIES, formatSalaryRange, splitLocation, joinLocation } from "../../utils/jobMeta";
 import {
@@ -20,9 +20,6 @@ import {
 export default function JobPostDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const role = typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
-  const plan = typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
-  const sidebarItems = getSidebarItems(role, plan);
   const { showToast } = useToast();
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -128,7 +125,7 @@ export default function JobPostDetails() {
 
   if (loading) {
     return (
-      <DashboardLayout sidebarItems={sidebarItems}>
+      <DashboardLayout >
         <div className="space-y-4">
           <div className="h-8 bg-gray-100 w-32 animate-pulse" />
           <div className="rounded-2xl bg-gray-900 h-48 animate-pulse" />
@@ -140,7 +137,7 @@ export default function JobPostDetails() {
 
   if (!post) {
     return (
-      <DashboardLayout sidebarItems={sidebarItems}>
+      <DashboardLayout >
         <div className="bg-white border border-gray-200 p-12 text-center">
           <p className="text-sm text-gray-500">Job post not found</p>
           <button onClick={() => navigate("/org/jobs")} className="mt-4 text-sm text-blue-600 hover:text-blue-700">
@@ -152,7 +149,7 @@ export default function JobPostDetails() {
   }
 
   return (
-    <DashboardLayout sidebarItems={sidebarItems}>
+    <DashboardLayout >
       <button onClick={() => navigate("/org/jobs")} className="inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900 mb-4">
         <FiArrowLeft className="w-4 h-4" /> Back to job posts
       </button>

@@ -50,8 +50,7 @@ export default function FollowButton({ orgId, size = "sm", onChange }) {
       <button
         onClick={toggle}
         disabled={busy}
-        className={`inline-flex items-center gap-1 font-semibold rounded-full border border-gray-300 bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors disabled:opacity-60 ${cls}`}
-      >
+        className={`inline-flex items-center gap-1 font-semibold rounded-full border border-gray-300 bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors disabled:opacity-60 ${cls}`}>
         <FiCheck className="w-3.5 h-3.5" /> Following
       </button>
     );
@@ -60,8 +59,7 @@ export default function FollowButton({ orgId, size = "sm", onChange }) {
     <button
       onClick={toggle}
       disabled={busy}
-      className={`inline-flex items-center gap-1 font-semibold rounded-full border border-blue-600 text-blue-600 hover:bg-blue-50 transition-colors disabled:opacity-60 ${cls}`}
-    >
+      className={`inline-flex items-center gap-1 font-semibold rounded-full border border-blue-600 text-blue-600 hover:bg-blue-50 transition-colors disabled:opacity-60 ${cls}`}>
       <FiPlus className="w-3.5 h-3.5" /> Follow
     </button>
   );

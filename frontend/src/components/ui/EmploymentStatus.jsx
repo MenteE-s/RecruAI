@@ -48,8 +48,7 @@ export default function EmploymentBadge({ status, className = "" }) {
   return (
     <span
       title={meta.verified ? "Verified by hiring organization" : "Looking for opportunities"}
-      className={`inline-flex items-center gap-1 text-xs font-semibold border px-2 py-0.5 rounded-full ${meta.chip} ${className}`}
-    >
+      className={`inline-flex items-center gap-1 text-xs font-semibold border px-2 py-0.5 rounded-full ${meta.chip} ${className}`}>
       {meta.verified && <FiCheckCircle className="w-3 h-3" />}
       {meta.label}
       {meta.verified && <span className="font-normal opacity-75">· Verified</span>}

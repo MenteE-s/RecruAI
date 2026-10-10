@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
-import { getSidebarItems, getBackendUrl, getAuthHeaders, getUploadUrl, getCurrentUser, orgPath, postPath } from "../../utils/auth";
+import { getBackendUrl, getAuthHeaders, getUploadUrl, getCurrentUser, orgPath, postPath } from "../../utils/auth";
 import { useToast } from "../../components/ui/ToastContext";
 import MenteeLoader from "../../components/ui/MenteeLoader";
 import {
@@ -46,9 +46,7 @@ function truncateText(text, max = 110) {
 export default function IndividualDashboard() {
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const role = typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
   const plan = typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
-  const sidebarItems = getSidebarItems(role, plan);
 
   const [userData, setUserData] = useState(null);
   const [jobs, setJobs] = useState([]);
@@ -328,7 +326,7 @@ export default function IndividualDashboard() {
   }, [jobs]);
 
   return (
-    <DashboardLayout sidebarItems={sidebarItems}>
+    <DashboardLayout >
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 lg:gap-4 w-full max-w-5xl mx-auto justify-center">
         {/* Left column — Contact / profile card (real data, compact) */}
         <aside className="lg:col-span-3 space-y-3 order-2 lg:order-1">
@@ -748,8 +746,7 @@ export default function IndividualDashboard() {
                   onClick={() => c.id && navigate(orgPath(c))}
                   disabled={!c.id}
                   title={c.id ? `View ${c.name}` : c.name}
-                  className={`w-full flex items-center gap-2 py-2 text-left ${c.id ? "group cursor-pointer" : "cursor-default"}`}
-                >
+                  className={`w-full flex items-center gap-2 py-2 text-left ${c.id ? "group cursor-pointer" : "cursor-default"}`}>
                   {c.image ? (
                     <img
                       src={getUploadUrl(c.image)}

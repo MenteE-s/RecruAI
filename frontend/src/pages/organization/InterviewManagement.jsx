@@ -5,7 +5,7 @@ import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
 import Card from "../../components/ui/Card";
 import { FiPlayCircle, FiCalendar, FiCheckCircle, FiXCircle } from "react-icons/fi";
 import {
-  getSidebarItems,
+
   getBackendUrl,
   getAuthHeaders,
   getUploadUrl,
@@ -416,8 +416,7 @@ const ScheduleInterviewModal = ({
                     className="border border-yellow-200 bg-yellow-50 rounded-lg p-3 cursor-pointer hover:bg-yellow-100 transition-colors"
                     onClick={() =>
                       setFormData({ ...formData, ai_agent_id: agent.agent_id })
-                    }
-                  >
+                    }>
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="flex items-center gap-2">
@@ -568,8 +567,7 @@ const MakeDecisionModal = ({ isOpen, onClose, onSave, saving, interview }) => {
                     decision === option.value
                       ? `border-${option.color}-500 bg-${option.color}-50`
                       : "border-gray-200"
-                  }`}
-                >
+                  }`}>
                   <input
                     type="radio"
                     name="decision"
@@ -719,8 +717,7 @@ const CancelInterviewModal = ({
           type="button"
           onClick={onClose}
           className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-          disabled={saving}
-        >
+          disabled={saving}>
           Keep Interview
         </button>
         <button
@@ -780,8 +777,7 @@ const AssignAIAgentModal = ({ isOpen, onClose, onAssign, agents, saving }) => {
                     selectedAgentId === agent.id.toString()
                       ? "border-purple-500 bg-purple-50"
                       : "border-gray-200"
-                  }`}
-                >
+                  }`}>
                   <input
                     type="radio"
                     name="aiAgent"
@@ -1044,11 +1040,6 @@ const EditInterviewModal = ({ isOpen, onClose, onSave, saving, interview }) => {
 
 export default function InterviewManagement() {
   const navigate = useNavigate();
-  const role =
-    typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
-  const plan =
-    typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
-  const sidebarItems = getSidebarItems(role, plan);
 
   const [interviews, setInterviews] = useState([]);
   const [organizationId, setOrganizationId] = useState(null);
@@ -1381,8 +1372,7 @@ export default function InterviewManagement() {
       const decision = decisionLabels[interview.final_decision];
       return (
         <span
-          className={`px-2 py-1 bg-${decision.color}-100 text-${decision.color}-800 text-xs rounded-full`}
-        >
+          className={`px-2 py-1 bg-${decision.color}-100 text-${decision.color}-800 text-xs rounded-full`}>
           {decision.text}
         </span>
       );
@@ -1701,8 +1691,7 @@ export default function InterviewManagement() {
                           star <= interview.rating
                             ? "text-yellow-400"
                             : "text-gray-300"
-                        }`}
-                      >
+                        }`}>
                         ★
                       </span>
                     ))}
@@ -1744,8 +1733,7 @@ export default function InterviewManagement() {
                                   : decision.decision === "third_round"
                                   ? "bg-purple-100 text-purple-800"
                                   : "bg-gray-100 text-gray-800"
-                              }`}
-                            >
+                              }`}>
                               {decision.decision === "passed" && "✅ Passed"}
                               {decision.decision === "failed" && "❌ Failed"}
                               {decision.decision === "second_round" &&
@@ -1772,8 +1760,7 @@ export default function InterviewManagement() {
                                       star <= decision.rating
                                         ? "text-yellow-400"
                                         : "text-gray-300"
-                                    }`}
-                                  >
+                                    }`}>
                                     ★
                                   </span>
                                 ))}
@@ -1871,9 +1858,7 @@ export default function InterviewManagement() {
   if (loading) {
     return (
       <DashboardLayout
-        NavbarComponent={OrganizationNavbar}
-        sidebarItems={sidebarItems}
-      >
+        NavbarComponent={OrganizationNavbar}>
         <div className="flex justify-center items-center py-12">
           <div className="text-gray-500">Loading interviews...</div>
         </div>
@@ -1883,9 +1868,7 @@ export default function InterviewManagement() {
 
   return (
     <DashboardLayout
-      NavbarComponent={OrganizationNavbar}
-      sidebarItems={sidebarItems}
-    >
+      NavbarComponent={OrganizationNavbar}>
       {/* Error Message */}
       {error && (
         <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
@@ -2017,8 +2000,7 @@ export default function InterviewManagement() {
                   selectedInterviews.length > 0 && !saving
                     ? "bg-red-600 text-white hover:bg-red-700"
                     : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                }`}
-              >
+                }`}>
                 Delete ({selectedInterviews.length})
               </button>
               <button
@@ -2044,8 +2026,7 @@ export default function InterviewManagement() {
               showSections.inProgress
                 ? "bg-orange-600 text-white border-orange-600"
                 : "bg-white text-orange-700 border-orange-200 hover:bg-orange-50"
-            }`}
-          >
+            }`}>
             <FiPlayCircle className="w-4 h-4" />
             In Progress
           </button>
@@ -2055,8 +2036,7 @@ export default function InterviewManagement() {
               showSections.scheduled
                 ? "bg-blue-600 text-white border-blue-600"
                 : "bg-white text-blue-700 border-blue-200 hover:bg-blue-50"
-            }`}
-          >
+            }`}>
             <FiCalendar className="w-4 h-4" />
             Scheduled
           </button>
@@ -2066,8 +2046,7 @@ export default function InterviewManagement() {
               showSections.completed
                 ? "bg-green-600 text-white border-green-600"
                 : "bg-white text-green-700 border-green-200 hover:bg-green-50"
-            }`}
-          >
+            }`}>
             <FiCheckCircle className="w-4 h-4" />
             Completed
           </button>
@@ -2077,8 +2056,7 @@ export default function InterviewManagement() {
               showSections.cancelled
                 ? "bg-red-600 text-white border-red-600"
                 : "bg-white text-red-700 border-red-200 hover:bg-red-50"
-            }`}
-          >
+            }`}>
             <FiXCircle className="w-4 h-4" />
             Cancelled/No Show
           </button>

@@ -68,8 +68,7 @@ export default function PageSettings() {
             <span
               className={`ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded ${
                 isPaid ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
-              }`}
-            >
+              }`}>
               {isPaid ? "PRO" : isTrial ? "TRIAL" : "EXPIRED"}
             </span>
           </div>

@@ -19,8 +19,7 @@ export default function PersonalInfoModal({ isOpen, onClose, data, onSave, savin
             website: formData.get("website"),
             linkedin: formData.get("linkedin"),
           });
-        }}
-      >
+        }}>
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>

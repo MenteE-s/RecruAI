@@ -296,6 +296,57 @@ def create_app(config_object: object | None = None):
 		# Omnibox fires on every keystroke (the client debounces), and each call
 		# fans out to three queries.
 		_limit("api.universal_search", "60 per minute")
+		# Skill taxonomy typeahead: same keystroke pattern as search, but the
+		# payload is static reference data so it can be generous.
+		_limit("api.get_skill_taxonomy", "120 per minute")
+		# Skill resolution runs a phrase matcher over caller-supplied text, so
+		# cap it rather than letting it be an amplifier.
+		_limit("api.resolve_skill", "60 per minute")
+		# Assessment lifecycle: starting an attempt and submitting are the
+		# writes that produce the evidence everything else trusts.
+		_limit("api.start_skill_assessment", "20 per minute")
+		_limit("api.submit_skill_assessment", "30 per minute")
+		# Authoring writes into the shared bank that everyone is measured
+		# against, so it is far tighter than a per-user read.
+		_limit("api.create_skill_question", "60 per hour")
+		_limit("api.update_skill_question", "60 per hour")
+		# Mentorship: plan generation and regeneration each call the model, so
+		# they are the most expensive CVAI surface there is.
+		_limit("api.create_mentorship_plan", "10 per hour")
+		_limit("api.regenerate_mentorship_plan", "10 per hour")
+		# Progress tracking calls no model and must stay cheap to record.
+		_limit("api.list_mentorship_plans", "60 per minute")
+		_limit("api.get_mentorship_plan", "60 per minute")
+		_limit("api.update_mentorship_step", "120 per minute")
+		# Progress views call no model and are polled while a step is open.
+		_limit("api.get_mentorship_progress", "60 per minute")
+		_limit("api.get_learner_progress", "60 per minute")
+		# Suggestions call no model; polled whenever the CVAI panel is open.
+		_limit("api.get_mentorship_suggestions", "60 per minute")
+		# Quizzes call no model, but an attempt is a long piece of work worth
+		# keeping on a tight leash: no reason to start many in a minute.
+		_limit("api.list_quizzes", "60 per minute")
+		_limit("api.get_quiz", "60 per minute")
+		_limit("api.start_quiz_attempt", "20 per minute")
+		_limit("api.submit_quiz_attempt", "30 per minute")
+		_limit("api.list_quiz_attempts", "60 per minute")
+		# Guided projects. The review endpoint calls a model, so it is the
+		# tightest limit in CVAI: a retry storm must not become a bill.
+		_limit("api.list_guided_projects", "60 per minute")
+		_limit("api.get_guided_project", "60 per minute")
+		_limit("api.start_guided_project", "20 per minute")
+		_limit("api.save_guided_project_progress", "120 per minute")  # autosave
+		_limit("api.submit_guided_project", "10 per minute")
+		_limit("api.retry_guided_project_review", "5 per minute")
+		_limit("api.list_guided_project_attempts", "60 per minute")
+		# Mock interviews. The review endpoint costs a model call per attempt, so
+		# it is the tightest limit in CVAI.
+		_limit("api.mock_interview_meta", "60 per minute")
+		_limit("api.start_mock_interview", "10 per minute")
+		_limit("api.answer_mock_interview", "120 per minute")   # one per turn
+		_limit("api.mock_interview_feedback", "10 per minute")
+		_limit("api.abandon_mock_interview", "20 per minute")
+		_limit("api.list_mock_interviews", "60 per minute")
 
 	# Register practice AI agents blueprint separately to avoid circular imports
 	try:
@@ -532,4 +583,17 @@ if __name__ == "__main__":
 	# quick dev runner - PORT read from backend/.env (no hardcoded fallback duplicated).
 	# Debug defaults OFF and is forced off in production; opt in with FLASK_DEBUG=1.
 	_debug = os.getenv("FLASK_DEBUG", "0") == "1" and not app.config.get("IS_PRODUCTION")
-	app.run(host="0.0.0.0", port=app.config.get("PORT", int(os.getenv("PORT", "8000"))), debug=_debug)
+
+	# Bind IPv4 (0.0.0.0), not "::".
+	#
+	# This was briefly "::" to fix a browser that resolved `localhost` to ::1 and
+	# got connection-refused. That made it worse, not better: on Windows a socket
+	# bound to :: is IPv6-ONLY, so 127.0.0.1 stopped answering while ::1 started.
+	# Linux (Docker, production) does treat :: as dual-stack, so the "fix" appeared
+	# to work in a container and failed on the machine that matters.
+	#
+	# The real fix is not here. frontend/.env names 127.0.0.1 explicitly, so the
+	# browser never has to resolve `localhost` at all. DEV_HOST remains for anyone
+	# who needs a different family.
+	_host = os.getenv("DEV_HOST", "0.0.0.0")
+	app.run(host=_host, port=app.config.get("PORT", int(os.getenv("PORT", "8000"))), debug=_debug)

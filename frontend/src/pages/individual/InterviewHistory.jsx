@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import { useNavigate } from "react-router-dom";
-import { getSidebarItems, getBackendUrl, getAuthHeaders } from "../../utils/auth";
+import { getBackendUrl, getAuthHeaders } from "../../utils/auth";
 import DualTime from "../../components/ui/DualTime";
 import {
   FiCalendar,
@@ -25,10 +25,6 @@ import {
 
 export default function InterviewHistory() {
   const navigate = useNavigate();
-  const role = typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
-  const plan = typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
-  const sidebarItems = getSidebarItems(role, plan);
-
   const [interviews, setInterviews] = useState([]);
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -141,7 +137,7 @@ export default function InterviewHistory() {
 
   if (loading) {
     return (
-      <DashboardLayout sidebarItems={sidebarItems}>
+      <DashboardLayout >
         <div className="space-y-4">
           <div className="rounded-2xl bg-gray-900 h-48 animate-pulse" />
           <div className="flex gap-2">
@@ -160,7 +156,7 @@ export default function InterviewHistory() {
   }
 
   return (
-    <DashboardLayout sidebarItems={sidebarItems}>
+    <DashboardLayout >
       {error && (
         <div className="mb-6 bg-red-50 border border-red-200 px-4 py-3 flex items-start justify-between gap-4">
           <div className="flex gap-3">

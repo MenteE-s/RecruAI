@@ -140,8 +140,7 @@ function ControlsBar({ onLeave, micOn, camOn, toggleMic, toggleCam }) {
             ? "bg-gray-800 text-white border-gray-700 hover:bg-gray-700"
             : "bg-red-600 text-white border-red-600 hover:bg-red-700"
         }`}
-        title={micOn ? "Mute mic" : "Unmute mic"}
-      >
+        title={micOn ? "Mute mic" : "Unmute mic"}>
         {micOn ? <FiMic className="w-4 h-4" /> : <FiMicOff className="w-4 h-4" />}
       </button>
 
@@ -152,8 +151,7 @@ function ControlsBar({ onLeave, micOn, camOn, toggleMic, toggleCam }) {
             ? "bg-gray-800 text-white border-gray-700 hover:bg-gray-700"
             : "bg-red-600 text-white border-red-600 hover:bg-red-700"
         }`}
-        title={camOn ? "Turn off camera" : "Turn on camera"}
-      >
+        title={camOn ? "Turn off camera" : "Turn on camera"}>
         {camOn ? <FiVideo className="w-4 h-4" /> : <FiVideoOff className="w-4 h-4" />}
       </button>
 

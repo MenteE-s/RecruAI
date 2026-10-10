@@ -14,6 +14,16 @@ from .profile_section import ProfileSection
 from .experience import Experience
 from .education import Education
 from .skill import Skill
+from .skill_question import SkillQuestion
+from .skill_assessment import SkillAssessment
+from .mentorship_plan import MentorshipPlan
+from .mentorship_step import MentorshipStep
+from .skill_quiz import SkillQuiz
+from .guided_project import GuidedProject
+from .guided_project_attempt import GuidedProjectAttempt
+from .quiz_attempt import QuizAttempt
+from .mock_interview import MockInterview
+from .mock_interview_question import MockInterviewQuestion
 from .project import Project
 from .publication import Publication
 from .award import Award
@@ -61,6 +71,16 @@ __all__ = [
     "Experience",
     "Education",
     "Skill",
+"SkillQuestion",
+"SkillAssessment",
+"MentorshipPlan",
+"MentorshipStep",
+"SkillQuiz",
+"GuidedProject",
+"GuidedProjectAttempt",
+"QuizAttempt",
+"MockInterview",
+"MockInterviewQuestion",
     "Project",
     "Publication",
     "Award",

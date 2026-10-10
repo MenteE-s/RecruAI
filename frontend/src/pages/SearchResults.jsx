@@ -254,8 +254,7 @@ export default function SearchResults() {
                       active
                         ? "border-blue-600 text-blue-700"
                         : "border-transparent text-gray-500 hover:text-gray-800"
-                    }`}
-                  >
+                    }`}>
                     <t.icon className="w-3.5 h-3.5" />
                     {t.label}
                     <span className={`text-[10px] px-1.5 py-px rounded ${active ? "bg-blue-50 text-blue-700" : "bg-gray-100 text-gray-500"}`}>

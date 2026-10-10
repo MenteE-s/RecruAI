@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import FollowButton from "../../components/ui/FollowButton";
 import {
-getSidebarItems,
+
 getUploadUrl,
 getBackendUrl,
 getAuthHeaders,
@@ -110,9 +110,6 @@ export default function OrganizationProfile() {
   // /org/profile/:id URLs keep working via the redirect route.
   const { orgId, slug } = useParams();
   const navigate = useNavigate();
-  const role = typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
-  const plan = typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
-  const sidebarItems = getSidebarItems(role, plan);
   const [posts, setPosts] = useState([]);
   const [postsLoading, setPostsLoading] = useState(false);
   const [teamMembers, setTeamMembers] = useState([]);
@@ -322,7 +319,7 @@ export default function OrganizationProfile() {
 
   if (loading) {
     return (
-      <DashboardLayout sidebarItems={sidebarItems}>
+      <DashboardLayout >
         <div className="space-y-4">
           <div className="rounded-2xl bg-gray-900 h-64 animate-pulse" />
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -337,7 +334,7 @@ export default function OrganizationProfile() {
   const isPaid = profileData.subscription_status?.is_paid_active;
 
   return (
-    <DashboardLayout sidebarItems={sidebarItems}>
+    <DashboardLayout >
       {error && (
         <div className="mb-6 bg-red-50 border border-red-200 px-4 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2 text-sm text-red-700"><FiX className="w-5 h-5" />{error}</div>
@@ -624,8 +621,7 @@ export default function OrganizationProfile() {
                       onClick={() => uid && toggleStar(uid)}
                       disabled={!uid || !currentUserId}
                       title={isStarred ? "Unstar" : "Star this person"}
-                      className={`mt-1.5 w-full inline-flex items-center justify-center gap-1 px-2.5 py-1.5 border text-[11px] font-semibold rounded-md transition-colors disabled:opacity-50 ${isStarred ? "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100" : "bg-white text-gray-500 border-gray-200 hover:text-amber-600 hover:border-amber-200 hover:bg-amber-50/50"}`}
-                    >
+                      className={`mt-1.5 w-full inline-flex items-center justify-center gap-1 px-2.5 py-1.5 border text-[11px] font-semibold rounded-md transition-colors disabled:opacity-50 ${isStarred ? "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100" : "bg-white text-gray-500 border-gray-200 hover:text-amber-600 hover:border-amber-200 hover:bg-amber-50/50"}`}>
                       <FiStar className={`w-3.5 h-3.5 ${isStarred ? "fill-amber-500 text-amber-500" : ""}`} /> {isStarred ? "Starred" : "Star"}
                     </button>
                   </div>

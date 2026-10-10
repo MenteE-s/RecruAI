@@ -201,8 +201,7 @@ const TextInterview = ({
                       : timeRemaining.startsWith("0")
                       ? "bg-yellow-100 text-yellow-800"
                       : "bg-green-100 text-green-800"
-                  }`}
-                >
+                  }`}>
                   {timeRemaining}
                 </div>
               </div>
@@ -254,14 +253,12 @@ const TextInterview = ({
                 key={message.id || index}
                 className={`flex items-start mb-4 ${
                   shouldShowOnRight ? "flex-row-reverse" : "flex-row"
-                }`}
-              >
+                }`}>
                 {/* Avatar */}
                 <div
                   className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-medium ${
                     shouldShowOnRight ? "bg-blue-600 ml-2" : "bg-gray-400 mr-2"
-                  }`}
-                >
+                  }`}>
                   {shouldShowOnRight
                     ? isInterviewer
                       ? "👤"
@@ -274,8 +271,7 @@ const TextInterview = ({
                 <div
                   className={`flex flex-col ${
                     shouldShowOnRight ? "items-end" : "items-start"
-                  } max-w-[75%]`}
-                >
+                  } max-w-[75%]`}>
                   {/* Sender name for received messages */}
                   {!shouldShowOnRight && (
                     <div className="text-xs text-gray-500 mb-1 px-1">
@@ -290,13 +286,11 @@ const TextInterview = ({
                       shouldShowOnRight
                         ? "bg-indigo-600 text-white rounded-tr-none"
                         : "bg-white text-gray-800 border border-gray-200 rounded-tl-none"
-                    }`}
-                  >
+                    }`}>
                     <div
                       className={`text-[15px] leading-relaxed markdown-content ${
                         shouldShowOnRight ? "prose-invert" : ""
-                      }`}
-                    >
+                      }`}>
                       <ReactMarkdown remarkPlugins={[remarkGfm]}>
                         {message.content}
                       </ReactMarkdown>

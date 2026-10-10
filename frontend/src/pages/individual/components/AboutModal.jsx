@@ -11,8 +11,7 @@ export default function AboutModal({ isOpen, onClose, data, onSave, saving }) {
           e.preventDefault();
           const formData = new FormData(e.target);
           onSave({ summary: formData.get("summary") });
-        }}
-      >
+        }}>
         <textarea
           name="summary"
           defaultValue={data?.summary || ""}

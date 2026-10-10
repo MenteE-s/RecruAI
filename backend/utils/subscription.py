@@ -12,6 +12,43 @@ from backend.extensions import db
 from backend.models.user import User
 from backend.models.organization import Organization
 
+# ---------------------------------------------------------------------------
+# Feature keys.
+#
+# A feature key is a string, and until now each call site invented its own
+# ("ai_chat", "practice_ai_agents"). Nothing could tell a typo from a deliberate
+# entitlement, because the only list that mattered — User.basic_features — only
+# listed what a LAPSED user may still do. A key nobody had heard of therefore
+# silently meant "not basic", which is the correct default but a poor way to
+# discover that a feature was never gated at all.
+#
+# CVAI is the individual-profile capability set (skill taxonomy, assessments,
+# quizzes, guided projects, mock interviews). It is not a separate product and
+# not a separate service: it ships inside RecruAI and turns on when an
+# individual subscribes. These are the keys that subscription unlocks.
+# ---------------------------------------------------------------------------
+CVAI_SKILL_ASSESSMENT = "cvai_skill_assessment"
+CVAI_QUIZZES = "cvai_quizzes"
+CVAI_PROJECTS = "cvai_projects"
+CVAI_MOCK_INTERVIEW = "cvai_mock_interview"
+CVAI_MENTORSHIP = "cvai_mentorship"
+
+CVAI_FEATURES = (
+    CVAI_SKILL_ASSESSMENT,
+    CVAI_QUIZZES,
+    CVAI_PROJECTS,
+    CVAI_MENTORSHIP,
+    CVAI_MOCK_INTERVIEW,
+)
+
+# What a lapsed individual may still do. Deliberately does NOT include any CVAI
+# key: the whole point of subscribing is to switch these on.
+BASIC_INDIVIDUAL_FEATURES = (
+    "profile_management",
+    "job_search",
+    "basic_matching",
+)
+
 
 class SubscriptionManager:
     """Centralized subscription management"""
@@ -173,6 +210,53 @@ def require_subscription(feature: str):
             return f(*args, **kwargs)
         return decorated_function
     return decorator
+
+
+def check_content_access(feature: str, free_preview: bool = False):
+    """Entitlement for content that may be sampled free, as a function not a decorator.
+
+    Quizzes (C1) and guided projects (C2) both have items marked free to try by
+    any signed-in account, because being able to sample one is the only way to
+    decide whether to subscribe. The decision depends on the *item*, so it
+    cannot be the `@require_subscription` decorator: a decorator runs before the
+    route body and would refuse a free preview before the route ever saw it.
+    Gating the start endpoint that way left `is_free_preview` set but unreachable.
+
+    Returns (allowed, error_response, status_code). error_response is None when
+    allowed, so callers write `allowed, err, code = check_content_access(...)`
+    and then `return err, code`.
+    """
+    if free_preview:
+        return True, None, None
+
+    # Mirrors require_subscription: dev is open, so a laptop is not a paywall.
+    from backend.config import Config
+    if not Config.IS_PRODUCTION:
+        return True, None, None
+
+    from flask_jwt_extended import get_jwt_identity
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+    if not user:
+        return False, {"error": "User not found"}, 404
+
+    if user.organization:
+        allowed = SubscriptionManager.check_organization_access(user.organization, feature)
+        holder = user.organization
+    else:
+        allowed = SubscriptionManager.check_user_access(user, feature)
+        holder = user
+
+    if allowed:
+        return True, None, None
+
+    return False, {
+        "error": "Subscription required",
+        "message": f"Feature '{feature}' requires an active subscription",
+        "subscription_status": SubscriptionManager.get_subscription_status(org=holder)
+        if user.organization else
+        SubscriptionManager.get_subscription_status(user=user),
+    }, 403
 
 
 def require_interview_access():

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import MenteeLoader from "../../components/ui/MenteeLoader";
-import { getSidebarItems, getBackendUrl, getAuthHeaders } from "../../utils/auth";
+import { getBackendUrl, getAuthHeaders } from "../../utils/auth";
 import { parseUTC } from "../../utils/timezone";
 import DualTime from "../../components/ui/DualTime";
 import {
@@ -72,10 +72,6 @@ export default function Interviews() {
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const tab = params.get("tab") === "history" ? "history" : "scheduled";
-  const role = typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
-  const plan = typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
-  const sidebarItems = getSidebarItems(role, plan);
-
   const [upcoming, setUpcoming] = useState([]);
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -127,7 +123,7 @@ export default function Interviews() {
   }, [history, search]);
 
   return (
-    <DashboardLayout sidebarItems={sidebarItems}>
+    <DashboardLayout >
       <div className="w-full max-w-3xl mx-auto space-y-2.5">
         <div>
           <h1 className="text-base font-bold text-gray-900 tracking-tight">Interviews</h1>
@@ -150,8 +146,7 @@ export default function Interviews() {
                 onClick={() => setTab(t.id)}
                 className={`flex-1 inline-flex items-center justify-center gap-1.5 py-1.5 text-xs font-semibold rounded-md transition-colors ${
                   isActive ? "bg-gray-900 text-white" : "text-gray-500 hover:bg-gray-50"
-                }`}
-              >
+                }`}>
                 <Icon className="w-3.5 h-3.5" /> {t.label}
               </button>
             );

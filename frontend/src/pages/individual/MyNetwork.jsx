@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import FollowButton from "../../components/ui/FollowButton";
 import MenteeLoader from "../../components/ui/MenteeLoader";
-import { getSidebarItems, getBackendUrl, getAuthHeaders, getUploadUrl, orgPath, postPath } from "../../utils/auth";
+import { getBackendUrl, getAuthHeaders, getUploadUrl, orgPath, postPath } from "../../utils/auth";
 import { getFollows } from "../../utils/follows";
 import { FiBell, FiMapPin, FiBriefcase, FiUsers } from "react-icons/fi";
 
@@ -26,10 +26,6 @@ function initials(name) {
 
 export default function MyNetwork() {
   const navigate = useNavigate();
-  const role = typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
-  const plan = typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
-  const sidebarItems = getSidebarItems(role, plan);
-
   const [follows, setFollows] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [discover, setDiscover] = useState([]);
@@ -105,7 +101,7 @@ export default function MyNetwork() {
   }, [follows]);
 
   return (
-    <DashboardLayout sidebarItems={sidebarItems}>
+    <DashboardLayout >
       <div className="w-full max-w-3xl mx-auto space-y-3">
         <div>
           <h1 className="text-base font-bold text-gray-900 tracking-tight">My Network</h1>

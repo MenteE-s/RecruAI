@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import ApplicantCard from "../../components/org/ApplicantCard";
-import { getSidebarItems, getBackendUrl, getAuthHeaders } from "../../utils/auth";
+import { getBackendUrl, getAuthHeaders } from "../../utils/auth";
 import { useToast } from "../../components/ui/ToastContext";
 import MenteeLoader from "../../components/ui/MenteeLoader";
 import { formatDate } from "../../utils/timezone";
@@ -58,9 +58,7 @@ const asList = (data) => {
 export default function OrganizationDashboard() {
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const role = typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
   const plan = typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
-  const sidebarItems = getSidebarItems(role, plan);
 
   const [user, setUser] = useState(null);
   const [organizationId, setOrganizationId] = useState(null);
@@ -293,7 +291,7 @@ export default function OrganizationDashboard() {
   const totalApplicants = pagination.total || applications.length;
 
   return (
-    <DashboardLayout sidebarItems={sidebarItems}>
+    <DashboardLayout >
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 lg:gap-4 w-full max-w-5xl mx-auto justify-center">
         {/* Left column — org identity + pipeline snapshot */}
         <aside className="lg:col-span-3 space-y-3 order-2 lg:order-1">

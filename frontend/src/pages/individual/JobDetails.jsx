@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import IndividualNavbar from "../../components/layout/IndividualNavbar";
-import { getSidebarItems, getBackendUrl, getUploadUrl, getCurrentUserId, orgPath, postPath } from "../../utils/auth";
+import { getBackendUrl, getUploadUrl, getCurrentUserId, orgPath, postPath } from "../../utils/auth";
 import { useToast } from "../../components/ui/ToastContext";
 import MenteeLoader from "../../components/ui/MenteeLoader";
 import { formatDate } from "../../utils/timezone";
@@ -39,11 +39,6 @@ export default function JobDetails() {
   const navigate = useNavigate();
   const { showToast } = useToast();
 
-  const role =
-    typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
-  const plan =
-    typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
-  const sidebarItems = getSidebarItems(role, plan);
 
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -267,9 +262,7 @@ export default function JobDetails() {
   if (loading) {
     return (
       <DashboardLayout
-        NavbarComponent={IndividualNavbar}
-        sidebarItems={sidebarItems}
-      >
+        NavbarComponent={IndividualNavbar}>
         <div className="flex justify-center items-center h-64">
           <MenteeLoader size={60} text="Loading job…" />
         </div>
@@ -280,9 +273,7 @@ export default function JobDetails() {
   if (!job) {
     return (
       <DashboardLayout
-        NavbarComponent={IndividualNavbar}
-        sidebarItems={sidebarItems}
-      >
+        NavbarComponent={IndividualNavbar}>
         <div className="text-center py-12">
           <p className="text-sm text-gray-500">Job not found</p>
         </div>
@@ -301,9 +292,7 @@ export default function JobDetails() {
 
   return (
     <DashboardLayout
-      NavbarComponent={IndividualNavbar}
-      sidebarItems={sidebarItems}
-    >
+      NavbarComponent={IndividualNavbar}>
       {/* Centered narrow column, LinkedIn-style */}
       <div className="w-full max-w-3xl mx-auto">
         <button
@@ -393,8 +382,7 @@ export default function JobDetails() {
                 saved
                   ? "bg-gray-100 text-gray-600 border-gray-300"
                   : "bg-white text-blue-600 border-blue-600 hover:bg-blue-50"
-              }`}
-            >
+              }`}>
               <FiBookmark className={`w-4 h-4 ${saved ? "fill-gray-400" : ""}`} /> {saved ? "Saved" : "Save"}
             </button>
           </div>

@@ -65,8 +65,7 @@ export default function ProfileTabs({ activeTab, onTabChange }) {
                   activeTab === tab.id
                     ? "bg-blue-50 text-blue-600 border-l-2 border-blue-600"
                     : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 border-l-2 border-transparent"
-                }`}
-              >
+                }`}>
                 <Icon size={16} />
                 {tab.label}
               </button>

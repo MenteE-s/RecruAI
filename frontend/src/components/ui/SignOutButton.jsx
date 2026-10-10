@@ -50,8 +50,7 @@ export default function SignOutButton({ variant = "solid", className = "", iconO
       <button
         onClick={() => setConfirmOpen(true)}
         title={iconOnly ? "Sign out" : undefined}
-        className={`${VARIANT_STYLES[variant] || VARIANT_STYLES.solid} ${className} ${iconOnly ? "md:justify-center md:px-0" : ""}`}
-      >
+        className={`${VARIANT_STYLES[variant] || VARIANT_STYLES.solid} ${className} ${iconOnly ? "md:justify-center md:px-0" : ""}`}>
         <FiLogOut className={variant === "sidebar" ? "w-4 h-4 shrink-0" : "w-3 h-3"} />
         <span className={iconOnly ? "md:hidden" : ""}>Sign out</span>
       </button>

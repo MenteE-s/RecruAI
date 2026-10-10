@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
-import { getSidebarItems, getBackendUrl, getAuthHeaders, getCurrentUser } from "../../utils/auth";
+import { getBackendUrl, getAuthHeaders, getCurrentUser } from "../../utils/auth";
 import TimezoneSelector from "../../components/ui/TimezoneSelector";
 import PaymentMethods from "../../components/ui/PaymentMethods";
 import OtpVerify from "../../components/auth/OtpVerify";
@@ -201,9 +201,7 @@ function ProfileSlugRow({ slug, onSaved }) {
 }
 
 export default function Settings() {
-  const role = typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
-  const plan = typeof window !== "undefined" ? localStorage.getItem("authPlan") : null;
-  const sidebarItems = getSidebarItems(role, plan);
+
   const [active, setActive] = useState("account");
   const [expanded, setExpanded] = useState(null);
   const [userId, setUserId] = useState(null);
@@ -386,7 +384,7 @@ export default function Settings() {
   const labelCls = "block text-[11px] font-medium text-gray-500 mb-1";
 
   return (
-    <DashboardLayout sidebarItems={sidebarItems}>
+    <DashboardLayout >
       <div className="w-full max-w-3xl mx-auto">
         <h1 className="text-base font-bold text-gray-900 tracking-tight">Settings</h1>
         <p className="text-[11px] text-gray-500 mt-0.5 mb-3">Manage your account, plan, and preferences.</p>
@@ -403,8 +401,7 @@ export default function Settings() {
                   onClick={() => setActive(s.id)}
                   className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-[13px] transition-colors ${
                     isActive ? "bg-blue-50 text-blue-700 font-semibold" : "text-gray-600 hover:bg-gray-50"
-                  }`}
-                >
+                  }`}>
                   <Icon className={`w-4 h-4 shrink-0 ${isActive ? "text-blue-600" : "text-gray-400"}`} />
                   {s.label}
                   {s.id === "plan" && (
@@ -747,8 +744,7 @@ export default function Settings() {
                     disabled={savingDiscoverable}
                     className={`relative inline-flex items-center w-9 h-5 rounded-full transition-colors shrink-0 disabled:opacity-50 ${
                       discoverable ? "bg-blue-600" : "bg-gray-300"
-                    }`}
-                  >
+                    }`}>
                     <span
                       className={`absolute w-4 h-4 rounded-full bg-white shadow transition-all ${
                         discoverable ? "left-[18px]" : "left-[2px]"
