@@ -14,6 +14,7 @@ import {
   FiCpu,
   FiLink,
   FiLogOut,
+  FiActivity,
 } from "react-icons/fi";
 
 // Get the backend URL for API calls and uploaded files - reads from frontend/.env REACT_APP_API_BASE_URL (no hardcoded port)
@@ -267,6 +268,9 @@ export function getSidebarItems(role, plan) {
         { name: "Resume Builder", link: "/in/resume/builder", icon: FiFileText, section: "pro" },
         { name: "Job Alerts", link: "/in/jobs/alerts", icon: FiBell, section: "pro" },
         { name: "Career Coaching", link: "/in/coaching", icon: FiUsers, section: "pro" },
+        // CVAI is a section of its own with five pages. One sidebar entry; the
+        // sub-nav in CvaiShell carries the rest.
+        { name: "Skill Growth (CVAI)", link: "/in/cvai", icon: FiActivity, section: "pro" },
         // PITCH: Practice hidden (stub alerts) — re-enable when implemented
         { name: "My AI Agents", link: "/in/ai-agents", icon: FiCpu, section: "ai" },
         {
@@ -302,6 +306,9 @@ export function getSidebarItems(role, plan) {
          { name: "Resume Builder", link: "/in/resume/builder", icon: FiFileText, section: "pro" },
          { name: "Job Alerts", link: "/in/jobs/alerts", icon: FiBell, section: "pro" },
          { name: "Career Coaching", link: "/in/coaching", icon: FiUsers, section: "pro" },
+        // CVAI is a section of its own with five pages. One sidebar entry; the
+        // sub-nav in CvaiShell carries the rest.
+        { name: "Skill Growth (CVAI)", link: "/in/cvai", icon: FiActivity, section: "pro" },
          // PITCH: Practice hidden (stub alerts) — re-enable when implemented
          { name: "My AI Agents", link: "/in/ai-agents", icon: FiCpu, section: "ai" },
          {

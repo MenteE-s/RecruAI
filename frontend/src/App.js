@@ -42,6 +42,11 @@ import Analytics from "./pages/individual/Analytics";
 import ResumeBuilder from "./pages/individual/ResumeBuilder";
 import JobAlerts from "./pages/individual/JobAlerts";
 import CareerCoaching from "./pages/individual/CareerCoaching";
+import CvaiOverview from "./pages/cvai/CvaiOverview";
+import CvaiSkills from "./pages/cvai/CvaiSkills";
+import CvaiQuizzes from "./pages/cvai/CvaiQuizzes";
+import CvaiProjects from "./pages/cvai/CvaiProjects";
+import CvaiPlan from "./pages/cvai/CvaiPlan";
 import JobDetails from "./pages/individual/JobDetails";
 import MyNetwork from "./pages/individual/MyNetwork";
 import Interviews from "./pages/individual/Interviews";
@@ -394,6 +399,49 @@ function App() {
               </ProtectedRoute>
             }
           />
+          {/* CVAI: a separate page per capability, not tabs inside a dashboard.
+              They are different kinds of work — measure, be tested, build, follow —
+              so each gets its own page and its own URL. */}
+          <Route
+            path="/in/cvai"
+            element={
+              <ProtectedRoute>
+                <CvaiOverview />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/in/cvai/skills"
+            element={
+              <ProtectedRoute>
+                <CvaiSkills />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/in/cvai/quizzes"
+            element={
+              <ProtectedRoute>
+                <CvaiQuizzes />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/in/cvai/projects"
+            element={
+              <ProtectedRoute>
+                <CvaiProjects />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/in/cvai/plan"
+            element={
+              <ProtectedRoute>
+                <CvaiPlan />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/billing"
             element={
@@ -621,6 +669,8 @@ function App() {
           <Route path="/network" element={<Navigate to="/in/network" replace />} />
           <Route path="/analytics" element={<Navigate to="/in/analytics" replace />} />
           <Route path="/coaching" element={<Navigate to="/in/coaching" replace />} />
+          {/* Legacy unprefixed CVAI paths, kept so old links still land somewhere sane. */}
+          <Route path="/cvai/*" element={<Navigate to="/in/cvai" replace />} />
           <Route path="/resume/*" element={<LegacyPersonalRedirect prefix="/resume" />} />
           <Route path="/practice/*" element={<LegacyPersonalRedirect prefix="/practice" />} />
           <Route path="/ai-agents" element={<Navigate to="/in/ai-agents" replace />} />
