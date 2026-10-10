@@ -255,7 +255,10 @@ export default function PageManagerLayout({ children, title, subtitle, action })
                 </button>
               </div>
             )}
-            <div className="w-full max-w-2xl mx-auto">
+            {/* max-w-4xl, not max-w-2xl: with a 224px rail a 672px column left
+                roughly 500px of the viewport empty on a normal screen. The nav
+                was never the thing taking up too much room. */}
+            <div className="w-full max-w-4xl mx-auto">
               {(title || action) && (
                 <div className="mb-4">
                   {title && <h1 className="text-lg font-semibold text-gray-900 tracking-tight">{title}</h1>}
