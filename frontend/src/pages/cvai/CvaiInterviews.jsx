@@ -6,7 +6,7 @@ import {
   cvai, isLocked, isReviewerDown, messageOf, percent,
 } from "../../utils/cvai";
 import {
-  FiMic, FiPlayCircle, FiSend, FiSquare, FiCheckCircle, FiRefreshCw,
+  FiMic, FiMessageSquare, FiPlayCircle, FiSend, FiSquare, FiCheckCircle, FiRefreshCw,
 } from "react-icons/fi";
 
 /**
@@ -137,6 +137,40 @@ export default function CvaiInterviews() {
     }
   }
 
+  /** Re-enter an interview left open, putting the learner back at their question. */
+  async function resume(interview) {
+    setError("");
+    setNotice("");
+    setReview(null);
+    setViewing(null);
+    const res = await cvai.interview(interview.id);
+    if (!res.ok) {
+      setError(messageOf(res, "Could not reopen that interview."));
+      return;
+    }
+    const payload = res.data || {};
+    const data = payload.interview || {};
+    setSession({
+      id: data.id,
+      phase: payload.phase,
+      // GET one does not include the pending question, only the transcript, so
+      // the last interviewer turn is the question they still need to answer.
+      question: null,
+      guidance: null,
+      source: null,
+      skills: [],
+      interview: data,
+      finished: data.status !== "in_progress",
+    });
+    setAnswer("");
+  }
+
+  async function abandonExisting(interview) {
+    const res = await cvai.abandonInterview(interview.id);
+    if (res.ok) await load();
+    else setError(messageOf(res, "Could not discard that interview."));
+  }
+
   async function openPast(interview) {
     setError("");
     setNotice("");
@@ -156,6 +190,10 @@ export default function CvaiInterviews() {
   const live = session && !session.finished;
   const transcript = session?.interview?.transcript || viewing?.interview?.transcript || [];
   const pastFeedback = viewing?.interview?.feedback || null;
+  // The backend allows one live interview at a time, so a user who closes the
+  // tab mid-session cannot start another. They need to be offered the one they
+  // already have rather than a Begin button that fails.
+  const open = history.find((i) => i.status === "in_progress") || null;
 
   return (
     <CvaiShell
@@ -205,10 +243,30 @@ export default function CvaiInterviews() {
                   maxLength={160}
                   className="min-w-[240px] flex-1 border border-gray-200 px-3 py-2 text-sm outline-none focus:border-blue-500"
                 />
-                <Button type="submit" disabled={starting || !role.trim()}>
+                <Button type="submit" disabled={starting || !role.trim() || Boolean(open)}>
                   <FiPlayCircle className="h-4 w-4" /> {starting ? "Starting…" : "Begin"}
                 </Button>
               </form>
+
+              {open ? (
+                <div className="mt-3 border border-amber-200 bg-amber-50 px-4 py-3">
+                  <p className="text-sm font-medium text-amber-900">
+                    You have an interview in progress
+                  </p>
+                  <p className="mt-0.5 text-xs text-amber-800">
+                    {open.target_role || "Practice interview"} — {open.turn_count} turn
+                    {open.turn_count === 1 ? "" : "s"} so far. Only one runs at a time.
+                  </p>
+                  <div className="mt-2.5 flex flex-wrap gap-2">
+                    <Button onClick={() => resume(open)}>
+                      <FiMessageSquare className="h-4 w-4" /> Resume
+                    </Button>
+                    <Button variant="secondary" onClick={() => abandonExisting(open)}>
+                      Discard it
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
 
               {cannotStart ? (
                 <div className="mt-3">
@@ -353,7 +411,30 @@ export default function CvaiInterviews() {
                   }
                 >
                   <div className="space-y-4">
-                    {live && session.question ? (
+                    {live && !session.question ? (
+                      <>
+                        <p className="text-sm text-gray-700">
+                          You have an interview in progress. Answer the question below to
+                          carry on — it is the last one you were asked.
+                        </p>
+                        <p className="border-l-2 border-gray-300 pl-3 text-sm italic text-gray-600">
+                          {(transcript.filter((t) => t.role !== "interviewer").slice(-1)[0] || {})
+                            .content || "No question was pending."}
+                        </p>
+                        <textarea
+                          value={answer}
+                          onChange={(e) => setAnswer(e.target.value)}
+                          rows={7}
+                          maxLength={meta?.max_answer_chars || 8000}
+                          placeholder="Answer the question that was asked…"
+                          className="w-full border border-gray-200 px-3 py-2 text-sm leading-relaxed outline-none focus:border-blue-500"
+                        />
+                        <Button onClick={submitAnswer} disabled={answering || !answer.trim()}>
+                          <FiSend className="h-4 w-4" />
+                          {answering ? "Sending…" : "Send answer"}
+                        </Button>
+                      </>
+                    ) : live && session.question ? (
                       <>
                         <p className="text-base leading-relaxed text-gray-900">
                           {session.question}

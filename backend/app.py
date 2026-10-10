@@ -584,12 +584,16 @@ if __name__ == "__main__":
 	# Debug defaults OFF and is forced off in production; opt in with FLASK_DEBUG=1.
 	_debug = os.getenv("FLASK_DEBUG", "0") == "1" and not app.config.get("IS_PRODUCTION")
 
-	# Bind both stacks. On Windows `localhost` resolves to ::1 before 127.0.0.1,
-	# so binding IPv4 only (0.0.0.0) made the browser hit a closed IPv6 socket:
-	# the request never reached Flask, nothing was logged, and the browser
-	# reported "TypeError: Failed to fetch" with an empty backend log.
+	# Bind IPv4 (0.0.0.0), not "::".
 	#
-	# "::" is dual-stack on every platform Werkzeug supports. DEV_HOST overrides
-	# it for anyone who needs to pin a single family.
-	_host = os.getenv("DEV_HOST", "::") if _debug is False else os.getenv("DEV_HOST", "0.0.0.0")
+	# This was briefly "::" to fix a browser that resolved `localhost` to ::1 and
+	# got connection-refused. That made it worse, not better: on Windows a socket
+	# bound to :: is IPv6-ONLY, so 127.0.0.1 stopped answering while ::1 started.
+	# Linux (Docker, production) does treat :: as dual-stack, so the "fix" appeared
+	# to work in a container and failed on the machine that matters.
+	#
+	# The real fix is not here. frontend/.env names 127.0.0.1 explicitly, so the
+	# browser never has to resolve `localhost` at all. DEV_HOST remains for anyone
+	# who needs a different family.
+	_host = os.getenv("DEV_HOST", "0.0.0.0")
 	app.run(host=_host, port=app.config.get("PORT", int(os.getenv("PORT", "8000"))), debug=_debug)
