@@ -1,7 +1,7 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
-import { FiActivity, FiCheckSquare, FiCode, FiHelpCircle, FiTarget } from "react-icons/fi";
+import { FiActivity, FiCheckSquare, FiCode, FiHelpCircle, FiMic, FiTarget } from "react-icons/fi";
 
 /**
  * The CVAI section: one sidebar entry, five pages.
@@ -19,6 +19,7 @@ const TABS = [
   { to: "/in/coaching/skills", label: "Skills", icon: FiCheckSquare },
   { to: "/in/coaching/quizzes", label: "Quizzes", icon: FiHelpCircle },
   { to: "/in/coaching/projects", label: "Projects", icon: FiCode },
+  { to: "/in/coaching/interviews", label: "Mock interviews", icon: FiMic },
   { to: "/in/coaching/plan", label: "My plan", icon: FiTarget },
 ];
 

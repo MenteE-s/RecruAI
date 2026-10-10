@@ -107,7 +107,11 @@ it is the usual reason this track stalls.
         Every strength and weakness must quote the candidate's own words or it is
         discarded. Writes to the profile as `evidence_source='mock_interview'`,
         unverified — the reviewer scored what was said, not what was built.
-  - [ ] C3.4. UI. Endpoint-complete, no page yet.
+  - [x] C3.4. UI. `/in/coaching/interviews`, sixth tab. One question, one box, the
+        phase label — it should feel like an interview, not a dashboard. The lock
+        is discovered by pressing Begin rather than by loading the page, because
+        the read endpoints deliberately do not require an entitlement and a lapsed
+        account can still re-read the interviews it already sat.
 - [x] **E1b. Grant path + AI budget** (billing deliberately deferred) —
       `scripts/grant_subscription.py` and `backend/utils/ai_budget.py`.
       See log.

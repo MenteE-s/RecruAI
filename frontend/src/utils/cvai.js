@@ -61,6 +61,15 @@ export const cvai = {
   projectAttempt: (slug) => get(`/api/guided-projects/${slug}/attempts`),
   projectAttemptById: (id) => get(`/api/guided-projects/attempts/${id}`),
 
+  // --- mock interviews ---------------------------------------------------
+  interviewMeta: () => get("/api/mock-interviews/meta"),
+  interviews: () => get("/api/mock-interviews"),
+  interview: (id) => get(`/api/mock-interviews/${id}`),
+  startInterview: (body) => post("/api/mock-interviews", body),
+  answerInterview: (id, answer) => post(`/api/mock-interviews/${id}/answer`, { answer }),
+  interviewFeedback: (id) => post(`/api/mock-interviews/${id}/feedback`),
+  abandonInterview: (id) => post(`/api/mock-interviews/${id}/abandon`),
+
   // --- mentorship --------------------------------------------------------
   planOptions: () => get("/api/mentorship/plans/options"),
   plans: () => get("/api/mentorship/plans"),
@@ -78,6 +87,15 @@ export const cvai = {
 /** A 403 is the shape of "you are not subscribed", which the pages show as a lock. */
 export function isLocked(result) {
   return result?.status === 403;
+}
+
+/**
+ * A 503 from a reviewer is not an error the learner caused. The backend keeps
+ * their work and charges nothing, so the UI says so plainly rather than showing a
+ * failure that invites them to try again immediately.
+ */
+export function isReviewerDown(result) {
+  return result?.status === 503 && result?.data?.review_status === "unavailable";
 }
 
 export function messageOf(result, fallback = "Something went wrong.") {
