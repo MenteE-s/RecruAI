@@ -238,7 +238,11 @@ function SkillPicker({ onStart }) {
     const res = await cvai.taxonomy(term.trim());
     setBusy(false);
     if (!res.ok) return;
-    const skills = (res.data?.categories || []).flatMap((c) => c.skills || []);
+    // Search results come back under the top-level "skills" key. The old code
+    // read categories[].skills, but categories is a list of category NAMES with
+    // no skills under it, so this always returned [] and the picker told every
+    // learner that nothing matched - including "ReactJS", which does match.
+    const skills = res.data?.skills || [];
     setResult(skills.slice(0, 12));
   }
 

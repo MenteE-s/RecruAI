@@ -309,7 +309,13 @@ _SEARCH_INDEX = [
 
 
 def search(term, limit=20):
-    """Typeahead over the taxonomy: slug, display name and aliases all match."""
+    """Typeahead over the taxonomy: slug, display name and aliases all match.
+
+    An exact resolution is hoisted to the front. Substring matching alone missed
+    spellings the alias table resolves perfectly well - "React.js" found nothing
+    here while resolve() returned react from the same string - so anyone typing
+    the most ordinary way to write a skill got an empty list.
+    """
     key = normalize_key(term)
     if not key:
         return []
@@ -318,6 +324,9 @@ def search(term, limit=20):
         if any(key in h for h in haystacks):
             matches.append(entry)
     matches.sort(key=lambda e: (not e["slug"].startswith(key), e["name"]))
+    exact = resolve(term)
+    if exact:
+        matches = [exact] + [e for e in matches if e["slug"] != exact["slug"]]
     return matches[:limit]
 
 
