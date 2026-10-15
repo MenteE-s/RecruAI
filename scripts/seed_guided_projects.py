@@ -114,6 +114,35 @@ PROJECTS = [
             "No ESLint or console errors when the component mounts and unmounts repeatedly",
         ],
     },
+    {
+        "slug": "cli-task-runner",
+        "title": "CLI Task Runner",
+        "summary": "A small command line task runner built from argparse, JSON persistence and "
+                   "careful error handling. Aimed at the gap between 'I know Python "
+                   "syntax' and 'I can ship a usable script'.",
+        "difficulty": "beginner",
+        "estimated_hours": 8,
+        "pass_percent": 70,
+        "is_free_preview": False,
+        "skills": ["python", "git"],
+        "steps": [
+            {"title": "Parse arguments",
+             "instruction": "Support add, list and remove commands with sensible "
+                            "errors for bad input."},
+            {"title": "Persist",
+             "instruction": "Store tasks in a JSON file and reload them every "
+                            "run without overwriting unrelated data."},
+            {"title": "Report",
+             "instruction": "List tasks with their status and keep completion "
+                            "state after the program exits."},
+        ],
+        "criteria": [
+            "Unknown commands are rejected with a short usage hint rather than a Python traceback",
+            "Task data is persisted across runs using a local JSON file",
+            "Removing a task does not corrupt the remaining tasks",
+            "Completing a task changes its reported status in a subsequent run",
+        ],
+    },
 ]
 
 

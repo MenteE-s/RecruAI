@@ -304,8 +304,9 @@ def submit_guided_project(attempt_id):
     attempt.completed_at = datetime.utcnow()
 
     updated = []
+    portfolio_project = None
     if not project.is_free_preview:
-        updated = _write_back(user, project, result, attempt)
+        updated, portfolio_project = _write_back(user, project, result, attempt)
     db.session.commit()
 
     return jsonify({
@@ -314,6 +315,7 @@ def submit_guided_project(attempt_id):
         'pass_mark': pass_mark,
         'review': result,
         'skills_updated': [s.to_dict() for s in updated],
+        'portfolio_project': portfolio_project.to_dict() if portfolio_project else None,
     }), 200
 
 
@@ -380,7 +382,34 @@ def _write_back(user, project, result, attempt):
             skill.evidence_source = 'project'
             skill.verified = False
             updated.append(skill)
-    return updated
+
+    # Record a completed attempt as a portfolio project on the learner's public
+    # profile. The name is the guided project's title (it is the learner's
+    # credit, not ours), and it is attached only when the learner has passed:
+    # a failed submission shows engagement on the skill, not a finished piece
+    # of work. No fabricated repository link is attached - that is data we do
+    # not have, and inventing it would be worse than leaving it absent.
+    portfolio_project = None
+    if result.get('passed'):
+        description = (submission or '').strip()[:4000]
+        from ...models import Project
+        existing = Project.query.filter_by(
+            user_id=user.id, name=project.title).first()
+        if existing is not None:
+            portfolio_project = existing
+        else:
+            portfolio_project = Project(
+                user_id=user.id,
+                name=project.title,
+                description=description or project.summary,
+                technologies=__import__('json').dumps(project.get_skill_slugs()),
+                status='completed',
+                start_date=attempt.completed_at.date() if attempt.completed_at else None,
+                end_date=attempt.completed_at.date() if attempt.completed_at else None,
+            )
+            db.session.add(portfolio_project)
+
+    return updated, portfolio_project
 
 
 @api_bp.route('/guided-projects/attempts', methods=['GET'])

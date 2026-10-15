@@ -91,11 +91,13 @@ class EmbeddingProvider(abc.ABC):
 class OpenAILLMProvider(LLMProvider):
     """OpenAI LLM provider implementation"""
 
-    def __init__(self, api_key: str, model: str = "gpt-4", timeout: int = 30):
+    def __init__(self, api_key: str, model: Optional[str] = None, timeout: int = 30):
         if not OPENAI_AVAILABLE:
             raise ImportError("OpenAI package not installed")
         if not api_key:
             raise ValueError("OpenAI API key required")
+        if not model:
+            raise ValueError("A generation model is required for OpenAI")
 
         self.client = OpenAI(api_key=api_key)
         self.model = model
@@ -156,11 +158,13 @@ class OpenAILLMProvider(LLMProvider):
 class GroqLLMProvider(LLMProvider):
     """Groq LLM provider implementation"""
 
-    def __init__(self, api_key: str, model: str = "qwen/qwen3.8-27b", timeout: int = 30):
+    def __init__(self, api_key: str, model: Optional[str] = None, timeout: int = 30):
         if not GROQ_AVAILABLE:
             raise ImportError("Groq package not installed")
         if not api_key:
             raise ValueError("Groq API key required")
+        if not model:
+            raise ValueError("A generation model is required for Groq")
 
         self.client = Groq(api_key=api_key)
         self.model = model
@@ -238,11 +242,13 @@ class LocalLLMProvider(LLMProvider):
 class OpenAIEmbeddingProvider(EmbeddingProvider):
     """OpenAI embedding provider"""
 
-    def __init__(self, api_key: str, model: str = "text-embedding-ada-002", dimensions: int = 1536):
+    def __init__(self, api_key: str, model: Optional[str] = None, dimensions: int = 1536):
         if not OPENAI_AVAILABLE:
             raise ImportError("OpenAI package not installed")
         if not api_key:
             raise ValueError("OpenAI API key required")
+        if not model:
+            raise ValueError("An embedding model is required for OpenAI embeddings")
 
         self.client = OpenAI(api_key=api_key)
         self.model = model
@@ -310,10 +316,12 @@ class OpenRouterEmbeddingProvider(EmbeddingProvider):
 
     API_URL = "https://openrouter.ai/api/v1/embeddings"
 
-    def __init__(self, api_key: str, model: str = "sentence-transformers/all-minilm-l6-v2",
+    def __init__(self, api_key: str, model: Optional[str] = None,
                  dimensions: int = 384, timeout: int = 30):
         if not api_key:
             raise ValueError("OpenRouter API key required")
+        if not model:
+            raise ValueError("An embedding model is required for OpenRouter embeddings")
         self.api_key = api_key
         self.model = model
         self._embedding_dimension = dimensions
@@ -388,7 +396,9 @@ class AIProviderManager:
         if provider == "openai":
             if not self.config.OPENAI_API_KEY:
                 raise ValueError("OPENAI_API_KEY required for OpenAI provider")
-            model = self.config.AI_MODEL or "gpt-4"
+            model = self.config.OPENAI_MODEL or self.config.AI_GENERATION_MODEL
+            if not model:
+                raise ValueError("OPENAI_MODEL (or AI_GENERATION_MODEL/AI_MODEL) is required")
             return OpenAILLMProvider(
                 api_key=self.config.OPENAI_API_KEY,
                 model=model,
@@ -398,7 +408,9 @@ class AIProviderManager:
         elif provider == "groq":
             if not self.config.GROQ_API_KEY:
                 raise ValueError("GROQ_API_KEY required for Groq provider")
-            model = self.config.AI_MODEL or "qwen/qwen3.8-27b"
+            model = self.config.GROQ_MODEL or self.config.AI_GENERATION_MODEL
+            if not model:
+                raise ValueError("GROQ_MODEL (or AI_GENERATION_MODEL/AI_MODEL) is required")
             return GroqLLMProvider(
                 api_key=self.config.GROQ_API_KEY,
                 model=model,
@@ -419,7 +431,9 @@ class AIProviderManager:
         if provider == "openai":
             if not self.config.OPENAI_API_KEY:
                 raise ValueError("OPENAI_API_KEY required for OpenAI embeddings")
-            model = self.config.EMBEDDING_MODEL or "text-embedding-ada-002"
+            model = self.config.EMBEDDING_MODEL
+            if not model:
+                raise ValueError("EMBEDDING_MODEL (or AI_EMBEDDING_MODEL) is required")
             return OpenAIEmbeddingProvider(
                 api_key=self.config.OPENAI_API_KEY,
                 model=model,
@@ -437,7 +451,9 @@ class AIProviderManager:
         elif provider == "openrouter":
             if not self.config.OPENROUTER_API_KEY:
                 raise ValueError("OPENROUTER_API_KEY required for OpenRouter embeddings")
-            model = self.config.EMBEDDING_MODEL or "sentence-transformers/all-minilm-l6-v2"
+            model = self.config.EMBEDDING_MODEL
+            if not model:
+                raise ValueError("EMBEDDING_MODEL (or AI_EMBEDDING_MODEL) is required")
             return OpenRouterEmbeddingProvider(
                 api_key=self.config.OPENROUTER_API_KEY,
                 model=model,

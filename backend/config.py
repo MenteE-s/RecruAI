@@ -159,8 +159,31 @@ class Config:
         return os.getenv("RAG_ENABLED", "1") == "1"
 
     @property
+    def AI_GENERATION_MODEL(self):
+        return (os.getenv("AI_GENERATION_MODEL")
+                or os.getenv("AI_MODEL")
+                or os.getenv("GENERATION_MODEL"))
+
+    @property
     def AI_MODEL(self):
-        return os.getenv("AI_MODEL")
+        return self.AI_GENERATION_MODEL
+
+    @property
+    def GROQ_MODEL(self):
+        return os.getenv("GROQ_MODEL") or self.AI_GENERATION_MODEL
+
+    @property
+    def OPENAI_MODEL(self):
+        return os.getenv("OPENAI_MODEL") or self.AI_GENERATION_MODEL
+
+    @property
+    def AI_EMBEDDING_MODEL(self):
+        return (os.getenv("AI_EMBEDDING_MODEL")
+                or os.getenv("EMBEDDING_MODEL"))
+
+    @property
+    def EMBEDDING_MODEL(self):
+        return self.AI_EMBEDDING_MODEL
 
     @property
     def EMBEDDING_MODEL(self):

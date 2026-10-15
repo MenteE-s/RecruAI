@@ -124,7 +124,7 @@ it is the usual reason this track stalls.
       which decides on the *item* rather than the route so a free preview stays
       reachable by a lapsed account. Mock interviews still to be gated.
 - [ ] C5. Content quality bar: minimum viable bank before launch for each of C1–C3.
-      Bank is 21 questions / 4 quizzes / 3 projects — demonstrable, not shippable.
+       Bank expanded to 38 questions / 6 quizzes / 4 projects � improved, still short of a launch-grade minimum.
 
 ### F. Packaging — CVAI inside Docker (in progress)
 

@@ -13,18 +13,18 @@ class RecommendationConfig:
     """Configuration class for Recommendation system settings"""
 
     # Use main config values
-    OPENAI_API_KEY: Optional[str] = Config.OPENAI_API_KEY
-    GROQ_API_KEY: Optional[str] = Config.GROQ_API_KEY
+    OPENAI_API_KEY: Optional[str] = Config().OPENAI_API_KEY
+    GROQ_API_KEY: Optional[str] = Config().GROQ_API_KEY
 
     # Provider settings from main config
-    AI_PROVIDER: str = Config.AI_PROVIDER
-    EMBEDDING_PROVIDER: str = Config.EMBEDDING_PROVIDER
-    RAG_ENABLED: bool = Config.RAG_ENABLED
+    AI_PROVIDER: str = Config().AI_PROVIDER
+    EMBEDDING_PROVIDER: str = Config().EMBEDDING_PROVIDER
+    RAG_ENABLED: bool = Config().RAG_ENABLED
 
     # Model settings
-    AI_MODEL: Optional[str] = Config.AI_MODEL
-    EMBEDDING_MODEL: Optional[str] = Config.EMBEDDING_MODEL
-    EMBEDDING_DIMENSIONS: int = Config.EMBEDDING_DIMENSIONS
+    AI_MODEL: Optional[str] = Config().AI_GENERATION_MODEL
+    EMBEDDING_MODEL: Optional[str] = Config().EMBEDDING_MODEL
+    EMBEDDING_DIMENSIONS: int = Config().EMBEDDING_DIMENSIONS
 
     # Vector Database Configuration (from main config)
     VECTOR_DB_HOST: str = os.getenv("VECTOR_DB_HOST", "localhost")
@@ -39,8 +39,8 @@ class RecommendationConfig:
     MAX_CONTEXT_LENGTH: int = 2000
 
     # Rate Limiting
-    MAX_REQUESTS_PER_MINUTE: int = Config.EMBEDDING_REQUESTS_PER_MINUTE
-    MAX_REQUESTS_PER_HOUR: int = Config.EMBEDDING_REQUESTS_PER_HOUR
+    MAX_REQUESTS_PER_MINUTE: int = Config().EMBEDDING_REQUESTS_PER_MINUTE
+    MAX_REQUESTS_PER_HOUR: int = Config().EMBEDDING_REQUESTS_PER_HOUR
 
     # Caching
     CACHE_TTL_SECONDS: int = 3600  # 1 hour

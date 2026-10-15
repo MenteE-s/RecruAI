@@ -63,6 +63,26 @@ QUIZZES = [
         "is_free_preview": False,
         "skills": ["docker", "ci-cd", "git"],
     },
+    {
+        "slug": "python-fundamentals",
+        "title": "Python Fundamentals",
+        "description": "Core Python questions on functions, comprehensions and "
+                       "resource handling.",
+        "difficulty": "beginner",
+        "pass_percent": 50,
+        "is_free_preview": False,
+        "skills": ["python"],
+    },
+    {
+        "slug": "apis-and-version-control",
+        "title": "APIs and Version Control",
+        "description": "REST status codes plus the Git command that keeps and "
+                       "moves work around.",
+        "difficulty": "intermediate",
+        "pass_percent": 50,
+        "is_free_preview": False,
+        "skills": ["rest-apis", "git"],
+    },
 ]
 
 
