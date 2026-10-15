@@ -391,8 +391,9 @@ def _write_back(user, project, result, attempt):
     # not have, and inventing it would be worse than leaving it absent.
     portfolio_project = None
     if result.get('passed'):
-        description = (submission or '').strip()[:4000]
+        import json
         from ...models import Project
+        description = (attempt.submission or '').strip()[:4000]
         existing = Project.query.filter_by(
             user_id=user.id, name=project.title).first()
         if existing is not None:
@@ -402,7 +403,7 @@ def _write_back(user, project, result, attempt):
                 user_id=user.id,
                 name=project.title,
                 description=description or project.summary,
-                technologies=__import__('json').dumps(project.get_skill_slugs()),
+                technologies=json.dumps(project.get_skill_slugs()),
                 status='completed',
                 start_date=attempt.completed_at.date() if attempt.completed_at else None,
                 end_date=attempt.completed_at.date() if attempt.completed_at else None,
