@@ -37,6 +37,7 @@ const patch = (path, body) => request("PATCH", path, body ?? {});
 export const cvai = {
   // --- skills ------------------------------------------------------------
   levels: () => get("/api/skills/levels"),
+  createSkillQuestion: (body) => post("/api/skills/questions", body),
   taxonomy: (q = "") => get(`/api/skills/taxonomy${q ? `?q=${encodeURIComponent(q)}` : ""}`),
   startAssessment: (skillSlug) => post("/api/skills/assessments", { skill_slug: skillSlug }),
   submitAssessment: (id, answers) => post(`/api/skills/assessments/${id}/submit`, { answers }),

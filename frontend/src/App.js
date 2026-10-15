@@ -50,6 +50,7 @@ import CvaiQuizzes from "./pages/cvai/CvaiQuizzes";
 import CvaiProjects from "./pages/cvai/CvaiProjects";
 import CvaiPlan from "./pages/cvai/CvaiPlan";
 import CvaiInterviews from "./pages/cvai/CvaiInterviews";
+import CvaiAuthoring from "./pages/cvai/CvaiAuthoring";
 import JobDetails from "./pages/individual/JobDetails";
 import MyNetwork from "./pages/individual/MyNetwork";
 import Interviews from "./pages/individual/Interviews";
@@ -443,6 +444,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <CvaiInterviews />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/in/coaching/authoring"
+            element={
+              <ProtectedRoute>
+                <CvaiAuthoring />
               </ProtectedRoute>
             }
           />
