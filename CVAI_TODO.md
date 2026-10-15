@@ -122,9 +122,9 @@ it is the usual reason this track stalls.
       assessment endpoints, the five quiz endpoints and the eight project
       endpoints are gated. Quizzes and projects use `check_content_access()`,
       which decides on the *item* rather than the route so a free preview stays
-      reachable by a lapsed account. Mock interviews still to be gated.
+      reachable by a lapsed account. Mock interviews gated on AI-consuming endpoints; read endpoints stay open for past sessions.
 - [ ] C5. Content quality bar: minimum viable bank before launch for each of C1â€“C3.
-       Bank expanded to 38 questions / 6 quizzes / 4 projects — improved, still short of a launch-grade minimum.
+       Bank expanded to 39 questions / 6 quizzes / 4 projects — improved, still short of a launch-grade minimum.
 
 ### F. Packaging â€” CVAI inside Docker (in progress)
 
