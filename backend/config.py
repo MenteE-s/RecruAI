@@ -207,8 +207,10 @@ class Config:
         return os.getenv("OPENROUTER_API_KEY")
 
     @property
+    # On-demand Groq tiers enforce ~1000 output tokens/minute. Keep the default
+    # below that so a single request cannot exceed the provider limit.
     def AI_MAX_TOKENS(self):
-        return int(os.getenv("AI_MAX_TOKENS", "4000"))
+        return int(os.getenv("AI_MAX_TOKENS", "800"))
 
     @property
     def AI_TEMPERATURE(self):
