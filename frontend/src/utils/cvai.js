@@ -71,6 +71,10 @@ export const cvai = {
   interviewFeedback: (id) => post(`/api/mock-interviews/${id}/feedback`),
   abandonInterview: (id) => post(`/api/mock-interviews/${id}/abandon`),
 
+  // --- subscription ------------------------------------------------------
+  subscriptionStatus: () => get("/api/subscription/status"),
+  subscriptionUpgrade: (plan = "paid") => post("/api/subscription/upgrade", { plan }),
+
   // --- mentorship --------------------------------------------------------
   planOptions: () => get("/api/mentorship/plans/options"),
   plans: () => get("/api/mentorship/plans"),

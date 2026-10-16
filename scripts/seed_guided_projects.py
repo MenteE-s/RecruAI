@@ -143,6 +143,83 @@ PROJECTS = [
             "Completing a task changes its reported status in a subsequent run",
         ],
     },
+    {
+        "slug": "task-api",
+        "title": "Task Management API",
+        "summary": "A REST API for creating, completing and listing tasks, with "
+                   "validation, pagination and tests. Good interview prep material.",
+        "difficulty": "intermediate",
+        "estimated_hours": 18,
+        "pass_percent": 70,
+        "is_free_preview": False,
+        "skills": ["python", "rest-apis", "postgresql", "sql"],
+        "steps": [
+            {"title": "Model and migrate",
+             "instruction": "Tasks and users tables with foreign keys, versioned migrations."},
+            {"title": "Endpoints",
+             "instruction": "CRUD endpoints for tasks: create, list with pagination, get, update, delete."},
+            {"title": "Validate",
+             "instruction": "Reject bad payloads with field-level errors instead of 500s."},
+            {"title": "Test",
+             "instruction": "Write tests covering happy paths and error cases for every endpoint."},
+        ],
+        "criteria": [
+            "Endpoints return correct status codes and shaped JSON",
+            "Invalid input is rejected with field-level errors",
+            "Task list supports pagination and filtering by completion",
+            "Tests pass for create, read, update and delete flows",
+        ],
+    },
+    {
+        "slug": "data-summary-report",
+        "title": "Data Summary Report",
+        "summary": "Load a CSV dataset, compute summary statistics and export "
+                   "a readable report. Practices data cleaning and presentation.",
+        "difficulty": "beginner",
+        "estimated_hours": 10,
+        "pass_percent": 70,
+        "is_free_preview": False,
+        "skills": ["python", "data-analysis", "data-visualization"],
+        "steps": [
+            {"title": "Load and clean",
+             "instruction": "Read a CSV, handle missing values and parse dates."},
+            {"title": "Summarize",
+             "instruction": "Compute mean, median, min, max and counts per group."},
+            {"title": "Report",
+             "instruction": "Export a Markdown or text report with charts described in text."},
+        ],
+        "criteria": [
+            "CSV loads without crashing on missing or malformed rows",
+            "Summary statistics are computed correctly",
+            "Report output is present and human-readable",
+            "Code is organized into load/compute/report functions",
+        ],
+    },
+    {
+        "slug": "ui-component-library",
+        "title": "UI Component Library",
+        "summary": "Build a small set of reusable, accessible UI components "
+                   "(button, card, input) with documentation and tests.",
+        "difficulty": "intermediate",
+        "estimated_hours": 16,
+        "pass_percent": 70,
+        "is_free_preview": False,
+        "skills": ["css", "html", "design-systems", "ui-ux", "javascript"],
+        "steps": [
+            {"title": "Components",
+             "instruction": "Build button, card and input components with consistent styling."},
+            {"title": "Accessibility",
+             "instruction": "Add ARIA labels, keyboard navigation and color-contrast review."},
+            {"title": "Document",
+             "instruction": "Write usage examples and a README for each component."},
+        ],
+        "criteria": [
+            "Components render without console errors",
+            "Keyboard navigation works on interactive components",
+            "Each component has a usage example",
+            "Color contrast meets basic accessibility guidelines",
+        ],
+    },
 ]
 
 

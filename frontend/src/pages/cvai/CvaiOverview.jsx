@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import CvaiShell, { Panel, Stat, Badge, Loading, ErrorNote, LockedNote, EmptyNote, Meter } from "../cvai/CvaiShell";
 import { cvai, isLocked, messageOf, levelTone, percent } from "../../utils/cvai";
-import { FiArrowRight, FiCheckCircle, FiCode, FiHelpCircle, FiTarget } from "react-icons/fi";
+import { FiArrowRight, FiCheckCircle, FiCode, FiHelpCircle, FiTarget, FiLock, FiCreditCard, FiCheck } from "react-icons/fi";
 
 /**
  * The CVAI overview.
@@ -17,22 +17,25 @@ export default function CvaiOverview() {
   const [quiz, setQuiz] = useState(null);
   const [suggestions, setSuggestions] = useState([]);
   const [attempts, setAttempts] = useState([]);
+  const [subscription, setSubscription] = useState(null);
   const [locked, setLocked] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [upgrading, setUpgrading] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     // Projects are deliberately not fetched here. The overview links to them but
     // never renders them, and an unused request is one more way for this page to
     // fail and then show nothing at all.
-    const [levelsRes, quizRes, suggestionRes, quizHistory, projectHistory] =
+    const [levelsRes, quizRes, suggestionRes, quizHistory, projectHistory, subRes] =
       await Promise.all([
         cvai.levels(),
         cvai.quizzes(),
         cvai.suggestions(),
         cvai.quizAttempts(),
         cvai.projectAttempts(),
+        cvai.subscriptionStatus(),
       ]);
 
     if (isLocked(levelsRes)) { setLocked(true); setLoading(false); return; }
@@ -45,6 +48,7 @@ export default function CvaiOverview() {
       ...(quizHistory.data?.attempts || []).map((a) => ({ ...a, kind: "quiz" })),
       ...(projectHistory.data?.attempts || []).map((a) => ({ ...a, kind: "project" })),
     ]);
+    if (subRes.ok) setSubscription(subRes.data || null);
     setLocked(false);
     setLoading(false);
   }, []);
@@ -62,6 +66,24 @@ export default function CvaiOverview() {
     .slice(0, 5);
 
   const hasEvidence = measured.length > 0;
+  const isSubscribed = subscription?.is_paid_active || subscription?.is_trial_active;
+
+  async function handleUpgrade() {
+    setError("");
+    setUpgrading(true);
+    try {
+      const res = await cvai.subscriptionUpgrade("paid");
+      if (!res.ok) {
+        setError(messageOf(res, "Could not upgrade subscription."));
+        return;
+      }
+      setSubscription(res.data?.subscription || null);
+    } catch (err) {
+      setError(err.message || "Could not upgrade subscription.");
+    } finally {
+      setUpgrading(false);
+    }
+  }
 
   return (
     <CvaiShell
@@ -113,6 +135,41 @@ export default function CvaiOverview() {
                 </div>
               </section>
 
+              {!isSubscribed ? (
+                <Panel title="Subscribe to unlock CVAI" hint="Quizzes, guided projects, mock interviews and coaching are paid features.">
+                  <div className="space-y-4">
+                    <p className="text-sm text-gray-600">
+                      You are on the basic plan. Upgrade to unlock quizzes,
+                      guided projects, mock interviews and mentorship.
+                    </p>
+                    <button
+                      onClick={handleUpgrade}
+                      disabled={upgrading}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {upgrading ? (
+                        <span className="flex items-center gap-2 text-xs">Upgrading…</span>
+                      ) : (
+                        <span>
+                          <FiCreditCard className="h-4 w-4" /> Subscribe now
+                        </span>
+                      )}
+                    </button>
+                    {subscription && !subscription.is_trial_active && !subscription.is_paid_active && (
+                      <p className="text-xs text-gray-500">
+                        Status: {subscription.status}{subscription.paid_plan ? " (paid)" : ""}
+                      </p>
+                    )}
+                  </div>
+                </Panel>
+              ) : (
+                <Panel title="Subscription active" hint="All CVAI features are unlocked.">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Paid plan — full access to quizzes, projects, mock interviews and coaching.</span>
+                    <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">Active</span>
+                  </div>
+                </Panel>
+              )}
               <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                 <Stat value={measured.length} label="Skills measured" />
                 <Stat value={verified} label="Verified" tone="text-green-700" hint="assessment-backed" />

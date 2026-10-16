@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import IndividualNavbar from "../../components/layout/IndividualNavbar";
-import { getBackendUrl, getUploadUrl, getCurrentUserId, orgPath, postPath } from "../../utils/auth";
+import { getBackendUrl, getUploadUrl, getCurrentUserId, orgPath, postPath, getAuthHeaders } from "../../utils/auth";
 import { useToast } from "../../components/ui/ToastContext";
 import MenteeLoader from "../../components/ui/MenteeLoader";
 import { formatDate } from "../../utils/timezone";
@@ -130,23 +130,18 @@ export default function JobDetails() {
 
   const fetchRecommendedJobs = async () => {
     try {
-      // Server-side category filter + small page: same 5 cards, ~1/4 the bytes.
-      // Falls back to unfiltered when the job has no category.
-      const params = new URLSearchParams({ per_page: "6" });
-      if (job?.category) params.set("category", job.category);
+      // Real, personalized recommendations from the supervisor (skill-aware,
+      // not just category filtering). Falls back silently so a recommendation
+      // failure never breaks the job page.
+      const params = new URLSearchParams({ top_k: "6", explanations: "true" });
       const response = await fetch(
-        `${getBackendUrl()}/api/posts?${params.toString()}`
+        `${getBackendUrl()}/api/recommendations/jobs?${params.toString()}`,
+        { headers: { ...getAuthHeaders() } }
       );
       if (response.ok) {
-        const allJobs = (await response.json()).data || [];
-        // Filter jobs: same company or same category, exclude current job, limit to 5
-        const recommended = allJobs
-          .filter(
-            (j) =>
-              j.id !== job?.id && // Not the current job
-              (j.organization_id === job.organization_id ||
-                j.category === job.category) // Same company or category
-          )
+        const data = await response.json();
+        const recommended = (data?.recommendations || [])
+          .filter((j) => j.id !== job?.id)
           .slice(0, 5);
         setRecommendedJobs(recommended);
       }

@@ -15,6 +15,7 @@ from . import rag  # noqa: E402, F401
 from . import notifications  # noqa: E402, F401
 from . import billing  # noqa: E402, F401
 from . import search  # noqa: E402, F401
+from . import subscription  # noqa: E402, F401
 # CVAI mentorship (B1), quizzes (C1) and guided projects (C2). On api_bp rather
 # than their own blueprints so the email-verification guard in guards.py applies.
 from . import mentorship  # noqa: E402, F401
