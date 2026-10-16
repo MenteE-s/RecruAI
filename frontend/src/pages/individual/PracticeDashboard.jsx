@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import React, { useState, useEffect, useCallback } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
-import { verifyTokenWithServer } from "../../utils/auth";
+import { verifyTokenWithServer, getBackendUrl, getAuthHeaders } from "../../utils/auth";
 import {
   FiTarget,
   FiClock,
@@ -19,15 +19,36 @@ export default function PracticeDashboard() {
   const [duration, setDuration] = useState(15);
   const [title, setTitle] = useState("Practice Interview");
   const [type, setType] = useState("text");
+  const [agents, setAgents] = useState([]);
+  const [agentsLoading, setAgentsLoading] = useState(true);
+  const [agentsError, setAgentsError] = useState("");
   const location = useLocation();
   const [user, setUser] = useState(null);
+  const navigate = useNavigate();
+
+  const agentsUrl = `${getBackendUrl()}/api/practice-ai-agents`;
+
+  const loadAgents = useCallback(async () => {
+    setAgentsLoading(true);
+    setAgentsError("");
+    try {
+      const res = await fetch(agentsUrl, { headers: getAuthHeaders() });
+      if (!res.ok) throw new Error("Could not load practice agents");
+      setAgents(await res.json());
+    } catch (err) {
+      setAgentsError(err.message || "Could not load practice agents");
+    } finally {
+      setAgentsLoading(false);
+    }
+  }, [agentsUrl]);
 
   useEffect(() => {
     (async () => {
       const me = await verifyTokenWithServer();
       setUser(me);
+      await loadAgents();
     })();
-  }, []);
+  }, [loadAgents]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -37,9 +58,43 @@ export default function PracticeDashboard() {
     if (preDuration) setDuration(Math.max(15, parseInt(preDuration, 10) || 15));
   }, [location.search]);
 
-  const startPractice = async () => {
-    alert("Practice sessions are coming soon. Stay tuned!");
-  };
+  const startPractice = useCallback(async () => {
+    let agent = agents[0];
+    if (!agent) {
+      try {
+        const createRes = await fetch(agentsUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+          body: JSON.stringify({ name: "Practice Interviewer", industry: "General" }),
+        });
+        if (!createRes.ok) throw new Error("Could not create a default practice agent");
+        agent = await createRes.json();
+        setAgents((prev) => [...prev, agent]);
+      } catch (err) {
+        setAgentsError(err.message || "Create a practice AI agent before starting a session.");
+        return;
+      }
+    }
+
+    try {
+      const scheduleRes = await fetch(
+        `${getBackendUrl()}/api/practice-ai-agents/${agent.id}/schedule-practice`,
+        { method: "POST", headers: getAuthHeaders() }
+      );
+      if (!scheduleRes.ok) {
+        let detail = "Could not start the practice session.";
+        try {
+          const data = await scheduleRes.json();
+          detail = data.message || data.error || detail;
+        } catch { /* ignore */ }
+        throw new Error(detail);
+      }
+      const data = await scheduleRes.json();
+      navigate(`/in/practice/${data.id}`);
+    } catch (err) {
+      setAgentsError(err.message || "Could not start practice session.");
+    }
+  }, [agents, agentsUrl, navigate, getAuthHeaders]);
 
   return (
     <DashboardLayout >
@@ -136,10 +191,15 @@ export default function PracticeDashboard() {
             </div>
 
             <div className="mt-6 flex flex-col sm:flex-row gap-3">
-              <button onClick={startPractice} disabled className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-gray-900 text-white text-sm font-medium opacity-60 cursor-not-allowed">
+              <button onClick={startPractice} disabled={agentsLoading} className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
                 <FiPlay className="w-4 h-4" /> Start practice
               </button>
-              <span className="inline-flex items-center gap-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 px-3 py-2"><FiAlertCircle className="w-3.5 h-3.5" /> Coming soon — button will be enabled at launch</span>
+              {agentsError && (
+                <span className="inline-flex items-center gap-1.5 text-red-700 bg-red-50 border border-red-200 px-3 py-2"><FiAlertCircle className="w-3.5 h-3.5" /> {agentsError}</span>
+              )}
+              {!agentsLoading && agents.length === 0 && (
+                <span className="inline-flex items-center gap-1.5 text-amber-700 bg-amber-50 border border-amber-200 px-3 py-2"><FiAlertCircle className="w-3.5 h-3.5" /> Creating a default agent when you start</span>
+              )}
             </div>
 
             {user && (

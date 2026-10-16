@@ -77,6 +77,14 @@ def interview_chat(interview_id):
 
     # Generate AI response with optional thinking
     thinking_step = None
+    try:
+        response = generate_agent_response(message, interview, agent, user, thinking_step)
+    except RuntimeError as exc:
+        return jsonify({
+            'error': 'AI unavailable',
+            'message': str(exc)
+        }), 503
+
     if enable_thinking:
         thinking_module = ThinkingModule()
         
@@ -219,11 +227,23 @@ def generate_agent_response(message, interview, agent, user, thinking_step=None)
 
         # Generate response using the specialized interview AI service
         response = ai_service.generate_response(system_prompt, message, conversation_history, user, "interview_ai")
+
+        # Never persist a budget/subscription refusal or provider error as if
+        # the interviewer said it. A failed call is reported as failed.
+        refusal_prefixes = (
+            "Your trial has expired",
+            "Your organization's trial",
+            "I apologize, but I'm having trouble",
+            "AI service error",
+        )
+        if isinstance(response, str) and any(response.startswith(p) for p in refusal_prefixes):
+            raise RuntimeError(response)
+
         return response
 
     except Exception as e:
         print(f"Error generating agent response: {e}")
-        return generate_fallback_response(message, interview, agent)
+        raise RuntimeError(f"AI agent response failed: {e}") from e
 
 
 def build_agent_system_prompt(agent, interview, is_first_message=False, thinking_step=None):

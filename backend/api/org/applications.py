@@ -138,8 +138,13 @@ def create_application():
     post_id = payload.get("post_id")
     if not post_id:
         return jsonify({"error": "post_id required"}), 400
-    if not Post.query.get(post_id):
+    post = Post.query.get(post_id)
+    if not post:
         return jsonify({"error": "Job post not found"}), 404
+
+    # Only open postings accept applications.
+    if getattr(post, "status", None) not in (None, "active", "open"):
+        return jsonify({"error": "That job is not accepting applications"}), 400
 
     # Check if user already applied
     existing = Application.query.filter_by(user_id=user_id, post_id=post_id).first()

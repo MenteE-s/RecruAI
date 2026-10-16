@@ -41,8 +41,12 @@ def _manages_org_id(org_id):
         return True
     return TeamMember.query.filter_by(organization_id=org_id, user_id=user.id).first() is not None
 
-def generate_ai_analysis(interview, messages):
-    """Generate real AI analysis of interview conversation"""
+def generate_ai_analysis(interview, messages, user=None):
+    """Generate real AI analysis of interview conversation.
+
+    `user` is required so the AI allowance is enforced and token usage is
+    tracked; without it a failed analysis would be free and unmetered.
+    """
     try:
         ai_service = get_ai_service()
 
@@ -148,8 +152,9 @@ Conversation:
 
 Provide a detailed analysis with accurate scores based on the actual content and quality of responses."""
 
-        # Get AI analysis
-        ai_response = ai_service.generate_response(system_prompt, user_prompt)
+        # Get AI analysis. A refusal/budget message is not valid JSON and will
+        # fall through to the unavailable path below.
+        ai_response = ai_service.generate_response(system_prompt, user_prompt, user=user, operation_type="interview_analysis")
 
         # Parse AI response as JSON
         try:
@@ -175,7 +180,7 @@ Provide a detailed analysis with accurate scores based on the actual content and
             print(f"AI Response: {ai_response}")
 
             retry_prompt = system_prompt + "\n\nFINAL WARNING: Output must be valid JSON. No extra keys."
-            retry_response = ai_service.generate_response(retry_prompt, user_prompt)
+            retry_response = ai_service.generate_response(retry_prompt, user_prompt, user=user, operation_type="interview_analysis")
             retry_text = retry_response.strip()
             if retry_text.startswith('```json'):
                 retry_text = retry_text[7:]
@@ -222,20 +227,20 @@ Provide a detailed analysis with accurate scores based on the actual content and
     except Exception as e:
         print(f"Error generating AI analysis: {e}")
         return {
-            "overall_score": 0,
-            "communication_score": 0,
-            "technical_score": 0,
-            "problem_solving_score": 0,
-            "cultural_fit_score": 0,
-            "detailed_feedback": "AI analysis failed. Please try again.",
-            "ai_analysis_summary": "AI analysis failed.",
+            "overall_score": None,
+            "communication_score": None,
+            "technical_score": None,
+            "problem_solving_score": None,
+            "cultural_fit_score": None,
+            "detailed_feedback": "AI analysis is unavailable right now. Nothing was scored.",
+            "ai_analysis_summary": "AI analysis unavailable.",
             "strengths": [],
             "improvements": [],
             "actual_duration_minutes": interview.duration_minutes,
             "average_response_time_seconds": None,
             "question_count": len(messages) // 2,
-            "analyzed_by": "AI Analysis System (Failed)",
-            "analysis_method": "ai"
+            "analyzed_by": "AI Analysis System (Unavailable)",
+            "analysis_method": "unavailable"
         }
 
 @api_bp.route('/interviews/<int:interview_id>/analyze', methods=['POST'])
@@ -278,12 +283,28 @@ def generate_interview_analysis(interview_id):
             "interview": interview.to_dict()
         }), 200
 
-    if existing_analysis and force:
-        db.session.delete(existing_analysis)
-        db.session.commit()
+    try:
+        user_id = int(get_jwt_identity())
+    except (TypeError, ValueError):
+        return jsonify({"error": "Invalid user"}), 401
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
 
-    # Generate real AI analysis
-    analysis_data = generate_ai_analysis(interview, messages)
+    replace_existing = existing_analysis if force else None
+
+    # Generate real AI analysis. A refused/unmetered call must never persist a
+    # fabricated zero score, and must not delete an existing real analysis.
+    analysis_data = generate_ai_analysis(interview, messages, user=user)
+    if analysis_data.get("analysis_method") == "unavailable":
+        return jsonify({
+            "error": "AI analysis unavailable",
+            "message": "The AI reviewer could not be reached. Nothing was scored and your existing analysis is unchanged.",
+            "interview": interview.to_dict()
+        }), 503
+
+    if replace_existing is not None:
+        db.session.delete(replace_existing)
 
     # Save analysis to database
     analysis = InterviewAnalysis(

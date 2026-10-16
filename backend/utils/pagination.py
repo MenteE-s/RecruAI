@@ -4,7 +4,7 @@ Provides efficient pagination for large datasets to prevent memory issues and im
 """
 
 from flask import request
-from sqlalchemy import desc
+from sqlalchemy import desc, inspect
 from typing import Dict, List, Any, Tuple
 
 # Columns that must never be filterable/sortable via request params.
@@ -144,10 +144,20 @@ def apply_filters_and_sorting(query, model_class, filters: Dict[str, Any] = None
     Returns:
         Modified query object
     """
+    # Relationships cannot be filtered with a simple column equality/ILIKE and
+    # would otherwise 500 on public endpoints. Skip them rather than guessing a
+    # join.
+    relationship_names = set()
+    if filters:
+        try:
+            relationship_names = {rel.key for rel in inspect(model_class).relationships}
+        except Exception:
+            relationship_names = set()
+
     # Apply filters
     if filters:
         for field, value in filters.items():
-            if field in BLOCKED_QUERY_FIELDS:
+            if field in BLOCKED_QUERY_FIELDS or field in relationship_names:
                 continue
             if hasattr(model_class, field) and value is not None:
                 column = getattr(model_class, field)
@@ -163,7 +173,7 @@ def apply_filters_and_sorting(query, model_class, filters: Dict[str, Any] = None
                     query = query.filter(column == value)
 
     # Apply sorting
-    if sort_by and sort_by not in BLOCKED_QUERY_FIELDS and hasattr(model_class, sort_by):
+    if sort_by and sort_by not in BLOCKED_QUERY_FIELDS and sort_by not in relationship_names and hasattr(model_class, sort_by):
         column = getattr(model_class, sort_by)
         if sort_order.lower() == 'asc':
             query = query.order_by(column.asc())
