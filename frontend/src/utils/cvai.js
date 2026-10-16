@@ -74,6 +74,7 @@ export const cvai = {
   // --- subscription ------------------------------------------------------
   subscriptionStatus: () => get("/api/subscription/status"),
   subscriptionUpgrade: (plan = "paid") => post("/api/subscription/upgrade", { plan }),
+  subscriptionCancel: () => post("/api/subscription/cancel", {}),
 
   // --- mentorship --------------------------------------------------------
   planOptions: () => get("/api/mentorship/plans/options"),

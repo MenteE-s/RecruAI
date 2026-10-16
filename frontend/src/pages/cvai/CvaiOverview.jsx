@@ -85,6 +85,26 @@ export default function CvaiOverview() {
     }
   }
 
+  async function handleCancel() {
+    if (!window.confirm("Cancel your subscription? You will keep access through the current period, then revert to the basic plan.")) {
+      return;
+    }
+    setError("");
+    setUpgrading(true);
+    try {
+      const res = await cvai.subscriptionCancel();
+      if (!res.ok) {
+        setError(messageOf(res, "Could not cancel subscription."));
+        return;
+      }
+      setSubscription(res.data?.subscription || null);
+    } catch (err) {
+      setError(err.message || "Could not cancel subscription.");
+    } finally {
+      setUpgrading(false);
+    }
+  }
+
   return (
     <CvaiShell
       title="Skill growth"
@@ -142,6 +162,29 @@ export default function CvaiOverview() {
                       You are on the basic plan. Upgrade to unlock quizzes,
                       guided projects, mock interviews and mentorship.
                     </p>
+
+                    <div className="grid gap-2 md:grid-cols-2 mt-1">
+                      <div className="rounded border border-green-200 bg-green-50 p-3 text-sm">
+                        <p className="font-medium text-green-800 mb-1">✅ Free for everyone</p>
+                        <ul className="text-xs text-gray-600 space-y-0.5">
+                          <li>• Profile management + job search</li>
+                          <li>• Free-preview quizzes & projects</li>
+                          <li>• Re-reading your past interview transcripts</li>
+                        </ul>
+                      </div>
+                      <div className="rounded border border-blue-200 bg-blue-50 p-3 text-sm">
+                        <p className="font-medium text-blue-800 mb-1">🔒 Paid (free during trial)</p>
+                        <ul className="text-xs text-gray-600 space-y-0.5">
+                          <li>• Skill assessments + results on profile</li>
+                          <li>• All quizzes + projects</li>
+                          <li>• Mock interviews (start + feedback)</li>
+                          <li>• Mentorship plans + coaching</li>
+                        </ul>
+                      </div>
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      Every new account gets a <strong>30-day free trial</strong> of all paid features.
+                    </div>
                     <button
                       onClick={handleUpgrade}
                       disabled={upgrading}
@@ -163,10 +206,64 @@ export default function CvaiOverview() {
                   </div>
                 </Panel>
               ) : (
-                <Panel title="Subscription active" hint="All CVAI features are unlocked.">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Paid plan — full access to quizzes, projects, mock interviews and coaching.</span>
-                    <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">Active</span>
+                <Panel title="Your plan benefits" hint={subscription?.status === "active" ? "All CVAI features are unlocked." : "Full access during your free trial."}>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-sm font-medium text-gray-900">
+                          {subscription?.is_paid_active ? "Paid plan" : "Free trial (30 days)"}
+                        </span>
+                        <span className={`ml-2 text-xs px-2 py-0.5 rounded ${subscription?.is_paid_active ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"}`}>
+                          {subscription?.is_paid_active ? "Active" : "Trial"}
+                        </span>
+                      </div>
+                      {subscription?.is_paid_active ? (
+                        <button
+                          onClick={handleCancel}
+                          disabled={upgrading}
+                          className="text-xs text-red-600 hover:text-red-800 disabled:opacity-50"
+                        >
+                          {upgrading ? "Cancelling…" : "Unsubscribe"}
+                        </button>
+                      ) : null}
+                    </div>
+
+                    <div className="grid gap-2 md:grid-cols-2">
+                      <div className="rounded border border-green-200 bg-green-50 p-3 text-sm">
+                        <p className="font-medium text-green-800">✅ Unlimited skill assessments</p>
+                        <p className="text-xs text-gray-600">Test your level on many skills with scored questions.</p>
+                      </div>
+                      <div className="rounded border border-green-200 bg-green-50 p-3 text-sm">
+                        <p className="font-medium text-green-800">✅ All quizzes unlocked</p>
+                        <p className="text-xs text-gray-600">Access every quiz in the question bank.</p>
+                      </div>
+                      <div className="rounded border border-green-200 bg-green-50 p-3 text-sm">
+                        <p className="font-medium text-green-800">✅ Guided projects</p>
+                        <p className="text-xs text-gray-600">Build and get reviewed with skill write-backs.</p>
+                      </div>
+                      <div className="rounded border border-green-200 bg-green-50 p-3 text-sm">
+                        <p className="font-medium text-green-800">✅ Mock interviews</p>
+                        <p className="text-xs text-gray-600">Full 6-phase interviews with AI scoring.</p>
+                      </div>
+                      <div className="rounded border border-green-200 bg-green-50 p-3 text-sm">
+                        <p className="font-medium text-green-800">✅ Mentorship plans</p>
+                        <p className="text-xs text-gray-600">AI-generated learning plans with budgets and progress.</p>
+                      </div>
+                      <div className="rounded border border-blue-200 bg-blue-50 p-3 text-sm">
+                        <p className="font-medium text-blue-800">📦 Self-service</p>
+                        <p className="text-xs text-gray-600">Manage your plan anytime. Cancel anytime, no lock-in.</p>
+                      </div>
+                    </div>
+
+                    {subscription?.is_paid_active ? (
+                      <p className="text-xs text-gray-500 mt-2 text-center">
+                        You can cancel anytime. Access continues until this period ends, then reverts to basic.
+                      </p>
+                    ) : (
+                      <p className="text-xs text-gray-500 mt-2 text-center">
+                        Trial started daily. Upgrade to keep your CVAI benefits after the trial ends.
+                      </p>
+                    )}
                   </div>
                 </Panel>
               )}
