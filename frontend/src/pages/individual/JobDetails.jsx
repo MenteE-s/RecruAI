@@ -141,7 +141,8 @@ export default function JobDetails() {
       if (response.ok) {
         const data = await response.json();
         const recommended = (data?.recommendations || [])
-          .filter((j) => j.id !== job?.id)
+          .map((item) => item?.job || item)
+          .filter((j) => j && j.id !== job?.id)
           .slice(0, 5);
         setRecommendedJobs(recommended);
       }
