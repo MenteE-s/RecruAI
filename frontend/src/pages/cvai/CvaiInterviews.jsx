@@ -6,7 +6,7 @@ import {
   cvai, isLocked, isReviewerDown, messageOf, percent,
 } from "../../utils/cvai";
 import {
-  FiMic, FiMessageSquare, FiPlayCircle, FiSend, FiSquare, FiCheckCircle, FiRefreshCw,
+  FiMic, FiMessageSquare, FiPlayCircle, FiSend, FiSquare, FiCheckCircle, FiRefreshCw, FiCreditCard, FiLock,
 } from "react-icons/fi";
 
 /**
@@ -25,6 +25,7 @@ import {
 export default function CvaiInterviews() {
   const [meta, setMeta] = useState(null);
   const [history, setHistory] = useState([]);
+  const [subscription, setSubscription] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -37,12 +38,14 @@ export default function CvaiInterviews() {
   const [review, setReview] = useState(null);
   const [notice, setNotice] = useState("");        // honest non-error messages
   const [viewing, setViewing] = useState(null);    // past interview, read-only
+  const [upgrading, setUpgrading] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [metaRes, historyRes] = await Promise.all([
+    const [metaRes, historyRes, subRes] = await Promise.all([
       cvai.interviewMeta(),
       cvai.interviews(),
+      cvai.subscriptionStatus(),
     ]);
     if (!historyRes.ok) {
       setError(messageOf(historyRes, "Could not load your interviews."));
@@ -51,8 +54,25 @@ export default function CvaiInterviews() {
     }
     setMeta(metaRes.data || null);
     setHistory(historyRes.data?.interviews || []);
+    if (subRes.ok) setSubscription(subRes.data || null);
     setLoading(false);
   }, []);
+
+  async function handleUpgrade() {
+    setUpgrading(true);
+    try {
+      const res = await cvai.subscriptionUpgrade("paid");
+      if (!res.ok) {
+        setError(messageOf(res, "Could not upgrade subscription."));
+        return;
+      }
+      setSubscription(res.data?.subscription || null);
+    } catch (err) {
+      setError(err.message || "Could not upgrade subscription.");
+    } finally {
+      setUpgrading(false);
+    }
+  }
 
   useEffect(() => { load(); }, [load]);
 
@@ -187,6 +207,7 @@ export default function CvaiInterviews() {
   // where the button was rather than blanking the history above it.
   const [cannotStart, setCannotStart] = useState(false);
 
+  const isSubscribed = subscription?.is_paid_active || subscription?.is_trial_active;
   const live = session && !session.finished;
   const transcript = session?.interview?.transcript || viewing?.interview?.transcript || [];
   const pastFeedback = viewing?.interview?.feedback || null;
@@ -231,50 +252,69 @@ export default function CvaiInterviews() {
               />
             </div>
 
-            <Panel
-              title="Start an interview"
-              hint="Name the role. We work out what to cover from the gaps in your profile."
-            >
-              <form onSubmit={start} className="flex flex-wrap gap-2">
-                <input
-                  value={role}
-                  onChange={(e) => setRole(e.target.value)}
-                  placeholder="Backend Engineer"
-                  maxLength={160}
-                  className="min-w-[240px] flex-1 border border-gray-200 px-3 py-2 text-sm outline-none focus:border-blue-500"
-                />
-                <Button type="submit" disabled={starting || !role.trim() || Boolean(open)}>
-                  <FiPlayCircle className="h-4 w-4" /> {starting ? "Starting…" : "Begin"}
+            {!isSubscribed ? (
+              <Panel title="Subscribe to start mock interviews" hint="Mock interviews are a paid feature. Your 1-month trial includes them — after that you need a subscription.">
+                <div className="mt-3 text-sm text-gray-600">
+                  During your free trial you can run mock interviews. Once the
+                  trial ends, subscribe to keep practising.
+                </div>
+                <Button
+                  onClick={handleUpgrade}
+                  disabled={upgrading}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {upgrading ? "Upgrading…" : (
+                    <>
+                      <FiCreditCard className="h-4 w-4" /> Subscribe now
+                    </>
+                  )}
                 </Button>
-              </form>
+              </Panel>
+            ) : (
+              <Panel
+                title="Start an interview"
+                hint="Name the role. We work out what to cover from the gaps in your profile."
+              >
+                <form onSubmit={start} className="flex flex-wrap gap-2">
+                  <input
+                    value={role}
+                    onChange={(e) => setRole(e.target.value)}
+                    placeholder="Backend Engineer"
+                    maxLength={160}
+                    className="min-w-[240px] flex-1 border border-gray-200 px-3 py-2 text-sm outline-none focus:border-blue-500"
+                  />
+                  <Button type="submit" disabled={starting || !role.trim() || Boolean(open)}>
+                    <FiPlayCircle className="h-4 w-4" /> {starting ? "Starting…" : "Begin"}
+                  </Button>
+                </form>
 
-              {open ? (
-                <div className="mt-3 border border-amber-200 bg-amber-50 px-4 py-3">
-                  <p className="text-sm font-medium text-amber-900">
-                    You have an interview in progress
-                  </p>
-                  <p className="mt-0.5 text-xs text-amber-800">
-                    {open.target_role || "Practice interview"} — {open.turn_count} turn
-                    {open.turn_count === 1 ? "" : "s"} so far. Only one runs at a time.
-                  </p>
-                  <div className="mt-2.5 flex flex-wrap gap-2">
-                    <Button onClick={() => resume(open)}>
-                      <FiMessageSquare className="h-4 w-4" /> Resume
-                    </Button>
-                    <Button variant="secondary" onClick={() => abandonExisting(open)}>
-                      Discard it
-                    </Button>
+                {open ? (
+                  <div className="mt-3 border border-amber-200 bg-amber-50 px-4 py-3">
+                    <p className="text-sm font-medium text-amber-900">
+                      You have an interview in progress
+                    </p>
+                    <p className="mt-0.5 text-xs text-amber-800">
+                      {open.target_role || "Practice interview"} — {open.turn_count} turn
+                      {open.turn_count === 1 ? "" : "s"} so far. Only one runs at a time.
+                    </p>
+                    <div className="mt-2.5 flex flex-wrap gap-2">
+                      <Button onClick={() => resume(open)}>
+                        <FiMessageSquare className="h-4 w-4" /> Resume
+                      </Button>
+                      <Button variant="secondary" onClick={() => abandonExisting(open)}>
+                        Discard it
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              ) : null}
+                ) : null}
 
-              {cannotStart ? (
-                <div className="mt-3">
-                  <LockedNote what="Starting a new mock interview" />
-                </div>
-              ) : null}
+                {cannotStart ? (
+                  <div className="mt-3">
+                    <LockedNote what="Starting a new mock interview" />
+                  </div>
+                ) : null}
 
-              {meta?.phases ? (
+                {meta?.phases ? (
                 <div className="mt-4 border border-gray-200">
                   {meta.phases.map((p, i) => (
                     <div
@@ -300,6 +340,7 @@ export default function CvaiInterviews() {
                 fluster on is usually not the part they practise.
               </p>
             </Panel>
+            )}
 
             <Panel title="Past interviews">
               {history.length === 0 ? (

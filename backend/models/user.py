@@ -223,14 +223,20 @@ class User(db.Model):
 
     # Subscription methods
     def is_trial_active(self) -> bool:
-        """Check if user is still in trial period (7 days for individuals)"""
+        """Check if user is still in trial period (1 month / 30 days for individuals).
+
+        Every new individual account starts in trial and gets full access to all
+        CVAI features (assessments, quizzes, guided projects, mock interviews,
+        mentorship) for 30 days. After the trial ends the account lapses to the
+        basic plan and must subscribe to keep using paid features.
+        """
         if self.subscription_status != "trial":
             return False
 
         if not self.trial_start_date:
             return False
 
-        trial_end = self.trial_start_date + timedelta(days=7)
+        trial_end = self.trial_start_date + timedelta(days=30)
         return datetime.utcnow() < trial_end
 
     def is_subscription_active(self) -> bool:

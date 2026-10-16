@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import CvaiShell, { Panel, Stat, Badge, Button, Loading, ErrorNote, LockedNote, EmptyNote } from "../cvai/CvaiShell";
 import { cvai, isLocked, messageOf, grade } from "../../utils/cvai";
-import { FiCode, FiLock, FiSave, FiSend } from "react-icons/fi";
+import { FiCode, FiLock, FiSave, FiSend, FiCreditCard } from "react-icons/fi";
 
 /**
  * Guided projects: build something, then have it judged against criteria you
@@ -14,26 +14,46 @@ import { FiCode, FiLock, FiSave, FiSend } from "react-icons/fi";
 export default function CvaiProjects() {
   const [list, setList] = useState(null);
   const [attempts, setAttempts] = useState([]);
+  const [subscription, setSubscription] = useState(null);
   const [locked, setLocked] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(null);         // the project brief + workspace
   const [review, setReview] = useState(null);     // the returned review
   const [busy, setBusy] = useState("");
+  const [upgrading, setUpgrading] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     const res = await cvai.projects();
     const historyRes = await cvai.projectAttempts();
+    const subRes = await cvai.subscriptionStatus();
     if (isLocked(res)) { setLocked(true); setLoading(false); return; }
     if (!res.ok) { setError(messageOf(res, "Could not load projects.")); setLoading(false); return; }
     setList(res.data || { projects: [], unlocked_count: 0, locked_count: 0 });
     setAttempts(historyRes.data?.attempts || []);
+    if (subRes.ok) setSubscription(subRes.data || null);
     setLocked(false);
     setLoading(false);
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  async function handleUpgrade() {
+    setUpgrading(true);
+    try {
+      const res = await cvai.subscriptionUpgrade("paid");
+      if (!res.ok) {
+        setError(messageOf(res, "Could not upgrade subscription."));
+        return;
+      }
+      setSubscription(res.data?.subscription || null);
+    } catch (err) {
+      setError(err.message || "Could not upgrade subscription.");
+    } finally {
+      setUpgrading(false);
+    }
+  }
 
   async function begin(project) {
     setError("");
@@ -103,6 +123,9 @@ export default function CvaiProjects() {
   const projects = list?.projects || [];
   const graded = attempts.filter((a) => a.score_percent !== null && a.score_percent !== undefined);
   const best = graded.reduce((m, a) => Math.max(m, Number(a.score_percent) || 0), 0);
+  const isSubscribed = subscription?.is_paid_active || subscription?.is_trial_active;
+  const unlockedProjects = projects.filter((p) => !p.locked);
+  const lockedProjects = projects.filter((p) => p.locked);
 
   return (
     <CvaiShell
@@ -120,47 +143,70 @@ export default function CvaiProjects() {
           ) : (
             <>
               <div className="grid grid-cols-3 gap-3">
-                <Stat value={projects.length} label="Projects" />
+                <Stat value={unlockedProjects.length} label="Projects" />
                 <Stat value={attempts.filter((a) => a.status === "reviewed").length} label="Reviewed" />
                 <Stat value={`${grade(best)}`} label="Best grade" hint={`best score ${best}%`} />
               </div>
 
+              {lockedProjects.length > 0 && (
+                <Panel title="Subscribe to unlock more projects" hint="These projects are part of the paid plan.">
+                  <div className="space-y-3">
+                    {lockedProjects.map((project) => (
+                      <div key={project.id} className="flex items-center justify-between border border-gray-200 bg-gray-50 p-3 rounded-lg">
+                        <div>
+                          <h4 className="text-sm font-medium text-gray-900">{project.title}</h4>
+                          <p className="text-xs text-gray-500">{project.summary}</p>
+                        </div>
+                        <Badge className="border-gray-200 bg-gray-50 text-gray-600">
+                          <FiLock className="h-3 w-3" /> Locked
+                        </Badge>
+                      </div>
+                    ))}
+                    <Button
+                      onClick={handleUpgrade}
+                      disabled={upgrading}
+                      className="w-full mt-3 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      {upgrading ? "Upgrading…" : (
+                        <>
+                          <FiCreditCard className="h-4 w-4" /> Subscribe now
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </Panel>
+              )}
+
               <div className="grid gap-4 md:grid-cols-2">
-                {projects.map((project) => {
-                  const isLocked = project.locked === true;
-                  return (
-                    <article key={project.id} className="flex flex-col border border-gray-200 bg-white">
-                      <div className="flex-1 p-5">
-                        <div className="flex items-start justify-between gap-3">
-                          <h3 className="text-base font-semibold text-gray-900">{project.title}</h3>
-                          {isLocked ? (
-                            <Badge className="border-gray-200 bg-gray-50 text-gray-600">
-                              <FiLock className="h-3 w-3" /> Locked
-                            </Badge>
-                          ) : project.is_free_preview ? (
-                            <Badge className="border-green-200 bg-green-50 text-green-700">Free</Badge>
-                          ) : null}
-                        </div>
-                        <p className="mt-2 text-sm text-gray-600">{project.summary}</p>
-                        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-gray-500">
-                          {project.difficulty ? <Badge className="capitalize">{project.difficulty}</Badge> : null}
-                          <span>{project.step_count} steps</span>
-                          {project.estimated_hours ? <span>~{project.estimated_hours}h</span> : null}
-                          <span>pass at {project.pass_percent}%</span>
-                        </div>
+                {unlockedProjects.map((project) => (
+                  <article key={project.id} className="flex flex-col border border-gray-200 bg-white">
+                    <div className="flex-1 p-5">
+                      <div className="flex items-start justify-between gap-3">
+                        <h3 className="text-base font-semibold text-gray-900">{project.title}</h3>
+                        {project.is_free_preview ? (
+                          <Badge className="border-green-200 bg-green-50 text-green-700">Free</Badge>
+                        ) : null}
                       </div>
-                      <div className="border-t border-gray-100 p-4">
-                        {isLocked ? (
-                          <p className="text-xs text-gray-500">Subscribe to see the full brief.</p>
-                        ) : (
-                          <Button onClick={() => begin(project)}>
-                            <FiCode className="h-4 w-4" /> {project.is_free_preview ? "Try it" : "Start project"}
-                          </Button>
-                        )}
+                      <p className="mt-2 text-sm text-gray-600">{project.summary}</p>
+                      <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                        {project.difficulty ? <Badge className="capitalize">{project.difficulty}</Badge> : null}
+                        <span>{project.step_count} steps</span>
+                        {project.estimated_hours ? <span>~{project.estimated_hours}h</span> : null}
+                        <span>pass at {project.pass_percent}%</span>
                       </div>
-                    </article>
-                  );
-                })}
+                    </div>
+                    <div className="border-t border-gray-100 p-4">
+                      <Button onClick={() => begin(project)}>
+                        <FiCode className="h-4 w-4" /> {project.is_free_preview ? "Try it" : "Start project"}
+                      </Button>
+                    </div>
+                  </article>
+                ))}
+                {unlockedProjects.length === 0 && (
+                  <EmptyNote>
+                    No projects available yet. Subscribe to unlock the project library.
+                  </EmptyNote>
+                )}
               </div>
 
               {open ? (
