@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import CvaiShell, { Panel, Stat, Badge, Button, Loading, ErrorNote, LockedNote, EmptyNote } from "../cvai/CvaiShell";
 import { cvai, isLocked, messageOf, levelTone, grade } from "../../utils/cvai";
 import { FiPlayCircle, FiUnlock, FiLock, FiCreditCard } from "react-icons/fi";
+import PaywallModal from "../../components/ui/PaywallModal";
 
 /**
  * Quizzes: subscriber content built on the same question bank as assessments.
@@ -22,6 +23,7 @@ export default function CvaiQuizzes() {
   const [outcome, setOutcome] = useState(null);
   const [busy, setBusy] = useState(false);
   const [upgrading, setUpgrading] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -93,11 +95,12 @@ export default function CvaiQuizzes() {
   }
 
   return (
-    <CvaiShell
-      title="Quizzes"
-      subtitle="Timeless question sets. The first one is free, so you can try this before deciding to subscribe."
-    >
-      {locked ? (
+    <>
+      <CvaiShell
+        title="Quizzes"
+        subtitle="Timeless question sets. The first one is free, so you can try this before deciding to subscribe."
+      >
+        {locked ? (
         <LockedNote what="Quizzes" />
       ) : (
         <div className="space-y-5">
@@ -128,7 +131,7 @@ export default function CvaiQuizzes() {
                       </div>
                     ))}
                     <Button
-                      onClick={handleUpgrade}
+                      onClick={() => setShowPaywall(true)}
                       className="w-full mt-3 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700"
                     >
                       <FiCreditCard className="h-4 w-4" /> Subscribe now
@@ -295,6 +298,13 @@ export default function CvaiQuizzes() {
         </div>
       )}
     </CvaiShell>
+    <PaywallModal
+      open={showPaywall}
+      feature="quizzes"
+      onClose={() => setShowPaywall(false)}
+      onUpgrade={handleUpgrade}
+    />
+    </>
   );
 }
 
