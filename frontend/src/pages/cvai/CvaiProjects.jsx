@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import CvaiShell, { Panel, Stat, Badge, Button, Loading, ErrorNote, LockedNote, EmptyNote } from "../cvai/CvaiShell";
 import { cvai, isLocked, messageOf, grade } from "../../utils/cvai";
 import { FiCode, FiLock, FiSave, FiSend, FiCreditCard } from "react-icons/fi";
+import PaywallModal from "../../components/ui/PaywallModal";
 
 /**
  * Guided projects: build something, then have it judged against criteria you
@@ -22,6 +23,7 @@ export default function CvaiProjects() {
   const [review, setReview] = useState(null);     // the returned review
   const [busy, setBusy] = useState("");
   const [upgrading, setUpgrading] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -128,6 +130,7 @@ export default function CvaiProjects() {
   const lockedProjects = projects.filter((p) => p.locked);
 
   return (
+    <>
     <CvaiShell
       title="Guided projects"
       subtitle="Build something real, then have it reviewed against criteria you can read before you start."
@@ -163,15 +166,10 @@ export default function CvaiProjects() {
                       </div>
                     ))}
                     <Button
-                      onClick={handleUpgrade}
-                      disabled={upgrading}
-                      className="w-full mt-3 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700 disabled:opacity-50"
+                      onClick={() => setShowPaywall(true)}
+                      className="w-full mt-3 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700"
                     >
-                      {upgrading ? "Upgrading…" : (
-                        <>
-                          <FiCreditCard className="h-4 w-4" /> Subscribe now
-                        </>
-                      )}
+                      <FiCreditCard className="h-4 w-4" /> Subscribe now
                     </Button>
                   </div>
                 </Panel>
@@ -273,6 +271,8 @@ export default function CvaiProjects() {
         </div>
       )}
     </CvaiShell>
+    <PaywallModal open={showPaywall} feature="projects" onClose={() => setShowPaywall(false)} onUpgrade={handleUpgrade} />
+    </>
   );
 }
 

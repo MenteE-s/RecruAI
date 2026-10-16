@@ -22,9 +22,13 @@ export default function PaywallModal({ open, feature, onClose, onUpgrade }) {
 
   const label = featureLabels[feature] || "this feature";
 
-  function handleSubscribe() {
-    if (onUpgrade) onUpgrade();
-    else navigate("/billing");
+  async function handleSubscribe() {
+    try {
+      if (onUpgrade) await onUpgrade();
+      if (onClose) onClose();
+    } catch (err) {
+      if (onClose) onClose();
+    }
   }
 
   return (

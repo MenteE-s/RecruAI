@@ -5,6 +5,7 @@ import CvaiShell, {
 import {
   cvai, isLocked, isReviewerDown, messageOf, percent,
 } from "../../utils/cvai";
+import PaywallModal from "../../components/ui/PaywallModal";
 import {
   FiMic, FiMessageSquare, FiPlayCircle, FiSend, FiSquare, FiCheckCircle, FiRefreshCw, FiCreditCard, FiLock,
 } from "react-icons/fi";
@@ -39,6 +40,7 @@ export default function CvaiInterviews() {
   const [notice, setNotice] = useState("");        // honest non-error messages
   const [viewing, setViewing] = useState(null);    // past interview, read-only
   const [upgrading, setUpgrading] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -217,6 +219,7 @@ export default function CvaiInterviews() {
   const open = history.find((i) => i.status === "in_progress") || null;
 
   return (
+    <>
     <CvaiShell
       title="Mock interviews"
       subtitle="A full interview with an interviewer who has a plan. Costs AI tokens to score."
@@ -259,9 +262,8 @@ export default function CvaiInterviews() {
                   trial ends, subscribe to keep practising.
                 </div>
                 <Button
-                  onClick={handleUpgrade}
-                  disabled={upgrading}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700 disabled:opacity-50"
+                  onClick={() => setShowPaywall(true)}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700"
                 >
                   {upgrading ? "Upgrading…" : (
                     <>
@@ -541,6 +543,8 @@ export default function CvaiInterviews() {
         )}
       </div>
     </CvaiShell>
+    <PaywallModal open={showPaywall} feature="mock interviews" onClose={() => setShowPaywall(false)} onUpgrade={handleUpgrade} />
+    </>
   );
 }
 
