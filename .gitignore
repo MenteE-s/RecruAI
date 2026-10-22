@@ -42,3 +42,7 @@ pgdata/
 kafkadata/
 redisdata/
 .aider*
+
+# Local scratch files at repo root (not part of the project)
+/app.py
+/inventory.db
