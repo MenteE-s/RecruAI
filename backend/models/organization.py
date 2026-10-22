@@ -47,6 +47,7 @@ class Organization(db.Model):
     users = db.relationship("User", back_populates="organization", foreign_keys="User.organization_id")
     posts = db.relationship("Post", back_populates="organization", cascade="all, delete-orphan")
     team_members = db.relationship("TeamMember", back_populates="organization", cascade="all, delete-orphan")
+    invitations = db.relationship("OrganizationInvitation", back_populates="organization", cascade="all, delete-orphan")
 
     def to_dict(self):
         import json

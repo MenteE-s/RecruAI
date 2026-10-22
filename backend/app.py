@@ -305,6 +305,14 @@ def create_app(config_object: object | None = None):
 		_limit("api.verify_email_change", "10 per minute")
 		_limit("api.forgot_password", "5 per minute")
 		_limit("api.reset_password", "10 per minute")
+		# Organization invitations: the public token endpoints are unauthenticated,
+		# and the admin endpoints each send an email, so cap both sides.
+		_limit("api.get_invitation", "30 per minute")
+		_limit("api.accept_invitation", "10 per minute")
+		_limit("api.invite_team_member", "10 per minute")
+		_limit("api.list_organization_invitations", "60 per minute")
+		_limit("api.resend_organization_invitation", "10 per minute")
+		_limit("api.revoke_organization_invitation", "20 per minute")
 		# Spam-prone writes + expensive search
 		_limit("api.create_post", "30 per minute")
 		_limit("api.create_application", "30 per minute")

@@ -1,6 +1,7 @@
 from .user import User
 from .email_otp import EmailOtp
 from .organization import Organization
+from .organization_invitation import OrganizationInvitation
 from .team_member import TeamMember
 from .interview import Interview
 from .interview_analysis import InterviewAnalysis
@@ -58,6 +59,7 @@ __all__ = [
     "User",
     "EmailOtp",
     "Organization",
+    "OrganizationInvitation",
     "TeamMember",
     "Interview",
     "InterviewAnalysis",

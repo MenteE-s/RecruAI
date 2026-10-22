@@ -2,7 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { FiArrowLeft, FiCheck, FiLock, FiMail, FiShield } from "react-icons/fi";
 
-const HIGHLIGHTS = [
+const DEFAULT_HIGHLIGHTS = [
   { icon: FiMail, title: "Email-verified recovery", text: "A 6-digit code is sent to the address on the account." },
   { icon: FiShield, title: "Sessions revoked", text: "Resetting a password signs out every older session." },
   { icon: FiLock, title: "No account hints", text: "Unknown addresses get the same response as real ones." },
@@ -12,6 +12,21 @@ export default function AuthLayout({
   children,
   backTo = "/signin",
   backLabel = "Back to sign in",
+  panelEyebrow = "Account recovery",
+  panelTitle = (
+    <>
+      Get back in.
+      <br />
+      <span className="text-neutral-400">Safely, in under two minutes.</span>
+    </>
+  ),
+  highlights = DEFAULT_HIGHLIGHTS,
+  footer = (
+    <>
+      <FiCheck className="h-4 w-4 text-emerald-400" />
+      Built for Pakistan — expanding across the Gulf &amp; beyond
+    </>
+  ),
 }) {
   return (
     <div className="min-h-screen bg-white text-neutral-900">
@@ -45,17 +60,15 @@ export default function AuthLayout({
           <div className="relative">
             <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs font-semibold text-neutral-200">
               <span className="h-2 w-2 rounded-full bg-emerald-400" />
-              Account recovery
+              {panelEyebrow}
             </span>
             <h2 className="mt-6 text-4xl font-extrabold leading-[1.05] tracking-tight xl:text-5xl">
-              Get back in.
-              <br />
-              <span className="text-neutral-400">Safely, in under two minutes.</span>
+              {panelTitle}
             </h2>
           </div>
 
           <div className="relative space-y-5">
-            {HIGHLIGHTS.map(({ icon: Icon, title, text }) => (
+            {highlights.map(({ icon: Icon, title, text }) => (
               <div key={title} className="flex items-start gap-4">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.06]">
                   <Icon className="h-5 w-5 text-emerald-400" />
@@ -67,8 +80,7 @@ export default function AuthLayout({
               </div>
             ))}
             <div className="flex items-center gap-2 border-t border-white/10 pt-6 text-xs text-neutral-400">
-              <FiCheck className="h-4 w-4 text-emerald-400" />
-              Built for Pakistan — expanding across the Gulf &amp; beyond
+              {footer}
             </div>
           </div>
         </div>

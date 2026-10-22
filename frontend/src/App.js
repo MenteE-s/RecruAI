@@ -21,6 +21,7 @@ import Register from "./pages/Register";
 import SignIn from "./pages/SignIn";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import AcceptInvite from "./pages/AcceptInvite";
 import ContactUs from "./pages/ContactUs";
 import TermsAndConditions from "./pages/TermsAndConditions";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
@@ -94,7 +95,7 @@ import PageVisibility from "./pages/page/Visibility";
 import PageSettings from "./pages/page/Settings";
 
 import { verifyTokenWithServer } from "./utils/auth";
-import { getBackendUrl, getAuthHeaders } from "./utils/auth";
+import { getBackendUrl, getAuthHeaders, getSafeNextPath } from "./utils/auth";
 import MenteeLoader from "./components/ui/MenteeLoader";
 import socketService from "./utils/socket";
 
@@ -260,9 +261,9 @@ function AuthVerifier() {
       (location.pathname === "/signin" || location.pathname === "/register") &&
       localStorage.getItem("isAuthenticated") === "true"
     ) {
-      navigate("/feed", { replace: true });
+      navigate(getSafeNextPath(location.search) || "/feed", { replace: true });
     }
-  }, [navigate, location.pathname]);
+  }, [navigate, location.pathname, location.search]);
 
   return null;
 }
@@ -280,6 +281,7 @@ function App() {
           <Route path="/signin" element={<SignIn />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/accept-invite" element={<AcceptInvite />} />
           <Route
             path="/search"
             element={

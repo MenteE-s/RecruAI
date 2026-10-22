@@ -246,6 +246,78 @@ def send_password_changed_email(to_email: str, name: str) -> Tuple[bool, Optiona
     )
 
 
+def organization_invitation_email_html(
+    organization_name: str,
+    inviter_name: str,
+    role: str,
+    accept_url: str,
+    expires_days: int = 7,
+) -> str:
+    import html as _html
+
+    org = _html.escape(organization_name or "the team", quote=True)
+    inviter = _html.escape(inviter_name or "A team admin", quote=True)
+    role_text = _html.escape(role or "Member", quote=True)
+    url = _html.escape(accept_url, quote=True)
+    body = f"""
+<tr><td align="center" style="padding:36px 36px 8px 36px;text-align:center;">
+  <p style="margin:0;font-size:24px;font-weight:800;letter-spacing:-0.4px;color:{CHARCOAL};text-align:center;">Join {org} on {BRAND_NAME}</p>
+  <p style="margin:10px 0 0 0;font-size:14px;line-height:1.7;color:#525252;text-align:center;">{inviter} invited you to join the team as <b>{role_text}</b>. Accept the invitation to see the team and start collaborating.</p>
+</td></tr>
+<tr><td align="center" style="padding:14px 36px 8px 36px;text-align:center;">
+  <a href="{url}" style="display:inline-block;background-color:{CHARCOAL};color:#ffffff;font-size:14px;font-weight:700;text-decoration:none;padding:13px 34px;border-radius:9px;">Accept invitation</a>
+</td></tr>
+<tr><td align="center" style="padding:16px 36px 28px 36px;text-align:center;">
+  <p style="margin:0;font-size:12px;line-height:1.7;color:{MUTED};text-align:center;">This link expires in {expires_days} days and can only be used once. If you already have a {BRAND_NAME} account, sign in with this email address to join.</p>
+  <p style="margin:8px 0 0 0;font-size:11px;line-height:1.7;color:{MUTED};text-align:center;word-break:break-all;">{url}</p>
+</td></tr>
+"""
+    return _shell_html(f"{inviter} invited you to join {org} on {BRAND_NAME}", body)
+
+
+def organization_invitation_email_text(
+    organization_name: str,
+    inviter_name: str,
+    role: str,
+    accept_url: str,
+    expires_days: int = 7,
+) -> str:
+    return (
+        f"{inviter_name or 'A team admin'} invited you to join the {organization_name or 'team'} "
+        f"team on {BRAND_NAME} as {role or 'Member'}.\n\n"
+        f"Accept the invitation: {accept_url}\n\n"
+        f"This link expires in {expires_days} days and can only be used once. "
+        f"If you already have a {BRAND_NAME} account, sign in with this email address to join.\n\n"
+        f"— {BRAND_NAME} {BRAND_BYLINE} ({SITE_RECRUAI})"
+    )
+
+
+def send_organization_invitation_email(
+    to_email: str,
+    organization_name: str,
+    inviter_name: str,
+    role: str,
+    token: str,
+    expires_days: int = 7,
+) -> Tuple[bool, Optional[str]]:
+    from urllib.parse import quote
+
+    sender = _config("RESEND_FROM_EMAIL", f"{BRAND_NAME} <no-reply@menteeai.org>")
+    accept_url = f"{SITE_RECRUAI}/accept-invite?token={quote(token, safe='')}"
+    return _send(
+        to_email,
+        f"Join {organization_name or 'the team'} on {BRAND_NAME}",
+        organization_invitation_email_html(
+            organization_name, inviter_name, role, accept_url, expires_days
+        ),
+        organization_invitation_email_text(
+            organization_name, inviter_name, role, accept_url, expires_days
+        ),
+        sender,
+        reply_to=CONTACT_EMAIL,
+    )
+
+
 def welcome_email_html(name: str, role: str = "individual") -> str:
     import html as _html
     first = _html.escape((name or "there").split(" ")[0], quote=True)

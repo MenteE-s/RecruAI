@@ -3,15 +3,26 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy import func
 from .. import api_bp
 from ...extensions import db
-from ...models import Organization, TeamMember, User, AIInterviewAgent
+from ...models import Organization, TeamMember, User, AIInterviewAgent, OrganizationInvitation
 from ...utils.timezone_utils import is_valid_timezone, get_current_time_info, utc_iso, utc_now_iso
 from ...utils.kafka_service import kafka_service as kafka
 from ...utils.cache import cached, invalidate_org_cache
-from ...utils.security import sanitize_input, log_security_event
+from ...utils.security import sanitize_input, log_security_event, validate_email
 from ...utils.slug import slugify_company, ORG_RESERVED
+from ...utils.invitations import (
+    INVITATION_MAX_PER_HOUR,
+    INVITATION_RESEND_COOLDOWN_SECONDS,
+    INVITATION_TTL_DAYS,
+    active_invitation_for,
+    find_user_by_email,
+    generate_invitation_token,
+    hash_invitation_token,
+    normalize_email,
+    recent_invitation_count,
+)
+from ...utils.email_service import send_organization_invitation_email
 import json
-import secrets
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 def _manages_org(org_id):
@@ -1228,63 +1239,270 @@ def list_organization_people(org_id):
 @api_bp.route("/organizations/<int:org_id>/invite", methods=["POST"])
 @jwt_required()
 def invite_team_member(org_id):
+    """Create or resend an invitation without pre-creating a User.
+
+    The old implementation created an unverified User with a random password
+    and immediately added a TeamMember. That made the address impossible to
+    register and gave the invitee no way to sign in. Now an invitation is just
+    a hashed single-use token; the account is created only when the recipient
+    accepts it.
+    """
     if not _manages_org(org_id):
         return jsonify({"error": "Forbidden for this organization"}), 403
     org = Organization.query.get_or_404(org_id)
-    payload = request.get_json(silent=True) or {}
-    email = payload.get("email")
-    role = payload.get("role", "Member")
-    permissions = payload.get("permissions")  # list of permissions
+    try:
+        caller = User.query.get(int(get_jwt_identity()))
+    except (TypeError, ValueError):
+        caller = None
+    if not caller:
+        return jsonify({"error": "User not found"}), 404
 
-    if not email:
-        return jsonify({"error": "email required"}), 400
-    if role not in ALLOWED_TEAM_ROLES:
+    payload = request.get_json(silent=True) or {}
+    if not isinstance(payload, dict):
+        return jsonify({"error": "Invalid JSON body."}), 400
+    email = normalize_email(payload.get("email"))
+    role = payload.get("role", "Member")
+    permissions = payload.get("permissions")
+    invite_join_date, join_err = _parse_join_date(payload.get("join_date"))
+
+    if not email or not validate_email(email):
+        return jsonify({"error": "Enter a valid email address."}), 400
+    if not isinstance(role, str) or role not in ALLOWED_TEAM_ROLES:
         return jsonify({"error": f"Invalid role. Allowed: {sorted(ALLOWED_TEAM_ROLES)}"}), 400
     if role == "Admin" and not _is_org_admin(org_id):
         return jsonify({"error": "Only Admins can grant the Admin role"}), 403
     if not _validate_permissions(permissions):
         return jsonify({"error": "Invalid permissions (must be a list of <=50 strings)"}), 400
-    invite_join_date, join_err = _parse_join_date(payload.get("join_date"))
     if join_err:
         return join_err
 
-    # Check if user already exists
-    user = User.query.filter_by(email=email).first()
-    if user:
-        # Check if already a member
-        existing = TeamMember.query.filter_by(organization_id=org_id, user_id=user.id).first()
-        if existing:
-            return jsonify({"error": "user is already a team member"}), 400
-        user_id = user.id
-    else:
-        # Invited colleagues are people, so they get an `individual` account
-        # like everyone else. Their page access comes from the team_members row
-        # written below — there are no organization-role accounts any more.
-        user = User(
-            email=email,
-            name=email.split('@')[0],  # Use email prefix as name
-            role="individual",
-            organization_id=org_id
-        )
-        # Random temporary password (must pass strength policy); share out-of-band.
-        user.set_password(f"Tmp-{secrets.token_urlsafe(12)}!A9")
-        db.session.add(user)
-        db.session.flush()  # Get user.id
-        user_id = user.id
-
-    # Add to team members
-    tm = TeamMember(
-        organization_id=org_id,
-        user_id=user_id,
-        role=role,
-        permissions=json.dumps(permissions) if permissions else None,
-        join_date=invite_join_date
+    # An already-active member is not a privacy leak: managers can already see
+    # the team list. An unverified legacy placeholder is different — allow a
+    # fresh invitation so the real owner can reclaim it through the token.
+    user = find_user_by_email(email)
+    existing = (
+        TeamMember.query.filter_by(organization_id=org.id, user_id=user.id).first()
+        if user else None
     )
-    db.session.add(tm)
-    # Joining a team means working here: lift the default 'unemployed' state
-    # so the profile doesn't contradict itself (Open to Work + In your team).
-    # Never demotes an existing hired/working/onboarding state.
-    if user.employment_status in (None, "", "unemployed"):
-        user.employment_status = "working"
+    if existing and user.email_verified:
+        return jsonify({
+            "error": "This person is already on your team.",
+            "code": "already_team_member",
+        }), 409
+
+    now = datetime.utcnow()
+    active = active_invitation_for(org.id, email)
+    resent = active is not None
+    if active and active.last_sent_at:
+        elapsed = (now - active.last_sent_at).total_seconds()
+        if elapsed < INVITATION_RESEND_COOLDOWN_SECONDS:
+            wait = int(INVITATION_RESEND_COOLDOWN_SECONDS - elapsed) + 1
+            return jsonify({
+                "error": f"Please wait {wait}s before resending this invitation.",
+                "retry_after": wait,
+            }), 429
+    if not active and recent_invitation_count(org.id, email) >= INVITATION_MAX_PER_HOUR:
+        return jsonify({
+            "error": "Too many invitations for this address. Try again later.",
+        }), 429
+
+    token = generate_invitation_token()
+    if active:
+        invitation = active
+    else:
+        invitation = OrganizationInvitation(
+            organization_id=org.id,
+            email=email,
+            created_at=now,
+        )
+        db.session.add(invitation)
+
+    invitation.email = email
+    invitation.role = role
+    invitation.permissions = json.dumps(permissions) if permissions else None
+    invitation.join_date = invite_join_date
+    invitation.invited_by_id = caller.id
+    invitation.token_hash = hash_invitation_token(token)
+    invitation.expires_at = now + timedelta(days=INVITATION_TTL_DAYS)
+    invitation.last_sent_at = now
     db.session.commit()
-    return jsonify({"message": "invitation sent", "team_member": tm.to_dict()}), 201
+
+    sent, send_err = send_organization_invitation_email(
+        email,
+        org.name,
+        caller.name or caller.email,
+        role,
+        token,
+        INVITATION_TTL_DAYS,
+    )
+    if not sent:
+        # Keep the invitation so an admin can retry, but open the cooldown
+        # immediately because no email actually left the building.
+        invitation.last_sent_at = None
+        db.session.commit()
+        log_security_event(
+            "organization_invitation_email_failed",
+            user_id=caller.id,
+            ip_address=request.remote_addr,
+            email=email,
+            details={"org_id": org.id, "error": send_err},
+        )
+        return jsonify({
+            "error": "The invitation was saved, but the email could not be sent. Try resending it.",
+            "invitation": invitation.to_dict(),
+        }), 502
+
+    log_security_event(
+        "organization_invitation_sent",
+        user_id=caller.id,
+        ip_address=request.remote_addr,
+        email=email,
+        details={"org_id": org.id, "role": role, "resent": resent},
+    )
+    kafka.emit_event("organization_invitation_sent", {
+        "org_id": org.id,
+        "email": email,
+        "role": role,
+        "invitation_id": invitation.id,
+        "resent": resent,
+        "timestamp": utc_now_iso(),
+    })
+
+    return jsonify({
+        "message": "Invitation email resent." if resent else "Invitation email sent.",
+        "invitation": invitation.to_dict(),
+        "resent": resent,
+        "email_sent": True,
+    }), 200 if resent else 201
+
+
+@api_bp.route("/organizations/<int:org_id>/invitations", methods=["GET"])
+@jwt_required()
+def list_organization_invitations(org_id):
+    if not _manages_org(org_id):
+        return jsonify({"error": "Forbidden for this organization"}), 403
+    now = datetime.utcnow()
+    invitations = (
+        OrganizationInvitation.query
+        .filter_by(organization_id=org_id)
+        .filter(
+            OrganizationInvitation.accepted_at.is_(None),
+            OrganizationInvitation.revoked_at.is_(None),
+            OrganizationInvitation.expires_at > now,
+        )
+        .order_by(OrganizationInvitation.created_at.desc())
+        .all()
+    )
+    return jsonify([invitation.to_dict() for invitation in invitations]), 200
+
+
+@api_bp.route("/organizations/<int:org_id>/invitations/<int:invitation_id>/resend", methods=["POST"])
+@jwt_required()
+def resend_organization_invitation(org_id, invitation_id):
+    if not _manages_org(org_id):
+        return jsonify({"error": "Forbidden for this organization"}), 403
+    invitation = OrganizationInvitation.query.filter_by(
+        id=invitation_id, organization_id=org_id
+    ).first_or_404()
+    if invitation.status == "accepted":
+        return jsonify({"error": "This invitation has already been accepted."}), 409
+    if invitation.status == "revoked":
+        return jsonify({"error": "This invitation has been revoked."}), 410
+    if invitation.status == "expired":
+        return jsonify({"error": "This invitation has expired. Create a new one."}), 410
+
+    try:
+        caller = User.query.get(int(get_jwt_identity()))
+    except (TypeError, ValueError):
+        caller = None
+    if not caller:
+        return jsonify({"error": "User not found"}), 404
+
+    now = datetime.utcnow()
+    if invitation.last_sent_at:
+        elapsed = (now - invitation.last_sent_at).total_seconds()
+        if elapsed < INVITATION_RESEND_COOLDOWN_SECONDS:
+            wait = int(INVITATION_RESEND_COOLDOWN_SECONDS - elapsed) + 1
+            return jsonify({
+                "error": f"Please wait {wait}s before resending this invitation.",
+                "retry_after": wait,
+            }), 429
+
+    org = Organization.query.get_or_404(org_id)
+    token = generate_invitation_token()
+    invitation.token_hash = hash_invitation_token(token)
+    invitation.expires_at = now + timedelta(days=INVITATION_TTL_DAYS)
+    invitation.last_sent_at = now
+    invitation.invited_by_id = caller.id
+    db.session.commit()
+
+    sent, send_err = send_organization_invitation_email(
+        invitation.email,
+        org.name,
+        caller.name or caller.email,
+        invitation.role,
+        token,
+        INVITATION_TTL_DAYS,
+    )
+    if not sent:
+        invitation.last_sent_at = None
+        db.session.commit()
+        log_security_event(
+            "organization_invitation_email_failed",
+            user_id=caller.id,
+            ip_address=request.remote_addr,
+            email=invitation.email,
+            details={"org_id": org.id, "error": send_err, "resend": True},
+        )
+        return jsonify({
+            "error": "The invitation could not be emailed. Try again.",
+            "invitation": invitation.to_dict(),
+        }), 502
+
+    log_security_event(
+        "organization_invitation_resent",
+        user_id=caller.id,
+        ip_address=request.remote_addr,
+        email=invitation.email,
+        details={"org_id": org.id, "invitation_id": invitation.id},
+    )
+    kafka.emit_event("organization_invitation_resent", {
+        "org_id": org.id,
+        "invitation_id": invitation.id,
+        "email": invitation.email,
+        "timestamp": utc_now_iso(),
+    })
+    return jsonify({
+        "message": "Invitation email resent.",
+        "invitation": invitation.to_dict(),
+        "email_sent": True,
+    }), 200
+
+
+@api_bp.route("/organizations/<int:org_id>/invitations/<int:invitation_id>", methods=["DELETE"])
+@jwt_required()
+def revoke_organization_invitation(org_id, invitation_id):
+    if not _manages_org(org_id):
+        return jsonify({"error": "Forbidden for this organization"}), 403
+    invitation = OrganizationInvitation.query.filter_by(
+        id=invitation_id, organization_id=org_id
+    ).first_or_404()
+    if invitation.accepted_at:
+        return jsonify({"error": "This invitation has already been accepted."}), 409
+    if not invitation.revoked_at:
+        invitation.revoked_at = datetime.utcnow()
+        db.session.commit()
+        log_security_event(
+            "organization_invitation_revoked",
+            user_id=int(get_jwt_identity()),
+            ip_address=request.remote_addr,
+            email=invitation.email,
+            details={"org_id": org_id, "invitation_id": invitation.id},
+        )
+        kafka.emit_event("organization_invitation_revoked", {
+            "org_id": org_id,
+            "invitation_id": invitation.id,
+            "email": invitation.email,
+            "timestamp": utc_now_iso(),
+        })
+    return jsonify({"message": "Invitation revoked."}), 200

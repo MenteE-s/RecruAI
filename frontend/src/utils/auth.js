@@ -13,6 +13,18 @@ export function getBackendUrl() {
   return window.location.origin;
 }
 
+// Only allow in-app paths as post-login destinations. Prevents an open redirect
+// such as /signin?next=https://evil.example or //evil.example.
+export function getSafeNextPath(search) {
+  const query = search === undefined
+    ? (typeof window !== "undefined" ? window.location.search : "")
+    : search;
+  const raw = new URLSearchParams(query).get("next");
+  if (!raw) return null;
+  if (!raw.startsWith("/") || raw.startsWith("//") || raw.includes("\\")) return null;
+  return raw;
+}
+
 // Helper to get headers with Authorization if token exists
 export function getAuthHeaders(additionalHeaders = {}) {
   const headers = { ...additionalHeaders };

@@ -104,10 +104,13 @@ export default function OrganizationSettings() {
         setTeamMsg({ type: "error", text: result.error || "Failed to invite team member." });
         return;
       }
-      if (result.team_member) setTeamMembers((prev) => [...prev, result.team_member]);
+      if (result.invitation) {
+        setTeamMsg({ type: "success", text: "Invitation email sent. They will appear here after accepting." });
+      } else {
+        setTeamMsg({ type: "success", text: "Invitation sent." });
+      }
       setInviteForm({ email: "", role: "Member" });
       setShowInvite(false);
-      setTeamMsg({ type: "success", text: "Team member invited." });
     } catch (err) {
       console.error("Failed to invite team member:", err);
       setTeamMsg({ type: "error", text: "Network error. Please try again." });

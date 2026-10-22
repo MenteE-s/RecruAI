@@ -10,7 +10,7 @@ import {
   FiUsers,
 } from "react-icons/fi";
 import { useToast } from "../components/ui/ToastContext";
-import { getBackendUrl } from "../utils/auth";
+import { getBackendUrl, getSafeNextPath } from "../utils/auth";
 import OtpVerify from "../components/auth/OtpVerify";
 
 const HIGHLIGHTS = [
@@ -28,6 +28,7 @@ export default function SignIn() {
   const [otpEmail, setOtpEmail] = useState(null);
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const nextPath = getSafeNextPath();
 
   // Verify stored token with the server on mount. If valid, redirect to dashboard.
   useEffect(() => {
@@ -38,7 +39,7 @@ export default function SignIn() {
         if (!mounted) return;
         const user = await verifyTokenWithServer();
         if (user) {
-          navigate("/feed", { replace: true });
+          navigate(nextPath || "/feed", { replace: true });
         }
       } catch (e) {
         // ignore
@@ -48,7 +49,7 @@ export default function SignIn() {
     return () => {
       mounted = false;
     };
-  }, [navigate]);
+  }, [navigate, nextPath]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -121,7 +122,7 @@ export default function SignIn() {
         duration: 2200,
       });
       // prefer SPA navigation but fall back to full reload if SPA route doesn't take
-      navigate("/feed", { replace: true });
+      navigate(nextPath || "/feed", { replace: true });
       if (typeof window !== "undefined") {
         // small delay: if SPA navigation didn't change the path (protected route may redirect),
         // force a hard navigation to help surface errors in the network tab.
@@ -131,7 +132,7 @@ export default function SignIn() {
             console.warn(
               "SPA navigation to /dashboard didn't take effect — forcing full reload"
             );
-            window.location.assign("/feed");
+            window.location.assign(nextPath || "/feed");
           }
         }, 600);
       }
@@ -151,7 +152,7 @@ export default function SignIn() {
       localStorage.setItem("authRole", data.user.role);
     }
     showToast({ message: "Email verified — signed in", type: "success", position: "side", duration: 2400 });
-    navigate("/feed", { replace: true });
+    navigate(nextPath || "/feed", { replace: true });
   }
 
   return (

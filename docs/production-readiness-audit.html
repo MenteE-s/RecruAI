@@ -204,11 +204,11 @@
   <div class="wrap">
     <div class="kicker">Independent audit · 22 Oct 2026</div>
     <h1>RecruAI — production readiness<br>audit &amp; 7-day launch plan</h1>
-    <p class="sub">A full-stack review of the Flask API, React frontend, background jobs, AI layer, billing, and AWS/VPS deployment. The verdict: <b style="color:#fff">not launchable as-is</b> — but a controlled paid launch is achievable in one focused week if scope is frozen and the five P0 blockers are fixed.</p>
+    <p class="sub">A full-stack review of the Flask API, React frontend, background jobs, AI layer, billing, and AWS/VPS deployment. The verdict: <b style="color:#fff">not launchable as-is</b> — but a controlled paid launch is achievable in one focused week if scope is frozen and the remaining P0 blockers are fixed.</p>
     <div class="meta">
       <span>Codebase <b>60,684 lines</b></span>
-      <span>Routes <b>288 live</b></span>
-      <span>Migration head <b>b3c4d5e6f7a8</b></span>
+      <span>Routes <b>295 live</b></span>
+      <span>Migration head <b>a8b9c0d1e2f3</b></span>
       <span>Frontend build <b>passes</b></span>
       <span>Backend tests <b>0</b></span>
     </div>
@@ -216,10 +216,10 @@
       <div class="score-ring" style="--p:36"><span><b>36</b><small>/ 100</small></span></div>
       <div class="verdict-txt">
         <h2>Production readiness: 36 / 100 — “controlled beta only”</h2>
-        <p>Strong modular code and real security work already exist. The blockers are not code quality — they are broken revenue controls, a dead video path, missing account recovery, an invite flow that locks teammates out, and zero automated test gates on deploys.</p>
+        <p>Strong modular code and real security work already exist. The blockers are not code quality — they are broken revenue controls, a dead video path, missing test gates, and the production dependencies behind the fixes already landed.</p>
         <div class="pills">
-          <span class="pill red">5 P0 launch blockers</span>
-          <span class="pill green">P0-03 fixed in code</span>
+          <span class="pill red">3 P0 launch blockers</span>
+          <span class="pill green">P0-03 + P0-04 fixed in code</span>
           <span class="pill amber">15 P1 high risk</span>
           <span class="pill">10 P2 hardening</span>
           <span class="pill green">No committed secrets found</span>
@@ -255,12 +255,12 @@
     <div>
       <div class="eyebrow">01 · Executive summary</div>
       <h2>The product is real. The launch controls are not.</h2>
-      <p>This is a substantial application — 288 API routes, 57 models, 38 migrations, a working React build, and meaningful auth hardening. The risk is concentrated in the last mile: the paid path, the video path, account recovery, org onboarding, and the absence of tests between a commit and production.</p>
+      <p>This is a substantial application — 295 API routes, 58 models, 39 migrations, a working React build, and meaningful auth hardening. The risk is concentrated in the last mile: the paid path, the video path, and the absence of tests between a commit and production.</p>
     </div>
   </div>
 
   <div class="grid4" style="margin-bottom:16px">
-    <div class="stat red"><b>5</b><span>P0 launch blockers</span></div>
+    <div class="stat red"><b>3</b><span>P0 launch blockers</span></div>
     <div class="stat amber"><b>15</b><span>P1 high-risk items</span></div>
     <div class="stat blue"><b>10</b><span>P2 hardening items</span></div>
     <div class="stat green"><b>3/4</b><span>frontend suites pass (App.test broken)</span></div>
@@ -268,17 +268,17 @@
 
   <div class="callout red" style="margin-bottom:14px">
     <b>Bottom line</b>
-    Do <u>not</u> open paid signups today. Two customer-facing promises are still false in the deployed topology: video interviews cannot access the camera, and “upgrade to Pro” is free and reversible without payment. Password reset is now fixed in code but not yet deployed. Two more break onboarding: invited teammates can never log in, and there is no test gate before auto-deploy.
+    Do <u>not</u> open paid signups today. Two customer-facing promises are still false in the deployed topology: video interviews cannot access the camera, and “upgrade to Pro” is free and reversible without payment. Password reset and org invitations are fixed in code but not yet deployed; the remaining blocker is the absence of a test gate before auto-deploy.
   </div>
 
   <div class="grid2">
     <div class="card pad">
-      <h3 style="margin:0 0 8px;font-size:16px">The 5 P0 blockers — 1 fixed in code</h3>
+      <h3 style="margin:0 0 8px;font-size:16px">The P0 blockers — 2 fixed in code</h3>
       <ul class="tight">
         <li><b>Video is dead in production.</b> Both production frontend configs (Vercel and nginx) send <code>camera=(), microphone=()</code>; the AWS stack has no LiveKit service and the deploy job sets no LiveKit keys.</li>
         <li><b>Billing is a facade.</b> <code>POST /api/subscription/upgrade</code> grants paid access for free, and an expired user can reset the trial indefinitely. The pricing page advertises $15/month and a 14-day trial; the app gives 30 days.</li>
         <li><b>No password reset.</b> Had no forgot-password route or UI; a forgotten password was a permanent support ticket. <span class="tag green">Fixed in code</span></li>
-        <li><b>Org invites create unreachable accounts.</b> The API creates a user with a random password that is never sent, sends no email, and blocks that address from registering later.</li>
+        <li><b>Org invites create unreachable accounts.</b> The API creates a user with a random password that is never sent, sends no email, and blocks that address from registering later. <span class="tag green">Fixed in code</span></li>
         <li><b>No automated tests gate deploys.</b> There are zero backend tests; the only App smoke test is broken; CI builds and ships on every push to <code>main</code>.</li>
       </ul>
     </div>
@@ -289,7 +289,7 @@
         <li>JWT revocation via Redis, verified-email blueprint guard, login lockout, OTP hashing, CORS allow-list, and tenant checks on the sensitive routes we re-tested.</li>
         <li>Single Alembic head; local DB is at head; migrations run before the API starts.</li>
         <li>Uploads are extension + magic-byte validated and served as non-executable images.</li>
-        <li>Clean module boundaries: 57 models, auth/org/ind/profile/interviews split, reusable guards and sanitizers.</li>
+        <li>Clean module boundaries: 58 models, auth/org/ind/profile/interviews split, reusable guards and sanitizers.</li>
         <li>AWS deployment is automated end-to-end with TLS, health checks, and encrypted secrets injection.</li>
       </ul>
     </div>
@@ -297,7 +297,7 @@
 
   <div class="callout amber" style="margin-top:14px">
     <b>Is one week realistic?</b>
-    Yes for a <b>controlled launch</b> with a frozen scope, a staging environment, and the five P0s closed. No for “every advertised feature is complete and hardened.” If billing must be real money and video must ship, those two alone are 3–5 engineering days plus external account setup. The plan below sequences exactly that, and names what to cut if time slips.
+    Yes for a <b>controlled launch</b> with a frozen scope, a staging environment, and the remaining P0s closed. No for “every advertised feature is complete and hardened.” If billing must be real money and video must ship, those two alone are 3–5 engineering days plus external account setup. The plan below sequences exactly that, and names what to cut if time slips.
   </div>
 </section>
 
@@ -359,8 +359,8 @@
       <thead><tr><th>Layer</th><th>Components</th><th>Production reality</th></tr></thead>
       <tbody>
         <tr><td><b>Frontend</b></td><td>React 18 + CRA 5, React Router 7, Tailwind, LiveKit React, Socket.IO client</td><td>Vercel static build. Sends a restrictive <code>Permissions-Policy</code>. API/socket URLs depend on Vercel env vars; fallback is wrong for this split-domain architecture.</td></tr>
-        <tr><td><b>API</b></td><td>Flask 3 app factory, 288 routes, JWT (headers), Talisman, CORS, Flask-Limiter</td><td>Gunicorn, 1 worker / 4 threads on t3.small. Real-time uses Flask-SocketIO threading mode.</td></tr>
-        <tr><td><b>Data</b></td><td>PostgreSQL + pgvector (RDS in AWS), 38 migrations</td><td>Single head <code>b3c4d5e6f7a8</code>; migrations container runs before API. 7-day automated RDS backups (external setup).</td></tr>
+        <tr><td><b>API</b></td><td>Flask 3 app factory, 295 routes, JWT (headers), Talisman, CORS, Flask-Limiter</td><td>Gunicorn, 1 worker / 4 threads on t3.small. Real-time uses Flask-SocketIO threading mode.</td></tr>
+        <tr><td><b>Data</b></td><td>PostgreSQL + pgvector (RDS in AWS), 39 migrations</td><td>Single head <code>a8b9c0d1e2f3</code>; migrations container runs before API. 7-day automated RDS backups (external setup).</td></tr>
         <tr><td><b>Async</b></td><td>Redis (cache, rate limit, JWT blocklist), Kafka (events), APScheduler</td><td>Scheduler is disabled in code. Kafka is optional but enabled in the AWS compose.</td></tr>
         <tr><td><b>AI</b></td><td>Groq LLM, OpenRouter/HF embeddings, RAG + recommendations, 50k-token allowance</td><td>Budget enforcement exists in <code>AIService</code>, but several direct provider calls bypass it.</td></tr>
         <tr><td><b>Video</b></td><td>LiveKit SFU + TURN + Egress</td><td>Present in <code>docker-compose.vps.yml</code> and dev. <b>Absent from <code>docker-compose.aws.yml</code></b> (the CI deploy target).</td></tr>
@@ -550,14 +550,14 @@ backend/.env.production       RESEND_API_KEY exists, so the delivery channel is 
     </details>
   </article>
 
-  <article class="finding" data-severity="P0" data-area="Security">
+  <article class="finding" data-severity="P0" data-area="Security" data-status="fixed">
     <details>
       <summary>
         <span class="fid">P0-04</span>
         <span>
           <span class="ftitle">Org invites create unreachable accounts and can pre-claim any email address</span>
-          <span class="fsum">No invitation email, a random password that is never shared, and the address is then blocked from registering.</span>
-          <span class="badges"><span class="badge p0">P0</span><span class="badge area">Security</span><span class="badge eff">1–2 days</span></span>
+          <span class="fsum">Was: no email, a random password that was never shared, and the address was blocked from registering. Now: hashed single-use invitations and an accept flow.</span>
+          <span class="badges"><span class="badge p0">P0</span><span class="badge fixed">Fixed</span><span class="badge area">Security</span><span class="badge eff">1–2 days</span></span>
         </span>
       </summary>
       <div class="fbody">
@@ -576,6 +576,10 @@ backend/api/auth/registration.py:31  duplicate email → "email already register
           <li>Expire invitations (7 days), allow revoke/resend, rate-limit by org and email, and never reveal whether an email exists.</li>
           <li>If a placeholder user is kept, it must be non-loginable, unverified, and reclaimable by the real owner.</li>
         </ul>
+        <div class="callout green" style="margin:12px 0">
+          <b>FIXED — 23 Oct 2026 (working tree; not deployed)</b>
+          Added the <code>organization_invitations</code> table and <code>a8b9c0d1e2f3</code> migration. Inviting an address now stores only a SHA-256 hash of a 7-day, single-use token and sends a Resend email; it no longer creates a <code>User</code> or a team row. Accepting the link creates a verified account with the invitee's chosen name/password (or attaches an existing signed-in user) and then creates the <code>TeamMember</code>; legacy unverified placeholder accounts can reclaim their membership through the same token. Added list/resend/revoke endpoints, per-IP and per-org/address throttles, a 60-second resend cooldown, a signed-out <code>/accept-invite</code> page, and pending-invitation controls in the team dashboard. Verified end-to-end: no account at invite time, normal registration still works, new-user accept, existing-user sign-in, legacy reclaim, resend token rotation, revoke, and expiry. Frontend production build passes. <b>Deploy step:</b> run <code>flask db upgrade</code>; Resend domain/DNS verification is still required before external invites.
+        </div>
         <div class="done"><b>Done when</b><br>An invited address receives an email, sets a password, joins the org, and appears in the team list; the same address can still register if no invite is accepted; an org cannot squat an unrelated address; revoke/expired-token paths are tested.</div>
       </div>
     </details>
@@ -1250,11 +1254,11 @@ frontend/src/utils/socket.js transports: ["websocket"] only</div>
     <details>
       <summary>
         <span class="fid">P2-10</span>
-        <span><span class="ftitle">Docs and deploy files drift: 37 vs 38 migrations, three compose files, two frontend Dockerfiles</span><span class="fsum">Operators cannot tell which file is authoritative.</span><span class="badges"><span class="badge p2">P2</span><span class="badge area">Config</span><span class="badge eff">0.5 day</span></span></span>
+        <span><span class="ftitle">Docs and deploy files drift: 38 vs 39 migrations, three compose files, two frontend Dockerfiles</span><span class="fsum">Operators cannot tell which file is authoritative.</span><span class="badges"><span class="badge p2">P2</span><span class="badge area">Config</span><span class="badge eff">0.5 day</span></span></span>
       </summary>
       <div class="fbody">
         <h4>Evidence</h4>
-        <div class="evidence">backend/migrations/versions/*.py   38 files, one head b3c4d5e6f7a8
+        <div class="evidence">backend/migrations/versions/*.py   39 files, one head a8b9c0d1e2f3
 docs/comments                     still says 37
 docker-compose.yml / .prod / .vps / .aws   four topologies
 frontend/Dockerfile / Dockerfile.prod      two build paths</div>
@@ -2304,7 +2308,7 @@ proxy_read_timeout 3600s;
   </div>
   <div class="card pad">
     <div class="checks">
-      <label class="check"><input type="checkbox" class="task-check" data-task="g1"><span>All 5 P0 findings closed and re-tested in staging</span></label>
+      <label class="check"><input type="checkbox" class="task-check" data-task="g1"><span>All P0 findings closed and re-tested in staging</span></label>
       <label class="check"><input type="checkbox" class="task-check" data-task="g2"><span>Every P1 closed or explicitly accepted with a mitigation and owner</span></label>
       <label class="check"><input type="checkbox" class="task-check" data-task="g3"><span>No endpoint can grant paid access without a verified payment event (or paid CTAs removed)</span></label>
       <label class="check"><input type="checkbox" class="task-check" data-task="g4"><span>Password reset + invite acceptance work end-to-end from a signed-out browser</span></label>
@@ -2373,15 +2377,16 @@ proxy_read_timeout 3600s;
       <tbody>
         <tr><td><b>Secret scan</b></td><td><code>git grep</code> for Groq/OpenRouter/OpenAI keys, AWS keys, private keys</td><td><span class="tag green">Pass</span> no live keys tracked; <code>backend/.env</code> is ignored and excluded from Docker. Local file still needs rotation.</td></tr>
         <tr><td><b>Python syntax</b></td><td><code>py_compile</code> on 197 source files (excluding venv/migrations)</td><td><span class="tag green">Pass</span> 0 failures.</td></tr>
-        <tr><td><b>App boot</b></td><td>Import <code>backend.app</code> with local services</td><td><span class="tag green">Pass</span> 288 URL rules registered; AI/Redis/Kafka initialize.</td></tr>
-        <tr><td><b>Migrations</b></td><td>Parse revision graph; <code>flask db current</code> / <code>heads</code></td><td><span class="tag green">Pass</span> 38 files, single head <code>b3c4d5e6f7a8</code>; local DB at head.</td></tr>
-        <tr><td><b>Frontend build</b></td><td><code>npm run build</code></td><td><span class="tag green">Pass</span> main bundle 511.12 kB gzip; warnings only.</td></tr>
+        <tr><td><b>App boot</b></td><td>Import <code>backend.app</code> with local services</td><td><span class="tag green">Pass</span> 295 URL rules registered; AI/Redis/Kafka initialize.</td></tr>
+        <tr><td><b>Migrations</b></td><td>Parse revision graph; <code>flask db current</code> / <code>heads</code></td><td><span class="tag green">Pass</span> 39 files, single head <code>a8b9c0d1e2f3</code>; local DB at head.</td></tr>
+        <tr><td><b>Frontend build</b></td><td><code>npm run build</code></td><td><span class="tag green">Pass</span> main bundle 515.79 kB gzip; warnings only.</td></tr>
         <tr><td><b>Frontend tests</b></td><td><code>react-scripts test --watchAll=false</code></td><td><span class="tag amber">Partial</span> 3 suites / 25 tests pass; <code>App.test.js</code> fails (cannot resolve <code>react-router-dom</code>).</td></tr>
         <tr><td><b>Backend tests</b></td><td>Search for <code>test_*.py</code> / <code>conftest.py</code></td><td><span class="tag red">Fail</span> none exist.</td></tr>
         <tr><td><b>Dependency audit</b></td><td><code>npm audit --omit=dev</code></td><td><span class="tag red">Fail</span> 105 advisories: 3 critical, 81 high, 17 moderate, 4 low.</td></tr>
-        <tr><td><b>Route inventory</b></td><td>Python AST over <code>backend/</code></td><td><span class="tag blue">Info</span> 300 decorators, 18 without decorator-level auth (login, register, OTP, public profiles/posts, health, uploads, issue report).</td></tr>
-        <tr><td><b>Code size</b></td><td>Line counts</td><td><span class="tag blue">Info</span> backend 25,194 lines / 197 files; frontend 35,490 lines / 160 files; 57 models.</td></tr>
-        <tr><td><b>Repo state</b></td><td><code>git status --short</code></td><td><span class="tag amber">Attention</span> untracked root <code>app.py</code> (53 KB) and <code>inventory.db</code> — unrelated project.</td></tr>
+        <tr><td><b>Route inventory</b></td><td>Python AST over <code>backend/</code></td><td><span class="tag blue">Info</span> 307 decorators, 18 without decorator-level auth (login, register, OTP, public profiles/posts, health, uploads, issue report).</td></tr>
+        <tr><td><b>Code size</b></td><td>Line counts</td><td><span class="tag blue">Info</span> backend 25,194 lines / 197 files; frontend 35,490 lines / 160 files; 58 models.</td></tr>
+        <tr><td><b>Repo state</b></td><td><code>git status --short</code></td><td><span class="tag amber">Attention</span> P0-04 changes are in the working tree; local scratch files are ignored. Commit/push only when requested.</td></tr>
+        <tr><td><b>P0-04 invite flow</b></td><td>Ephemeral local Flask API flow with email mock</td><td><span class="tag green">Pass</span> invite creates no user, new/existing/legacy accept, registration still works, resend rotates token, revoke/expiry rejected.</td></tr>
       </tbody>
     </table>
   </div>
@@ -2437,7 +2442,7 @@ proxy_read_timeout 3600s;
         <dt>Backend source</dt><dd>197 files · 25,194 lines</dd>
         <dt>Frontend source</dt><dd>160 files · 35,490 lines</dd>
         <dt>Models</dt><dd>57</dd>
-        <dt>Route decorators</dt><dd>300 (288 registered rules)</dd>
+        <dt>Route decorators</dt><dd>307 (295 registered rules)</dd>
         <dt>Public routes</dt><dd>18 at decorator level</dd>
         <dt>Migrations</dt><dd>38 files · 1 head</dd>
         <dt>Frontend tests</dt><dd>4 suites · 25 passing / 1 broken</dd>
