@@ -50,6 +50,18 @@ export default function SignIn() {
     };
   }, [navigate]);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("reset") === "success") {
+      showToast({
+        message: "Password reset — sign in with your new password",
+        type: "success",
+        position: "side",
+        duration: 4000,
+      });
+    }
+  }, [showToast]);
+
   async function submit(e) {
     e.preventDefault();
     setError(null);
@@ -237,6 +249,14 @@ export default function SignIn() {
                         <FiEye className="w-5 h-5" />
                       )}
                     </button>
+                  </div>
+                  <div className="mt-1.5 text-right">
+                    <Link
+                      to="/forgot-password"
+                      className="text-xs font-semibold text-neutral-500 underline underline-offset-4 transition-colors hover:text-neutral-900"
+                    >
+                      Forgot password?
+                    </Link>
                   </div>
                 </div>
                 <button

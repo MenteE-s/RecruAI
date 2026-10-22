@@ -103,7 +103,11 @@ def verify_email_otp():
     except Exception:
         current_app.logger.debug("Failed to send welcome email", exc_info=True)
 
-    additional_claims = {"role": user.role, "organization_id": user.organization_id}
+    additional_claims = {
+        "role": user.role,
+        "organization_id": user.organization_id,
+        "ver": int(user.token_version or 0),
+    }
     access_token = create_access_token(identity=str(user.id), additional_claims=additional_claims)
     resp = make_response(jsonify({"access_token": access_token, "user": user.to_dict()}), 200)
     set_access_cookies(resp, access_token)

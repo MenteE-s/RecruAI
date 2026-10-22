@@ -65,6 +65,10 @@ class User(db.Model):
     locked_until = db.Column(db.DateTime, nullable=True)
     last_login_at = db.Column(db.DateTime, nullable=True)
     password_changed_at = db.Column(db.DateTime, default=datetime.utcnow)
+    # Bumped whenever the password is reset/changed. JWTs carry this value so
+    # every token issued before the change can be rejected without tracking
+    # individual JTIs.
+    token_version = db.Column(db.Integer, nullable=False, default=0, server_default="0")
 
     # Email verification (OTP). Accounts created before verification existed
     # are grandfathered as verified by the migration.

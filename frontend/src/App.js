@@ -19,6 +19,8 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import RecruAILanding from "./pages/RecruAILanding";
 import Register from "./pages/Register";
 import SignIn from "./pages/SignIn";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import ContactUs from "./pages/ContactUs";
 import TermsAndConditions from "./pages/TermsAndConditions";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
@@ -276,6 +278,8 @@ function App() {
           <Route path="/" element={<RecruAILanding />} />
           <Route path="/register" element={<Register />} />
           <Route path="/signin" element={<SignIn />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route
             path="/search"
             element={

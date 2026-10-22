@@ -106,17 +106,34 @@ def create_app(config_object: object | None = None):
 
 	@jwt.token_in_blocklist_loader
 	def check_if_token_revoked(jwt_header, jwt_payload):
+		# 1) Explicit JTI blocklist (logout / current-token revocation).
 		# Logged-out tokens are revoked in Redis. Fail-closed when Redis is
 		# expected (REDIS_ENABLED) so logout cannot be bypassed by killing Redis;
 		# fail-open only when Redis is intentionally disabled.
 		try:
 			from .utils.cache import is_jti_blocked
-			return is_jti_blocked(jwt_payload.get("jti"))
+			if is_jti_blocked(jwt_payload.get("jti")):
+				return True
 		except Exception:
 			try:
-				return bool(app.config.get("REDIS_ENABLED", True))
+				if app.config.get("REDIS_ENABLED", True):
+					return True
 			except Exception:
 				return True
+
+		# 2) Token version: a password reset/change bumps users.token_version.
+		# Any token carrying an older version is dead even if its JTI was never
+		# individually blocklisted.
+		try:
+			from .models import User
+			uid = int(jwt_payload.get("sub"))
+			user = db.session.get(User, uid)
+			if user is None:
+				return True
+			return int(jwt_payload.get("ver", 0)) != int(user.token_version or 0)
+		except Exception:
+			# Fail closed on an unreadable identity/version.
+			return True
 
 	@jwt.revoked_token_loader
 	def revoked_token_callback(jwt_header, jwt_payload):
@@ -286,6 +303,8 @@ def create_app(config_object: object | None = None):
 		_limit("api.verify_email_otp", "10 per minute")
 		_limit("api.request_email_change", "5 per minute")
 		_limit("api.verify_email_change", "10 per minute")
+		_limit("api.forgot_password", "5 per minute")
+		_limit("api.reset_password", "10 per minute")
 		# Spam-prone writes + expensive search
 		_limit("api.create_post", "30 per minute")
 		_limit("api.create_application", "30 per minute")

@@ -19,6 +19,7 @@ BLOCKED_QUERY_FIELDS = frozenset({
     "locked_until",
     "last_login_at",
     "password_changed_at",
+    "token_version",
     "referred_by_email",
     "referred_by_user_id",
 })

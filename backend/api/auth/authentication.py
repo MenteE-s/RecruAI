@@ -83,7 +83,11 @@ def login():
     })
     db.session.commit()
 
-    additional_claims = {"role": user.role, "organization_id": user.organization_id}
+    additional_claims = {
+        "role": user.role,
+        "organization_id": user.organization_id,
+        "ver": int(user.token_version or 0),
+    }
     access_token = create_access_token(identity=str(user.id), additional_claims=additional_claims)
     resp = make_response(jsonify({"access_token": access_token, "user": user.to_dict()}), 200)
     set_access_cookies(resp, access_token)
@@ -94,8 +98,8 @@ def login():
 def change_password():
     """Change password for the current user (requires current password).
 
-    Updates password_changed_at so future token-freshness checks can reject
-    pre-change tokens. Revokes the current token + clears auth cache.
+    Bumps token_version so every token issued before the change is rejected,
+    blocks the current JTI immediately, and clears the auth cache.
     """
     try:
         uid = int(get_jwt_identity())
@@ -118,6 +122,7 @@ def change_password():
         return jsonify({"error": "Invalid current password"}), 401
     try:
         user.set_password(new_password)
+        user.token_version = int(user.token_version or 0) + 1
     except ValueError as e:
         db.session.rollback()
         return jsonify({"error": str(e)}), 400

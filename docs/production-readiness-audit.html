@@ -124,6 +124,9 @@
   .badge.p0{background:var(--red-soft);border-color:#fecaca;color:#991b1b}
   .badge.p1{background:var(--amber-soft);border-color:#fde68a;color:#92400e}
   .badge.p2{background:var(--blue-soft);border-color:#bfdbfe;color:#1e40af}
+  .badge.fixed{background:var(--emerald-soft);border-color:#a7f3d0;color:#047857}
+  .finding[data-status="fixed"]{border-left-color:var(--emerald)}
+  .finding[data-status="fixed"] .fid{color:#047857}
   .badge.area{background:var(--soft);border-color:var(--line);color:#475569}
   .badge.eff{background:var(--violet-soft);border-color:#ddd6fe;color:#5b21b6}
   .fbody{padding:0 18px 18px 76px}
@@ -216,6 +219,7 @@
         <p>Strong modular code and real security work already exist. The blockers are not code quality — they are broken revenue controls, a dead video path, missing account recovery, an invite flow that locks teammates out, and zero automated test gates on deploys.</p>
         <div class="pills">
           <span class="pill red">5 P0 launch blockers</span>
+          <span class="pill green">P0-03 fixed in code</span>
           <span class="pill amber">15 P1 high risk</span>
           <span class="pill">10 P2 hardening</span>
           <span class="pill green">No committed secrets found</span>
@@ -264,16 +268,16 @@
 
   <div class="callout red" style="margin-bottom:14px">
     <b>Bottom line</b>
-    Do <u>not</u> open paid signups today. Three customer-facing promises are false in the deployed topology: video interviews cannot access the camera, “upgrade to Pro” is free and reversible without payment, and a password reset is impossible. Two more break onboarding: invited teammates can never log in, and there is no test gate before auto-deploy.
+    Do <u>not</u> open paid signups today. Two customer-facing promises are still false in the deployed topology: video interviews cannot access the camera, and “upgrade to Pro” is free and reversible without payment. Password reset is now fixed in code but not yet deployed. Two more break onboarding: invited teammates can never log in, and there is no test gate before auto-deploy.
   </div>
 
   <div class="grid2">
     <div class="card pad">
-      <h3 style="margin:0 0 8px;font-size:16px">The 5 P0 blockers</h3>
+      <h3 style="margin:0 0 8px;font-size:16px">The 5 P0 blockers — 1 fixed in code</h3>
       <ul class="tight">
         <li><b>Video is dead in production.</b> Both production frontend configs (Vercel and nginx) send <code>camera=(), microphone=()</code>; the AWS stack has no LiveKit service and the deploy job sets no LiveKit keys.</li>
         <li><b>Billing is a facade.</b> <code>POST /api/subscription/upgrade</code> grants paid access for free, and an expired user can reset the trial indefinitely. The pricing page advertises $15/month and a 14-day trial; the app gives 30 days.</li>
-        <li><b>No password reset.</b> There is no forgot-password route or UI. A forgotten password is a permanent support ticket.</li>
+        <li><b>No password reset.</b> Had no forgot-password route or UI; a forgotten password was a permanent support ticket. <span class="tag green">Fixed in code</span></li>
         <li><b>Org invites create unreachable accounts.</b> The API creates a user with a random password that is never sent, sends no email, and blocks that address from registering later.</li>
         <li><b>No automated tests gate deploys.</b> There are zero backend tests; the only App smoke test is broken; CI builds and ships on every push to <code>main</code>.</li>
       </ul>
@@ -512,14 +516,14 @@ backend/models/user.py:239               trial is actually 30 days</div>
     </details>
   </article>
 
-  <article class="finding" data-severity="P0" data-area="Product">
+  <article class="finding" data-severity="P0" data-area="Product" data-status="fixed">
     <details>
       <summary>
         <span class="fid">P0-03</span>
         <span>
           <span class="ftitle">No password reset — a forgotten password is a permanent lockout</span>
-          <span class="fsum">No route, no UI, no email template. Support has no safe recovery path either.</span>
-          <span class="badges"><span class="badge p0">P0</span><span class="badge area">Product</span><span class="badge eff">0.5–1 day</span></span>
+          <span class="fsum">Was: no route, no UI, no email template. Now: OTP reset endpoints, signed-out UI, and all-session revocation.</span>
+          <span class="badges"><span class="badge p0">P0</span><span class="badge fixed">Fixed</span><span class="badge area">Product</span><span class="badge eff">0.5–1 day</span></span>
         </span>
       </summary>
       <div class="fbody">
@@ -537,6 +541,10 @@ backend/.env.production       RESEND_API_KEY exists, so the delivery channel is 
           <li>On success: update the hash, set <code>password_changed_at</code>, revoke all outstanding JWTs, send a “password changed” notice, and log a security event.</li>
           <li>Add the signed-out UI and a “reset link expired” state.</li>
         </ul>
+        <div class="callout green" style="margin:12px 0">
+          <b>FIXED — 22 Oct 2026 (working tree; not deployed)</b>
+          Added <code>backend/api/auth/password_reset.py</code> with <code>POST /api/auth/password/forgot</code> and <code>POST /api/auth/password/reset</code>, reusing the hashed OTP store (10-minute expiry, 5 attempts, 60-second resend cooldown, 5 codes/hour) plus per-IP limits. Both routes return the same generic response for unknown addresses, with a minimum response floor. Reset bumps a new <code>users.token_version</code>, so every JWT issued before the reset is rejected; lockout state is cleared, the mailbox is marked verified, and a “password changed” notice is sent. Added the “Forgot password?” and reset pages, Resend templates, and a <code>c4d5e6f7a8b9</code> migration. Verified with an end-to-end local API flow and a passing frontend production build. <b>Deploy step:</b> run <code>flask db upgrade</code> before starting the API; Resend domain/DNS verification is still a production checklist item.
+        </div>
         <div class="done"><b>Done when</b><br>A signed-out user can reset in under two minutes from the sign-in page; the old password and every pre-reset token fail; unknown emails get the same response and timing; audit logs record the event.</div>
       </div>
     </details>
@@ -1296,7 +1304,7 @@ frontend/Dockerfile / Dockerfile.prod      two build paths</div>
       <tbody>
         <tr><td><b>P0-01</b> Video broken</td><td><span class="tag amber">Code + prod</span> <span class="tag blue">Decision</span></td><td>Allow camera/mic in all three header locations; public LiveKit URL config; token endpoint; hide/flag video route if unconfigured</td><td>LiveKit Cloud or self-hosted LiveKit + Egress; TCP/UDP/TURN ports; TLS/WSS; secrets; S3 bucket/credentials for recordings; two-browser + recording test</td><td><b>Yes</b> — ship with <code>VIDEO_ENABLED=0</code> and remove the pricing claim until ready</td></tr>
         <tr><td><b>P0-02</b> Free/self-service billing</td><td><span class="tag amber">Code + prod</span> <span class="tag blue">Decision</span></td><td>Remove free upgrade and trial reset; server-side entitlements only; hide paid CTAs. If paid: checkout, webhook, portal, migration</td><td><b>Paid only:</b> Stripe business verification, bank, products/prices, webhook secret, tax/refund policy</td><td><b>Yes</b> — free beta with paid CTAs hidden and <code>BILLING_ENABLED=0</code></td></tr>
-        <tr><td><b>P0-03</b> No password reset</td><td><span class="tag amber">Code + prod</span></td><td>Forgot/reset endpoints, single-use token, pages, revoke-all sessions, throttle, tests</td><td>Resend domain verified (SPF/DKIM/DMARC); deliverability test; support runbook</td><td><b>Yes</b> — gate with <code>PASSWORD_RESET_ENABLED</code>; do not ship a dead reset link</td></tr>
+        <tr><td><b>P0-03</b> No password reset</td><td><span class="tag amber">Code + prod</span></td><td>Forgot/reset endpoints, single-use token, pages, revoke-all sessions, throttle, tests</td><td>Resend domain verified (SPF/DKIM/DMARC); deliverability test; support runbook</td><td><b>Yes</b> — deploy only after Resend domain/DNS verification; do not ship a dead reset link</td></tr>
         <tr><td><b>P0-04</b> Broken org invites</td><td><span class="tag amber">Code + prod</span></td><td>Invitation model/migration, hashed token, create/list/revoke/accept, stop pre-creating users, accept page</td><td>Run migration with snapshot; verified email; external-domain invite test</td><td><b>Yes</b> — migration is a normal deploy step; email is required for external invites</td></tr>
         <tr><td><b>P0-05</b> No tests/CI gates</td><td><span class="tag green">Code</span></td><td>Backend pytest suite, fix <code>App.test.js</code>, Playwright smoke, migration/audit checks in CI</td><td>GitHub branch protection/required checks; staging optional; Postgres service container in CI</td><td><b>Yes</b> — no runtime dependency</td></tr>
 
