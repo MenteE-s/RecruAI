@@ -8,8 +8,15 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from .. import api_bp
 from ...utils.timezone_utils import utc_now_iso, utc_iso
 from ...extensions import db
-from ...models import AIInterviewAgent, Organization, Interview, User, TeamMember
+from ...models import AIInterviewAgent, Organization, Interview, User
 from ...utils.ai_budget import AIBudgetError
+from ...utils.org_permissions import (
+    AI_AGENTS_MANAGE,
+    AI_AGENTS_VIEW,
+    HIRING_VIEW,
+    INTERVIEWS_MANAGE,
+    has_org_permission,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -21,22 +28,12 @@ def _me():
         return None
 
 
-def _managed_org_ids(user):
-    ids = set()
-    if user.organization_id:
-        ids.add(user.organization_id)
-    for tm in TeamMember.query.filter_by(user_id=user.id).all():
-        ids.add(tm.organization_id)
-    return ids
+def _can_manage_org(user, org_id):
+    return has_org_permission(user, org_id, AI_AGENTS_MANAGE)
 
 
-def _manages_org_id(user, org_id):
-    if not user or org_id is None:
-        return False
-    try:
-        return int(org_id) in _managed_org_ids(user)
-    except (TypeError, ValueError):
-        return False
+def _can_view_org(user, org_id):
+    return has_org_permission(user, org_id, AI_AGENTS_VIEW)
 
 
 def _can_see_interview(user, interview):
@@ -44,8 +41,21 @@ def _can_see_interview(user, interview):
         return False
     if interview.user_id == user.id:
         return True
-    return (interview.organization_id is not None
-            and interview.organization_id in _managed_org_ids(user))
+    return (
+        interview.organization_id is not None
+        and has_org_permission(user, interview.organization_id, HIRING_VIEW)
+    )
+
+
+def _can_manage_interview(user, interview):
+    if not user or not interview:
+        return False
+    if interview.user_id == user.id:
+        return True
+    return (
+        interview.organization_id is not None
+        and has_org_permission(user, interview.organization_id, INTERVIEWS_MANAGE)
+    )
 
 
 def _build_default_system_prompt(name: str, industry: str) -> str:
@@ -62,7 +72,7 @@ def _build_default_system_prompt(name: str, industry: str) -> str:
 def list_ai_agents(org_id):
     """Get all AI interview agents for an organization (managers only)."""
     user = _me()
-    if not _manages_org_id(user, org_id):
+    if not _can_view_org(user, org_id):
         return jsonify({"error": "Forbidden for this organization"}), 403
     Organization.query.get_or_404(org_id)
     agents = (
@@ -78,7 +88,7 @@ def list_ai_agents(org_id):
 def create_ai_agent(org_id):
     """Create a new AI interview agent (managers only)."""
     user = _me()
-    if not _manages_org_id(user, org_id):
+    if not _can_manage_org(user, org_id):
         return jsonify({"error": "Forbidden for this organization"}), 403
     Organization.query.get_or_404(org_id)
     payload = request.get_json(silent=True) or {}
@@ -111,7 +121,7 @@ def create_ai_agent(org_id):
 def get_ai_agent(agent_id):
     """Return a single AI interview agent (managing org only)."""
     agent = AIInterviewAgent.query.get_or_404(agent_id)
-    if not _manages_org_id(_me(), agent.organization_id):
+    if not _can_view_org(_me(), agent.organization_id):
         return jsonify({"error": "Forbidden for this organization"}), 403
     return jsonify(agent.to_dict()), 200
 
@@ -120,7 +130,7 @@ def get_ai_agent(agent_id):
 def update_ai_agent(agent_id):
     """Update an AI interview agent (managing org only)."""
     agent = AIInterviewAgent.query.get_or_404(agent_id)
-    if not _manages_org_id(_me(), agent.organization_id):
+    if not _can_manage_org(_me(), agent.organization_id):
         return jsonify({"error": "Forbidden for this organization"}), 403
     payload = request.get_json(silent=True) or {}
 
@@ -148,7 +158,7 @@ def update_ai_agent(agent_id):
 def delete_ai_agent(agent_id):
     """Delete an AI interview agent (managing org only)."""
     agent = AIInterviewAgent.query.get_or_404(agent_id)
-    if not _manages_org_id(_me(), agent.organization_id):
+    if not _can_manage_org(_me(), agent.organization_id):
         return jsonify({"error": "Forbidden for this organization"}), 403
     db.session.delete(agent)
     db.session.commit()
@@ -159,7 +169,8 @@ def delete_ai_agent(agent_id):
 def test_ai_agent(agent_id):
     """Test an AI interview agent with a sample conversation (managing org only)."""
     agent = AIInterviewAgent.query.get_or_404(agent_id)
-    if not _manages_org_id(_me(), agent.organization_id):
+    user = _me()
+    if not _can_manage_org(user, agent.organization_id):
         return jsonify({"error": "Forbidden for this organization"}), 403
     payload = request.get_json(silent=True) or {}
 
@@ -181,7 +192,12 @@ def test_ai_agent(agent_id):
         logger.info("ai agent test request agent_id=%s prompt_chars=%s", agent.id, len(system_prompt))
 
         # Get AI response
-        ai_response = ai_service.generate_response(system_prompt, test_message)
+        ai_response = ai_service.generate_response(
+            system_prompt,
+            test_message,
+            user=user,
+            operation_type="ai_agent_test",
+        )
 
         logger.info("ai agent test response agent_id=%s chars=%s", agent.id, len(ai_response or ""))
 
@@ -209,7 +225,7 @@ def test_ai_agent(agent_id):
 def start_ai_interview(interview_id):
     """Start an AI-powered interview (participant or managing org)."""
     interview = Interview.query.get_or_404(interview_id)
-    if not _can_see_interview(_me(), interview):
+    if not _can_manage_interview(_me(), interview):
         return jsonify({"error": "Forbidden"}), 403
 
     if not interview.ai_agent_id:
@@ -243,7 +259,7 @@ def send_ai_message(interview_id):
     """Send a message to the AI interviewer and get response (participant or managing org)."""
     interview = Interview.query.get_or_404(interview_id)
     user = _me()
-    if not _can_see_interview(user, interview):
+    if not _can_manage_interview(user, interview):
         return jsonify({"error": "Forbidden"}), 403
     payload = request.get_json(silent=True) or {}
 
@@ -345,7 +361,9 @@ def assign_ai_agent_to_interview(interview_id):
     """Assign an AI agent to an interview (managing org only)."""
     interview = Interview.query.get_or_404(interview_id)
     user = _me()
-    if interview.organization_id is None or not _manages_org_id(user, interview.organization_id):
+    if interview.organization_id is None or not has_org_permission(
+        user, interview.organization_id, INTERVIEWS_MANAGE
+    ):
         return jsonify({"error": "Forbidden for this organization"}), 403
     payload = request.get_json(silent=True) or {}
 

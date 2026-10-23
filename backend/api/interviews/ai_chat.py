@@ -2,7 +2,7 @@ from flask import request, jsonify
 from .. import api_bp
 from ...utils.timezone_utils import utc_now_iso, utc_iso
 from ...extensions import db
-from ...models import Interview, User, AIInterviewAgent, ConversationMessage, PracticeAIAgent, TeamMember
+from ...models import Interview, User, AIInterviewAgent, ConversationMessage, PracticeAIAgent
 from ...ai_service import get_ai_service
 from ...utils.ai_budget import AIBudgetError
 from ...utils.subscription import require_subscription
@@ -37,18 +37,14 @@ def interview_chat(interview_id):
     if not interview:
         return jsonify({'error': 'Interview not found'}), 404
 
-    # Check access: participant or any managing-org member (direct account
-    # or team member) — same rule as interview detail/conversation.
+    # Check access: candidate participant or org staff with interview-management
+    # rights. Sending AI messages spends budget, so read-only viewers cannot.
     has_access = False
     if interview.user_id == user_id:
         has_access = True
     elif interview.organization_id is not None:
-        managed_ids = set()
-        if user.organization_id:
-            managed_ids.add(user.organization_id)
-        for tm in TeamMember.query.filter_by(user_id=user.id).all():
-            managed_ids.add(tm.organization_id)
-        has_access = interview.organization_id in managed_ids
+        from ...utils.org_permissions import has_org_permission, INTERVIEWS_MANAGE
+        has_access = has_org_permission(user, interview.organization_id, INTERVIEWS_MANAGE)
     
     if not has_access:
         return jsonify({'error': 'Access denied'}), 403

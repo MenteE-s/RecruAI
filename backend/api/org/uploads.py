@@ -2,7 +2,8 @@ from flask import request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from .. import api_bp
 from ...extensions import db
-from ...models import Organization, User, TeamMember
+from ...models import Organization, User
+from ...utils.org_permissions import has_org_permission, ORG_EDIT
 import os
 from werkzeug.utils import secure_filename
 
@@ -17,17 +18,12 @@ def upload_organization_profile_image(org_id):
     if not user:
         return jsonify({"error": "User not found"}), 404
 
-    # Check if user belongs to the organization or is an organization user
-    if user.role == "organization" and user.organization_id == org_id:
-        # Organization user can upload for their own organization
-        pass
-    elif user.role == "individual":
-        # Check if user is a team member of the organization
-        team_member = TeamMember.query.filter_by(organization_id=org_id, user_id=user_id).first()
-        if not team_member:
-            return jsonify({"error": "Unauthorized - not a member of this organization"}), 403
-    else:
-        return jsonify({"error": "Unauthorized"}), 403
+    if not has_org_permission(user, org_id, ORG_EDIT):
+        return jsonify({
+            "error": "You do not have permission to edit this organization.",
+            "code": "org_permission_denied",
+            "permission": ORG_EDIT,
+        }), 403
 
     org = Organization.query.get_or_404(org_id)
 
@@ -73,17 +69,12 @@ def upload_organization_banner_image(org_id):
     if not user:
         return jsonify({"error": "User not found"}), 404
 
-    # Check if user belongs to the organization or is an organization user
-    if user.role == "organization" and user.organization_id == org_id:
-        # Organization user can upload for their own organization
-        pass
-    elif user.role == "individual":
-        # Check if user is a team member of the organization
-        team_member = TeamMember.query.filter_by(organization_id=org_id, user_id=user_id).first()
-        if not team_member:
-            return jsonify({"error": "Unauthorized - not a member of this organization"}), 403
-    else:
-        return jsonify({"error": "Unauthorized"}), 403
+    if not has_org_permission(user, org_id, ORG_EDIT):
+        return jsonify({
+            "error": "You do not have permission to edit this organization.",
+            "code": "org_permission_denied",
+            "permission": ORG_EDIT,
+        }), 403
 
     org = Organization.query.get_or_404(org_id)
 

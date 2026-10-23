@@ -9,6 +9,7 @@ from .. import api_bp
 from ...extensions import db
 from ...models import User
 from ...utils.security import log_security_event, sanitize_input
+from ...utils.org_permissions import user_payload_with_access
 from ...utils.kafka_service import kafka_service
 from ...utils.cache import (
     cache_get,
@@ -100,7 +101,7 @@ def login():
     resp = make_response(jsonify({
         "access_token": access_token,
         "expires_in": access_token_expires_in(),
-        "user": user.to_dict(),
+        "user": user_payload_with_access(user),
     }), 200)
     set_refresh_cookie(resp, refresh_token)
     return resp
@@ -227,7 +228,9 @@ def get_me():
     if not user:
         return jsonify({"error": "user not found"}), 404
 
-    payload = {"user": user.to_dict()}
+    # Role is resolved live from team_members rather than trusted from a token
+    # or client. Membership changes call invalidate_auth_cache().
+    payload = {"user": user_payload_with_access(user)}
     try:
         cache_set(cache_key, payload, CACHE_TTL.get("auth_me", 90))
     except Exception:

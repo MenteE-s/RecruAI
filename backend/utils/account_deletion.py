@@ -29,6 +29,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from backend.constants import ACCOUNT_DELETION_GRACE_DAYS
 from backend.extensions import db
 from backend.models import AccountDeletion, Interview, Organization, TeamMember, User
+from backend.utils.org_permissions import count_org_admins, normalize_stored_role
 from backend.utils.cache import invalidate_auth_cache
 from backend.utils.security import log_security_event, sanitize_input
 
@@ -52,29 +53,10 @@ def _iso(value):
 def _admins_for_org(org_id: int, exclude_user_id: int) -> int:
     """Count admins other than the caller.
 
-    A legacy organization account can be an admin without a TeamMember row, so
-    both sources count. Without this, deleting the only organization user would
-    orphan the company page and its jobs.
+    Centralized counting also includes legacy organization accounts and
+    canonicalizes stored roles, so a Viewer cannot be miscounted as an admin.
     """
-    team_admins = (
-        TeamMember.query
-        .filter(
-            TeamMember.organization_id == org_id,
-            TeamMember.role == "Admin",
-            TeamMember.user_id != exclude_user_id,
-        )
-        .count()
-    )
-    legacy_admins = (
-        User.query
-        .filter(
-            User.organization_id == org_id,
-            User.role == "organization",
-            User.id != exclude_user_id,
-        )
-        .count()
-    )
-    return int(team_admins) + int(legacy_admins)
+    return count_org_admins(org_id, exclude_user_id=exclude_user_id)
 
 
 def last_admin_organizations(user: User):
@@ -90,7 +72,7 @@ def last_admin_organizations(user: User):
     if user.organization_id and user.role == "organization":
         org_ids.add(user.organization_id)
     for membership in TeamMember.query.filter_by(user_id=user.id).all():
-        if (membership.role or "").strip().lower() == "admin":
+        if normalize_stored_role(membership.role) == "Admin":
             org_ids.add(membership.organization_id)
 
     blocked = []

@@ -19,7 +19,8 @@ from sqlalchemy import func, or_
 
 from .. import api_bp
 from ...extensions import db
-from ...models import User, Organization, Post, TeamMember
+from ...models import User, Organization, Post
+from ...utils.org_permissions import ORG_VIEW, get_permitted_org_ids
 from ...utils.security import sanitize_input, log_security_event
 
 
@@ -41,13 +42,8 @@ def _caller_id():
 
 
 def _managed_org_ids(user):
-    """Org ids the caller administers — their page plus any team membership."""
-    ids = set()
-    if user.organization_id:
-        ids.add(user.organization_id)
-    for tm in TeamMember.query.filter_by(user_id=user.id).all():
-        ids.add(tm.organization_id)
-    return ids
+    """Org ids the caller may read as a page manager."""
+    return get_permitted_org_ids(user, permission=ORG_VIEW)
 
 
 def _escape_like(term):

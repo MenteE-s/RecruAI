@@ -4,6 +4,13 @@ from .. import api_bp
 from ...utils.timezone_utils import utc_now_iso, utc_iso
 from ...extensions import db
 from ...models import Application, Post, Interview, TeamMember, User
+from ...utils.org_permissions import (
+    HIRING_MANAGE,
+    HIRING_VIEW,
+    get_permitted_org_ids,
+    has_org_permission,
+    invalidate_membership_caches,
+)
 from sqlalchemy import func
 from ...utils.pagination import Pagination, get_pagination_params, paginated_response, apply_filters_and_sorting, get_request_filters, get_sorting_params
 from ...utils.kafka_service import kafka_service as kafka
@@ -25,20 +32,21 @@ def _current_user():
         return None
 
 
-def _managed_org_ids(user):
-    """Org ids the user may manage applications for (own org + team memberships)."""
-    ids = set()
-    if user.organization_id:
-        ids.add(user.organization_id)
-    for tm in TeamMember.query.filter_by(user_id=user.id).all():
-        ids.add(tm.organization_id)
-    return ids
+def _managed_org_ids(user, permission=HIRING_VIEW):
+    """Org ids where the user has the requested hiring permission."""
+    return get_permitted_org_ids(user, permission=permission)
 
 
 def _can_manage_post(user, post):
     if not user or not post:
         return False
-    return post.organization_id in _managed_org_ids(user)
+    return has_org_permission(user, post.organization_id, HIRING_MANAGE)
+
+
+def _can_view_post(user, post):
+    if not user or not post:
+        return False
+    return has_org_permission(user, post.organization_id, HIRING_VIEW)
 
 
 def _notify_candidate(application, title, message):
@@ -237,7 +245,7 @@ def list_user_applications(user_id):
 def list_post_applications(post_id):
     """Get applications for a specific post (managing org only)."""
     post = Post.query.get_or_404(post_id)
-    if not _can_manage_post(_current_user(), post):
+    if not _can_view_post(_current_user(), post):
         return jsonify({"error": "Forbidden for this organization"}), 403
     # Get pagination parameters
     page, per_page = get_pagination_params()
@@ -327,6 +335,8 @@ def mark_application_onboarded(app_id):
         db.session.add(team_member)
     
     db.session.commit()
+    if not existing_team_member:
+        invalidate_membership_caches(application.user_id, application.post.organization_id)
     return jsonify({"message": "Application marked as onboarded", "application": application.to_dict()}), 200
 
 

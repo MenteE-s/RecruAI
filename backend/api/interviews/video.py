@@ -5,12 +5,19 @@ from .. import api_bp
 from ...extensions import db
 from ...models import Interview
 from ...utils import livekit_service as livekit
-from .interviews import _me, _can_see_interview
+from .interviews import _me, _can_see_interview, _manages_interview
 
 
 def _get_visible_interview(interview_id):
     interview = Interview.query.get_or_404(interview_id)
     if not _can_see_interview(_me(), interview):
+        return None, (jsonify({"error": "Forbidden"}), 403)
+    return interview, None
+
+
+def _get_manageable_interview(interview_id):
+    interview = Interview.query.get_or_404(interview_id)
+    if not _manages_interview(_me(), interview):
         return None, (jsonify({"error": "Forbidden"}), 403)
     return interview, None
 
@@ -35,7 +42,7 @@ def get_video_token(interview_id):
 @jwt_required()
 def start_recording(interview_id):
     """Start room recording (idempotent per room; capacity-capped)."""
-    interview, denied = _get_visible_interview(interview_id)
+    interview, denied = _get_manageable_interview(interview_id)
     if denied:
         return denied
     if not livekit.is_configured():
@@ -54,7 +61,7 @@ def start_recording(interview_id):
 @jwt_required()
 def stop_recording(interview_id):
     """Stop all active recordings for the interview's room."""
-    interview, denied = _get_visible_interview(interview_id)
+    interview, denied = _get_manageable_interview(interview_id)
     if denied:
         return denied
     if not livekit.is_configured():

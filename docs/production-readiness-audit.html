@@ -813,7 +813,7 @@ backend/ai_service.py:90           print(f"DEBUG: AI response length: ...")</div
         <span>
           <span class="ftitle">Team roles are cosmetic — any member can manage billing, delete members, and edit the org</span>
           <span class="fsum"><code>_manages_org</code> treats Admin, HR, Manager, and Viewer identically for destructive actions.</span>
-          <span class="badges"><span class="badge p1">P1</span><span class="badge area">Security</span><span class="badge eff">1–2 days</span></span>
+          <span class="badges"><span class="badge p1">P1</span><span class="badge fixed">Fixed</span><span class="badge area">Security</span><span class="badge eff">1–2 days</span></span>
         </span>
       </summary>
       <div class="fbody">
@@ -1348,7 +1348,7 @@ frontend/Dockerfile / Dockerfile.prod      two build paths</div>
         <tr><td><b>P1-03</b> Delete/export account</td><td><span class="tag green">Code</span> <span class="tag green">Fixed in code</span></td><td>Password re-auth, JSON export, 30-day soft delete, scheduler purge, last-admin guard, Settings wiring, tests</td><td>Run migration; review privacy policy</td><td><b>Yes</b></td></tr>
         <tr><td><b>P1-04</b> Scheduler disabled</td><td><span class="tag green">Code</span> <span class="tag green">Fixed in code</span></td><td>Dedicated worker, PostgreSQL advisory locks, 30-day constant, batched expiry, run records, scheduler health</td><td>Worker container in the deploy topology; alert on health</td><td><b>Yes</b> — the worker is part of the code deploy</td></tr>
         <tr><td><b>P1-05</b> AI budget/logs</td><td><span class="tag green">Code</span> <span class="tag green">Fixed in code</span></td><td>Provider-level atomic reservation, org attribution, usage ledger, 402 propagation, removed content logs, tests</td><td>Vendor spend caps optional</td><td><b>Yes</b></td></tr>
-        <tr><td><b>P1-06</b> Cosmetic roles</td><td><span class="tag green">Code</span> <span class="tag blue">Decision</span></td><td>Permission matrix/decorator, protect billing/member/org routes, last-admin guard</td><td>None</td><td><b>Yes</b> — after the role matrix is agreed</td></tr>
+        <tr><td><b>P1-06</b> Cosmetic roles</td><td><span class="tag green">Code</span> <span class="tag green">Fixed in code</span></td><td>Permission matrix/decorator, protect billing/member/org routes, last-admin guard</td><td>None</td><td><b>Yes</b> — after the role matrix is agreed</td></tr>
         <tr><td><b>P1-07</b> No error tracking/real health</td><td><span class="tag amber">Code + prod</span></td><td>Sentry init, request IDs, split liveness/readiness, alert hooks</td><td>Sentry project/DSN (free tier works); alert routing</td><td><b>Yes</b> — no-op without a DSN</td></tr>
         <tr><td><b>P1-08</b> Backups/restore</td><td><span class="tag amber">Code + prod</span></td><td>Backup/restore scripts, uploads sync, runbook, restore smoke test</td><td>S3 bucket/IAM/lifecycle, cron, restore drill</td><td><b>Yes</b> — scripts can ship; backups need the bucket</td></tr>
         <tr><td><b>P1-09</b> TLS renewal</td><td><span class="tag gray">Prod only</span></td><td>None (minor nginx template edit if needed)</td><td>Host timer/cron, nginx reload, expiry alert, renewal test</td><td>Existing cert remains valid; close before 90 days</td></tr>

@@ -278,7 +278,7 @@ def make_member(app):
     from backend.extensions import db
     from backend.models import TeamMember
 
-    def _make(org, user, role="Member"):
+    def _make(org, user, role="Interviewer"):
         member = TeamMember(
             organization_id=org.id,
             user_id=user.id,

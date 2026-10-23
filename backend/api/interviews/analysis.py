@@ -2,9 +2,15 @@ from flask import request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from .. import api_bp
 from ...extensions import db
-from ...models import Interview, InterviewAnalysis, Message, ConversationMessage, User, TeamMember
+from ...models import Interview, InterviewAnalysis, Message, ConversationMessage, User
 from ...ai_service import get_ai_service
 from ...utils.ai_budget import AIBudgetError
+from ...utils.org_permissions import (
+    ANALYTICS_VIEW,
+    INTERVIEWS_MANAGE,
+    INTERVIEWS_VIEW,
+    has_org_permission,
+)
 from ...utils.kafka_service import KafkaService
 import json
 import logging
@@ -25,12 +31,10 @@ def _can_access_interview_id(interview_id):
         return False
     if interview.user_id == user.id:
         return True
-    org_ids = set()
-    if user.organization_id:
-        org_ids.add(user.organization_id)
-    for tm in TeamMember.query.filter_by(user_id=user.id).all():
-        org_ids.add(tm.organization_id)
-    return interview.organization_id in org_ids
+    return (
+        interview.organization_id is not None
+        and has_org_permission(user, interview.organization_id, INTERVIEWS_VIEW)
+    )
 
 
 def _manages_org_id(org_id):
@@ -41,9 +45,7 @@ def _manages_org_id(org_id):
     user = User.query.get(uid)
     if not user:
         return False
-    if user.role == "organization" and user.organization_id == org_id:
-        return True
-    return TeamMember.query.filter_by(organization_id=org_id, user_id=user.id).first() is not None
+    return has_org_permission(user, org_id, ANALYTICS_VIEW)
 
 def generate_ai_analysis(interview, messages, user=None):
     """Generate real AI analysis of interview conversation.
@@ -295,6 +297,12 @@ def generate_interview_analysis(interview_id):
     user = User.query.get(user_id)
     if not user:
         return jsonify({"error": "User not found"}), 404
+    if (
+        interview.user_id != user.id
+        and interview.organization_id is not None
+        and not has_org_permission(user, interview.organization_id, "interviews.manage")
+    ):
+        return jsonify({"error": "Forbidden for this organization"}), 403
 
     replace_existing = existing_analysis if force else None
 

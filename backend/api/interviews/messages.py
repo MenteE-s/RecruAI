@@ -2,12 +2,13 @@ from flask import request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from .. import api_bp
 from ...extensions import db
-from ...models import Message, Interview, User, TeamMember
+from ...models import Message, Interview, User
 from ...utils.kafka_service import KafkaService
+from ...utils.org_permissions import INTERVIEWS_MANAGE, INTERVIEWS_VIEW, has_org_permission
 
 
-def _can_access_interview(interview_id):
-    """Participant or managing-org member may read/post messages."""
+def _can_access_interview(interview_id, permission=INTERVIEWS_VIEW):
+    """Participant, or org staff with the requested interview permission."""
     try:
         uid = int(get_jwt_identity())
     except (TypeError, ValueError):
@@ -18,12 +19,9 @@ def _can_access_interview(interview_id):
         return False, user
     if interview.user_id == user.id:
         return True, user
-    org_ids = set()
-    if user.organization_id:
-        org_ids.add(user.organization_id)
-    for tm in TeamMember.query.filter_by(user_id=user.id).all():
-        org_ids.add(tm.organization_id)
-    return interview.organization_id in org_ids, user
+    if interview.organization_id is None:
+        return False, user
+    return has_org_permission(user, interview.organization_id, permission), user
 
 @api_bp.route('/interviews/<int:interview_id>/messages', methods=['GET'])
 @jwt_required()
@@ -39,7 +37,7 @@ def get_messages(interview_id):
 @jwt_required()
 def send_message(interview_id):
     """Send a message in an interview (participant/org only)."""
-    allowed, user = _can_access_interview(interview_id)
+    allowed, user = _can_access_interview(interview_id, INTERVIEWS_MANAGE)
     if not allowed:
         return jsonify({"error": "Forbidden"}), 403
     data = request.get_json()

@@ -10,6 +10,7 @@ from ...models import (
     ProfessionalMembership, Patent, CourseTraining, SocialMediaLink, KeyAchievement,
     Favorite, Application, Post, Interview, TeamMember
 )
+from ...utils.org_permissions import HIRING_VIEW, TEAM_MANAGE, get_permitted_org_ids, has_org_permission
 from ...utils.timezone_utils import get_timezone_list, is_valid_timezone, get_current_time_info, utc_iso, utc_now_iso
 from ...utils.security import log_security_event, sanitize_input, validate_email, validate_request_size
 from ...utils.pagination import Pagination, get_pagination_params, paginated_response, apply_filters_and_sorting, get_request_filters, get_sorting_params
@@ -111,10 +112,7 @@ def list_users():
         return jsonify({"error": "Invalid user identity"}), 400
     if not me:
         return jsonify({"error": "user not found"}), 404
-    manages_any = bool(me.organization_id) or (
-        TeamMember.query.filter_by(user_id=me.id).first() is not None
-    )
-    if me.role != "organization" and not manages_any:
+    if not get_permitted_org_ids(me, HIRING_VIEW) and me.role != "organization":
         return jsonify({"error": "Forbidden: organization account required"}), 403
     # Get pagination parameters (capped at 100 by Pagination)
     page, per_page = get_pagination_params()
@@ -232,11 +230,9 @@ def create_user():
             return jsonify({"error": "Invalid organization_id"}), 400
         if not requested_org:
             return jsonify({"error": "Invalid organization_id"}), 400
-        # Caller must administer the target page.
-        from ...models import TeamMember as _TM
-        allowed = caller is not None and (
-            (caller.organization_id == requested_org)
-            or _TM.query.filter_by(organization_id=requested_org, user_id=caller.id).first() is not None
+        # Caller must be an Admin of the target page.
+        allowed = caller is not None and has_org_permission(
+            caller, requested_org, TEAM_MANAGE
         )
         if not allowed:
             return jsonify({"error": "Forbidden for this organization"}), 403
@@ -276,11 +272,7 @@ def get_user_full_profile(user_id):
         return jsonify({"error": "Invalid user identity"}), 400
     me = User.query.get_or_404(me_id)
     if me.id != int(user_id):
-        managed_ids = set()
-        if me.organization_id:
-            managed_ids.add(me.organization_id)
-        for tm in TeamMember.query.filter_by(user_id=me.id).all():
-            managed_ids.add(tm.organization_id)
+        managed_ids = get_permitted_org_ids(me, HIRING_VIEW)
         related = False
         if managed_ids:
             related = (

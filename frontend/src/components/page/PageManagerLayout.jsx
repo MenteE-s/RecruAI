@@ -25,27 +25,27 @@ const SECTIONS = [
   {
     group: "Page",
     items: [
-      { to: "/page", label: "Overview", icon: FiHome, exact: true },
-      { to: "/page/profile", label: "Page profile", icon: FiUser },
-      { to: "/page/visibility", label: "Visibility", icon: FiEye },
+      { to: "/page", label: "Overview", icon: FiHome, exact: true, permission: "org.view" },
+      { to: "/page/profile", label: "Page profile", icon: FiUser, permission: "org.edit" },
+      { to: "/page/visibility", label: "Visibility", icon: FiEye, permission: "org.edit" },
     ],
   },
   {
     group: "Hiring",
     items: [
-      { to: "/page/posts", label: "Job posts", icon: FiFileText },
-      { to: "/page/candidates", label: "Candidates", icon: FiUsers },
-      { to: "/page/interviews", label: "Interviews", icon: FiCalendar },
-      { to: "/page/pipeline", label: "Pipeline", icon: FiTrendingUp },
+      { to: "/page/posts", label: "Job posts", icon: FiFileText, permission: "hiring.view" },
+      { to: "/page/candidates", label: "Candidates", icon: FiUsers, permission: "hiring.view" },
+      { to: "/page/interviews", label: "Interviews", icon: FiCalendar, permission: "interviews.view" },
+      { to: "/page/pipeline", label: "Pipeline", icon: FiTrendingUp, permission: "hiring.view" },
     ],
   },
   {
     group: "Manage",
     items: [
-      { to: "/page/team", label: "Team members", icon: FiUsers },
-      { to: "/page/analytics", label: "Analytics", icon: FiBarChart2 },
-      { to: "/page/agents", label: "AI agents", icon: FiCpu },
-      { to: "/page/settings", label: "Page settings", icon: FiSettings },
+      { to: "/page/team", label: "Team members", icon: FiUsers, permission: "team.view" },
+      { to: "/page/analytics", label: "Analytics", icon: FiBarChart2, permission: "analytics.view" },
+      { to: "/page/agents", label: "AI agents", icon: FiCpu, permission: "ai_agents.view" },
+      { to: "/page/settings", label: "Page settings", icon: FiSettings, permission: "org.edit" },
     ],
   },
 ];
@@ -142,6 +142,18 @@ export default function PageManagerLayout({ children, title, subtitle, action })
     );
   }
 
+  const permissions = org?.access?.permissions || [];
+  const hasPermission = (permission) => !permission || permissions.includes(permission);
+  const visibleSections = SECTIONS.map((section) => ({
+    ...section,
+    items: section.items.filter((item) => hasPermission(item.permission)),
+  })).filter((section) => section.items.length > 0);
+  const currentAllowed = visibleSections.some((section) =>
+    section.items.some((item) =>
+      item.exact ? location.pathname === item.to : location.pathname.startsWith(item.to)
+    )
+  );
+
   const isActive = (item) =>
     item.exact ? location.pathname === item.to : location.pathname.startsWith(item.to);
 
@@ -164,11 +176,12 @@ export default function PageManagerLayout({ children, title, subtitle, action })
           <p className="text-[12.5px] font-bold text-gray-900 truncate leading-tight">{org.name}</p>
           <p className="text-[10.5px] text-gray-500 truncate">
             {org.is_public ? "Public page" : "Private page"}
+            {org.access?.role ? ` · ${org.access.role}` : ""}
           </p>
         </div>
       </div>
 
-      {SECTIONS.map((section) => (
+      {visibleSections.map((section) => (
         <div key={section.group}>
           <p className="px-1 mb-1 text-[10px] font-bold uppercase tracking-wider text-gray-400">
             {section.group}
@@ -265,7 +278,22 @@ export default function PageManagerLayout({ children, title, subtitle, action })
                   {action && <div className="mt-3">{action}</div>}
                 </div>
               )}
-              {children}
+              {permissions.length === 0 || !currentAllowed ? (
+                <div className="bg-white border border-gray-200 rounded-lg p-6 text-center max-w-lg mx-auto">
+                  <p className="text-sm font-semibold text-gray-900">You don't have access to this page</p>
+                  <p className="mt-1 text-xs text-gray-500">
+                    Your role on this page doesn't include this action. Ask an admin if you need access.
+                  </p>
+                  <button
+                    onClick={() => navigate("/page")}
+                    className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition-colors"
+                  >
+                    Back to overview
+                  </button>
+                </div>
+              ) : (
+                children
+              )}
             </div>
           </main>
         </div>

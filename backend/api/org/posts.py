@@ -4,21 +4,19 @@ from sqlalchemy import func
 from .. import api_bp
 from ...utils.timezone_utils import utc_now_iso, utc_iso
 from ...extensions import db
-from ...models import Post, Organization, User, TeamMember, CompanyFollow, Notification
+from ...models import Post, Organization, User, CompanyFollow, Notification
+from ...utils.org_permissions import HIRING_MANAGE, HIRING_VIEW, has_org_permission
 import json
 
 
+def _can_view_org(user, org_id):
+    """Caller may see this org's draft/closed posts."""
+    return has_org_permission(user, org_id, HIRING_VIEW)
+
+
 def _can_manage_org(user, org_id):
-    """Caller may mutate this org's posts: own org account or team member."""
-    if not user or not org_id:
-        return False
-    try:
-        org_id = int(org_id)
-    except (TypeError, ValueError):
-        return False
-    if user.role == "organization" and user.organization_id == org_id:
-        return True
-    return TeamMember.query.filter_by(organization_id=org_id, user_id=user.id).first() is not None
+    """Caller may create, edit, or delete this org's posts."""
+    return has_org_permission(user, org_id, HIRING_MANAGE)
 from datetime import datetime
 from ...utils.pagination import Pagination, get_pagination_params, paginated_response, apply_filters_and_sorting, get_request_filters, get_sorting_params
 from ...utils.kafka_service import kafka_service as kafka
@@ -46,7 +44,7 @@ def list_posts_for_org(org_id):
     try:
         uid = get_jwt_identity()
         caller = User.query.get(int(uid)) if uid is not None else None
-        if not _can_manage_org(caller, org_id):
+        if not _can_view_org(caller, org_id):
             posts = [p for p in posts if p.status == "active"]
     except (TypeError, ValueError):
         posts = [p for p in posts if p.status == "active"]
@@ -377,7 +375,7 @@ def get_post(post_id):
             caller = User.query.get(int(uid)) if uid is not None else None
         except (TypeError, ValueError):
             caller = None
-        if not _can_manage_org(caller, post.organization_id):
+        if not _can_view_org(caller, post.organization_id):
             # 404 (not 403) to avoid confirming existence of drafts.
             return jsonify({"error": "Not Found"}), 404
     return jsonify(post.to_dict())
@@ -399,7 +397,7 @@ def record_post_view(post_id):
             caller = User.query.get(int(uid)) if uid is not None else None
         except (TypeError, ValueError):
             caller = None
-        if not _can_manage_org(caller, post.organization_id):
+        if not _can_view_org(caller, post.organization_id):
             return jsonify({"error": "Not Found"}), 404
     try:
         Post.query.filter_by(id=post.id).update(

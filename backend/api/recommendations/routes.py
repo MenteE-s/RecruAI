@@ -9,18 +9,14 @@ from sqlalchemy.orm import sessionmaker
 
 from ...extensions import db
 from ...recommendations.tools.supervisor import RecommendationSupervisor
-from ...models import User, SavedJob, AIInterviewAgent, Organization, Post, TeamMember
+from ...models import User, SavedJob, AIInterviewAgent, Organization, Post
+from ...utils.org_permissions import HIRING_VIEW, get_permitted_org_ids
 from ...utils.ai_budget import AIBudgetError
 from ...utils.kafka_service import kafka_service
 
 
 def _managed_org_ids(user):
-    ids = set()
-    if user.organization_id:
-        ids.add(user.organization_id)
-    for tm in TeamMember.query.filter_by(user_id=user.id).all():
-        ids.add(tm.organization_id)
-    return ids
+    return get_permitted_org_ids(user, permission=HIRING_VIEW)
 
 
 def _is_hiring_user(user):

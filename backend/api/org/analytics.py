@@ -3,22 +3,18 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from .. import api_bp
 from ...extensions import db
 from ...models import Post, Application, Interview, InterviewAnalysis, TeamMember, User
+from ...utils.org_permissions import ANALYTICS_VIEW, get_permitted_org_ids
 
 
 def _managed_org_ids():
-    """Org ids the caller administers (own org + team memberships)."""
+    """Org ids where the caller may read analytics."""
     try:
         user = User.query.get(int(get_jwt_identity()))
     except (TypeError, ValueError):
         return None
     if not user:
         return None
-    ids = set()
-    if user.organization_id:
-        ids.add(user.organization_id)
-    for tm in TeamMember.query.filter_by(user_id=user.id).all():
-        ids.add(tm.organization_id)
-    return ids
+    return get_permitted_org_ids(user, permission=ANALYTICS_VIEW)
 
 
 def _apps_in_orgs(org_ids):

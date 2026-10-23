@@ -8,7 +8,8 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.orm import sessionmaker
 
 from ...extensions import db
-from ...models import User, TeamMember
+from ...models import User
+from ...utils.org_permissions import TEAM_MANAGE, get_permitted_org_ids
 from ...rag.tools.supervisor import RAGSupervisor
 from ...rag.tools.ingestor import IngestorTool
 from ...rag.tools.embedder import EmbedderTool
@@ -395,10 +396,8 @@ def clear_cache():
             me = None
         if not me:
             return jsonify({'error': 'User not found'}), 404
-        manages_any = bool(me.organization_id) or (
-            TeamMember.query.filter_by(user_id=me.id).first() is not None
-        )
-        if me.role != "organization" and not manages_any:
+        if not get_permitted_org_ids(me, TEAM_MANAGE):
+            return jsonify({"error": "Forbidden: organization admin required"}), 403
             return jsonify({'error': 'Forbidden: organization account required'}), 403
         embedder.clear_cache()
         return jsonify({'success': True, 'message': 'Cache cleared'})

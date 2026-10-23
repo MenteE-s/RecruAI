@@ -98,12 +98,12 @@ def handle_join_org(data):
             logger.warning("join_org without verifiable identity")
             return
     try:
-        from ..models import User as _User, TeamMember as _TM
+        from ..models import User as _User
+        from ...utils.org_permissions import get_org_access
         user = _User.query.get(uid)
         if not user:
             return
-        allowed = user.organization_id == org_id or _TM.query.filter_by(
-            organization_id=org_id, user_id=user.id).first() is not None
+        allowed = get_org_access(user, org_id) is not None
         if not allowed:
             logger.warning(f"User {user.id} denied org room org_{org_id}")
             return

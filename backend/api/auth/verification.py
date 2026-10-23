@@ -7,6 +7,7 @@ from ...extensions import db
 from ...models import User
 from ...utils.security import log_security_event, sanitize_input
 from ...utils.kafka_service import kafka_service
+from ...utils.org_permissions import user_payload_with_access
 from ...utils.otp import issue_otp, check_otp, OTP_TTL_MINUTES
 from ...utils.email_service import send_otp_email, send_welcome_email, maybe_dev_log_otp
 from .session import access_token_expires_in, create_session_tokens, set_refresh_cookie
@@ -107,7 +108,7 @@ def verify_email_otp():
     resp = make_response(jsonify({
         "access_token": access_token,
         "expires_in": access_token_expires_in(),
-        "user": user.to_dict(),
+        "user": user_payload_with_access(user),
     }), 200)
     set_refresh_cookie(resp, refresh_token)
     return resp

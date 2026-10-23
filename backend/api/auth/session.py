@@ -21,6 +21,7 @@ from .. import api_bp
 from ...extensions import db
 from ...models import RefreshToken, User
 from ...utils.cache import invalidate_auth_cache
+from ...utils.org_permissions import user_payload_with_access
 from ...utils.security import log_security_event
 
 logger = logging.getLogger(__name__)
@@ -303,7 +304,7 @@ def refresh_session():
     response = jsonify({
         "access_token": access_token,
         "expires_in": access_token_expires_in(),
-        "user": user.to_dict(),
+        "user": user_payload_with_access(user),
     })
     set_refresh_cookie(response, raw_refresh)
     return response
