@@ -5,3 +5,5 @@
 # production.
 pytest>=8.3,<9.1
 pytest-cov>=6.0,<8.0
+
+pip-audit>=2.7,<3.0
