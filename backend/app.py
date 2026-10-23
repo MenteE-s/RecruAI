@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-from flask import Flask, jsonify, send_from_directory, request
+from flask import Flask, current_app, jsonify, send_from_directory, request
 
 # support running as a module (recommended) and as a script
 try:
@@ -184,28 +184,57 @@ def create_app(config_object: object | None = None):
 
 	# Security: Initialize rate limiter (Redis-backed when available so
 	# limits are shared across workers; falls back to memory otherwise).
+	def _rate_limit_key():
+		"""Authenticated requests get a per-user bucket; anonymous fall back to IP.
+
+		Only a signature check is performed here. Full revocation/version
+		validation still happens in the route's @jwt_required guard, so a stolen
+		expired token cannot buy extra quota.
+		"""
+		try:
+			from flask_jwt_extended import decode_token
+			raw = None
+			auth_header = request.headers.get("Authorization", "")
+			if auth_header.startswith("Bearer "):
+				raw = auth_header[7:].strip()
+			if raw:
+				claims = decode_token(raw)
+				sub = claims.get("sub")
+				if sub:
+					return f"user:{sub}"
+		except Exception:
+			pass
+		try:
+			from flask_limiter.util import get_remote_address
+			return f"ip:{get_remote_address()}"
+		except Exception:
+			return f"ip:{request.remote_addr or 'unknown'}"
+
 	try:
 		from flask_limiter import Limiter
-		from flask_limiter.util import get_remote_address
 		storage_uri = app.config.get('RATELIMIT_STORAGE_URL', "memory://")
 		if (not storage_uri or storage_uri == "memory://") and app.config.get("REDIS_ENABLED"):
 			storage_uri = app.config.get("REDIS_URL", "redis://127.0.0.1:6379/0")
+		# Defaults are deliberately generous: every unannotated read-only route
+		# gets this ceiling. Auth/OTP/AI/write routes keep their tighter limits
+		# below. 50/hour was low enough for one dashboard session to exhaust.
+		default_limits = ["30000 per day", "3000 per hour"]
 		try:
 			limiter = Limiter(
 				app=app,
-				key_func=get_remote_address,
+				key_func=_rate_limit_key,
 				storage_uri=storage_uri,
 				strategy=app.config.get('RATELIMIT_STRATEGY', "fixed-window"),
-				default_limits=["200 per day", "50 per hour"],
+				default_limits=default_limits,
 			)
 		except Exception as e:
 			print(f"Warning: Redis rate-limit storage unavailable ({e}); using memory://")
 			limiter = Limiter(
 				app=app,
-				key_func=get_remote_address,
+				key_func=_rate_limit_key,
 				storage_uri="memory://",
 				strategy=app.config.get('RATELIMIT_STRATEGY', "fixed-window"),
-				default_limits=["200 per day", "50 per hour"],
+				default_limits=default_limits,
 			)
 	except ImportError:
 		print("Warning: Flask-Limiter not installed. Rate limiting disabled.")
@@ -239,10 +268,13 @@ def create_app(config_object: object | None = None):
 				'style-src': "'self' 'unsafe-inline' https://fonts.googleapis.com",
 				'font-src': "'self' https://fonts.gstatic.com",
 				'img-src': "'self' data: https:",
-				'connect-src': "'self' https://api.openai.com https://api.groq.com",
+				'connect-src': "'self' https://api.openai.com https://api.groq.com https://api.recruai.menteeai.org wss://api.recruai.menteeai.org",
+				'media-src': "'self' blob:",
+				'worker-src': "'self' blob:",
 				'object-src': "'none'",
 				'base-uri': "'self'",
 				'frame-ancestors': "'none'",
+				'form-action': "'self'",
 			},
 			content_security_policy_nonce_in=['script-src', 'style-src'],
 			force_https=app.config['IS_PRODUCTION'],
@@ -252,7 +284,12 @@ def create_app(config_object: object | None = None):
 			frame_options='DENY',
 			x_content_type_options='nosniff',
 			x_xss_protection=True,
-			referrer_policy='strict-origin-when-cross-origin'
+			referrer_policy='strict-origin-when-cross-origin',
+			permissions_policy={
+				'camera': '(self)',
+				'microphone': '(self)',
+				'geolocation': '()',
+			},
 		)
 	except ImportError:
 		print("Warning: Flask-Talisman not installed. Security headers disabled.")
@@ -274,7 +311,7 @@ def create_app(config_object: object | None = None):
 		if "*" in origins_list:
 			raise ValueError("FRONTEND_ORIGIN must not contain '*' when supports_credentials=True")
 		print(f"Setting CORS for {len(origins_list)} origin(s)", flush=True)
-		CORS(app, origins=origins_list, supports_credentials=True, allow_headers=["Content-Type", "Authorization", "X-CSRF-TOKEN"], methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"], expose_headers=["Content-Type", "Authorization"])
+		CORS(app, origins=origins_list, supports_credentials=True, allow_headers=["Content-Type", "Authorization", "X-CSRF-TOKEN"], methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"], expose_headers=["Content-Type", "Authorization", "Retry-After", "X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Reset"])
 	except Exception as e:
 		print(f"Failed to configure CORS: {e}", flush=True)
 		pass
@@ -291,10 +328,15 @@ def create_app(config_object: object | None = None):
 			if fn is None:
 				print(f"WARNING: rate-limit target missing: {endpoint} — fix endpoint name")
 				return
-			limiter.limit(spec)(fn)
+			# Flask-Limiter returns a wrapped view. It must be assigned back into
+			# Flask's view registry; calling the decorator without assigning is a
+			# silent no-op (the original P1-01 bug).
+			app.view_functions[endpoint] = limiter.limit(spec)(fn)
 
 		_limit("api.login", "10 per minute")
 		_limit("api.register", "5 per minute")
+		_limit("api.refresh_session", "60 per minute")
+		_limit("api.logout", "30 per minute")
 		_limit("api.get_me", "100 per minute")
 		# Unauthenticated public-profile views write an analytics row per hit
 		_limit("api.get_public_profile", "60 per minute")
@@ -403,7 +445,9 @@ def create_app(config_object: object | None = None):
 		if fn is None:
 			print("WARNING: rate-limit target missing: recommendations.search_profiles — fix endpoint name")
 		else:
-			limiter.limit("60 per minute")(fn)
+			app.view_functions["recommendations.search_profiles"] = limiter.limit(
+				"60 per minute"
+			)(fn)
 
 	# Error handlers for API routes - return JSON instead of HTML.
 	# Messages are generic on purpose: exception text can leak internals.
@@ -422,6 +466,38 @@ def create_app(config_object: object | None = None):
 	@app.errorhandler(404)
 	def not_found(error):
 		return jsonify({"error": "Not Found"}), 404
+
+	@app.errorhandler(429)
+	def rate_limit_exceeded(error):
+		"""Return JSON (not Flask-Limiter's HTML default) with Retry-After.
+
+		The header is normally injected by Flask-Limiter; this handler also
+		sets a window-length fallback so every caller gets a usable value.
+		"""
+		retry_after = None
+		try:
+			retry_after = int(error.limit.limit.get_expiry())
+		except Exception:
+			retry_after = None
+		response = jsonify({
+			"error": "Too many requests. Please wait and try again.",
+			"code": "rate_limited",
+		})
+		response.status_code = 429
+		if retry_after:
+			response.headers.setdefault("Retry-After", str(max(1, retry_after)))
+		try:
+			current_app.logger.warning(
+				"rate_limit_exceeded endpoint=%s path=%s method=%s ip=%s limit=%s",
+				request.endpoint or "unknown",
+				request.path,
+				request.method,
+				request.remote_addr,
+				getattr(error.limit, "limit", "unknown"),
+			)
+		except Exception:
+			pass
+		return response
 
 	@app.errorhandler(500)
 	def internal_error(error):
@@ -460,8 +536,18 @@ def create_app(config_object: object | None = None):
 		response.headers["X-Frame-Options"] = "DENY"
 		# Basic referrer policy
 		response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
-		# Feature-Policy / Permissions-Policy can be tightened as needed
-		# response.headers.setdefault("Permissions-Policy", "geolocation=(), microphone=()")
+		# Video interviews need camera/mic for this origin; deny the rest.
+		response.headers["Permissions-Policy"] = (
+			"camera=(self), microphone=(self), geolocation=()"
+		)
+		# Manual 429s (OTP cooldowns, invite limits) also get Retry-After.
+		if response.status_code == 429 and "Retry-After" not in response.headers:
+			try:
+				payload = response.get_json(silent=True) or {}
+				retry_after = int(payload.get("retry_after") or 60)
+			except Exception:
+				retry_after = 60
+			response.headers["Retry-After"] = str(max(1, retry_after))
 		# HSTS on in production by default (behind TLS-terminating nginx);
 		# explicitly opt out with ENABLE_HSTS=0 if ever serving plaintext.
 		if app.config.get("IS_PRODUCTION", False) or os.getenv("ENABLE_HSTS", "0") == "1":
@@ -499,7 +585,7 @@ def create_app(config_object: object | None = None):
 		if _fn is None:
 			print("WARNING: rate-limit target missing: health_check")
 		else:
-			limiter.limit("60 per minute")(_fn)
+			app.view_functions["health_check"] = limiter.limit("60 per minute")(_fn)
 
 	# helpful shell context for `flask shell`
 	try:

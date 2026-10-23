@@ -1,7 +1,6 @@
 from datetime import datetime
 
 from flask import request, jsonify, make_response, current_app
-from flask_jwt_extended import create_access_token, set_access_cookies
 
 from .. import api_bp
 from ...extensions import db
@@ -10,6 +9,7 @@ from ...utils.security import log_security_event, sanitize_input
 from ...utils.kafka_service import kafka_service
 from ...utils.otp import issue_otp, check_otp, OTP_TTL_MINUTES
 from ...utils.email_service import send_otp_email, send_welcome_email, maybe_dev_log_otp
+from .session import access_token_expires_in, create_session_tokens, set_refresh_cookie
 
 
 def _send_otp(user):
@@ -103,12 +103,11 @@ def verify_email_otp():
     except Exception:
         current_app.logger.debug("Failed to send welcome email", exc_info=True)
 
-    additional_claims = {
-        "role": user.role,
-        "organization_id": user.organization_id,
-        "ver": int(user.token_version or 0),
-    }
-    access_token = create_access_token(identity=str(user.id), additional_claims=additional_claims)
-    resp = make_response(jsonify({"access_token": access_token, "user": user.to_dict()}), 200)
-    set_access_cookies(resp, access_token)
+    access_token, refresh_token = create_session_tokens(user)
+    resp = make_response(jsonify({
+        "access_token": access_token,
+        "expires_in": access_token_expires_in(),
+        "user": user.to_dict(),
+    }), 200)
+    set_refresh_cookie(resp, refresh_token)
     return resp

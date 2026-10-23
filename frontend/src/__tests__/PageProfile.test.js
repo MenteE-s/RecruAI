@@ -77,7 +77,8 @@ describe("PageProfile", () => {
   beforeEach(() => {
     mockFetch();
     localStorage.clear();
-    localStorage.setItem("access_token", "test-token");
+    // Access tokens live in memory now; this flag is what marks a session.
+    localStorage.setItem("isAuthenticated", "true");
   });
 
   afterEach(() => {

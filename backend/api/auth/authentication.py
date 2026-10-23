@@ -1,10 +1,8 @@
 from flask import request, jsonify, make_response, current_app
 from flask_jwt_extended import (
-    create_access_token,
     jwt_required,
     get_jwt_identity,
     get_jwt,
-    set_access_cookies,
     unset_jwt_cookies,
 )
 from .. import api_bp
@@ -19,6 +17,14 @@ from ...utils.cache import (
     block_jti,
     _build_key,
     CACHE_TTL,
+)
+from .session import (
+    access_token_expires_in,
+    clear_refresh_cookie,
+    create_session_tokens,
+    revoke_all_refresh_tokens,
+    revoke_cookie_family,
+    set_refresh_cookie,
 )
 
 @api_bp.route("/auth/login", methods=["POST"])
@@ -83,14 +89,13 @@ def login():
     })
     db.session.commit()
 
-    additional_claims = {
-        "role": user.role,
-        "organization_id": user.organization_id,
-        "ver": int(user.token_version or 0),
-    }
-    access_token = create_access_token(identity=str(user.id), additional_claims=additional_claims)
-    resp = make_response(jsonify({"access_token": access_token, "user": user.to_dict()}), 200)
-    set_access_cookies(resp, access_token)
+    access_token, refresh_token = create_session_tokens(user)
+    resp = make_response(jsonify({
+        "access_token": access_token,
+        "expires_in": access_token_expires_in(),
+        "user": user.to_dict(),
+    }), 200)
+    set_refresh_cookie(resp, refresh_token)
     return resp
 
 @api_bp.route("/auth/password/change", methods=["POST"])
@@ -123,17 +128,24 @@ def change_password():
     try:
         user.set_password(new_password)
         user.token_version = int(user.token_version or 0) + 1
+        # A password change ends every refresh session, not just this tab.
+        # Same transaction as the hash/version update so it cannot half-apply.
+        revoke_all_refresh_tokens(user.id, commit=False)
+        db.session.commit()
     except ValueError as e:
         db.session.rollback()
         return jsonify({"error": str(e)}), 400
-    db.session.commit()
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception("Failed to change password")
+        return jsonify({"error": "Could not change password. Please try again."}), 500
     try:
         jti = get_jwt().get("jti")
         exp = current_app.config.get("JWT_ACCESS_TOKEN_EXPIRES")
         try:
             ttl = int(exp.total_seconds())
         except (AttributeError, TypeError, ValueError):
-            ttl = CACHE_TTL.get("jwt_blocklist", 7200)
+            ttl = CACHE_TTL.get("jwt_blocklist", 900)
         block_jti(jti, max(ttl, 60))
     except Exception:
         pass
@@ -163,7 +175,7 @@ def logout():
             try:
                 ttl = int(exp.total_seconds())
             except (AttributeError, TypeError, ValueError):
-                ttl = CACHE_TTL.get("jwt_blocklist", 7200)
+                ttl = CACHE_TTL.get("jwt_blocklist", 900)
             block_jti(jti, max(ttl, 60))
         except Exception:
             pass
@@ -172,8 +184,17 @@ def logout():
         except (TypeError, ValueError):
             pass
 
+    # Revoke the opaque refresh family for this browser as well as the
+    # access-token JTI. unset_jwt_cookies() clears legacy access/refresh
+    # cookies from older deployments.
+    try:
+        revoke_cookie_family()
+    except Exception:
+        current_app.logger.exception("Failed to revoke refresh family on logout")
     resp = make_response(jsonify({"msg": "logged out"}), 200)
+    clear_refresh_cookie(resp)
     unset_jwt_cookies(resp)
+    resp.headers["Cache-Control"] = "no-store"
     return resp
 
 @api_bp.route("/auth/me", methods=["GET"])

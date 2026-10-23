@@ -10,15 +10,15 @@ from datetime import datetime
 import logging
 
 from flask import jsonify, make_response, request
-from flask_jwt_extended import (
-    create_access_token,
-    get_jwt_identity,
-    jwt_required,
-    set_access_cookies,
-)
+from flask_jwt_extended import get_jwt_identity, jwt_required
 from sqlalchemy.exc import IntegrityError
 
 from .. import api_bp
+from ..auth.session import (
+    access_token_expires_in,
+    create_session_tokens,
+    set_refresh_cookie,
+)
 from ...extensions import db
 from ...models import Organization, OrganizationInvitation, TeamMember, User
 from ...utils.cache import invalidate_org_cache
@@ -347,18 +347,12 @@ def accept_invitation(token):
     # New accounts (and reclaimed legacy placeholders) have just chosen a
     # password, so signing them in is safe and avoids an unnecessary detour.
     if created_user or was_unverified:
-        claims = {
-            "role": user.role,
-            "organization_id": user.organization_id,
-            "ver": int(user.token_version or 0),
-        }
-        access_token = create_access_token(
-            identity=str(user.id), additional_claims=claims
-        )
+        access_token, refresh_token = create_session_tokens(user)
         response["access_token"] = access_token
+        response["expires_in"] = access_token_expires_in()
         response["auto_login"] = True
         resp = make_response(jsonify(response), 200)
-        set_access_cookies(resp, access_token)
+        set_refresh_cookie(resp, refresh_token)
         return resp
 
     return jsonify(response), 200

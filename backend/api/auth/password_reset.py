@@ -24,6 +24,7 @@ from .. import api_bp
 from ...extensions import db
 from ...models import User
 from ...utils.cache import invalidate_auth_cache
+from .session import revoke_all_refresh_tokens
 from ...utils.email_service import (
     maybe_dev_log_otp,
     send_password_changed_email,
@@ -190,6 +191,8 @@ def reset_password():
         if not user.email_verified:
             user.email_verified = True
             user.email_verified_at = datetime.utcnow()
+        # Kill refresh sessions in the same transaction as the password change.
+        revoke_all_refresh_tokens(user.id, commit=False)
         db.session.commit()
     except ValueError as e:
         db.session.rollback()

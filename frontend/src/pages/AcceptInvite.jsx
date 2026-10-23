@@ -15,8 +15,10 @@ import {
 import AuthLayout from "../components/auth/AuthLayout";
 import { useToast } from "../components/ui/ToastContext";
 import {
+  clearLocalAuth,
   getAuthHeaders,
   getBackendUrl,
+  setAuthSession,
   verifyTokenWithServer,
 } from "../utils/auth";
 
@@ -152,11 +154,8 @@ export default function AcceptInvite() {
       }
 
       if (payload.access_token) {
-        localStorage.setItem("access_token", payload.access_token);
+        setAuthSession(payload.access_token, payload.user);
       }
-      localStorage.setItem("isAuthenticated", "true");
-      if (payload.user?.role) localStorage.setItem("authRole", payload.user.role);
-      if (payload.user?.plan) localStorage.setItem("authPlan", payload.user.plan);
 
       // Refresh the auth cache so the new team membership is visible immediately.
       try {
@@ -192,10 +191,7 @@ export default function AcceptInvite() {
     } catch {
       // Local state still needs clearing even if the network call fails.
     }
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("isAuthenticated");
-    localStorage.removeItem("authRole");
-    localStorage.removeItem("authPlan");
+    clearLocalAuth();
     window.location.assign(signInUrl);
   }
 

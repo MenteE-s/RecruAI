@@ -1,4 +1,5 @@
 import { io } from "socket.io-client";
+import { ensureFreshAccessToken } from "./auth";
 
 const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || process.env.REACT_APP_API_BASE_URL || window.location.origin;
 
@@ -8,13 +9,19 @@ class SocketService {
     this.listeners = new Map();
   }
 
-  connect(token) {
+  connect() {
     if (this.socket) return;
 
-    // Auth handshake carries the JWT (never the URL query string, which
-    // would leak the token into server/proxy logs).
+    // Auth handshake carries the short-lived JWT (never the URL query string,
+    // which would leak it into server/proxy logs). The auth function runs on
+    // every reconnect, refreshing the HttpOnly cookie session if needed.
     this.socket = io(SOCKET_URL, {
-      auth: { token },
+      auth: (cb) => {
+        ensureFreshAccessToken()
+          .then((token) => cb(token ? { token } : {}))
+          .catch(() => cb({}));
+      },
+      withCredentials: true,
       transports: ["websocket"],
       reconnectionAttempts: 5,
     });

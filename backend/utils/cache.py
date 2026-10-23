@@ -30,7 +30,7 @@ CACHE_TTL = {
     "org_details": 300,        # 5 min
     "org_listings": 600,       # 10 min
     "agent_config": 900,       # 15 min
-    "jwt_blocklist": 7200,     # 2h — matches JWT_ACCESS_TOKEN_EXPIRES default
+    "jwt_blocklist": 900,      # 15m — matches short access-token lifetime
     "general": 120,            # 2 min
 }
 
@@ -193,7 +193,7 @@ def block_jti(jti: str, ttl: Optional[int] = None) -> None:
     """Revoke a JWT by ID until it would naturally expire (fail-open)."""
     try:
         if jti:
-            cache_set(_build_key("jwt_blocklist", jti), {"revoked": True}, ttl or CACHE_TTL.get("jwt_blocklist", 7200))
+            cache_set(_build_key("jwt_blocklist", jti), {"revoked": True}, ttl or CACHE_TTL.get("jwt_blocklist", 900))
     except Exception:
         pass
 

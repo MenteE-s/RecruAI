@@ -65,24 +65,38 @@ class Config:
     if IS_PRODUCTION and JWT_SECRET_KEY == "dev-secret-change-in-production":
         raise ValueError("JWT_SECRET_KEY environment variable is required in production")
 
-    # Security: Enhanced JWT settings
-    # Allow override via JWT_TOKEN_LOCATION env (prod deploy uses headers-only).
-    # Default keeps headers+cookies for backward compat with existing frontend.
+    # Security: Enhanced JWT settings.
+    # Access tokens are short-lived bearer tokens returned in JSON and held in
+    # frontend memory only. Refresh tokens are opaque, HttpOnly cookies handled
+    # by backend/api/auth/session.py — never by Flask-JWT-Extended cookies.
     import json as _json
     _loc_raw = os.getenv("JWT_TOKEN_LOCATION")
     try:
-        JWT_TOKEN_LOCATION = _json.loads(_loc_raw) if _loc_raw else ["headers", "cookies"]
+        JWT_TOKEN_LOCATION = _json.loads(_loc_raw) if _loc_raw else ["headers"]
     except Exception:
-        JWT_TOKEN_LOCATION = [s.strip() for s in _loc_raw.split(",") if s.strip()] if _loc_raw else ["headers", "cookies"]
+        JWT_TOKEN_LOCATION = [s.strip() for s in _loc_raw.split(",") if s.strip()] if _loc_raw else ["headers"]
     JWT_COOKIE_SECURE = os.getenv("JWT_COOKIE_SECURE", "1" if IS_PRODUCTION else "0") == "1"
     JWT_COOKIE_SAMESITE = os.getenv("JWT_COOKIE_SAMESITE", "None" if IS_PRODUCTION else "Lax")
     JWT_COOKIE_HTTPONLY = True
-    # Enable CSRF protection in production for additional security
+    # Kept for legacy deployments; access tokens are header-only now.
     JWT_COOKIE_CSRF_PROTECT = os.getenv("JWT_COOKIE_CSRF_PROTECT", "1" if IS_PRODUCTION else "0") == "1"
 
-    # Security: Shorter token expiration for better security
+    # Security: short access-token lifetime, rotated refresh-token session.
     from datetime import timedelta
-    JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES_HOURS", "2")))  # 2 hours instead of 24
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(
+        minutes=int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES_MINUTES", "15"))
+    )
+    REFRESH_TOKEN_TTL_DAYS = int(os.getenv("REFRESH_TOKEN_TTL_DAYS", "30"))
+    REFRESH_COOKIE_NAME = os.getenv("REFRESH_COOKIE_NAME", "refresh_token")
+    REFRESH_COOKIE_PATH = os.getenv("REFRESH_COOKIE_PATH", "/api/auth")
+    REFRESH_COOKIE_SECURE = os.getenv(
+        "REFRESH_COOKIE_SECURE", "1" if IS_PRODUCTION else "0"
+    ) == "1"
+    # Frontend and API are same-site subdomains in production, so Lax is both
+    # sufficient and safer than None. Set None only for a truly cross-site API.
+    REFRESH_COOKIE_SAMESITE = os.getenv("REFRESH_COOKIE_SAMESITE", "Lax")
+    REFRESH_COOKIE_DOMAIN = os.getenv("REFRESH_COOKIE_DOMAIN") or None
+    REFRESH_REUSE_GRACE_SECONDS = int(os.getenv("REFRESH_REUSE_GRACE_SECONDS", "10"))
 
     # Kafka configuration. Toggle with KAFKA_ENABLED=1 (needs a reachable
     # broker at KAFKA_BOOTSTRAP_SERVERS); default off for small hosts.

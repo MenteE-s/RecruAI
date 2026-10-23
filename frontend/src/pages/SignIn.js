@@ -10,7 +10,7 @@ import {
   FiUsers,
 } from "react-icons/fi";
 import { useToast } from "../components/ui/ToastContext";
-import { getBackendUrl, getSafeNextPath } from "../utils/auth";
+import { getBackendUrl, getSafeNextPath, setAuthSession } from "../utils/auth";
 import OtpVerify from "../components/auth/OtpVerify";
 
 const HIGHLIGHTS = [
@@ -103,17 +103,8 @@ export default function SignIn() {
         setLoading(false);
         return;
       }
-      // store token, mark authenticated and redirect to dashboard
-      // Store the access token for header-based auth
-      if (data.access_token) {
-        localStorage.setItem("access_token", data.access_token);
-      }
-      // mark auth for frontend-only checks (will be refreshed by /api/auth/me)
-      localStorage.setItem("isAuthenticated", "true");
-      // use server-verified role from response — the client never chooses it
-      if (data.user && data.user.role) {
-        localStorage.setItem("authRole", data.user.role);
-      }
+      // Keep the access token in memory only; the refresh cookie is HttpOnly.
+      setAuthSession(data.access_token, data.user);
       // show success toast
       showToast({
         message: "Signed in",
@@ -144,13 +135,7 @@ export default function SignIn() {
   }
 
   function handleVerified(data) {
-    if (data.access_token) {
-      localStorage.setItem("access_token", data.access_token);
-    }
-    localStorage.setItem("isAuthenticated", "true");
-    if (data.user && data.user.role) {
-      localStorage.setItem("authRole", data.user.role);
-    }
+    setAuthSession(data.access_token, data.user);
     showToast({ message: "Email verified — signed in", type: "success", position: "side", duration: 2400 });
     navigate(nextPath || "/feed", { replace: true });
   }

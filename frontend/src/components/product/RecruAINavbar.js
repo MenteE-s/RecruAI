@@ -11,11 +11,6 @@ const RecruAINavbar = () => {
     let mounted = true;
     async function verify() {
       try {
-        const token = localStorage.getItem("access_token");
-        if (!token) {
-          if (mounted) setSignedIn(false);
-          return;
-        }
         const { verifyTokenWithServer } = await import("../../utils/auth");
         const user = await verifyTokenWithServer();
         if (!mounted) return;

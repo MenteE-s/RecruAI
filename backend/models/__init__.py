@@ -1,5 +1,6 @@
 from .user import User
 from .email_otp import EmailOtp
+from .refresh_token import RefreshToken
 from .organization import Organization
 from .organization_invitation import OrganizationInvitation
 from .team_member import TeamMember
@@ -58,6 +59,7 @@ from .agent_embedding import AgentEmbedding
 __all__ = [
     "User",
     "EmailOtp",
+    "RefreshToken",
     "Organization",
     "OrganizationInvitation",
     "TeamMember",

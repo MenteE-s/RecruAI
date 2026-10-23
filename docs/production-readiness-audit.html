@@ -207,8 +207,8 @@
     <p class="sub">A full-stack review of the Flask API, React frontend, background jobs, AI layer, billing, and AWS/VPS deployment. The verdict: <b style="color:#fff">not launchable as-is</b> — but a controlled paid launch is achievable in one focused week if scope is frozen and the remaining P0 blockers are fixed.</p>
     <div class="meta">
       <span>Codebase <b>60,684 lines</b></span>
-      <span>Routes <b>295 live</b></span>
-      <span>Migration head <b>a8b9c0d1e2f3</b></span>
+      <span>Routes <b>296 live</b></span>
+      <span>Migration head <b>f3a4b5c6d7e8</b></span>
       <span>Frontend build <b>passes</b></span>
       <span>Backend tests <b>0</b></span>
     </div>
@@ -220,7 +220,8 @@
         <div class="pills">
           <span class="pill red">3 P0 launch blockers</span>
           <span class="pill green">P0-03 + P0-04 fixed in code</span>
-          <span class="pill amber">15 P1 high risk</span>
+          <span class="pill green">P1-01 + P1-02 fixed in code</span>
+          <span class="pill amber">13 P1 open · 2 fixed</span>
           <span class="pill">10 P2 hardening</span>
           <span class="pill green">No committed secrets found</span>
         </div>
@@ -255,20 +256,20 @@
     <div>
       <div class="eyebrow">01 · Executive summary</div>
       <h2>The product is real. The launch controls are not.</h2>
-      <p>This is a substantial application — 295 API routes, 58 models, 39 migrations, a working React build, and meaningful auth hardening. The risk is concentrated in the last mile: the paid path, the video path, and the absence of tests between a commit and production.</p>
+      <p>This is a substantial application — 296 API routes, 59 models, 40 migrations, a working React build, and meaningful auth hardening. The risk is concentrated in the last mile: the paid path, the video path, and the absence of tests between a commit and production.</p>
     </div>
   </div>
 
   <div class="grid4" style="margin-bottom:16px">
     <div class="stat red"><b>3</b><span>P0 launch blockers</span></div>
-    <div class="stat amber"><b>15</b><span>P1 high-risk items</span></div>
+    <div class="stat amber"><b>13</b><span>P1 open · 2 fixed in code</span></div>
     <div class="stat blue"><b>10</b><span>P2 hardening items</span></div>
     <div class="stat green"><b>3/4</b><span>frontend suites pass (App.test broken)</span></div>
   </div>
 
   <div class="callout red" style="margin-bottom:14px">
     <b>Bottom line</b>
-    Do <u>not</u> open paid signups today. Two customer-facing promises are still false in the deployed topology: video interviews cannot access the camera, and “upgrade to Pro” is free and reversible without payment. Password reset and org invitations are fixed in code but not yet deployed; the remaining blocker is the absence of a test gate before auto-deploy.
+    Do <u>not</u> open paid signups today. Two customer-facing promises are still false in the deployed topology: video interviews cannot access the camera, and “upgrade to Pro” is free and reversible without payment. Password reset, org invitations, rate limiting, and JWT/CSP hardening are fixed in code but not yet deployed; the remaining P0 blocker is the absence of a test gate before auto-deploy.
   </div>
 
   <div class="grid2">
@@ -289,7 +290,7 @@
         <li>JWT revocation via Redis, verified-email blueprint guard, login lockout, OTP hashing, CORS allow-list, and tenant checks on the sensitive routes we re-tested.</li>
         <li>Single Alembic head; local DB is at head; migrations run before the API starts.</li>
         <li>Uploads are extension + magic-byte validated and served as non-executable images.</li>
-        <li>Clean module boundaries: 58 models, auth/org/ind/profile/interviews split, reusable guards and sanitizers.</li>
+        <li>Clean module boundaries: 59 models, auth/org/ind/profile/interviews split, reusable guards and sanitizers.</li>
         <li>AWS deployment is automated end-to-end with TLS, health checks, and encrypted secrets injection.</li>
       </ul>
     </div>
@@ -359,8 +360,8 @@
       <thead><tr><th>Layer</th><th>Components</th><th>Production reality</th></tr></thead>
       <tbody>
         <tr><td><b>Frontend</b></td><td>React 18 + CRA 5, React Router 7, Tailwind, LiveKit React, Socket.IO client</td><td>Vercel static build. Sends a restrictive <code>Permissions-Policy</code>. API/socket URLs depend on Vercel env vars; fallback is wrong for this split-domain architecture.</td></tr>
-        <tr><td><b>API</b></td><td>Flask 3 app factory, 295 routes, JWT (headers), Talisman, CORS, Flask-Limiter</td><td>Gunicorn, 1 worker / 4 threads on t3.small. Real-time uses Flask-SocketIO threading mode.</td></tr>
-        <tr><td><b>Data</b></td><td>PostgreSQL + pgvector (RDS in AWS), 39 migrations</td><td>Single head <code>a8b9c0d1e2f3</code>; migrations container runs before API. 7-day automated RDS backups (external setup).</td></tr>
+        <tr><td><b>API</b></td><td>Flask 3 app factory, 296 routes, short-lived JWT access tokens + rotating refresh sessions, Talisman, CORS, Flask-Limiter</td><td>Gunicorn, 1 worker / 4 threads on t3.small. Real-time uses Flask-SocketIO threading mode.</td></tr>
+        <tr><td><b>Data</b></td><td>PostgreSQL + pgvector (RDS in AWS), 40 migrations</td><td>Single head <code>f3a4b5c6d7e8</code>; migrations container runs before API. 7-day automated RDS backups (external setup).</td></tr>
         <tr><td><b>Async</b></td><td>Redis (cache, rate limit, JWT blocklist), Kafka (events), APScheduler</td><td>Scheduler is disabled in code. Kafka is optional but enabled in the AWS compose.</td></tr>
         <tr><td><b>AI</b></td><td>Groq LLM, OpenRouter/HF embeddings, RAG + recommendations, 50k-token allowance</td><td>Budget enforcement exists in <code>AIService</code>, but several direct provider calls bypass it.</td></tr>
         <tr><td><b>Video</b></td><td>LiveKit SFU + TURN + Egress</td><td>Present in <code>docker-compose.vps.yml</code> and dev. <b>Absent from <code>docker-compose.aws.yml</code></b> (the CI deploy target).</td></tr>
@@ -621,14 +622,14 @@ frontend/src/App.test.js     CRA boilerplate "renders learn react link" — <spa
     These won’t all block a demo, but each one degrades trust, security, or operability in the first weeks of real traffic.
   </div>
 
-  <article class="finding" data-severity="P1" data-area="Reliability">
+  <article class="finding" data-severity="P1" data-area="Reliability" data-status="fixed">
     <details>
       <summary>
         <span class="fid">P1-01</span>
         <span>
           <span class="ftitle">Default rate limits can throttle normal users — 50 requests/hour per endpoint per IP</span>
-          <span class="fsum">Two nav components fetch notification stats on mount; ~25 page views/hour can exhaust a 50/hour cap.</span>
-          <span class="badges"><span class="badge p1">P1</span><span class="badge area">Reliability</span><span class="badge eff">0.5 day</span></span>
+          <span class="fsum">Was: 50/hour per IP with silent 429s. Now: 3,000/hour per user, JSON 429 + <code>Retry-After</code>, and a toast.</span>
+          <span class="badges"><span class="badge p1">P1</span><span class="badge fixed">Fixed</span><span class="badge area">Reliability</span><span class="badge eff">0.5 day</span></span>
         </span>
       </summary>
       <div class="fbody">
@@ -646,19 +647,23 @@ frontend/src/components/layout/IndividualNavbar.jsx:31  fetch(stats) on mount</d
           <li>Key authenticated requests by user id (fall back to IP), and exempt read-only polling explicitly.</li>
           <li>Return a JSON 429 with <code>Retry-After</code>; toast it in the frontend; log/metric every 429.</li>
         </ul>
+        <div class="callout green" style="margin:12px 0">
+          <b>FIXED — 23 Oct 2026 (working tree; not deployed)</b>
+          Defaults are now <code>3,000/hour</code> and <code>30,000/day</code> per endpoint, keyed by authenticated user id with an IP fallback. The explicit-limit installer was also silently broken: <code>limiter.limit(spec)(fn)</code> was called without writing the wrapped view back to <code>app.view_functions</code>, so the old per-route limits never ran. It now assigns the wrapper, and the auth/OTP/AI/write caps take effect. Flask-Limiter’s 429 is a JSON <code>{"code":"rate_limited"}</code> body with <code>Retry-After</code>; manual OTP cooldown 429s get the header too. Every 429 logs a structured <code>rate_limit_exceeded</code> warning (endpoint, path, method, IP, limit). The frontend fetch wrapper dispatches <code>recruai:rate-limited</code> and <code>App.js</code> shows a deduplicated toast. Verified with a local burst: the 11th login attempt returns 429 JSON with <code>Retry-After: 60</code>; the 20-users/25-page-view scenario is ~500 requests/hour, an order of magnitude below the new ceiling. <b>Ops note:</b> wire the warning log into the log/metric dashboard; no new infrastructure is required.
+        </div>
         <div class="done"><b>Done when</b><br>A 1-hour soak with 20 concurrent users across the main pages produces zero 429s; deliberate auth/OTP bursts still get blocked; the 429 rate is on a dashboard.</div>
       </div>
     </details>
   </article>
 
-  <article class="finding" data-severity="P1" data-area="Security">
+  <article class="finding" data-severity="P1" data-area="Security" data-status="fixed">
     <details>
       <summary>
         <span class="fid">P1-02</span>
         <span>
           <span class="ftitle">JWT lives in localStorage, sessions die after 2 hours, and Vercel enforces no CSP</span>
-          <span class="fsum">Any XSS becomes full account takeover; users are silently logged out mid-task; there is no refresh flow.</span>
-          <span class="badges"><span class="badge p1">P1</span><span class="badge area">Security</span><span class="badge eff">1–2 days</span></span>
+          <span class="fsum">Was: localStorage bearer token, 2-hour expiry, no refresh, no CSP. Now: 15-minute memory token + rotating HttpOnly refresh session and enforced CSP.</span>
+          <span class="badges"><span class="badge p1">P1</span><span class="badge fixed">Fixed</span><span class="badge area">Security</span><span class="badge eff">1–2 days</span></span>
         </span>
       </summary>
       <div class="fbody">
@@ -678,6 +683,10 @@ backend/app.py:436                   Permissions-Policy tightening is commented 
           <li>Add <code>Permissions-Policy</code> that allows camera/mic for self (see P0-01).</li>
           <li>If cookies are out of scope, document the XSS risk and add strict CSP + dependency pinning as a compensating control.</li>
         </ul>
+        <div class="callout green" style="margin:12px 0">
+          <b>FIXED — 23 Oct 2026 (working tree; not deployed)</b>
+          Access tokens are now 15-minute JWTs returned in JSON and held only in frontend memory; <code>localStorage</code> token reads/writes were removed. The refresh token is an opaque 384-bit value in an <code>HttpOnly; Secure; SameSite=Lax</code> cookie scoped to <code>/api/auth</code>, stored server-side only as a SHA-256 hash. <code>POST /api/auth/refresh</code> rotates it, enforces a 10-second concurrency grace window, and revokes the whole token family on replay outside that window. Logout revokes the family; password change/reset revoke every family in the same transaction as the password/version update; Socket.IO validates the token version and JTI blocklist. The frontend uses a single-flight refresh, retries one 401, refreshes inside the Socket.IO auth callback, and redirects on session expiry. CSP is enforced in <code>frontend/vercel.json</code> and <code>frontend/nginx-frontend.conf</code> with <code>script-src 'self'</code>, explicit API/WSS <code>connect-src</code>, and <code>media/worker-src blob:</code>; <code>Permissions-Policy</code> now allows camera/mic for self. Migration <code>f3a4b5c6d7e8</code> adds <code>refresh_tokens</code>. Verified locally: login issues no access cookie, refresh rotates, old-token replay dies, logout/password-reset revoke, OTP verify and invite accept auto-login, and 3/4 frontend suites pass (only the pre-existing broken <code>App.test.js</code>) with a passing production build. <b>Production check:</b> confirm the cookie domain and CSP on the deployed preview; both are configuration values, no purchase.
+        </div>
         <div class="done"><b>Done when</b><br>The access token is not readable from <code>document.cookie</code> or localStorage; a session survives past 2 hours via refresh; CSP is enforced with no violations on the main journeys.</div>
       </div>
     </details>
@@ -1254,11 +1263,11 @@ frontend/src/utils/socket.js transports: ["websocket"] only</div>
     <details>
       <summary>
         <span class="fid">P2-10</span>
-        <span><span class="ftitle">Docs and deploy files drift: 38 vs 39 migrations, three compose files, two frontend Dockerfiles</span><span class="fsum">Operators cannot tell which file is authoritative.</span><span class="badges"><span class="badge p2">P2</span><span class="badge area">Config</span><span class="badge eff">0.5 day</span></span></span>
+        <span><span class="ftitle">Docs and deploy files drift: 39 vs 40 migrations, three compose files, two frontend Dockerfiles</span><span class="fsum">Operators cannot tell which file is authoritative.</span><span class="badges"><span class="badge p2">P2</span><span class="badge area">Config</span><span class="badge eff">0.5 day</span></span></span>
       </summary>
       <div class="fbody">
         <h4>Evidence</h4>
-        <div class="evidence">backend/migrations/versions/*.py   39 files, one head a8b9c0d1e2f3
+        <div class="evidence">backend/migrations/versions/*.py   40 files, one head f3a4b5c6d7e8
 docs/comments                     still says 37
 docker-compose.yml / .prod / .vps / .aws   four topologies
 frontend/Dockerfile / Dockerfile.prod      two build paths</div>
@@ -1312,8 +1321,8 @@ frontend/Dockerfile / Dockerfile.prod      two build paths</div>
         <tr><td><b>P0-04</b> Broken org invites</td><td><span class="tag amber">Code + prod</span></td><td>Invitation model/migration, hashed token, create/list/revoke/accept, stop pre-creating users, accept page</td><td>Run migration with snapshot; verified email; external-domain invite test</td><td><b>Yes</b> — migration is a normal deploy step; email is required for external invites</td></tr>
         <tr><td><b>P0-05</b> No tests/CI gates</td><td><span class="tag green">Code</span></td><td>Backend pytest suite, fix <code>App.test.js</code>, Playwright smoke, migration/audit checks in CI</td><td>GitHub branch protection/required checks; staging optional; Postgres service container in CI</td><td><b>Yes</b> — no runtime dependency</td></tr>
 
-        <tr><td><b>P1-01</b> Rate limits</td><td><span class="tag green">Code</span></td><td>Per-user/endpoint limits, JSON 429, <code>Retry-After</code>, frontend toast, tests</td><td>None — Redis already exists</td><td><b>Yes</b></td></tr>
-        <tr><td><b>P1-02</b> JWT/CSP</td><td><span class="tag green">Code</span></td><td>Refresh-token rotation, HttpOnly cookies, short access TTL, CSP, update fetch/socket auth</td><td>Cookie domain/CORS values; verify CSP on the production preview</td><td><b>Yes</b> — config values only, no purchase</td></tr>
+        <tr><td><b>P1-01</b> Rate limits</td><td><span class="tag green">Code</span> <span class="tag green">Fixed in code</span></td><td>Per-user/endpoint limits, JSON 429, <code>Retry-After</code>, frontend toast, tests</td><td>Wire the structured 429 log into the dashboard; Redis already exists</td><td><b>Yes</b></td></tr>
+        <tr><td><b>P1-02</b> JWT/CSP</td><td><span class="tag green">Code</span> <span class="tag green">Fixed in code</span></td><td>Refresh-token rotation, HttpOnly cookies, short access TTL, CSP, update fetch/socket auth</td><td>Cookie domain/CORS values; verify CSP on the production preview</td><td><b>Yes</b> — config values only, no purchase</td></tr>
         <tr><td><b>P1-03</b> Delete/export account</td><td><span class="tag green">Code</span></td><td><code>DELETE /users/me</code>, export, soft-delete + purge job, Settings wiring</td><td>None — migration runs in deploy</td><td><b>Yes</b></td></tr>
         <tr><td><b>P1-04</b> Scheduler disabled</td><td><span class="tag green">Code</span></td><td>Enable scheduler, fix 30-day trial constant, Redis lock, last-run metric</td><td>Worker container in the deploy topology</td><td><b>Yes</b> — the worker is part of the code deploy</td></tr>
         <tr><td><b>P1-05</b> AI budget/logs</td><td><span class="tag green">Code</span></td><td>Provider wrapper, usage events, budget gate, remove candidate-content debug logs</td><td>Vendor spend caps optional</td><td><b>Yes</b></td></tr>
@@ -2368,7 +2377,7 @@ proxy_read_timeout 3600s;
     <div>
       <div class="eyebrow">10 · Verification log</div>
       <h2>What was actually run — and what it returned</h2>
-      <p>Static review is reproducible; runtime claims need staging confirmation. Commands below were run against this checkout on 22 Oct 2026.</p>
+      <p>Static review is reproducible; runtime claims need staging confirmation. Commands below were run against this checkout on 22–23 Oct 2026.</p>
     </div>
   </div>
   <div class="table-wrap">
@@ -2377,15 +2386,17 @@ proxy_read_timeout 3600s;
       <tbody>
         <tr><td><b>Secret scan</b></td><td><code>git grep</code> for Groq/OpenRouter/OpenAI keys, AWS keys, private keys</td><td><span class="tag green">Pass</span> no live keys tracked; <code>backend/.env</code> is ignored and excluded from Docker. Local file still needs rotation.</td></tr>
         <tr><td><b>Python syntax</b></td><td><code>py_compile</code> on 197 source files (excluding venv/migrations)</td><td><span class="tag green">Pass</span> 0 failures.</td></tr>
-        <tr><td><b>App boot</b></td><td>Import <code>backend.app</code> with local services</td><td><span class="tag green">Pass</span> 295 URL rules registered; AI/Redis/Kafka initialize.</td></tr>
-        <tr><td><b>Migrations</b></td><td>Parse revision graph; <code>flask db current</code> / <code>heads</code></td><td><span class="tag green">Pass</span> 39 files, single head <code>a8b9c0d1e2f3</code>; local DB at head.</td></tr>
-        <tr><td><b>Frontend build</b></td><td><code>npm run build</code></td><td><span class="tag green">Pass</span> main bundle 515.79 kB gzip; warnings only.</td></tr>
+        <tr><td><b>App boot</b></td><td>Import <code>backend.app</code> with local services</td><td><span class="tag green">Pass</span> 296 URL rules registered; AI/Redis/Kafka initialize.</td></tr>
+        <tr><td><b>Migrations</b></td><td>Parse revision graph; <code>flask db current</code> / <code>heads</code></td><td><span class="tag green">Pass</span> 40 files, single head <code>f3a4b5c6d7e8</code>; local DB at head.</td></tr>
+        <tr><td><b>Frontend build</b></td><td><code>npm run build</code></td><td><span class="tag green">Pass</span> main bundle 516.91 kB gzip; warnings only.</td></tr>
         <tr><td><b>Frontend tests</b></td><td><code>react-scripts test --watchAll=false</code></td><td><span class="tag amber">Partial</span> 3 suites / 25 tests pass; <code>App.test.js</code> fails (cannot resolve <code>react-router-dom</code>).</td></tr>
         <tr><td><b>Backend tests</b></td><td>Search for <code>test_*.py</code> / <code>conftest.py</code></td><td><span class="tag red">Fail</span> none exist.</td></tr>
         <tr><td><b>Dependency audit</b></td><td><code>npm audit --omit=dev</code></td><td><span class="tag red">Fail</span> 105 advisories: 3 critical, 81 high, 17 moderate, 4 low.</td></tr>
-        <tr><td><b>Route inventory</b></td><td>Python AST over <code>backend/</code></td><td><span class="tag blue">Info</span> 307 decorators, 18 without decorator-level auth (login, register, OTP, public profiles/posts, health, uploads, issue report).</td></tr>
-        <tr><td><b>Code size</b></td><td>Line counts</td><td><span class="tag blue">Info</span> backend 25,194 lines / 197 files; frontend 35,490 lines / 160 files; 58 models.</td></tr>
-        <tr><td><b>Repo state</b></td><td><code>git status --short</code></td><td><span class="tag amber">Attention</span> P0-04 changes are in the working tree; local scratch files are ignored. Commit/push only when requested.</td></tr>
+        <tr><td><b>Route inventory</b></td><td>Python AST over <code>backend/</code></td><td><span class="tag blue">Info</span> 308 decorators, 19 without decorator-level auth (login, register, refresh, OTP, public profiles/posts, health, uploads, issue report).</td></tr>
+        <tr><td><b>Code size</b></td><td>Line counts</td><td><span class="tag blue">Info</span> backend 25,194 lines / 197 files; frontend 35,490 lines / 160 files; 59 models.</td></tr>
+        <tr><td><b>Repo state</b></td><td><code>git status --short</code></td><td><span class="tag amber">Attention</span> P1-01/P1-02 changes are in the working tree; local scratch files are ignored. Commit/push only when requested.</td></tr>
+        <tr><td><b>P1-01 rate limits</b></td><td>Local Flask burst + config inspection</td><td><span class="tag green">Pass</span> 11th login attempt returns JSON 429 with <code>Retry-After: 60</code>; authenticated route keys by user id; defaults 3,000/hour, 30,000/day.</td></tr>
+        <tr><td><b>P1-02 refresh flow</b></td><td>Ephemeral local Flask API flows</td><td><span class="tag green">Pass</span> login/OTP/invite issue refresh cookie + access token, refresh rotates, replay revokes family, logout and password reset revoke, no access cookie set.</td></tr>
         <tr><td><b>P0-04 invite flow</b></td><td>Ephemeral local Flask API flow with email mock</td><td><span class="tag green">Pass</span> invite creates no user, new/existing/legacy accept, registration still works, resend rotates token, revoke/expiry rejected.</td></tr>
       </tbody>
     </table>
@@ -2442,7 +2453,7 @@ proxy_read_timeout 3600s;
         <dt>Backend source</dt><dd>197 files · 25,194 lines</dd>
         <dt>Frontend source</dt><dd>160 files · 35,490 lines</dd>
         <dt>Models</dt><dd>57</dd>
-        <dt>Route decorators</dt><dd>307 (295 registered rules)</dd>
+        <dt>Route decorators</dt><dd>308 (296 registered rules)</dd>
         <dt>Public routes</dt><dd>18 at decorator level</dd>
         <dt>Migrations</dt><dd>38 files · 1 head</dd>
         <dt>Frontend tests</dt><dd>4 suites · 25 passing / 1 broken</dd>
@@ -2475,8 +2486,8 @@ proxy_read_timeout 3600s;
           <tr><td><b>P0-03</b></td><td>No password reset</td><td><span class="tag red">P0</span></td><td>Product</td></tr>
           <tr><td><b>P0-04</b></td><td>Invites create unreachable accounts / email squatting</td><td><span class="tag red">P0</span></td><td>Security</td></tr>
           <tr><td><b>P0-05</b></td><td>No backend tests; deploy on every push</td><td><span class="tag red">P0</span></td><td>Quality</td></tr>
-          <tr><td><b>P1-01</b></td><td>Default 50/hour rate limits</td><td><span class="tag amber">P1</span></td><td>Reliability</td></tr>
-          <tr><td><b>P1-02</b></td><td>localStorage JWT, 2h expiry, no CSP</td><td><span class="tag amber">P1</span></td><td>Security</td></tr>
+          <tr><td><b>P1-01</b></td><td>Default 50/hour rate limits</td><td><span class="tag amber">P1</span> <span class="tag green">Fixed</span></td><td>Reliability</td></tr>
+          <tr><td><b>P1-02</b></td><td>localStorage JWT, 2h expiry, no CSP</td><td><span class="tag amber">P1</span> <span class="tag green">Fixed</span></td><td>Security</td></tr>
           <tr><td><b>P1-03</b></td><td>Account deletion is a dead button</td><td><span class="tag amber">P1</span></td><td>Privacy</td></tr>
           <tr><td><b>P1-04</b></td><td>Scheduler disabled; 7-day vs 30-day trial</td><td><span class="tag amber">P1</span></td><td>Reliability</td></tr>
           <tr><td><b>P1-05</b></td><td>AI budget bypass + PII debug logs</td><td><span class="tag amber">P1</span></td><td>Billing</td></tr>

@@ -12,7 +12,7 @@ import {
   useParams,
 } from "react-router-dom";
 import "./App.css";
-import { ToastProvider } from "./components/ui/ToastContext";
+import { ToastProvider, useToast } from "./components/ui/ToastContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 // Public Pages
@@ -240,11 +240,8 @@ function AuthVerifier() {
       try {
         const user = await verifyTokenWithServer();
         if (!mounted || !user) return;
-        const token = localStorage.getItem("access_token");
-        if (token) {
-          socketService.connect(token);
-          if (user.organization_id) socketService.joinOrg(user.organization_id);
-        }
+        socketService.connect();
+        if (user.organization_id) socketService.joinOrg(user.organization_id);
       } catch {
         // ignore — pages handle their own auth via ProtectedRoute
       }
@@ -268,11 +265,49 @@ function AuthVerifier() {
   return null;
 }
 
+function RateLimitNotifier() {
+  const { showToast } = useToast();
+  useEffect(() => {
+    const handler = (event) => {
+      const seconds = Number(event.detail?.retryAfter) || 60;
+      const wait = seconds < 60 ? `${seconds}s` : `${Math.ceil(seconds / 60)} min`;
+      showToast({
+        message: `Too many requests. Please wait ${wait} and try again.`,
+        type: "error",
+        position: "side",
+        duration: 5000,
+      });
+    };
+    window.addEventListener("recruai:rate-limited", handler);
+    return () => window.removeEventListener("recruai:rate-limited", handler);
+  }, [showToast]);
+  return null;
+}
+
+function AuthExpiryRedirect() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  useEffect(() => {
+    const handler = () => {
+      const path = `${location.pathname}${location.search}`;
+      if (["/signin", "/register", "/accept-invite", "/"].includes(location.pathname)) {
+        return;
+      }
+      navigate(`/signin?next=${encodeURIComponent(path)}`, { replace: true });
+    };
+    window.addEventListener("recruai:auth-expired", handler);
+    return () => window.removeEventListener("recruai:auth-expired", handler);
+  }, [navigate, location.pathname, location.search]);
+  return null;
+}
+
 function App() {
   return (
     <Router>
       <ToastProvider>
         <AuthVerifier />
+        <AuthExpiryRedirect />
+        <RateLimitNotifier />
         <ScrollToTop />
         <Routes>
           {/* Public Routes */}
