@@ -14,6 +14,7 @@ import re
 from typing import Dict, List, Optional, Tuple
 
 from ..ai_service import AIService
+from ..utils.ai_budget import AIBudgetError
 from ..utils import mentorship_planner as planner
 from ..utils.skill_taxonomy import LEVELS, resolve
 
@@ -117,6 +118,8 @@ def propose_targets(goal: str, catalogue_slugs: List[str], user) -> Tuple[List[s
         response = AIService().generate_response(
             TARGET_SYSTEM_PROMPT, prompt, user=user, operation_type="cvai_target_skills"
         )
+    except AIBudgetError:
+        raise
     except Exception:
         return [], False
     payload = extract_json(response)

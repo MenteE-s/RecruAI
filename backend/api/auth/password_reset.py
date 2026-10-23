@@ -83,7 +83,7 @@ def forgot_password():
         return jsonify({"error": "Enter a valid email address."}), 400
 
     user = User.query.filter_by(email=email).first()
-    if user is None:
+    if user is None or user.deleted_at is not None:
         # Same response as a real account. Log internally for abuse detection.
         log_security_event(
             "password_reset_requested_unknown_email",
@@ -160,7 +160,7 @@ def reset_password():
         return jsonify({"error": message}), 400
 
     user = User.query.filter_by(email=email).first()
-    if user is None:
+    if user is None or user.deleted_at is not None:
         log_security_event(
             "password_reset_failed_unknown_email",
             ip_address=request.remote_addr,

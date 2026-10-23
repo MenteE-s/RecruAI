@@ -10,6 +10,7 @@ from sqlalchemy.orm import sessionmaker
 from ...extensions import db
 from ...recommendations.tools.supervisor import RecommendationSupervisor
 from ...models import User, SavedJob, AIInterviewAgent, Organization, Post, TeamMember
+from ...utils.ai_budget import AIBudgetError
 from ...utils.kafka_service import kafka_service
 
 
@@ -78,7 +79,8 @@ def recommend_candidates(job_id):
             job_id=job_id,
             organization_id=str(user.organization_id) if user.organization_id else None,
             top_k=top_k,
-            include_explanations=include_explanations
+            include_explanations=include_explanations,
+            actor=user,
         )
 
         # Emit Kafka event
@@ -100,6 +102,8 @@ def recommend_candidates(job_id):
 
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
+    except AIBudgetError:
+        raise
     except Exception as e:
         logger.error(f"Error recommending candidates: {e}")
         return jsonify({'error': 'Internal server error'}), 500
@@ -126,7 +130,8 @@ def recommend_jobs():
             user_id=str(user.id),
             organization_id=str(user.organization_id) if user.organization_id else None,
             top_k=top_k,
-            include_explanations=include_explanations
+            include_explanations=include_explanations,
+            actor=user,
         )
 
         # Emit Kafka event
@@ -147,6 +152,8 @@ def recommend_jobs():
 
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
+    except AIBudgetError:
+        raise
     except Exception as e:
         logger.error(f"Error recommending jobs: {e}")
         return jsonify({'error': 'Internal server error'}), 500
@@ -177,7 +184,8 @@ def recommend_agents(job_id):
             job_id=job_id,
             organization_id=str(user.organization_id) if user.organization_id else None,
             top_k=top_k,
-            include_explanations=include_explanations
+            include_explanations=include_explanations,
+            actor=user,
         )
 
         return jsonify({
@@ -188,6 +196,8 @@ def recommend_agents(job_id):
 
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
+    except AIBudgetError:
+        raise
     except Exception as e:
         logger.error(f"Error recommending agents: {e}")
         return jsonify({'error': 'Internal server error'}), 500
@@ -245,6 +255,8 @@ def search_profiles():
             **result,
         })
 
+    except AIBudgetError:
+        raise
     except Exception as e:
         logger.error(f"Error searching profiles: {e}")
         return jsonify({'error': 'Internal server error'}), 500
@@ -277,6 +289,8 @@ def explain_candidate():
             return jsonify(result)
         return jsonify({'error': 'Candidate not found'}), 404
 
+    except AIBudgetError:
+        raise
     except Exception as e:
         logger.error(f"Error explaining candidate: {e}")
         return jsonify({'error': 'Internal server error'}), 500
@@ -298,6 +312,8 @@ def get_candidate_profile(user_id):
         if result:
             return jsonify(result)
         return jsonify({'error': 'Candidate not found'}), 404
+    except AIBudgetError:
+        raise
     except Exception as e:
         logger.error(f"Error fetching candidate profile: {e}")
         return jsonify({'error': 'Internal server error'}), 500
@@ -332,6 +348,8 @@ def compare_candidate_job():
             return jsonify(result)
         return jsonify({'error': 'Candidate or job not found'}), 404
 
+    except AIBudgetError:
+        raise
     except Exception as e:
         logger.error(f"Error comparing candidate with job: {e}")
         return jsonify({'error': 'Internal server error'}), 500
@@ -365,6 +383,8 @@ def embed_profile():
         else:
             return jsonify({'error': 'Failed to embed profile'}), 500
 
+    except AIBudgetError:
+        raise
     except Exception as e:
         logger.error(f"Error embedding profile: {e}")
         return jsonify({'error': 'Internal server error'}), 500
@@ -400,6 +420,8 @@ def embed_job(job_id):
         else:
             return jsonify({'error': 'Failed to embed job'}), 500
 
+    except AIBudgetError:
+        raise
     except Exception as e:
         logger.error(f"Error embedding job: {e}")
         return jsonify({'error': 'Internal server error'}), 500
@@ -445,6 +467,8 @@ def embed_agent(agent_id):
         else:
             return jsonify({'error': 'Failed to embed agent'}), 500
 
+    except AIBudgetError:
+        raise
     except Exception as e:
         logger.error(f"Error embedding agent: {e}")
         return jsonify({'error': 'Internal server error'}), 500

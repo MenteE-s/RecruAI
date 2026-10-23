@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 
+from backend.constants import DEFAULT_AI_TOKEN_ALLOWANCE, TRIAL_PERIOD_DAYS
 from backend.extensions import db
 from backend.utils.timezone_utils import utc_iso
 
@@ -42,7 +43,21 @@ class Organization(db.Model):
     paid_plan = db.Column(db.Boolean, nullable=True, default=False)
     interviews_used = db.Column(db.Integer, nullable=True, default=0)
     tokens_used = db.Column(db.Integer, nullable=True, default=0)
+    token_allowance = db.Column(
+        db.Integer,
+        nullable=False,
+        default=DEFAULT_AI_TOKEN_ALLOWANCE,
+        server_default=str(DEFAULT_AI_TOKEN_ALLOWANCE),
+    )
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        db.Index(
+            "ix_organizations_subscription_trial_start",
+            "subscription_status",
+            "trial_start_date",
+        ),
+    )
 
     users = db.relationship("User", back_populates="organization", foreign_keys="User.organization_id")
     posts = db.relationship("Post", back_populates="organization", cascade="all, delete-orphan")
@@ -99,14 +114,14 @@ class Organization(db.Model):
 
     # Subscription methods
     def is_trial_active(self) -> bool:
-        """Check if organization is still in trial period (7 days)"""
+        """Check if organization is still in its 30-day trial period."""
         if self.subscription_status != "trial":
             return False
 
         if not self.trial_start_date:
             return False
 
-        trial_end = self.trial_start_date + timedelta(days=7)
+        trial_end = self.trial_start_date + timedelta(days=TRIAL_PERIOD_DAYS)
         return datetime.utcnow() < trial_end
 
     def is_subscription_active(self) -> bool:
@@ -170,11 +185,16 @@ class Organization(db.Model):
 
     def get_subscription_status(self) -> dict:
         """Get comprehensive subscription status"""
+        trial_end = (
+            self.trial_start_date + timedelta(days=TRIAL_PERIOD_DAYS)
+            if self.trial_start_date else None
+        )
         return {
             "status": self.subscription_status,
             "is_trial_active": self.is_trial_active(),
             "is_paid_active": self.is_subscription_active(),
             "trial_start_date": utc_iso(self.trial_start_date),
+            "trial_end_date": utc_iso(trial_end),
             "paid_plan": self.paid_plan,
             "tokens_used": self.tokens_used or 0,
             "interviews_used": self.interviews_used or 0,

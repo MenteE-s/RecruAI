@@ -125,8 +125,11 @@
   .badge.p1{background:var(--amber-soft);border-color:#fde68a;color:#92400e}
   .badge.p2{background:var(--blue-soft);border-color:#bfdbfe;color:#1e40af}
   .badge.fixed{background:var(--emerald-soft);border-color:#a7f3d0;color:#047857}
+  .badge.partial{background:var(--amber-soft);border-color:#fde68a;color:#92400e}
   .finding[data-status="fixed"]{border-left-color:var(--emerald)}
   .finding[data-status="fixed"] .fid{color:#047857}
+  .finding[data-status="partial"]{border-left-color:var(--amber)}
+  .finding[data-status="partial"] .fid{color:#92400e}
   .badge.area{background:var(--soft);border-color:var(--line);color:#475569}
   .badge.eff{background:var(--violet-soft);border-color:#ddd6fe;color:#5b21b6}
   .fbody{padding:0 18px 18px 76px}
@@ -208,9 +211,9 @@
     <div class="meta">
       <span>Codebase <b>60,684 lines</b></span>
       <span>Routes <b>296 live</b></span>
-      <span>Migration head <b>f3a4b5c6d7e8</b></span>
+      <span>Migration head <b>a7b8c9d0e1f2</b></span>
       <span>Frontend build <b>passes</b></span>
-      <span>Backend tests <b>0</b></span>
+      <span>Backend tests <b>44</b></span>
     </div>
     <div class="verdict">
       <div class="score-ring" style="--p:36"><span><b>36</b><small>/ 100</small></span></div>
@@ -218,8 +221,9 @@
         <h2>Production readiness: 36 / 100 — “controlled beta only”</h2>
         <p>Strong modular code and real security work already exist. The blockers are not code quality — they are broken revenue controls, a dead video path, missing test gates, and the production dependencies behind the fixes already landed.</p>
         <div class="pills">
-          <span class="pill red">3 P0 launch blockers</span>
+          <span class="pill red">2 P0 launch blockers</span> <span class="pill amber">1 partial</span>
           <span class="pill green">P0-03 + P0-04 fixed in code</span>
+          <span class="pill amber">P0-05 test gate live · staging E2E pending</span>
           <span class="pill green">P1-01 + P1-02 fixed in code</span>
           <span class="pill amber">13 P1 open · 2 fixed</span>
           <span class="pill">10 P2 hardening</span>
@@ -256,7 +260,7 @@
     <div>
       <div class="eyebrow">01 · Executive summary</div>
       <h2>The product is real. The launch controls are not.</h2>
-      <p>This is a substantial application — 296 API routes, 59 models, 40 migrations, a working React build, and meaningful auth hardening. The risk is concentrated in the last mile: the paid path, the video path, and the absence of tests between a commit and production.</p>
+      <p>This is a substantial application — 296 API routes, 59 models, 43 migrations, a working React build, and meaningful auth hardening. The risk is concentrated in the last mile: the paid path, the video path, and the absence of a staging/E2E layer between a green unit suite and production.</p>
     </div>
   </div>
 
@@ -264,7 +268,7 @@
     <div class="stat red"><b>3</b><span>P0 launch blockers</span></div>
     <div class="stat amber"><b>13</b><span>P1 open · 2 fixed in code</span></div>
     <div class="stat blue"><b>10</b><span>P2 hardening items</span></div>
-    <div class="stat green"><b>3/4</b><span>frontend suites pass (App.test broken)</span></div>
+    <div class="stat green"><b>4/4</b><span>frontend suites pass (37 tests)</span></div>
   </div>
 
   <div class="callout red" style="margin-bottom:14px">
@@ -274,13 +278,13 @@
 
   <div class="grid2">
     <div class="card pad">
-      <h3 style="margin:0 0 8px;font-size:16px">The P0 blockers — 2 fixed in code</h3>
+      <h3 style="margin:0 0 8px;font-size:16px">The P0 blockers — 2 fixed in code, 1 partial, 2 product decisions</h3>
       <ul class="tight">
         <li><b>Video is dead in production.</b> Both production frontend configs (Vercel and nginx) send <code>camera=(), microphone=()</code>; the AWS stack has no LiveKit service and the deploy job sets no LiveKit keys.</li>
         <li><b>Billing is a facade.</b> <code>POST /api/subscription/upgrade</code> grants paid access for free, and an expired user can reset the trial indefinitely. The pricing page advertises $15/month and a 14-day trial; the app gives 30 days.</li>
         <li><b>No password reset.</b> Had no forgot-password route or UI; a forgotten password was a permanent support ticket. <span class="tag green">Fixed in code</span></li>
         <li><b>Org invites create unreachable accounts.</b> The API creates a user with a random password that is never sent, sends no email, and blocks that address from registering later. <span class="tag green">Fixed in code</span></li>
-        <li><b>No automated tests gate deploys.</b> There are zero backend tests; the only App smoke test is broken; CI builds and ships on every push to <code>main</code>.</li>
+        <li><b>Deploys now have a real test gate.</b> Backend pytest (44 tests against PostgreSQL + pgvector) and frontend Jest (37 tests) run in CI, the production dependency audit is clean, and deploy depends on validate. Staging Playwright E2E and GitHub required-check enforcement remain production checklist items.</li>
       </ul>
     </div>
     <div class="card pad">
@@ -361,9 +365,9 @@
       <tbody>
         <tr><td><b>Frontend</b></td><td>React 18 + CRA 5, React Router 7, Tailwind, LiveKit React, Socket.IO client</td><td>Vercel static build. Sends a restrictive <code>Permissions-Policy</code>. API/socket URLs depend on Vercel env vars; fallback is wrong for this split-domain architecture.</td></tr>
         <tr><td><b>API</b></td><td>Flask 3 app factory, 296 routes, short-lived JWT access tokens + rotating refresh sessions, Talisman, CORS, Flask-Limiter</td><td>Gunicorn, 1 worker / 4 threads on t3.small. Real-time uses Flask-SocketIO threading mode.</td></tr>
-        <tr><td><b>Data</b></td><td>PostgreSQL + pgvector (RDS in AWS), 40 migrations</td><td>Single head <code>f3a4b5c6d7e8</code>; migrations container runs before API. 7-day automated RDS backups (external setup).</td></tr>
-        <tr><td><b>Async</b></td><td>Redis (cache, rate limit, JWT blocklist), Kafka (events), APScheduler</td><td>Scheduler is disabled in code. Kafka is optional but enabled in the AWS compose.</td></tr>
-        <tr><td><b>AI</b></td><td>Groq LLM, OpenRouter/HF embeddings, RAG + recommendations, 50k-token allowance</td><td>Budget enforcement exists in <code>AIService</code>, but several direct provider calls bypass it.</td></tr>
+        <tr><td><b>Data</b></td><td>PostgreSQL + pgvector (RDS in AWS), 43 migrations</td><td>Single head <code>a7b8c9d0e1f2</code>; migrations container runs before API. 7-day automated RDS backups (external setup).</td></tr>
+        <tr><td><b>Async</b></td><td>Redis (cache, rate limit, JWT blocklist), Kafka (events), APScheduler</td><td>Dedicated scheduler worker with PostgreSQL advisory locks and run records; Kafka is optional but enabled in the AWS compose.</td></tr>
+        <tr><td><b>AI</b></td><td>Groq LLM, OpenRouter/HF embeddings, RAG + recommendations, 50k-token allowance</td><td>Every provider call passes through <code>BudgetedLLMProvider</code>; reservations, actual usage, and organization attribution are enforced there.</td></tr>
         <tr><td><b>Video</b></td><td>LiveKit SFU + TURN + Egress</td><td>Present in <code>docker-compose.vps.yml</code> and dev. <b>Absent from <code>docker-compose.aws.yml</code></b> (the CI deploy target).</td></tr>
         <tr><td><b>Ops</b></td><td>GH Actions → EC2, nginx + certbot, Docker Compose</td><td>Auto-deploy on push to <code>main</code>; no staging, no tests, no automatic rollback.</td></tr>
       </tbody>
@@ -544,7 +548,7 @@ backend/.env.production       RESEND_API_KEY exists, so the delivery channel is 
         </ul>
         <div class="callout green" style="margin:12px 0">
           <b>FIXED — 22 Oct 2026 (working tree; not deployed)</b>
-          Added <code>backend/api/auth/password_reset.py</code> with <code>POST /api/auth/password/forgot</code> and <code>POST /api/auth/password/reset</code>, reusing the hashed OTP store (10-minute expiry, 5 attempts, 60-second resend cooldown, 5 codes/hour) plus per-IP limits. Both routes return the same generic response for unknown addresses, with a minimum response floor. Reset bumps a new <code>users.token_version</code>, so every JWT issued before the reset is rejected; lockout state is cleared, the mailbox is marked verified, and a “password changed” notice is sent. Added the “Forgot password?” and reset pages, Resend templates, and a <code>c4d5e6f7a8b9</code> migration. Verified with an end-to-end local API flow and a passing frontend production build. <b>Deploy step:</b> run <code>flask db upgrade</code> before starting the API; Resend domain/DNS verification is still a production checklist item.
+          Added <code>backend/api/auth/password_reset.py</code> with <code>POST /api/auth/password/forgot</code> and <code>POST /api/auth/password/reset</code>, reusing the hashed OTP store (10-minute expiry, 5 attempts, 60-second resend cooldown, 5 codes/hour) plus per-IP limits. Both routes return the same generic response for unknown addresses, with a minimum response floor. Reset bumps a new <code>users.token_version</code>, so every JWT issued before the reset is rejected; lockout state is cleared, the mailbox is marked verified, and a “password changed” notice is sent. Added the “Forgot password?” and reset pages, Resend templates, and a <code>c4d5e6f7a8b9</code> migration. Verified with an end-to-end local API flow and 6 backend tests; migration <code>f4a5b6c7d8e9</code> adds the OTP lookup index. The reset email is still sent synchronously; move it to the worker/outbox tier before high-volume launch. Frontend production build passes. <b>Deploy step:</b> run <code>flask db upgrade</code> before starting the API; Resend domain/DNS verification is still a production checklist item.
         </div>
         <div class="done"><b>Done when</b><br>A signed-out user can reset in under two minutes from the sign-in page; the old password and every pre-reset token fail; unknown emails get the same response and timing; audit logs record the event.</div>
       </div>
@@ -579,21 +583,21 @@ backend/api/auth/registration.py:31  duplicate email → "email already register
         </ul>
         <div class="callout green" style="margin:12px 0">
           <b>FIXED — 23 Oct 2026 (working tree; not deployed)</b>
-          Added the <code>organization_invitations</code> table and <code>a8b9c0d1e2f3</code> migration. Inviting an address now stores only a SHA-256 hash of a 7-day, single-use token and sends a Resend email; it no longer creates a <code>User</code> or a team row. Accepting the link creates a verified account with the invitee's chosen name/password (or attaches an existing signed-in user) and then creates the <code>TeamMember</code>; legacy unverified placeholder accounts can reclaim their membership through the same token. Added list/resend/revoke endpoints, per-IP and per-org/address throttles, a 60-second resend cooldown, a signed-out <code>/accept-invite</code> page, and pending-invitation controls in the team dashboard. Verified end-to-end: no account at invite time, normal registration still works, new-user accept, existing-user sign-in, legacy reclaim, resend token rotation, revoke, and expiry. Frontend production build passes. <b>Deploy step:</b> run <code>flask db upgrade</code>; Resend domain/DNS verification is still required before external invites.
+          Added the <code>organization_invitations</code> table and <code>a8b9c0d1e2f3</code> migration. Inviting an address now stores only a SHA-256 hash of a 7-day, single-use token and sends a Resend email; it no longer creates a <code>User</code> or a team row. Accepting the link creates a verified account with the invitee's chosen name/password (or attaches an existing signed-in user) and then creates the <code>TeamMember</code>; legacy unverified placeholder accounts can reclaim their membership through the same token. Added list/resend/revoke endpoints, per-IP and per-org/address throttles, a 60-second resend cooldown, a signed-out <code>/accept-invite</code> page, and pending-invitation controls in the team dashboard. Verified end-to-end: no account at invite time, normal registration still works, new-user accept, existing-user sign-in, legacy reclaim, resend token rotation, revoke, and expiry; covered by 7 backend tests. Migration <code>f4a5b6c7d8e9</code> adds the invited-address lookup index. The invitation email is still sent synchronously; move it to the worker/outbox tier before high-volume launch. Frontend production build passes. <b>Deploy step:</b> run <code>flask db upgrade</code>; Resend domain/DNS verification is still required before external invites.
         </div>
         <div class="done"><b>Done when</b><br>An invited address receives an email, sets a password, joins the org, and appears in the team list; the same address can still register if no invite is accepted; an org cannot squat an unrelated address; revoke/expired-token paths are tested.</div>
       </div>
     </details>
   </article>
 
-  <article class="finding" data-severity="P0" data-area="Quality">
+  <article class="finding" data-severity="P0" data-area="Quality" data-status="partial">
     <details>
       <summary>
         <span class="fid">P0-05</span>
         <span>
           <span class="ftitle">Nothing tests the backend, and every push to main deploys to production</span>
-          <span class="fsum">Zero backend tests, a broken App smoke test, and no test step in either workflow.</span>
-          <span class="badges"><span class="badge p0">P0</span><span class="badge area">Quality</span><span class="badge eff">2–3 days</span></span>
+          <span class="fsum">Was: zero backend tests, a broken App smoke test, and no test step. Now: 44 backend tests, 37 frontend tests, and a deploy-blocking CI gate.</span>
+          <span class="badges"><span class="badge p0">P0</span><span class="badge partial">Partial</span><span class="badge area">Quality</span><span class="badge eff">2–3 days</span></span>
         </span>
       </summary>
       <div class="fbody">
@@ -613,6 +617,12 @@ frontend/src/App.test.js     CRA boilerplate "renders learn react link" — <spa
           <li>Run backend tests, frontend tests, lint, and build in CI; make them required checks. Deploy only from a green <code>main</code>.</li>
           <li>Add 6–10 Playwright smoke tests against staging for the revenue-critical journeys.</li>
         </ul>
+        <div class="callout green" style="margin:12px 0">
+          <b>PARTIALLY FIXED — 23 Oct 2026 (working tree; not deployed)</b>
+          Added a backend pytest harness that runs against real PostgreSQL + pgvector in an isolated schema, with fixtures that exercise HTTP routes rather than mocking the database. <b>44 backend tests pass</b>: smoke/health, refresh rotation/replay/logout/password-change, password reset and session revocation, invitations (create/list/accept/resend/expire/revoke), JSON rate limits, and hot-path index contracts. Replaced the broken <code>App.test.js</code> with real auth-session tests; <b>37 frontend tests pass across 4 suites</b>. The validate job now installs dev dependencies, runs backend tests, runs frontend tests, gates production dependencies on <code>npm audit --omit=dev --audit-level=high</code>, and builds the frontend; <code>deploy</code> has <code>needs: validate</code>. Production dependency audit is <b>0 vulnerabilities</b>. The complete 43-revision migration chain was applied to an empty database successfully; migration <code>f4a5b6c7d8e9</code> adds the auth/OTP/invitation hot-path indexes and <code>a7b8c9d0e1f2</code> adds deletion/scheduler/AI-allowance fields. The new revision also downgrades cleanly to <code>f4a5b6c7d8e9</code> and reapplies. Test files and dev requirements are excluded from the production Docker build context.
+          <br><br>
+          <b>Still open:</b> Playwright journeys against a real staging environment, and GitHub branch protection/required-check enforcement. This finding should not be marked fully closed until those are done.
+        </div>
         <div class="done"><b>Done when</b><br>CI fails on a deliberately broken auth or entitlement test; the P0 journeys are covered by E2E; no deploy is possible with a red suite; the suite runs in under 10 minutes.</div>
       </div>
     </details>
@@ -685,21 +695,21 @@ backend/app.py:436                   Permissions-Policy tightening is commented 
         </ul>
         <div class="callout green" style="margin:12px 0">
           <b>FIXED — 23 Oct 2026 (working tree; not deployed)</b>
-          Access tokens are now 15-minute JWTs returned in JSON and held only in frontend memory; <code>localStorage</code> token reads/writes were removed. The refresh token is an opaque 384-bit value in an <code>HttpOnly; Secure; SameSite=Lax</code> cookie scoped to <code>/api/auth</code>, stored server-side only as a SHA-256 hash. <code>POST /api/auth/refresh</code> rotates it, enforces a 10-second concurrency grace window, and revokes the whole token family on replay outside that window. Logout revokes the family; password change/reset revoke every family in the same transaction as the password/version update; Socket.IO validates the token version and JTI blocklist. The frontend uses a single-flight refresh, retries one 401, refreshes inside the Socket.IO auth callback, and redirects on session expiry. CSP is enforced in <code>frontend/vercel.json</code> and <code>frontend/nginx-frontend.conf</code> with <code>script-src 'self'</code>, explicit API/WSS <code>connect-src</code>, and <code>media/worker-src blob:</code>; <code>Permissions-Policy</code> now allows camera/mic for self. Migration <code>f3a4b5c6d7e8</code> adds <code>refresh_tokens</code>. Verified locally: login issues no access cookie, refresh rotates, old-token replay dies, logout/password-reset revoke, OTP verify and invite accept auto-login, and 3/4 frontend suites pass (only the pre-existing broken <code>App.test.js</code>) with a passing production build. <b>Production check:</b> confirm the cookie domain and CSP on the deployed preview; both are configuration values, no purchase.
+          Access tokens are now 15-minute JWTs returned in JSON and held only in frontend memory; <code>localStorage</code> token reads/writes were removed. The refresh token is an opaque 384-bit value in an <code>HttpOnly; Secure; SameSite=Lax</code> cookie scoped to <code>/api/auth</code>, stored server-side only as a SHA-256 hash. <code>POST /api/auth/refresh</code> rotates it, enforces a 10-second concurrency grace window, and revokes the whole token family on replay outside that window. Logout revokes the family; password change/reset revoke every family in the same transaction as the password/version update; Socket.IO validates the token version and JTI blocklist. The frontend uses a single-flight refresh, retries one 401, refreshes inside the Socket.IO auth callback, and redirects on session expiry. CSP is enforced in <code>frontend/vercel.json</code> and <code>frontend/nginx-frontend.conf</code> with <code>script-src 'self'</code>, explicit API/WSS <code>connect-src</code>, and <code>media/worker-src blob:</code>; <code>Permissions-Policy</code> now allows camera/mic for self. Migration <code>f3a4b5c6d7e8</code> adds <code>refresh_tokens</code>; current head <code>f4a5b6c7d8e9</code> adds the auth hot-path indexes. Verified locally: login issues no access cookie, refresh rotates, old-token replay dies, logout/password-reset revoke, OTP verify and invite accept auto-login, and 4/4 frontend suites pass (37 tests) with a passing production build. <b>Production check:</b> confirm the cookie domain and CSP on the deployed preview; both are configuration values, no purchase.
         </div>
         <div class="done"><b>Done when</b><br>The access token is not readable from <code>document.cookie</code> or localStorage; a session survives past 2 hours via refresh; CSP is enforced with no violations on the main journeys.</div>
       </div>
     </details>
   </article>
 
-  <article class="finding" data-severity="P1" data-area="Privacy">
+  <article class="finding" data-severity="P1" data-area="Privacy" data-status="fixed">
     <details>
       <summary>
         <span class="fid">P1-03</span>
         <span>
-          <span class="ftitle">“Delete account” is a dead button — there is no deletion or export path</span>
-          <span class="fsum">The UI promises permanent deletion; the API has no route to do it.</span>
-          <span class="badges"><span class="badge p1">P1</span><span class="badge area">Privacy</span><span class="badge eff">1–2 days</span></span>
+          <span class="ftitle">Was: Delete account was a dead button. Now: two-phase deletion, export, and purge</span>
+          <span class="fsum">Was: a UI promise with no API. Now: password re-auth, 30-day soft delete, scheduler purge, JSON export, and Settings wiring.</span>
+          <span class="badges"><span class="badge p1">P1</span><span class="badge fixed">Fixed</span><span class="badge area">Privacy</span><span class="badge eff">1–2 days</span></span>
         </span>
       </summary>
       <div class="fbody">
@@ -716,19 +726,23 @@ backend/api/users/routes.py                   only /users/me/referrals — no DE
           <li>Revoke all JWTs, invalidate caches, remove uploads, and record an audit event without retaining PII.</li>
           <li>Add a data-export endpoint (JSON/CSV) or document the manual process.</li>
         </ul>
+        <div class="callout green" style="margin:12px 0">
+          <b>FIXED — 23 Oct 2026 (working tree; not deployed)</b>
+          The dead button is replaced end-to-end. <code>POST /api/users/me/export</code> returns a no-store JSON attachment after password re-authentication, with password hashes, token/OTP hashes, lockout counters, and deletion reasons removed. <code>DELETE /api/users/me</code> also requires the password, refuses to orphan an organization when the caller is its last admin, revokes every refresh session, bumps <code>token_version</code> so every existing access JWT fails, revokes pending invitations to the address, and schedules a 30-day soft delete with an audit row in <code>account_deletions</code>. <code>GET /api/users/me/deletion</code> powers the Settings grace-period state. The scheduler's <code>purge_due_accounts</code> job performs a foreign-key-ordered hard delete, removes local uploads, deletes usage/OTP/token/payment rows, and keeps only a non-PII audit record (<code>email_hash</code>, timestamps, status). The export is schema-driven over every table with a <code>user_id</code>, plus interview conversations/decisions, mentorship steps, shareable-profile analytics, invitations addressed to the user, and organization summaries. Settings now offers a JSON download and a typed-confirmation deletion flow. Verified by six backend privacy tests covering re-auth, secret exclusion, last-admin blocking, session revocation, hard purge, and due-date selection, plus the full backend suite. <b>Production check:</b> run migration <code>a7b8c9d0e1f2</code>; review the privacy policy wording before launch.
+        </div>
         <div class="done"><b>Done when</b><br>A user can delete from Settings after re-auth; a staging check finds no rows or files keyed to that user after the grace period; the audit log proves it; the privacy policy matches the behavior.</div>
       </div>
     </details>
   </article>
 
-  <article class="finding" data-severity="P1" data-area="Reliability">
+  <article class="finding" data-severity="P1" data-area="Reliability" data-status="fixed">
     <details>
       <summary>
         <span class="fid">P1-04</span>
         <span>
-          <span class="ftitle">The scheduler is disabled, so interviews never auto-complete and trial status never updates</span>
-          <span class="fsum">The job also uses 7 days where the product uses 30 — enabling it as-is would cut trials short.</span>
-          <span class="badges"><span class="badge p1">P1</span><span class="badge area">Reliability</span><span class="badge eff">0.5 day</span></span>
+          <span class="ftitle">Was: scheduler disabled and a 7-day trial rule. Now: dedicated worker, 30-day constant, locks, and health</span>
+          <span class="fsum">Was: interviews never auto-completed and enabling the job would have cut trials 23 days short. Now: one bounded worker with run records.</span>
+          <span class="badges"><span class="badge p1">P1</span><span class="badge fixed">Fixed</span><span class="badge area">Reliability</span><span class="badge eff">0.5 day</span></span>
         </span>
       </summary>
       <div class="fbody">
@@ -746,19 +760,23 @@ backend/models/user.py             product default is 30 days</div>
           <li>Change both trial windows to the product value (30 days) from one constant.</li>
           <li>Add observability: last run, rows updated, failures; alert if the job misses two cycles.</li>
         </ul>
+        <div class="callout green" style="margin:12px 0">
+          <b>FIXED — 23 Oct 2026 (working tree; not deployed)</b>
+          Scheduling is now a dedicated <code>backend.worker</code> process, not a timer hidden inside every web worker. The web app never starts APScheduler. Five jobs are registered with one interval source in <code>backend/scheduler.py</code>: expired-interview completion, trial expiration, due-account purge, daily AI usage reporting, and bounded mentorship nudges. Every run takes a PostgreSQL advisory lock, writes a <code>scheduler_runs</code> row with status/rows/error/worker, and the lock is released in a <code>finally</code> block. <code>GET /api/health/scheduler</code> returns 503 unless every job has a successful run inside two intervals plus a small grace period, so a dead worker is visible rather than silently delaying trials. A single <code>TRIAL_PERIOD_DAYS = 30</code> constant now drives user and organization expiry, and the expiry query is batched (<code>batch_size=1000</code>, up to 100 batches) instead of loading every trial. Interview completion is a single bounded PostgreSQL update using <code>scheduled_at + duration</code>, and the purge job selects <code>deletion_scheduled_for &lt;= now</code> with <code>SKIP LOCKED</code>. Docker Compose and the deploy workflow start the scheduler beside the API. Verified by scheduler tests for the 30-day boundary, interview timing, run records, error records, advisory-lock exclusion, stale health, and purge due dates. <b>Production check:</b> add alerting on the scheduler health endpoint and confirm the worker has exactly one replica.
+        </div>
         <div class="done"><b>Done when</b><br>An interview created with a past end time flips to completed within 5 minutes; a 31-day-old trial reports expired; the job runs once per interval across workers.</div>
       </div>
     </details>
   </article>
 
-  <article class="finding" data-severity="P1" data-area="Billing">
+  <article class="finding" data-severity="P1" data-area="Billing" data-status="fixed">
     <details>
       <summary>
         <span class="fid">P1-05</span>
         <span>
-          <span class="ftitle">AI cost controls are bypassed by direct provider calls — and debug logs print candidate content</span>
-          <span class="fsum">The 50k-token allowance only covers <code>AIService</code>; several high-volume paths call the LLM directly.</span>
-          <span class="badges"><span class="badge p1">P1</span><span class="badge area">Billing</span><span class="badge eff">1–2 days</span></span>
+          <span class="ftitle">Was: AI cost controls bypassed and debug logs printed candidate content. Now: provider-level enforcement</span>
+          <span class="fsum">Was: the 50k allowance only covered <code>AIService</code>. Now: every provider call is attributable, metered, and refused at the limit.</span>
+          <span class="badges"><span class="badge p1">P1</span><span class="badge fixed">Fixed</span><span class="badge area">Billing</span><span class="badge eff">1–2 days</span></span>
         </span>
       </summary>
       <div class="fbody">
@@ -779,6 +797,10 @@ backend/ai_service.py:90           print(f"DEBUG: AI response length: ...")</div
           <li>Remove ad-hoc <code>print</code>s; use structured logs with field allow-lists and PII redaction.</li>
           <li>Add a daily usage report per user/org and an alert at 80% of allowance.</li>
         </ul>
+        <div class="callout green" style="margin:12px 0">
+          <b>FIXED — 23 Oct 2026 (working tree; not deployed)</b>
+          Budget enforcement moved into the provider itself. <code>AIProviderManager.llm</code> now returns a <code>BudgetedLLMProvider</code>, so a direct <code>chat</code>/<code>generate</code> call cannot bypass accounting. Every call resolves an actor (explicit user, organization, or the current JWT request), charges an organization member to that organization, and fails closed with <code>ai_unattributed</code> when enforcement is on and no account can be named. <code>reserve_budget</code> is one conditional PostgreSQL <code>UPDATE ... RETURNING</code>, so concurrent requests cannot both spend the same last tokens; after the provider reports usage, the reservation is reconciled to actual tokens and a <code>token_usage</code> row is written with user, organization, provider, model, operation, and timestamp. Reservation is released if the provider throws before reporting usage, and crossing 80% logs a structured warning. <code>AIBudgetError</code> is re-raised through <code>AIService</code> and tool layers; the app error handler returns JSON 402, while project and mock-interview reviews mark the attempt <code>unavailable</code> before returning it. Recommendations, RAG, mentorship, mock interviews, interview analysis/chat, project review, and org agent test/chat paths pass explicit actors and operation types. Candidate-content debug prints were removed; handlers log lengths/metadata only. <b>Local escape hatch:</b> <code>AI_BUDGET_ENABLED=0</code> is for development only; keep enforcement enabled in production. Verified by eight budget tests covering atomic reservation, actual-vs-estimate reconciliation, organization attribution, refusal before the provider call, fail-closed unattribution, release, service propagation, and the stable 402 body. <b>Optional production check:</b> set vendor spend caps as a second line of defence.
+        </div>
         <div class="done"><b>Done when</b><br>Every LLM call is attributable to a user/org and decrements a counter; a synthetic over-budget test is refused before the provider call; logs contain no message bodies.</div>
       </div>
     </details>
@@ -1263,12 +1285,12 @@ frontend/src/utils/socket.js transports: ["websocket"] only</div>
     <details>
       <summary>
         <span class="fid">P2-10</span>
-        <span><span class="ftitle">Docs and deploy files drift: 39 vs 40 migrations, three compose files, two frontend Dockerfiles</span><span class="fsum">Operators cannot tell which file is authoritative.</span><span class="badges"><span class="badge p2">P2</span><span class="badge area">Config</span><span class="badge eff">0.5 day</span></span></span>
+        <span><span class="ftitle">Docs and deploy files drift: docs vs 43 migrations, three compose files, two frontend Dockerfiles</span><span class="fsum">Operators cannot tell which file is authoritative.</span><span class="badges"><span class="badge p2">P2</span><span class="badge area">Config</span><span class="badge eff">0.5 day</span></span></span>
       </summary>
       <div class="fbody">
         <h4>Evidence</h4>
-        <div class="evidence">backend/migrations/versions/*.py   40 files, one head f3a4b5c6d7e8
-docs/comments                     still says 37
+        <div class="evidence">backend/migrations/versions/*.py   43 files, one head a7b8c9d0e1f2
+docs/comments                     have disagreed on the migration count
 docker-compose.yml / .prod / .vps / .aws   four topologies
 frontend/Dockerfile / Dockerfile.prod      two build paths</div>
         <h4>Why it matters</h4>
@@ -1317,15 +1339,15 @@ frontend/Dockerfile / Dockerfile.prod      two build paths</div>
       <tbody>
         <tr><td><b>P0-01</b> Video broken</td><td><span class="tag amber">Code + prod</span> <span class="tag blue">Decision</span></td><td>Allow camera/mic in all three header locations; public LiveKit URL config; token endpoint; hide/flag video route if unconfigured</td><td>LiveKit Cloud or self-hosted LiveKit + Egress; TCP/UDP/TURN ports; TLS/WSS; secrets; S3 bucket/credentials for recordings; two-browser + recording test</td><td><b>Yes</b> — ship with <code>VIDEO_ENABLED=0</code> and remove the pricing claim until ready</td></tr>
         <tr><td><b>P0-02</b> Free/self-service billing</td><td><span class="tag amber">Code + prod</span> <span class="tag blue">Decision</span></td><td>Remove free upgrade and trial reset; server-side entitlements only; hide paid CTAs. If paid: checkout, webhook, portal, migration</td><td><b>Paid only:</b> Stripe business verification, bank, products/prices, webhook secret, tax/refund policy</td><td><b>Yes</b> — free beta with paid CTAs hidden and <code>BILLING_ENABLED=0</code></td></tr>
-        <tr><td><b>P0-03</b> No password reset</td><td><span class="tag amber">Code + prod</span></td><td>Forgot/reset endpoints, single-use token, pages, revoke-all sessions, throttle, tests</td><td>Resend domain verified (SPF/DKIM/DMARC); deliverability test; support runbook</td><td><b>Yes</b> — deploy only after Resend domain/DNS verification; do not ship a dead reset link</td></tr>
-        <tr><td><b>P0-04</b> Broken org invites</td><td><span class="tag amber">Code + prod</span></td><td>Invitation model/migration, hashed token, create/list/revoke/accept, stop pre-creating users, accept page</td><td>Run migration with snapshot; verified email; external-domain invite test</td><td><b>Yes</b> — migration is a normal deploy step; email is required for external invites</td></tr>
-        <tr><td><b>P0-05</b> No tests/CI gates</td><td><span class="tag green">Code</span></td><td>Backend pytest suite, fix <code>App.test.js</code>, Playwright smoke, migration/audit checks in CI</td><td>GitHub branch protection/required checks; staging optional; Postgres service container in CI</td><td><b>Yes</b> — no runtime dependency</td></tr>
+        <tr><td><b>P0-03</b> No password reset</td><td><span class="tag amber">Code + prod</span> <span class="tag green">Fixed in code</span></td><td>Forgot/reset endpoints, single-use OTP, signed-out pages, revoke-all sessions, throttle, tests</td><td>Resend domain verified (SPF/DKIM/DMARC); deliverability test; support runbook</td><td><b>Yes</b> — deploy only after Resend domain/DNS verification; do not ship a dead reset link</td></tr>
+        <tr><td><b>P0-04</b> Broken org invites</td><td><span class="tag amber">Code + prod</span> <span class="tag green">Fixed in code</span></td><td>Invitation model/migration, hashed single-use token, create/list/revoke/accept, stop pre-creating users, accept page, tests</td><td>Run migration with snapshot; verified email; external-domain invite test</td><td><b>Yes</b> — migration is a normal deploy step; email is required for external invites</td></tr>
+        <tr><td><b>P0-05</b> No tests/CI gates</td><td><span class="tag green">Code</span> <span class="tag amber">Partial</span></td><td>44 backend tests on PostgreSQL/pgvector, 37 frontend tests, deploy-blocking CI validation, production audit gate, 43-revision empty-schema migration check</td><td>GitHub branch protection/required checks; staging + Playwright E2E</td><td><b>Yes</b> — test gate is live; E2E is additional assurance</td></tr>
 
         <tr><td><b>P1-01</b> Rate limits</td><td><span class="tag green">Code</span> <span class="tag green">Fixed in code</span></td><td>Per-user/endpoint limits, JSON 429, <code>Retry-After</code>, frontend toast, tests</td><td>Wire the structured 429 log into the dashboard; Redis already exists</td><td><b>Yes</b></td></tr>
         <tr><td><b>P1-02</b> JWT/CSP</td><td><span class="tag green">Code</span> <span class="tag green">Fixed in code</span></td><td>Refresh-token rotation, HttpOnly cookies, short access TTL, CSP, update fetch/socket auth</td><td>Cookie domain/CORS values; verify CSP on the production preview</td><td><b>Yes</b> — config values only, no purchase</td></tr>
-        <tr><td><b>P1-03</b> Delete/export account</td><td><span class="tag green">Code</span></td><td><code>DELETE /users/me</code>, export, soft-delete + purge job, Settings wiring</td><td>None — migration runs in deploy</td><td><b>Yes</b></td></tr>
-        <tr><td><b>P1-04</b> Scheduler disabled</td><td><span class="tag green">Code</span></td><td>Enable scheduler, fix 30-day trial constant, Redis lock, last-run metric</td><td>Worker container in the deploy topology</td><td><b>Yes</b> — the worker is part of the code deploy</td></tr>
-        <tr><td><b>P1-05</b> AI budget/logs</td><td><span class="tag green">Code</span></td><td>Provider wrapper, usage events, budget gate, remove candidate-content debug logs</td><td>Vendor spend caps optional</td><td><b>Yes</b></td></tr>
+        <tr><td><b>P1-03</b> Delete/export account</td><td><span class="tag green">Code</span> <span class="tag green">Fixed in code</span></td><td>Password re-auth, JSON export, 30-day soft delete, scheduler purge, last-admin guard, Settings wiring, tests</td><td>Run migration; review privacy policy</td><td><b>Yes</b></td></tr>
+        <tr><td><b>P1-04</b> Scheduler disabled</td><td><span class="tag green">Code</span> <span class="tag green">Fixed in code</span></td><td>Dedicated worker, PostgreSQL advisory locks, 30-day constant, batched expiry, run records, scheduler health</td><td>Worker container in the deploy topology; alert on health</td><td><b>Yes</b> — the worker is part of the code deploy</td></tr>
+        <tr><td><b>P1-05</b> AI budget/logs</td><td><span class="tag green">Code</span> <span class="tag green">Fixed in code</span></td><td>Provider-level atomic reservation, org attribution, usage ledger, 402 propagation, removed content logs, tests</td><td>Vendor spend caps optional</td><td><b>Yes</b></td></tr>
         <tr><td><b>P1-06</b> Cosmetic roles</td><td><span class="tag green">Code</span> <span class="tag blue">Decision</span></td><td>Permission matrix/decorator, protect billing/member/org routes, last-admin guard</td><td>None</td><td><b>Yes</b> — after the role matrix is agreed</td></tr>
         <tr><td><b>P1-07</b> No error tracking/real health</td><td><span class="tag amber">Code + prod</span></td><td>Sentry init, request IDs, split liveness/readiness, alert hooks</td><td>Sentry project/DSN (free tier works); alert routing</td><td><b>Yes</b> — no-op without a DSN</td></tr>
         <tr><td><b>P1-08</b> Backups/restore</td><td><span class="tag amber">Code + prod</span></td><td>Backup/restore scripts, uploads sync, runbook, restore smoke test</td><td>S3 bucket/IAM/lifecycle, cron, restore drill</td><td><b>Yes</b> — scripts can ship; backups need the bucket</td></tr>
@@ -1625,7 +1647,7 @@ frontend/Dockerfile / Dockerfile.prod      two build paths</div>
       <li><b>Kafka consumer runs inside gunicorn</b> — <code>app.py:145–152</code> starts a daemon thread per API process; <code>kafka_consumer.py:22</code> uses <code>enable.auto.commit=True</code>, has no retry/DLQ, and broadcasts to Socket.IO from that thread.</li>
       <li><b>Notifications are written inline</b> — <code>api/org/posts.py:165</code> and <code>mentorship/nudges.py:70</code> create rows during the request; email/OTP paths are synchronous too. A slow provider becomes a slow API.</li>
       <li><b>Redis is one 128 MB <code>allkeys-lru</code> instance</b> — it holds the JWT blocklist, rate-limit counters, and cache. Eviction can make a revoked token valid again; <code>cache.py:192</code> silently swallows failed revocation writes.</li>
-      <li><b>No worker tier</b> — the scheduler is disabled (<code>app.py:247–248</code>), so trial expiry, reminders, cleanup, and digests do not run unless someone calls them.</li>
+      <li><b>No general async worker or outbox yet</b> — the dedicated scheduler worker now owns timed jobs (trial expiry, interview completion, purge, nudges), but email/invite delivery and notifications are still inline, and there is no retryable outbox.</li>
       <li><b>Socket.IO has no Redis message queue</b> — <code>extensions.py:17</code> uses <code>async_mode="threading"</code>; with <code>-w 1 --threads 4</code>, long-lived sockets can exhaust the 4 request slots, and a second API replica cannot reach users connected to the first.</li>
       <li><b>No outbox</b> — Kafka publishes are best-effort; if the broker is down, the HTTP request succeeds but the event is gone. There is no idempotency key or replay path.</li>
     </ul>
@@ -2387,17 +2409,23 @@ proxy_read_timeout 3600s;
         <tr><td><b>Secret scan</b></td><td><code>git grep</code> for Groq/OpenRouter/OpenAI keys, AWS keys, private keys</td><td><span class="tag green">Pass</span> no live keys tracked; <code>backend/.env</code> is ignored and excluded from Docker. Local file still needs rotation.</td></tr>
         <tr><td><b>Python syntax</b></td><td><code>py_compile</code> on 197 source files (excluding venv/migrations)</td><td><span class="tag green">Pass</span> 0 failures.</td></tr>
         <tr><td><b>App boot</b></td><td>Import <code>backend.app</code> with local services</td><td><span class="tag green">Pass</span> 296 URL rules registered; AI/Redis/Kafka initialize.</td></tr>
-        <tr><td><b>Migrations</b></td><td>Parse revision graph; <code>flask db current</code> / <code>heads</code></td><td><span class="tag green">Pass</span> 40 files, single head <code>f3a4b5c6d7e8</code>; local DB at head.</td></tr>
-        <tr><td><b>Frontend build</b></td><td><code>npm run build</code></td><td><span class="tag green">Pass</span> main bundle 516.91 kB gzip; warnings only.</td></tr>
-        <tr><td><b>Frontend tests</b></td><td><code>react-scripts test --watchAll=false</code></td><td><span class="tag amber">Partial</span> 3 suites / 25 tests pass; <code>App.test.js</code> fails (cannot resolve <code>react-router-dom</code>).</td></tr>
-        <tr><td><b>Backend tests</b></td><td>Search for <code>test_*.py</code> / <code>conftest.py</code></td><td><span class="tag red">Fail</span> none exist.</td></tr>
-        <tr><td><b>Dependency audit</b></td><td><code>npm audit --omit=dev</code></td><td><span class="tag red">Fail</span> 105 advisories: 3 critical, 81 high, 17 moderate, 4 low.</td></tr>
+        <tr><td><b>Migrations</b></td><td>Parse revision graph; <code>flask db current</code> / <code>heads</code>; apply every revision to an empty database, downgrade the new revision, re-upgrade</td><td><span class="tag green">Pass</span> 43 files, single head <code>a7b8c9d0e1f2</code>; full empty-schema upgrade passed; <code>a7b8c9d0e1f2</code> downgraded to <code>f4a5b6c7d8e9</code> and reapplied; all new indexes present.</td></tr>
+        <tr><td><b>Frontend build</b></td><td><code>CI=true npm run build</code></td><td><span class="tag green">Pass</span> main bundle 519.71 kB gzip; compiled successfully; no ESLint warnings.</td></tr>
+        <tr><td><b>Frontend tests</b></td><td><code>CI=true npm test -- --watchAll=false --runInBand</code></td><td><span class="tag green">Pass</span> 4 suites / 37 tests, including auth-session memory-only token and safe-redirect tests.</td></tr>
+        <tr><td><b>Backend tests</b></td><td><code>python -m pytest backend/tests -q</code> against PostgreSQL + pgvector, isolated schema</td><td><span class="tag green">Pass</span> 44 tests; auth sessions, reset, invitations, rate limits, privacy export/deletion/purge, scheduler, AI budget, schema/index contracts.</td></tr>
+        <tr><td><b>Dependency audit</b></td><td><code>npm audit --omit=dev</code></td><td><span class="tag green">Pass</span> 0 production vulnerabilities (was 105: 3 critical, 81 high, 17 moderate, 4 low).</td></tr>
         <tr><td><b>Route inventory</b></td><td>Python AST over <code>backend/</code></td><td><span class="tag blue">Info</span> 308 decorators, 19 without decorator-level auth (login, register, refresh, OTP, public profiles/posts, health, uploads, issue report).</td></tr>
         <tr><td><b>Code size</b></td><td>Line counts</td><td><span class="tag blue">Info</span> backend 25,194 lines / 197 files; frontend 35,490 lines / 160 files; 59 models.</td></tr>
-        <tr><td><b>Repo state</b></td><td><code>git status --short</code></td><td><span class="tag amber">Attention</span> P1-01/P1-02 changes are in the working tree; local scratch files are ignored. Commit/push only when requested.</td></tr>
+        <tr><td><b>Repo state</b></td><td><code>git status --short</code></td><td><span class="tag amber">Attention</span> P0-05, CI/index, and P1-03/P1-04/P1-05 changes are in the working tree and not pushed. Latest pushed commit: <code>477616f</code>.</td></tr>
         <tr><td><b>P1-01 rate limits</b></td><td>Local Flask burst + config inspection</td><td><span class="tag green">Pass</span> 11th login attempt returns JSON 429 with <code>Retry-After: 60</code>; authenticated route keys by user id; defaults 3,000/hour, 30,000/day.</td></tr>
         <tr><td><b>P1-02 refresh flow</b></td><td>Ephemeral local Flask API flows</td><td><span class="tag green">Pass</span> login/OTP/invite issue refresh cookie + access token, refresh rotates, replay revokes family, logout and password reset revoke, no access cookie set.</td></tr>
         <tr><td><b>P0-04 invite flow</b></td><td>Ephemeral local Flask API flow with email mock</td><td><span class="tag green">Pass</span> invite creates no user, new/existing/legacy accept, registration still works, resend rotates token, revoke/expiry rejected.</td></tr>
+        <tr><td><b>P0-03 reset flow</b></td><td>Backend pytest password-reset/session tests</td><td><span class="tag green">Pass</span> valid OTP resets the password, old password fails, pre-reset sessions/JWTs are revoked, unknown emails stay generic.</td></tr>
+        <tr><td><b>Hot-path indexes</b></td><td>Inspect <code>pg_indexes</code> after migration and test-schema create</td><td><span class="tag green">Pass</span> <code>ix_users_email_lower</code>, <code>ix_email_otps_user_purpose_created</code>, and <code>ix_org_invitations_org_email_lower</code> exist; token-hash indexes remain unique.</td></tr>
+        <tr><td><b>P1-03 privacy flow</b></td><td>Backend privacy tests against PostgreSQL</td><td><span class="tag green">Pass</span> re-auth required; secrets excluded; last-admin returns 409; deletion bumps token version and revokes refresh sessions; hard purge removes owned rows and keeps a non-PII audit; only due accounts purge.</td></tr>
+        <tr><td><b>P1-04 scheduler</b></td><td>Scheduler tests and isolated migration</td><td><span class="tag green">Pass</span> 30-day boundary expires only old users/orgs; timed interview completion; advisory lock excludes a second worker; run/error rows persist; stale health returns false; due-account purge.</td></tr>
+        <tr><td><b>P1-05 AI budget</b></td><td>Fake-provider tests, no vendor calls</td><td><span class="tag green">Pass</span> atomic reservation; actual usage ledger; org attribution; refusal before provider; fail-closed unattribution; release; AIBudgetError propagation; 402 JSON.</td></tr>
+        <tr><td><b>CI gate</b></td><td>Parse <code>deploy.yml</code>; inspect job graph</td><td><span class="tag green">Pass</span> <code>validate</code> runs backend tests, frontend tests, production audit, and build; <code>deploy</code> has <code>needs: validate</code>.</td></tr>
       </tbody>
     </table>
   </div>
@@ -2452,12 +2480,12 @@ proxy_read_timeout 3600s;
       <dl class="kv">
         <dt>Backend source</dt><dd>197 files · 25,194 lines</dd>
         <dt>Frontend source</dt><dd>160 files · 35,490 lines</dd>
-        <dt>Models</dt><dd>57</dd>
+        <dt>Models</dt><dd>59</dd>
         <dt>Route decorators</dt><dd>308 (296 registered rules)</dd>
-        <dt>Public routes</dt><dd>18 at decorator level</dd>
-        <dt>Migrations</dt><dd>38 files · 1 head</dd>
-        <dt>Frontend tests</dt><dd>4 suites · 25 passing / 1 broken</dd>
-        <dt>Backend tests</dt><dd>0</dd>
+        <dt>Public routes</dt><dd>19 at decorator level</dd>
+        <dt>Migrations</dt><dd>43 files · 1 head</dd>
+        <dt>Frontend tests</dt><dd>4 suites · 37 passing</dd>
+        <dt>Backend tests</dt><dd>44 passing</dd>
       </dl>
     </div>
     <div class="card pad">
@@ -2488,9 +2516,9 @@ proxy_read_timeout 3600s;
           <tr><td><b>P0-05</b></td><td>No backend tests; deploy on every push</td><td><span class="tag red">P0</span></td><td>Quality</td></tr>
           <tr><td><b>P1-01</b></td><td>Default 50/hour rate limits</td><td><span class="tag amber">P1</span> <span class="tag green">Fixed</span></td><td>Reliability</td></tr>
           <tr><td><b>P1-02</b></td><td>localStorage JWT, 2h expiry, no CSP</td><td><span class="tag amber">P1</span> <span class="tag green">Fixed</span></td><td>Security</td></tr>
-          <tr><td><b>P1-03</b></td><td>Account deletion is a dead button</td><td><span class="tag amber">P1</span></td><td>Privacy</td></tr>
-          <tr><td><b>P1-04</b></td><td>Scheduler disabled; 7-day vs 30-day trial</td><td><span class="tag amber">P1</span></td><td>Reliability</td></tr>
-          <tr><td><b>P1-05</b></td><td>AI budget bypass + PII debug logs</td><td><span class="tag amber">P1</span></td><td>Billing</td></tr>
+          <tr><td><b>P1-03</b></td><td>Account deletion/export implemented with grace period and purge</td><td><span class="tag amber">P1</span> <span class="tag green">Fixed</span></td><td>Privacy</td></tr>
+          <tr><td><b>P1-04</b></td><td>Dedicated scheduler worker, 30-day trials, locks and health</td><td><span class="tag amber">P1</span> <span class="tag green">Fixed</span></td><td>Reliability</td></tr>
+          <tr><td><b>P1-05</b></td><td>Provider-level AI budget, usage ledger, no content logs</td><td><span class="tag amber">P1</span> <span class="tag green">Fixed</span></td><td>Billing</td></tr>
           <tr><td><b>P1-06</b></td><td>Team roles are cosmetic</td><td><span class="tag amber">P1</span></td><td>Security</td></tr>
           <tr><td><b>P1-07</b></td><td>No error tracking; fake readiness</td><td><span class="tag amber">P1</span></td><td>Ops</td></tr>
           <tr><td><b>P1-08</b></td><td>Uploads not backed up; no restore drill</td><td><span class="tag amber">P1</span></td><td>Ops</td></tr>

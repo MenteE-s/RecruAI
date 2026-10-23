@@ -4,9 +4,13 @@ from .. import api_bp
 from ...extensions import db
 from ...models import Interview, InterviewAnalysis, Message, ConversationMessage, User, TeamMember
 from ...ai_service import get_ai_service
+from ...utils.ai_budget import AIBudgetError
 from ...utils.kafka_service import KafkaService
 import json
+import logging
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 
 def _can_access_interview_id(interview_id):
@@ -176,8 +180,7 @@ Provide a detailed analysis with accurate scores based on the actual content and
                 else:
                     raise
         except (json.JSONDecodeError, ValueError) as e:
-            print(f"Failed to parse AI response as JSON: {e}")
-            print(f"AI Response: {ai_response}")
+            logger.warning("interview analysis returned invalid JSON: %s", e)
 
             retry_prompt = system_prompt + "\n\nFINAL WARNING: Output must be valid JSON. No extra keys."
             retry_response = ai_service.generate_response(retry_prompt, user_prompt, user=user, operation_type="interview_analysis")
@@ -224,8 +227,10 @@ Provide a detailed analysis with accurate scores based on the actual content and
 
         return analysis_result
 
+    except AIBudgetError:
+        raise
     except Exception as e:
-        print(f"Error generating AI analysis: {e}")
+        logger.exception("interview analysis failed")
         return {
             "overall_score": None,
             "communication_score": None,

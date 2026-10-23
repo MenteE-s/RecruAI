@@ -275,7 +275,7 @@ def refresh_session():
         )
 
     user = db.session.get(User, row.user_id)
-    if user is None or not user.email_verified:
+    if user is None or not user.email_verified or user.deleted_at is not None:
         _revoke_family(row.family_id, now)
         db.session.commit()
         return _refresh_error(

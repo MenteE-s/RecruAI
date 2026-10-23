@@ -7,6 +7,7 @@ import logging
 from typing import List, Dict, Any, Optional
 
 from backend.ai_providers import get_ai_provider_manager
+from backend.utils.ai_budget import AIBudgetError
 from ..config import RecommendationConfig
 
 
@@ -27,7 +28,8 @@ class RecommendationGenerator:
         self,
         profile_data: Dict[str, Any],
         job_data: Dict[str, Any],
-        similarity_score: float
+        similarity_score: float,
+        actor=None,
     ) -> str:
         """
         Generate explanation why a profile matches a job
@@ -50,9 +52,13 @@ class RecommendationGenerator:
         try:
             response = self.llm_provider.generate(
                 prompt=prompt,
-                params={"max_tokens": 200, "temperature": 0.3}
+                params={"max_tokens": 200, "temperature": 0.3},
+                actor=actor,
+                operation_type="recommendation_explanation",
             )
             return response.strip()
+        except AIBudgetError:
+            raise
         except Exception as e:
             logger.error(f"Failed to generate profile explanation: {e}")
             return f"This profile matches the job with a similarity score of {similarity_score:.2f}."
@@ -61,7 +67,8 @@ class RecommendationGenerator:
         self,
         job_data: Dict[str, Any],
         profile_data: Dict[str, Any],
-        similarity_score: float
+        similarity_score: float,
+        actor=None,
     ) -> str:
         """
         Generate explanation why a job matches a profile
@@ -84,9 +91,13 @@ class RecommendationGenerator:
         try:
             response = self.llm_provider.generate(
                 prompt=prompt,
-                params={"max_tokens": 200, "temperature": 0.3}
+                params={"max_tokens": 200, "temperature": 0.3},
+                actor=actor,
+                operation_type="recommendation_explanation",
             )
             return response.strip()
+        except AIBudgetError:
+            raise
         except Exception as e:
             logger.error(f"Failed to generate job explanation: {e}")
             return f"This job matches your profile with a similarity score of {similarity_score:.2f}."
@@ -95,7 +106,8 @@ class RecommendationGenerator:
         self,
         agent_data: Dict[str, Any],
         job_data: Dict[str, Any],
-        similarity_score: float
+        similarity_score: float,
+        actor=None,
     ) -> str:
         """
         Generate explanation why an agent is recommended for a job interview
@@ -120,9 +132,13 @@ class RecommendationGenerator:
         try:
             response = self.llm_provider.generate(
                 prompt=prompt,
-                params={"max_tokens": 200, "temperature": 0.3}
+                params={"max_tokens": 200, "temperature": 0.3},
+                actor=actor,
+                operation_type="recommendation_explanation",
             )
             return response.strip()
+        except AIBudgetError:
+            raise
         except Exception as e:
             logger.error(f"Failed to generate agent explanation: {e}")
             return f"This AI agent is recommended for interviewing candidates for this position with a similarity score of {similarity_score:.2f}."
@@ -131,25 +147,34 @@ class RecommendationGenerator:
         self,
         profile_data: Dict[str, Any],
         job_data: Dict[str, Any],
-        similarity_score: float
+        similarity_score: float,
+        actor=None,
     ) -> str:
-        return self.generate_profile_explanation(profile_data, job_data, similarity_score)
+        return self.generate_profile_explanation(
+            profile_data, job_data, similarity_score, actor=actor
+        )
 
     def generate_job_explanation_sync(
         self,
         job_data: Dict[str, Any],
         profile_data: Dict[str, Any],
-        similarity_score: float
+        similarity_score: float,
+        actor=None,
     ) -> str:
-        return self.generate_job_explanation(job_data, profile_data, similarity_score)
+        return self.generate_job_explanation(
+            job_data, profile_data, similarity_score, actor=actor
+        )
 
     def generate_agent_explanation_sync(
         self,
         agent_data: Dict[str, Any],
         job_data: Dict[str, Any],
-        similarity_score: float
+        similarity_score: float,
+        actor=None,
     ) -> str:
-        return self.generate_agent_explanation(agent_data, job_data, similarity_score)
+        return self.generate_agent_explanation(
+            agent_data, job_data, similarity_score, actor=actor
+        )
 
     @staticmethod
     def _sanitize_profile_for_ai(profile_content: str) -> str:
@@ -172,7 +197,8 @@ class RecommendationGenerator:
         similarity_score: float,
         skills_count: int,
         experience_years: float,
-        education_level: Optional[str]
+        education_level: Optional[str],
+        actor=None,
     ) -> Dict[str, Any]:
         """Generate AI explanation for a candidate search result.
         Only sanitized (PII-free) profile data is sent to the AI.
@@ -215,7 +241,9 @@ Match level guidelines (judge by profile content, not external rules):
         try:
             response = self.llm_provider.generate(
                 prompt=prompt,
-                params={"max_tokens": 300, "temperature": 0.2}
+                params={"max_tokens": 300, "temperature": 0.2},
+                actor=actor,
+                operation_type="recommendation_search_explanation",
             )
             tokens_used = self.llm_provider.get_last_token_usage()
             import json
@@ -233,6 +261,8 @@ Match level guidelines (judge by profile content, not external rules):
                     'matching_skills': result.get('matching_skills', []),
                     'tokens_used': tokens_used
                 }
+        except AIBudgetError:
+            raise
         except Exception as e:
             logger.error(f"Failed to generate search explanation: {e}")
 
@@ -250,14 +280,15 @@ Match level guidelines (judge by profile content, not external rules):
         similarity_score: float,
         skills_count: int,
         experience_years: float,
-        education_level: Optional[str]
+        education_level: Optional[str],
+        actor=None,
     ) -> Dict[str, Any]:
         return self.generate_search_explanation(
             query, profile_content, similarity_score,
-            skills_count, experience_years, education_level
+            skills_count, experience_years, education_level, actor=actor
         )
 
-    def expand_search_query(self, query: str) -> str:
+    def expand_search_query(self, query: str, actor=None) -> str:
         """Expand a short search query into a profile-like description for better embedding matching."""
         prompt = f"""Rewrite this candidate search query into a detailed candidate requirements description.
 Expand abbreviations and infer related skills. Output only the description.
@@ -268,16 +299,20 @@ Description:"""
         try:
             response = self.llm_provider.generate(
                 prompt=prompt,
-                params={"max_tokens": 150, "temperature": 0.1}
+                params={"max_tokens": 150, "temperature": 0.1},
+                actor=actor,
+                operation_type="recommendation_query_expand",
             )
             expanded = response.strip()
             if expanded:
                 return expanded
+        except AIBudgetError:
+            raise
         except Exception as e:
             logger.error(f"Failed to expand query: {e}")
         return query
 
-    def analyze_search_query(self, query: str) -> Dict[str, Any]:
+    def analyze_search_query(self, query: str, actor=None) -> Dict[str, Any]:
         """Analyze a search query to detect required skills and suggested roles.
         No personal data is involved - only the query text."""
         prompt = f"""Analyze this candidate search query and extract key requirements.
@@ -294,7 +329,9 @@ Respond in JSON format:
         try:
             response = self.llm_provider.generate(
                 prompt=prompt,
-                params={"max_tokens": 200, "temperature": 0.1}
+                params={"max_tokens": 200, "temperature": 0.1},
+                actor=actor,
+                operation_type="recommendation_query_analyze",
             )
             import json
             response_text = response.strip()
@@ -302,12 +339,14 @@ Respond in JSON format:
             json_end = response_text.rfind('}')
             if json_start != -1 and json_end != -1:
                 return json.loads(response_text[json_start:json_end + 1])
+        except AIBudgetError:
+            raise
         except Exception as e:
             logger.error(f"Failed to analyze search query: {e}")
         return {"detected_skills": [], "suggested_roles": [], "min_experience_years": 0}
 
-    def analyze_search_query_sync(self, query: str) -> Dict[str, Any]:
-        return self.analyze_search_query(query)
+    def analyze_search_query_sync(self, query: str, actor=None) -> Dict[str, Any]:
+        return self.analyze_search_query(query, actor=actor)
 
     @staticmethod
     def _classify_match_level(similarity: float) -> str:

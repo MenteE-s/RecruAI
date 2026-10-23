@@ -9,6 +9,7 @@ from typing import Dict, Any, List, Optional, Union
 from datetime import datetime
 
 from ..config import RAGConfig
+from ...utils.ai_budget import AIBudgetError
 from ...utils.timezone_utils import utc_now_iso
 
 
@@ -160,6 +161,8 @@ class RAGSupervisor:
 
             return result
 
+        except AIBudgetError:
+            raise
         except Exception as e:
             # Log error
             self.log_activity(

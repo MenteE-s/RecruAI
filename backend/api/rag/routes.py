@@ -14,6 +14,7 @@ from ...rag.tools.ingestor import IngestorTool
 from ...rag.tools.embedder import EmbedderTool
 from ...rag.tools.retriever import RetrieverTool
 from ...rag.tools.generator import GeneratorTool
+from ...utils.ai_budget import AIBudgetError
 from ...utils.kafka_service import kafka_service
 
 
@@ -52,7 +53,9 @@ def query_rag():
 
         # Add current user to context
         current_user_id = get_jwt_identity()
+        user = db.session.get(User, int(current_user_id)) if current_user_id else None
         user_context['user_id'] = current_user_id
+        user_context['actor'] = user
 
         # Security: never trust client tenant filters — derive server-side.
         # Only source_type allowlist is accepted from the client.
@@ -88,7 +91,7 @@ def query_rag():
                 ai_service = get_ai_service()
 
                 system_prompt = "You are a helpful AI assistant for recruitment and career guidance. Provide accurate, helpful responses based on your knowledge."
-                ai_response = ai_service.generate_response(system_prompt, query)
+                ai_response = ai_service.generate_response(system_prompt, query, user=user)
 
                 return jsonify({
                     'success': True,
@@ -115,6 +118,8 @@ def query_rag():
             'processing_time': result.get('performance', {}).get('total_time', 0)
         })
 
+    except AIBudgetError:
+        raise
     except Exception as e:
         logger.error(f"RAG query error: {e}")
         return jsonify({'error': str(e)}), 500
@@ -136,7 +141,9 @@ def agentic_query_rag():
 
         # Add current user to context
         current_user_id = get_jwt_identity()
+        user = db.session.get(User, int(current_user_id)) if current_user_id else None
         user_context['user_id'] = current_user_id
+        user_context['actor'] = user
 
         # Import agentic supervisor
         from ...rag.tools.agentic_supervisor import AgenticRAGSupervisor
@@ -171,7 +178,7 @@ def agentic_query_rag():
                 ai_service = get_ai_service()
 
                 system_prompt = "You are a helpful AI assistant for recruitment and career guidance. Provide accurate, helpful responses based on your knowledge."
-                ai_response = ai_service.generate_response(system_prompt, query)
+                ai_response = ai_service.generate_response(system_prompt, query, user=user)
 
                 return jsonify({
                     'success': True,
@@ -205,6 +212,8 @@ def agentic_query_rag():
             'generation_time': result.get('performance', {}).get('generation_time', 0)
         })
 
+    except AIBudgetError:
+        raise
     except Exception as e:
         logger.error(f"Agentic RAG query error: {e}")
         return jsonify({'error': str(e)}), 500
@@ -265,6 +274,8 @@ def ingest_text():
             'content_length': len(content)
         })
 
+    except AIBudgetError:
+        raise
     except Exception as e:
         logger.error(f"Text ingestion error: {e}")
         return jsonify({'error': str(e)}), 500
@@ -307,6 +318,8 @@ def ingest_file():
         else:
             return jsonify({'error': 'Unsupported file type'}), 400
 
+    except AIBudgetError:
+        raise
     except Exception as e:
         logger.error(f"File ingestion error: {e}")
         return jsonify({'error': str(e)}), 500
@@ -333,6 +346,8 @@ def get_stats():
             'generator': generator_stats
         })
 
+    except AIBudgetError:
+        raise
     except Exception as e:
         logger.error(f"Stats retrieval error: {e}")
         return jsonify({'error': str(e)}), 500
@@ -359,6 +374,8 @@ def health_check():
             'timestamp': '2024-01-01T00:00:00Z'  # Would use datetime.utcnow()
         })
 
+    except AIBudgetError:
+        raise
     except Exception as e:
         logger.error(f"Health check error: {e}")
         return jsonify({
@@ -386,6 +403,8 @@ def clear_cache():
         embedder.clear_cache()
         return jsonify({'success': True, 'message': 'Cache cleared'})
 
+    except AIBudgetError:
+        raise
     except Exception as e:
         logger.error(f"Cache clear error: {e}")
         return jsonify({'error': str(e)}), 500
@@ -407,6 +426,8 @@ def estimate_cost():
             'cost_estimate': cost_estimate
         })
 
+    except AIBudgetError:
+        raise
     except Exception as e:
         logger.error(f"Cost estimation error: {e}")
         return jsonify({'error': str(e)}), 500

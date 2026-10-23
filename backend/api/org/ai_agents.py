@@ -1,5 +1,6 @@
 from datetime import datetime
 import json
+import logging
 
 from flask import request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
@@ -8,6 +9,9 @@ from .. import api_bp
 from ...utils.timezone_utils import utc_now_iso, utc_iso
 from ...extensions import db
 from ...models import AIInterviewAgent, Organization, Interview, User, TeamMember
+from ...utils.ai_budget import AIBudgetError
+
+logger = logging.getLogger(__name__)
 
 
 def _me():
@@ -172,13 +176,14 @@ def test_ai_agent(agent_id):
         if agent.custom_instructions:
             system_prompt += f"\n\nCustom Instructions: {agent.custom_instructions}"
 
-        print(f"DEBUG: System prompt length: {len(system_prompt)}")
-        print(f"DEBUG: Test message: {test_message}")
+        # Never log the prompt or the test message: both are organization/candidate
+        # content. Lengths are enough to diagnose a malformed agent config.
+        logger.info("ai agent test request agent_id=%s prompt_chars=%s", agent.id, len(system_prompt))
 
         # Get AI response
         ai_response = ai_service.generate_response(system_prompt, test_message)
 
-        print(f"DEBUG: AI response received: {len(ai_response)} characters")
+        logger.info("ai agent test response agent_id=%s chars=%s", agent.id, len(ai_response or ""))
 
         return jsonify({
             "agent": agent.to_dict(),
@@ -187,18 +192,16 @@ def test_ai_agent(agent_id):
             "success": True
         }), 200
 
+    except AIBudgetError:
+        raise
     except Exception as e:
-        print(f"AI test error: {str(e)}")
-        # Fallback to mock response if AI fails
-        mock_response = f"Thank you for your response: '{test_message}'. This is a test response from the {agent.name} AI agent specializing in {agent.industry}."
-
+        logger.warning("ai agent test failed agent_id=%s: %s", agent.id, e)
         return jsonify({
             "agent": agent.to_dict(),
-            "response": mock_response,
             "test_mode": True,
-            "error": str(e),
+            "error": "The AI provider is temporarily unavailable. Try again shortly.",
             "success": False
-        }), 200
+        }), 503
 
 # AI Interview execution endpoints
 @api_bp.route("/interviews/<int:interview_id>/ai-start", methods=["POST"])
@@ -239,7 +242,8 @@ def start_ai_interview(interview_id):
 def send_ai_message(interview_id):
     """Send a message to the AI interviewer and get response (participant or managing org)."""
     interview = Interview.query.get_or_404(interview_id)
-    if not _can_see_interview(_me(), interview):
+    user = _me()
+    if not _can_see_interview(user, interview):
         return jsonify({"error": "Forbidden"}), 403
     payload = request.get_json(silent=True) or {}
 
@@ -274,11 +278,17 @@ def send_ai_message(interview_id):
                         "role": msg.get("role", "assistant"),
                         "content": msg.get("content", "")
                     })
-            except:
+            except (TypeError, ValueError):
                 pass
 
         # Get AI response
-        ai_response = ai_service.generate_response(system_prompt, candidate_message, conversation_history)
+        ai_response = ai_service.generate_response(
+            system_prompt,
+            candidate_message,
+            conversation_history,
+            user=user,
+            operation_type="interview_ai",
+        )
 
         # Update conversation history
         new_history = conversation_history + [
@@ -296,12 +306,14 @@ def send_ai_message(interview_id):
             "interview_status": interview.status
         }), 200
 
+    except AIBudgetError:
+        raise
     except Exception as e:
-        print(f"AI interview error: {str(e)}")
+        logger.warning("ai interview message failed interview_id=%s: %s", interview_id, e)
         return jsonify({
             "error": "Failed to process AI response",
             "fallback_message": "I apologize, but I'm experiencing technical difficulties. Please try again."
-        }), 500
+        }), 503
 
 @api_bp.route("/interviews/<int:interview_id>/ai-history", methods=["GET"])
 @jwt_required()

@@ -1,5 +1,7 @@
 from datetime import datetime
 
+from sqlalchemy import func
+
 from backend.extensions import db
 from backend.utils.timezone_utils import utc_iso
 
@@ -38,6 +40,17 @@ class OrganizationInvitation(db.Model):
     revoked_at = db.Column(db.DateTime, nullable=True)
     last_sent_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Admin resend/rate-limit checks filter one org plus a case-insensitive
+    # address. The plain email index cannot serve lower(email); this composite
+    # expression index keeps those checks fast as the invitation table grows.
+    __table_args__ = (
+        db.Index(
+            "ix_org_invitations_org_email_lower",
+            organization_id,
+            func.lower(email),
+        ),
+    )
 
     organization = db.relationship("Organization", back_populates="invitations")
     invited_by = db.relationship("User", foreign_keys=[invited_by_id])

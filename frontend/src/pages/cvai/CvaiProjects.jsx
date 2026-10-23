@@ -15,26 +15,22 @@ import PaywallModal from "../../components/ui/PaywallModal";
 export default function CvaiProjects() {
   const [list, setList] = useState(null);
   const [attempts, setAttempts] = useState([]);
-  const [subscription, setSubscription] = useState(null);
   const [locked, setLocked] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(null);         // the project brief + workspace
   const [review, setReview] = useState(null);     // the returned review
   const [busy, setBusy] = useState("");
-  const [upgrading, setUpgrading] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     const res = await cvai.projects();
     const historyRes = await cvai.projectAttempts();
-    const subRes = await cvai.subscriptionStatus();
     if (isLocked(res)) { setLocked(true); setLoading(false); return; }
     if (!res.ok) { setError(messageOf(res, "Could not load projects.")); setLoading(false); return; }
     setList(res.data || { projects: [], unlocked_count: 0, locked_count: 0 });
     setAttempts(historyRes.data?.attempts || []);
-    if (subRes.ok) setSubscription(subRes.data || null);
     setLocked(false);
     setLoading(false);
   }, []);
@@ -42,18 +38,15 @@ export default function CvaiProjects() {
   useEffect(() => { load(); }, [load]);
 
   async function handleUpgrade() {
-    setUpgrading(true);
     try {
       const res = await cvai.subscriptionUpgrade("paid");
       if (!res.ok) {
         setError(messageOf(res, "Could not upgrade subscription."));
         return;
       }
-      setSubscription(res.data?.subscription || null);
+      await load();
     } catch (err) {
       setError(err.message || "Could not upgrade subscription.");
-    } finally {
-      setUpgrading(false);
     }
   }
 
@@ -125,7 +118,6 @@ export default function CvaiProjects() {
   const projects = list?.projects || [];
   const graded = attempts.filter((a) => a.score_percent !== null && a.score_percent !== undefined);
   const best = graded.reduce((m, a) => Math.max(m, Number(a.score_percent) || 0), 0);
-  const isSubscribed = subscription?.is_paid_active || subscription?.is_trial_active;
   const unlockedProjects = projects.filter((p) => !p.locked);
   const lockedProjects = projects.filter((p) => p.locked);
 

@@ -8,6 +8,7 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime
 
 from ...ai_providers import get_ai_provider_manager
+from ...utils.ai_budget import AIBudgetError
 from ...utils.timezone_utils import utc_now_iso
 from ..config import RAGConfig
 
@@ -36,7 +37,9 @@ class GeneratorTool:
         context_chunks: List[Dict[str, Any]],
         user_context: Optional[Dict[str, Any]] = None,
         max_tokens: Optional[int] = None,
-        temperature: Optional[float] = None
+        temperature: Optional[float] = None,
+        actor=None,
+        operation_type: str = "rag_answer",
     ) -> Dict[str, Any]:
         """
         Generate an answer using retrieved context chunks.
@@ -52,6 +55,11 @@ class GeneratorTool:
             Dictionary containing answer, metadata, and confidence
         """
         try:
+            # The route puts the authenticated User in user_context. Prefer it
+            # over request-context inference so the ledger is correct even if a
+            # workflow is invoked from a job.
+            if actor is None and user_context:
+                actor = user_context.get("actor")
             # Prepare context from chunks
             context_text = self._prepare_context(context_chunks)
 
@@ -83,7 +91,12 @@ class GeneratorTool:
                     "presence_penalty": 0.1
                 })
 
-            answer = self.llm_provider.chat(messages, params)
+            answer = self.llm_provider.chat(
+                messages,
+                params,
+                actor=actor,
+                operation_type=operation_type,
+            )
             tokens_used = self.llm_provider.get_last_token_usage()
 
             self._request_count += 1
@@ -106,6 +119,8 @@ class GeneratorTool:
                 'query': query
             }
 
+        except AIBudgetError:
+            raise
         except Exception as e:
             logger.error(f"Error generating answer: {e}")
             return {
@@ -120,7 +135,9 @@ class GeneratorTool:
         self,
         content: str,
         summary_type: str = "concise",
-        max_length: Optional[int] = None
+        max_length: Optional[int] = None,
+        actor=None,
+        operation_type: str = "rag_summary",
     ) -> Dict[str, Any]:
         """
         Generate a summary of the given content.
@@ -158,7 +175,12 @@ class GeneratorTool:
                 "temperature": 0.3  # More focused for summaries
             }
 
-            summary = self.llm_provider.chat(messages, params)
+            summary = self.llm_provider.chat(
+                messages,
+                params,
+                actor=actor,
+                operation_type=operation_type,
+            )
             tokens_used = self.llm_provider.get_last_token_usage()
 
             self._request_count += 1
@@ -174,6 +196,8 @@ class GeneratorTool:
                 'generated_at': utc_now_iso()
             }
 
+        except AIBudgetError:
+            raise
         except Exception as e:
             logger.error(f"Error generating summary: {e}")
             return {

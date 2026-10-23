@@ -28,6 +28,18 @@ class EmailOtp(db.Model):
     user = db.relationship(
         "User", backref=db.backref("email_otps", cascade="all, delete-orphan"))
 
+    # OTP issuance/verification always filters by (user, purpose) and orders by
+    # created_at. Without this, a multi-million-row email_otps table turns every
+    # password reset into a sequential scan.
+    __table_args__ = (
+        db.Index(
+            "ix_email_otps_user_purpose_created",
+            "user_id",
+            "purpose",
+            "created_at",
+        ),
+    )
+
 
     @property
     def is_expired(self) -> bool:

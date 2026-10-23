@@ -17,6 +17,7 @@ import re
 from typing import Dict, List, Optional, Tuple
 
 from ..ai_service import AIService
+from ..utils.ai_budget import AIBudgetError
 from ..utils import mock_interview as mi
 from ..utils.skill_taxonomy import resolve
 
@@ -120,6 +121,8 @@ def propose_targets(role: str, user) -> List[Dict]:
         response = AIService().generate_response(
             "You identify the skills a role requires. Answer ONLY with JSON.",
             prompt, user=user, operation_type="cvai_mock_targets")
+    except AIBudgetError:
+        raise
     except Exception:
         return []
     payload = extract_json(response)
@@ -158,6 +161,8 @@ def generate_followup(question: str, answer: str, skills: List[str], user) -> Li
         response = AIService().generate_response(
             "You are an experienced technical interviewer. Answer ONLY with JSON.",
             prompt, user=user, operation_type="cvai_mock_followup")
+    except AIBudgetError:
+        raise
     except Exception:
         return []
     payload = extract_json(response)
@@ -180,6 +185,8 @@ def generate_questions(phase: str, skills: List[str], asked: List[str],
         response = AIService().generate_response(
             "You are an experienced interviewer. Answer ONLY with JSON.",
             prompt, user=user, operation_type="cvai_mock_questions")
+    except AIBudgetError:
+        raise
     except Exception:
         return []
     payload = extract_json(response)
@@ -203,6 +210,8 @@ def review_interview(transcript: List[Dict], skills: List[str], user) -> Tuple[O
         response = AIService().generate_response(
             mi.FEEDBACK_SYSTEM_PROMPT, prompt, user=user,
             operation_type="cvai_mock_review")
+    except AIBudgetError:
+        raise
     except Exception as exc:
         return None, str(exc)
 

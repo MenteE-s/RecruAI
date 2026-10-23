@@ -1,13 +1,13 @@
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy import func
 
+from backend.constants import DEFAULT_AI_TOKEN_ALLOWANCE, TRIAL_PERIOD_DAYS
 from backend.extensions import db
 from backend.utils.timezone_utils import utc_iso
 
-# Every account gets this much AI spend while there is no billing. Lives here
-# rather than in ai_budget.py because the column default needs it at class
-# definition time, and ai_budget imports from this module.
-DEFAULT_TOKEN_ALLOWANCE = 50_000
+# Backwards-compatible alias for callers that imported the old name from here.
+DEFAULT_TOKEN_ALLOWANCE = DEFAULT_AI_TOKEN_ALLOWANCE
 
 
 class User(db.Model):
@@ -80,12 +80,36 @@ class User(db.Model):
     # discoverable. Companies have the equivalent organizations.is_public.
     is_discoverable = db.Column(db.Boolean, nullable=False, default=True)
 
+    # Account deletion (P1-03). A deletion request revokes sessions immediately
+    # and starts a grace period; a worker hard-deletes the row and all owned
+    # records once deletion_scheduled_for passes. Keeping the row during the
+    # grace period lets support reverse an accidental deletion.
+    deleted_at = db.Column(db.DateTime, nullable=True)
+    deletion_requested_at = db.Column(db.DateTime, nullable=True)
+    deletion_scheduled_for = db.Column(db.DateTime, nullable=True, index=True)
+    deletion_reason = db.Column(db.String(255), nullable=True)
+
     # Public profile handle: /in/<slug>. Nullable only so a signup insert can
     # never race the unique index; assigned immediately after and backfilled
     # for pre-existing rows by migration c9e1f2a3b4d8.
     profile_slug = db.Column(db.String(30), nullable=True, unique=True, index=True)
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # find_user_by_email() uses lower(email) to be case-insensitive. The
+    # unique constraint on email is case-sensitive and cannot serve that
+    # lookup; this expression index keeps invitation/account lookups O(log n)
+    # at a million users.
+    __table_args__ = (
+        db.Index("ix_users_email_lower", func.lower(email)),
+        # Trial expiry runs hourly with a cutoff on trial_start_date. Without
+        # this, a million-user table turns each worker pass into a full scan.
+        db.Index(
+            "ix_users_subscription_trial_start",
+            "subscription_status",
+            "trial_start_date",
+        ),
+    )
 
     interviews = db.relationship("Interview", back_populates="user", cascade="all, delete-orphan")
 
@@ -144,6 +168,10 @@ class User(db.Model):
     def is_account_locked(self) -> bool:
         """Check if account is currently locked"""
         return self.locked_until and self.locked_until > datetime.utcnow()
+
+    def is_deleted(self) -> bool:
+        """True once deletion has been requested (even during the grace period)."""
+        return self.deleted_at is not None
 
     def to_dict(self):
         return {
@@ -240,7 +268,7 @@ class User(db.Model):
         if not self.trial_start_date:
             return False
 
-        trial_end = self.trial_start_date + timedelta(days=30)
+        trial_end = self.trial_start_date + timedelta(days=TRIAL_PERIOD_DAYS)
         return datetime.utcnow() < trial_end
 
     def is_subscription_active(self) -> bool:
@@ -306,11 +334,16 @@ class User(db.Model):
 
     def get_subscription_status(self) -> dict:
         """Get comprehensive subscription status"""
+        trial_end = (
+            self.trial_start_date + timedelta(days=TRIAL_PERIOD_DAYS)
+            if self.trial_start_date else None
+        )
         return {
             "status": self.subscription_status,
             "is_trial_active": self.is_trial_active(),
             "is_paid_active": self.is_subscription_active(),
             "trial_start_date": utc_iso(self.trial_start_date),
+            "trial_end_date": utc_iso(trial_end),
             "paid_plan": self.paid_plan,
             "tokens_used": self.tokens_used or 0,
             "interviews_count": self.interviews_count or 0,

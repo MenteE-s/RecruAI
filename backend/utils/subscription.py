@@ -8,6 +8,7 @@ from typing import Optional, Dict, Any
 from functools import wraps
 from flask import current_app
 
+from backend.constants import TRIAL_PERIOD_DAYS
 from backend.extensions import db
 from backend.models.user import User
 from backend.models.organization import Organization
@@ -137,33 +138,60 @@ class SubscriptionManager:
             return False
 
     @staticmethod
-    def check_trial_expiration() -> None:
-        """Check for expired trials and update status (to be called by scheduler)"""
-        try:
-            # Update expired user trials
-            expired_users = User.query.filter(
-                User.subscription_status == "trial",
-                User.trial_start_date < datetime.utcnow() - timedelta(days=7)
-            ).all()
+    def check_trial_expiration(batch_size: int = 1000, max_batches: int = 100) -> Dict[str, int]:
+        """Expire trials in bounded batches.
 
-            for user in expired_users:
-                user.subscription_status = "expired"
+        The scheduler calls this hourly. Loading every trial account into memory
+        would be a million-row object graph at scale, so the update is a set of
+        short ``UPDATE ... WHERE id IN (...)`` transactions. Returning counts
+        lets the worker record ``rows_updated`` and lets a test assert the 30-day
+        boundary without inspecting logs.
+        """
+        if batch_size <= 0:
+            batch_size = 1000
+        if max_batches <= 0:
+            max_batches = 1
 
-            # Update expired organization trials
-            expired_orgs = Organization.query.filter(
-                Organization.subscription_status == "trial",
-                Organization.trial_start_date < datetime.utcnow() - timedelta(days=7)
-            ).all()
+        cutoff = datetime.utcnow() - timedelta(days=TRIAL_PERIOD_DAYS)
+        totals = {"users": 0, "organizations": 0}
 
-            for org in expired_orgs:
-                org.subscription_status = "expired"
+        for model, key in ((User, "users"), (Organization, "organizations")):
+            batches = 0
+            while batches < max_batches:
+                rows = (
+                    db.session.query(model.id)
+                    .filter(
+                        model.subscription_status == "trial",
+                        model.trial_start_date.isnot(None),
+                        model.trial_start_date <= cutoff,
+                    )
+                    .limit(batch_size)
+                    .all()
+                )
+                ids = [row[0] for row in rows]
+                if not ids:
+                    break
+                updated = (
+                    db.session.query(model)
+                    .filter(model.id.in_(ids))
+                    .update(
+                        {model.subscription_status: "expired"},
+                        synchronize_session=False,
+                    )
+                )
+                db.session.commit()
+                totals[key] += int(updated or 0)
+                batches += 1
+                if len(ids) < batch_size:
+                    break
 
-            db.session.commit()
-            current_app.logger.info(f"Updated {len(expired_users)} users and {len(expired_orgs)} organizations with expired trials")
-
-        except Exception as e:
-            current_app.logger.error(f"Failed to check trial expiration: {e}")
-            db.session.rollback()
+        current_app.logger.info(
+            "trial expiration: %s users, %s organizations (cutoff=%s)",
+            totals["users"],
+            totals["organizations"],
+            cutoff.isoformat(),
+        )
+        return totals
 
 
 def require_subscription(feature: str):

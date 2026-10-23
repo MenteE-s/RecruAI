@@ -1,5 +1,4 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
 import { FiLock, FiCreditCard, FiX, FiCheckCircle } from "react-icons/fi";
 
 /**
@@ -8,8 +7,6 @@ import { FiLock, FiCreditCard, FiX, FiCheckCircle } from "react-icons/fi";
  * 403.
  */
 export default function PaywallModal({ open, feature, onClose, onUpgrade }) {
-  const navigate = useNavigate();
-
   if (!open) return null;
 
   const featureLabels = {

@@ -1,6 +1,21 @@
+from flask import current_app, jsonify
+
 from .. import api_bp
 from ...ai_providers import get_ai_provider_manager
 from ...utils.kafka_service import KafkaService
+
+
+@api_bp.route("/health/scheduler", methods=["GET"])
+def health_scheduler():
+    """Fail when the dedicated scheduler worker has missed two cycles."""
+    from ...scheduler import scheduler_health
+
+    try:
+        health = scheduler_health(current_app._get_current_object())
+    except Exception as exc:
+        current_app.logger.exception("scheduler health check failed")
+        return jsonify({"healthy": False, "error": str(exc)}), 503
+    return jsonify(health), (200 if health["healthy"] else 503)
 
 
 @api_bp.route("/health/detailed", methods=["GET"])

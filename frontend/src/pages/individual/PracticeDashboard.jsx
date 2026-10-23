@@ -94,7 +94,7 @@ export default function PracticeDashboard() {
     } catch (err) {
       setAgentsError(err.message || "Could not start practice session.");
     }
-  }, [agents, agentsUrl, navigate, getAuthHeaders]);
+  }, [agents, agentsUrl, navigate]);
 
   return (
     <DashboardLayout >

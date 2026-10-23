@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
-import { getBackendUrl, getAuthHeaders, getCurrentUser } from "../../utils/auth";
+import { getBackendUrl, getAuthHeaders, getCurrentUser, clearLocalAuth } from "../../utils/auth";
 import TimezoneSelector from "../../components/ui/TimezoneSelector";
 import PaymentMethods from "../../components/ui/PaymentMethods";
 import OtpVerify from "../../components/auth/OtpVerify";
@@ -19,13 +19,13 @@ import {
   FiCheckCircle,
   FiXCircle,
   FiChevronRight,
-  FiAlertTriangle,
   FiTrash2,
   FiZap,
   FiArrowRight,
   FiBriefcase,
   FiUsers,
   FiLink,
+  FiDownload,
 } from "react-icons/fi";
 
 const SECTIONS = [
@@ -253,6 +253,21 @@ export default function Settings() {
   const [discoverable, setDiscoverable] = useState(true);
   const [savingDiscoverable, setSavingDiscoverable] = useState(false);
 
+  // Privacy controls. Export and deletion both require the current password:
+  // a stolen access token alone must not be enough to take a copy of the
+  // account or destroy it.
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exportPassword, setExportPassword] = useState("");
+  const [exporting, setExporting] = useState(false);
+  const [exportMsg, setExportMsg] = useState(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteReason, setDeleteReason] = useState("");
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [deleteMsg, setDeleteMsg] = useState(null);
+  const [deletionInfo, setDeletionInfo] = useState(null);
+
   const toggleDiscoverable = async () => {
     const next = !discoverable;
     setDiscoverable(next); // optimistic
@@ -276,6 +291,116 @@ export default function Settings() {
       showToast({ message: "Could not update. Please try again.", type: "error", position: "side", duration: 3000 });
     } finally {
       setSavingDiscoverable(false);
+    }
+  };
+
+  useEffect(() => {
+    if (active !== "security" || !userId) return undefined;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`${getBackendUrl()}/api/users/me/deletion`, {
+          credentials: "include",
+          headers: getAuthHeaders(),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!cancelled && res.ok && data.scheduled) setDeletionInfo(data);
+      } catch {
+        // The status endpoint is advisory; the form still works if it fails.
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [active, userId]);
+
+  const handleExport = async (e) => {
+    e.preventDefault();
+    setExportMsg(null);
+    setExporting(true);
+    try {
+      const res = await fetch(`${getBackendUrl()}/api/users/me/export`, {
+        method: "POST",
+        credentials: "include",
+        headers: getAuthHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ password: exportPassword }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setExportMsg({
+          type: "error",
+          text: data.error || "Could not export your data. Check your password and try again.",
+        });
+        return;
+      }
+      const blob = await res.blob();
+      const disposition = res.headers.get("Content-Disposition") || "";
+      const filenameMatch = disposition.match(/filename="?([^";]+)"?/i);
+      const filename = filenameMatch?.[1] || `recruai-account-${userId || "data"}.json`;
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      // Give the browser a moment to start the download before revoking it.
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setExportPassword("");
+      setExportMsg({ type: "success", text: "Your data download has started." });
+    } catch {
+      setExportMsg({ type: "error", text: "Network error. Please try again." });
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleDelete = async (e) => {
+    e.preventDefault();
+    setDeleteMsg(null);
+    if (deleteConfirm.trim().toUpperCase() !== "DELETE") {
+      setDeleteMsg({ type: "error", text: "Type DELETE to confirm." });
+      return;
+    }
+    setDeleting(true);
+    try {
+      const res = await fetch(`${getBackendUrl()}/api/users/me`, {
+        method: "DELETE",
+        credentials: "include",
+        headers: getAuthHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ password: deletePassword, reason: deleteReason }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const orgNames = Array.isArray(data.organizations)
+          ? ` (${data.organizations.map((o) => o.name).join(", ")})`
+          : "";
+        setDeleteMsg({
+          type: "error",
+          text: `${data.error || "Could not schedule deletion."}${orgNames}`,
+        });
+        return;
+      }
+      setDeletionInfo(data);
+      setDeleteOpen(false);
+      setDeletePassword("");
+      setDeleteReason("");
+      setDeleteConfirm("");
+      const when = data.scheduled_for
+        ? new Date(data.scheduled_for).toLocaleDateString()
+        : "in 30 days";
+      setDeleteMsg({
+        type: "success",
+        text: `Your account is scheduled for deletion on ${when}. You have been signed out. Contact support if you need to reverse this.`,
+      });
+      // The server revoked every session. Clear local state and leave the
+      // authenticated area rather than letting the next request 401.
+      setTimeout(() => {
+        clearLocalAuth();
+        navigate("/login?account_deletion_scheduled=1", { replace: true });
+      }, 2500);
+    } catch {
+      setDeleteMsg({ type: "error", text: "Network error. Please try again." });
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -378,7 +503,9 @@ export default function Settings() {
   const isPaid = userData?.subscription_status?.is_paid_active;
   const isTrial = userData?.subscription_status?.is_trial_active;
   const status = userData?.subscription_status;
-  const trialEnd = status?.trial_start_date ? new Date(new Date(status.trial_start_date).getTime() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString() : null;
+  const trialEnd = status?.trial_end_date
+    ? new Date(status.trial_end_date).toLocaleDateString()
+    : null;
 
   const inputCls = "w-full px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded-md text-[13px] text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:bg-white";
   const labelCls = "block text-[11px] font-medium text-gray-500 mb-1";
@@ -757,12 +884,65 @@ export default function Settings() {
 
             {active === "security" && (
               <div className="divide-y divide-gray-100">
-                <Row
-                  icon={FiAlertTriangle}
-                  title="Cancel subscription"
-                  desc="End subscription, downgrade to trial plan."
-                  right={<button className="px-3 py-1 bg-white border border-red-200 text-xs font-semibold text-red-600 hover:bg-red-50 rounded-full transition-colors">Cancel</button>}
-                />
+                <div className="py-3">
+                  <p className="text-[13px] font-semibold text-gray-900">Your data</p>
+                  <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
+                    Download a JSON copy of your profile, applications, interviews,
+                    messages and account history. This is the same export we provide
+                    for a data-access request.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => { setExportOpen((o) => !o); setExportMsg(null); }}
+                    className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 bg-white text-gray-700 text-xs font-semibold hover:bg-gray-50 rounded-full transition-colors"
+                  >
+                    <FiDownload className="w-3.5 h-3.5" />
+                    Export my data
+                  </button>
+
+                  {exportOpen && (
+                    <form onSubmit={handleExport} className="mt-3 rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-2.5">
+                      <div>
+                        <label className={labelCls}>Confirm your password</label>
+                        <input
+                          type="password"
+                          autoComplete="current-password"
+                          required
+                          value={exportPassword}
+                          onChange={(e) => setExportPassword(e.target.value)}
+                          placeholder="Current password"
+                          className={inputCls}
+                        />
+                      </div>
+                      {exportMsg && (
+                        <p className={`text-[11.5px] font-medium ${exportMsg.type === "success" ? "text-green-700" : "text-red-700"}`}>
+                          {exportMsg.text}
+                        </p>
+                      )}
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="submit"
+                          disabled={exporting || !exportPassword}
+                          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 disabled:opacity-50 rounded-full transition-colors"
+                        >
+                          <FiDownload className="w-3.5 h-3.5" />
+                          {exporting ? "Preparing…" : "Download JSON"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setExportOpen(false); setExportPassword(""); setExportMsg(null); }}
+                          className="px-3 py-1.5 text-xs font-semibold text-gray-500 hover:text-gray-800"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                      <p className="text-[10.5px] text-gray-400">
+                        Password hashes, session tokens and one-time codes are never included.
+                      </p>
+                    </form>
+                  )}
+                </div>
+
                 <div className="py-3">
                   <div className="flex items-center gap-3 p-3 border border-red-200 bg-red-50/60 rounded-lg">
                     <div className="w-7 h-7 bg-white border border-red-200 rounded-md flex items-center justify-center shrink-0">
@@ -770,10 +950,111 @@ export default function Settings() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-[13px] font-semibold text-gray-900 leading-tight">Delete account</p>
-                      <p className="text-xs text-gray-500 mt-0.5">Permanently delete your account and all data</p>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        Schedule permanent deletion after a 30-day grace period.
+                      </p>
                     </div>
-                    <button className="px-3 py-1 bg-red-600 text-white text-xs font-semibold hover:bg-red-700 rounded-full shrink-0 transition-colors">Delete</button>
+                    <button
+                      type="button"
+                      onClick={() => { setDeleteOpen((o) => !o); setDeleteMsg(null); }}
+                      className="px-3 py-1 bg-red-600 text-white text-xs font-semibold hover:bg-red-700 rounded-full shrink-0 transition-colors"
+                    >
+                      {deleteOpen ? "Close" : "Delete"}
+                    </button>
                   </div>
+
+                  {deletionInfo?.scheduled && (
+                    <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-amber-800">
+                      <p className="font-semibold">Deletion already scheduled</p>
+                      <p className="mt-0.5">
+                        The account and its data will be permanently removed on{" "}
+                        {deletionInfo.scheduled_for
+                          ? new Date(deletionInfo.scheduled_for).toLocaleDateString()
+                          : "the scheduled date"}.
+                      </p>
+                    </div>
+                  )}
+
+                  {deleteOpen && (
+                    <form onSubmit={handleDelete} className="mt-3 rounded-lg border border-red-200 bg-white p-3 space-y-2.5">
+                      <div className="rounded-md bg-red-50 border border-red-100 px-3 py-2">
+                        <p className="text-[12px] font-semibold text-red-800">This cannot be undone after 30 days</p>
+                        <p className="mt-1 text-[11.5px] leading-relaxed text-red-700">
+                          Your profile, applications, interviews, messages, AI history and
+                          uploaded files will be permanently deleted. Company pages are not
+                          deleted, but you must transfer another admin first if you are the
+                          last one. You can contact support during the grace period to
+                          reverse this.
+                        </p>
+                      </div>
+                      <div>
+                        <label className={labelCls}>Confirm your password</label>
+                        <input
+                          type="password"
+                          autoComplete="current-password"
+                          required
+                          value={deletePassword}
+                          onChange={(e) => setDeletePassword(e.target.value)}
+                          placeholder="Current password"
+                          className={inputCls}
+                        />
+                      </div>
+                      <div>
+                        <label className={labelCls}>Reason (optional)</label>
+                        <input
+                          type="text"
+                          maxLength={255}
+                          value={deleteReason}
+                          onChange={(e) => setDeleteReason(e.target.value)}
+                          placeholder="Help us understand why you're leaving"
+                          className={inputCls}
+                        />
+                      </div>
+                      <div>
+                        <label className={labelCls}>Type DELETE to confirm</label>
+                        <input
+                          type="text"
+                          value={deleteConfirm}
+                          onChange={(e) => setDeleteConfirm(e.target.value)}
+                          placeholder="DELETE"
+                          className={inputCls}
+                        />
+                      </div>
+                      {deleteMsg && (
+                        <p className={`text-[11.5px] font-medium ${deleteMsg.type === "success" ? "text-green-700" : "text-red-700"}`}>
+                          {deleteMsg.text}
+                        </p>
+                      )}
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="submit"
+                          disabled={deleting || !deletePassword || deleteConfirm.trim().toUpperCase() !== "DELETE"}
+                          className="px-3.5 py-1.5 bg-red-600 text-white text-xs font-semibold hover:bg-red-700 disabled:opacity-50 rounded-full transition-colors"
+                        >
+                          {deleting ? "Scheduling…" : "Schedule deletion"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDeleteOpen(false);
+                            setDeletePassword("");
+                            setDeleteReason("");
+                            setDeleteConfirm("");
+                            setDeleteMsg(null);
+                          }}
+                          className="px-3 py-1.5 text-xs font-semibold text-gray-500 hover:text-gray-800"
+                        >
+                          Keep my account
+                        </button>
+                      </div>
+                    </form>
+                  )}
+
+                  {deleteMsg && !deleteOpen && (
+                    <p className={`mt-3 text-[11.5px] font-medium ${deleteMsg.type === "success" ? "text-green-700" : "text-red-700"}`}>
+                      {deleteMsg.text}
+                    </p>
+                  )}
                 </div>
               </div>
             )}

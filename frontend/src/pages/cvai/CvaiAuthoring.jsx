@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import CvaiShell, { Panel, Button, Loading, ErrorNote, EmptyNote } from "../cvai/CvaiShell";
+import CvaiShell, { Panel, Button, Loading, ErrorNote } from "../cvai/CvaiShell";
 import { cvai, messageOf } from "../../utils/cvai";
 
 export default function CvaiAuthoring() {

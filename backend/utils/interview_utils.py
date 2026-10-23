@@ -3,52 +3,106 @@ Interview utilities for managing interview lifecycle and status updates
 """
 
 from datetime import datetime, timezone, timedelta
+import logging
+
+from sqlalchemy import text
+
 from ..extensions import db
 from ..models import Interview, Application, InterviewDecisionHistory
 
+logger = logging.getLogger(__name__)
 
-def update_expired_interviews():
+
+def _update_expired_interviews_postgres(limit: int, now: datetime) -> int:
+    """Bulk-complete ended interviews in one bounded statement.
+
+    ``scheduled_at <= now`` alone is not enough: a 5-hour interview is not over
+    an hour after it starts. The database computes the end time so the worker
+    does not have to load a million rows. ``FOR UPDATE SKIP LOCKED`` prevents two
+    scheduler processes from selecting the same batch.
     """
-    Check for interviews that have expired and update their status to 'completed'.
-    This should be called periodically (e.g., every 5 minutes) via a background task.
-    """
-    try:
-        current_time = datetime.utcnow()
-
-        # Find interviews that are scheduled or in_progress and have expired
-        expired_interviews = Interview.query.filter(
-            Interview.status.in_(['scheduled', 'in_progress']),
-            Interview.scheduled_at <= current_time
-        ).all()
-
-        updated_count = 0
-        for interview in expired_interviews:
-            # Calculate if interview time has actually expired (scheduled_time + duration).
-            # DB datetimes are naive UTC: keep the comparison naive-naive.
-            # (An aware end-time vs naive utcnow() raises TypeError and the
-            # whole batch silently returns 0.)
-            interview_end_time = interview.scheduled_at + \
-                               timedelta(minutes=interview.duration_minutes or 60)
-
-            if current_time >= interview_end_time:
-                # Update interview status
-                interview.status = 'completed'
-                interview.completed_at = current_time
-                interview.round_status = 'completed'
-                updated_count += 1
-
-                print(f"Updated interview {interview.id} status to completed (expired)")
-
-        if updated_count > 0:
-            db.session.commit()
-            print(f"Updated {updated_count} expired interviews to completed status")
-
-        return updated_count
-
-    except Exception as e:
-        print(f"Error updating expired interviews: {e}")
+    ids = db.session.execute(
+        text(
+            """
+            SELECT id
+              FROM interviews
+             WHERE status IN ('scheduled', 'in_progress')
+               AND scheduled_at + make_interval(mins => COALESCE(duration_minutes, 60)) <= :now
+             ORDER BY scheduled_at ASC
+             LIMIT :limit
+             FOR UPDATE SKIP LOCKED
+            """
+        ),
+        {"now": now, "limit": limit},
+    ).scalars().all()
+    if not ids:
         db.session.rollback()
         return 0
+
+    result = db.session.execute(
+        text(
+            """
+            UPDATE interviews
+               SET status = 'completed',
+                   completed_at = :now,
+                   round_status = 'completed',
+                   updated_at = :now
+             WHERE id = ANY(:ids)
+            """
+        ),
+        {"now": now, "ids": list(ids)},
+    )
+    db.session.commit()
+    return int(result.rowcount or 0)
+
+
+def _update_expired_interviews_fallback(limit: int, now: datetime) -> int:
+    """ORM path for non-PostgreSQL development databases."""
+    rows = (
+        Interview.query
+        .filter(
+            Interview.status.in_(["scheduled", "in_progress"]),
+            Interview.scheduled_at <= now,
+        )
+        .order_by(Interview.scheduled_at.asc())
+        .limit(limit)
+        .all()
+    )
+    updated = 0
+    for interview in rows:
+        if interview.scheduled_at + timedelta(minutes=interview.duration_minutes or 60) <= now:
+            interview.status = "completed"
+            interview.completed_at = now
+            interview.round_status = "completed"
+            updated += 1
+    if updated:
+        db.session.commit()
+    else:
+        db.session.rollback()
+    return updated
+
+
+def update_expired_interviews(limit: int = 1000):
+    """Complete interviews whose scheduled end time has passed.
+
+    Returns the number of rows updated. Safe to call repeatedly and safe to run
+    from more than one worker: the PostgreSQL path locks each selected batch and
+    only transitions rows still in ``scheduled``/``in_progress``.
+    """
+    limit = max(1, min(int(limit or 1000), 5000))
+    now = datetime.utcnow()
+    try:
+        if db.engine.dialect.name == "postgresql":
+            updated = _update_expired_interviews_postgres(limit, now)
+        else:
+            updated = _update_expired_interviews_fallback(limit, now)
+        if updated:
+            logger.info("completed %s expired interviews", updated)
+        return updated
+    except Exception:
+        db.session.rollback()
+        logger.exception("failed to update expired interviews")
+        raise
 
 
 def is_overdue(interview, now=None):

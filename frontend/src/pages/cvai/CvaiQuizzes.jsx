@@ -15,26 +15,22 @@ import PaywallModal from "../../components/ui/PaywallModal";
 export default function CvaiQuizzes() {
   const [list, setList] = useState(null);
   const [attempts, setAttempts] = useState([]);
-  const [subscription, setSubscription] = useState(null);
   const [locked, setLocked] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(null);   // { quiz, attemptId, questions, answers }
   const [outcome, setOutcome] = useState(null);
   const [busy, setBusy] = useState(false);
-  const [upgrading, setUpgrading] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     const res = await cvai.quizzes();
     const historyRes = await cvai.quizAttempts();
-    const subRes = await cvai.subscriptionStatus();
     if (isLocked(res)) { setLocked(true); setLoading(false); return; }
     if (!res.ok) { setError(messageOf(res, "Could not load quizzes.")); setLoading(false); return; }
     setList(res.data || { quizzes: [], unlocked_count: 0, locked_count: 0 });
     setAttempts(historyRes.data?.attempts || []);
-    if (subRes.ok) setSubscription(subRes.data || null);
     setLocked(false);
     setLoading(false);
   }, []);
@@ -71,7 +67,6 @@ export default function CvaiQuizzes() {
   }
 
   const quizzes = list?.quizzes || [];
-  const isSubscribed = subscription?.is_paid_active || subscription?.is_trial_active;
   const unlockedQuizzes = quizzes.filter((q) => !q.locked);
   const lockedQuizzes = quizzes.filter((q) => q.locked);
   const done = attempts.filter((a) => a.status === "completed");
@@ -79,18 +74,15 @@ export default function CvaiQuizzes() {
   const passed = done.filter((a) => a.passed).length;
 
   async function handleUpgrade() {
-    setUpgrading(true);
     try {
       const res = await cvai.subscriptionUpgrade("paid");
       if (!res.ok) {
         setError(messageOf(res, "Could not upgrade subscription."));
         return;
       }
-      setSubscription(res.data?.subscription || null);
+      await load();
     } catch (err) {
       setError(err.message || "Could not upgrade subscription.");
-    } finally {
-      setUpgrading(false);
     }
   }
 

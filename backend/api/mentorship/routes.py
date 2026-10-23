@@ -297,6 +297,10 @@ def update_mentorship_step(plan_id, step_id):
 
     step.status = status
     step.completed_at = datetime.utcnow() if status == 'done' else None
+    # The nudge worker filters plans by last update. Step-only changes must
+    # touch the parent row or a learner who completed a step yesterday would
+    # still look idle to the query.
+    plan.updated_at = datetime.utcnow()
     db.session.commit()
 
     active = [s for s in plan.steps if s.status != 'skipped']

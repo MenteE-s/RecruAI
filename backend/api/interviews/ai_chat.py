@@ -4,6 +4,7 @@ from ...utils.timezone_utils import utc_now_iso, utc_iso
 from ...extensions import db
 from ...models import Interview, User, AIInterviewAgent, ConversationMessage, PracticeAIAgent, TeamMember
 from ...ai_service import get_ai_service
+from ...utils.ai_budget import AIBudgetError
 from ...utils.subscription import require_subscription
 from ...rag.tools.thinking import ThinkingModule
 from ...utils.kafka_service import KafkaService
@@ -79,6 +80,8 @@ def interview_chat(interview_id):
     thinking_step = None
     try:
         response = generate_agent_response(message, interview, agent, user, thinking_step)
+    except AIBudgetError as exc:
+        return jsonify({'error': exc.message, 'code': exc.code}), 402
     except RuntimeError as exc:
         return jsonify({
             'error': 'AI unavailable',
@@ -101,9 +104,9 @@ def interview_chat(interview_id):
         system_context = f"This is a formal job interview for the position: {interview.title}. Organization: {interview.organization.name if interview.organization else 'N/A'}. Round: {interview.current_round or 1}."
 
         # Analyze and reason
-        analysis = thinking_module.analyze_context(message, context_chunks, system_context)
-        reasoning = thinking_module.generate_reasoning(message, context_chunks, analysis, system_context)
-        validation = thinking_module.validate_reasoning(reasoning)
+        analysis = thinking_module.analyze_context(message, context_chunks, system_context, actor=user)
+        reasoning = thinking_module.generate_reasoning(message, context_chunks, analysis, system_context, actor=user)
+        validation = thinking_module.validate_reasoning(reasoning, actor=user)
         
         thinking_step = {
             'analysis': analysis,
@@ -241,6 +244,8 @@ def generate_agent_response(message, interview, agent, user, thinking_step=None)
 
         return response
 
+    except AIBudgetError:
+        raise
     except Exception as e:
         print(f"Error generating agent response: {e}")
         raise RuntimeError(f"AI agent response failed: {e}") from e

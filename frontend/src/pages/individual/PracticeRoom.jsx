@@ -13,7 +13,6 @@ export default function PracticeRoom() {
   const [messages, setMessages] = useState([]);
   const [isTyping, setIsTyping] = useState(false);
   const [error, setError] = useState("");
-  const [newMessage, setNewMessage] = useState("");
 
   const conversationUrl = `${getBackendUrl()}/api/interviews/${sessionId}/conversation`;
   const chatUrl = `${getBackendUrl()}/api/interviews/${sessionId}/chat`;
@@ -54,7 +53,6 @@ export default function PracticeRoom() {
       if (!message.trim()) return;
 
       const userMessage = message.trim();
-      setNewMessage("");
       setIsTyping(true);
       setError("");
 

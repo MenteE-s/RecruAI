@@ -2,24 +2,26 @@
 
 Writes a Notification for every active plan nobody has touched in a while.
 
-**This is not wired to the scheduler.** `init_scheduler` is commented out in
-app.py ("temporarily disabled to debug API issues"), so a job registered there
-would never fire — and re-enabling it revives two unrelated jobs
-(`update_expired_interviews`, `check_trial_expiration`) as a side effect, which
-is not a decision this change should make for anyone. `register_nudge_job` is
-written and tested so that re-enabling the scheduler is a one-line change, and
-`send_stale_plan_nudges` can be called by hand or from a management command.
+``backend.worker`` registers this as a bounded hourly job through
+``backend.scheduler``. Each invocation processes at most ``limit`` plans, so a
+large backlog cannot turn one run into a million-row object graph.
 
 Nudges are rate limited by construction: a plan is only nudged when its last
 activity is older than the idle window, and one notification per plan per
 window is recorded by looking for an existing unread nudge of the same type.
 """
 from datetime import datetime, timedelta
+import logging
 from typing import Dict, List
+
+from sqlalchemy import func
+from sqlalchemy.orm import selectinload
 
 from ..extensions import db
 from ..models import MentorshipPlan, Notification
 from ..utils import mentorship_suggestions as S
+
+logger = logging.getLogger(__name__)
 
 NUDGE_TYPE = "mentorship_plan_idle"
 # Do not repeat a nudge more often than this even if detection keeps matching.
@@ -27,12 +29,30 @@ NUDGE_COOLDOWN_DAYS = S.IDLE_DAYS
 
 
 def send_stale_plan_nudges(app=None, idle_days: int = S.IDLE_DAYS,
-                          now: datetime = None, dry_run: bool = False) -> Dict:
-    """Notify learners with idle plans. Returns a summary for logging."""
+                          now: datetime = None, dry_run: bool = False,
+                          limit: int = 500) -> Dict:
+    """Notify learners with idle plans. Returns a summary for logging.
+
+    ``limit`` bounds one invocation. The worker runs this every six hours, so a
+    large backlog drains over successive runs instead of loading every active
+    plan and every step into memory at once.
+    """
     now = now or datetime.utcnow()
+    cutoff = now - timedelta(days=idle_days)
     plans = (MentorshipPlan.query
-             .filter_by(status="active")
-             .order_by(MentorshipPlan.id.asc())
+             .options(selectinload(MentorshipPlan.steps))
+             .filter(
+                 MentorshipPlan.status == "active",
+                 func.coalesce(
+                     MentorshipPlan.updated_at,
+                     MentorshipPlan.created_at,
+                 ) <= cutoff,
+             )
+             .order_by(func.coalesce(
+                 MentorshipPlan.updated_at,
+                 MentorshipPlan.created_at,
+             ).asc())
+             .limit(max(1, min(int(limit or 500), 5000)))
              .all())
     payloads = [p.to_dict() for p in plans]
 
@@ -95,15 +115,15 @@ def send_stale_plan_nudges(app=None, idle_days: int = S.IDLE_DAYS,
         try:
             kafka_service.emit_event("mentorship_plan_idle", {"count": len(created)})
         except Exception as e:  # noqa: BLE001 — a nudge failing to broadcast is not fatal
-            print(f"Failed to emit mentorship nudge event: {e}")
+            logger.warning("failed to emit mentorship nudge event: %s", e)
     return summary
 
 
 def register_nudge_job(scheduler, app) -> None:
-    """Register the hourly nudge job.
+    """Compatibility helper for an externally-owned APScheduler.
 
-    Dormant: init_scheduler is not called from app.py right now. Kept here so
-    re-enabling the scheduler is deliberate and this is not forgotten.
+    ``backend.scheduler.build_scheduler`` registers this job itself; this
+    function remains for deployments that still pass their own scheduler.
     """
     scheduler.add_job(
         func=send_stale_plan_nudges,

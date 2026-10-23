@@ -22,6 +22,7 @@ from .. import api_bp
 from ...extensions import db
 from ...models import GuidedProject, GuidedProjectAttempt
 from ...utils import guided_project_review as review_utils
+from ...utils.ai_budget import AIBudgetError
 from ...utils.subscription import CVAI_PROJECTS, check_content_access
 from ...utils.timezone_utils import utc_iso
 
@@ -281,7 +282,7 @@ def submit_guided_project(attempt_id):
     attempt.review_status = 'pending'
     db.session.commit()
 
-    result, error = _review_submission(user, project, criteria, submission)
+    result, error = _review_submission_safe(user, project, criteria, submission, attempt)
     if error:
         attempt.review_status = 'unavailable'
         attempt.completed_at = datetime.utcnow()
@@ -319,6 +320,22 @@ def submit_guided_project(attempt_id):
     }), 200
 
 
+def _review_submission_safe(user, project, criteria, submission, attempt):
+    """Run the reviewer, preserving a retryable state when the budget stops us.
+
+    A 402 must still tell the learner their work was saved. The attempt is left
+    ``unavailable`` rather than ``pending`` so a later page load does not imply
+    a review is still in flight.
+    """
+    try:
+        return _review_submission(user, project, criteria, submission)
+    except AIBudgetError:
+        attempt.review_status = 'unavailable'
+        attempt.completed_at = attempt.completed_at or datetime.utcnow()
+        db.session.commit()
+        raise
+
+
 def _review_submission(user, project, criteria, submission):
     """Ask the model for per-criterion verdicts, then compute the score ourselves.
 
@@ -339,9 +356,9 @@ def _review_submission(user, project, criteria, submission):
         response = AIService().generate_response(
             REVIEW_SYSTEM_PROMPT, prompt, user=user,
             operation_type="cvai_project_review")
+    except AIBudgetError:
+        raise
     except Exception as exc:
-        # The allowance being spent lands here as an exception, and that is a
-        # legitimate "could not review" rather than a crash.
         return None, str(exc)
 
     payload = extract_json(response)
@@ -517,7 +534,9 @@ def retry_guided_project_review(attempt_id):
     attempt.review_status = 'pending'
     db.session.commit()
 
-    result, error = _review_submission(user, project, criteria, attempt.submission)
+    result, error = _review_submission_safe(
+        user, project, criteria, attempt.submission, attempt
+    )
     if error:
         attempt.review_status = 'unavailable'
         db.session.commit()

@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import CvaiShell, { Panel, Stat, Badge, Loading, ErrorNote, LockedNote, EmptyNote, Meter } from "../cvai/CvaiShell";
 import { cvai, isLocked, messageOf, levelTone, percent } from "../../utils/cvai";
-import { FiArrowRight, FiCheckCircle, FiCode, FiHelpCircle, FiTarget, FiLock, FiCreditCard, FiCheck } from "react-icons/fi";
+import { FiArrowRight, FiCheckCircle, FiCode, FiHelpCircle, FiTarget, FiCreditCard } from "react-icons/fi";
 
 /**
  * The CVAI overview.

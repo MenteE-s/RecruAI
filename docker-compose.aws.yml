@@ -136,6 +136,35 @@ services:
       retries: 3
     mem_limit: 768m
 
+  # Exactly one scheduler process. The API must never start APScheduler: with
+  # multiple web workers every job would run once per process. This container
+  # owns trial expiry, interview completion, deletion purges, AI reports, and
+  # mentorship nudges, and every run is recorded in scheduler_runs for health.
+  scheduler:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    image: recruai_backend:latest
+    container_name: recruai_scheduler
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env.production
+    environment:
+      FLASK_ENV: production
+      IS_PRODUCTION: "1"
+    command: ["python", "-m", "backend.worker"]
+    volumes:
+      # The purge job removes this user's files; it must see the same volume.
+      - backend_uploads:/app/backend/uploads
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    mem_limit: 192m
+
   nginx:
     image: nginx:1.25-alpine
     container_name: recruai_nginx

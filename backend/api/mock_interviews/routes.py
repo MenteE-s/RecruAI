@@ -23,6 +23,7 @@ from ...extensions import db
 from ...models import MockInterview, Post
 from ...mock_interview import generator
 from ...utils import mock_interview as mi
+from ...utils.ai_budget import AIBudgetError
 from ...utils.subscription import CVAI_MOCK_INTERVIEW, check_content_access
 
 MAX_ACTIVE_SESSIONS = 1  # one at a time: two live interviews is not practice
@@ -324,8 +325,13 @@ def mock_interview_feedback(interview_id):
     session.completed_at = datetime.utcnow()
     db.session.commit()
 
-    result, error_detail = generator.review_interview(
-        session.get_transcript(), session.get_skill_slugs(), user)
+    try:
+        result, error_detail = generator.review_interview(
+            session.get_transcript(), session.get_skill_slugs(), user)
+    except AIBudgetError:
+        session.review_status = 'unavailable'
+        db.session.commit()
+        raise
 
     if error_detail:
         session.review_status = 'unavailable'

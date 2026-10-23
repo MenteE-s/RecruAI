@@ -155,6 +155,11 @@ def accept_invitation(token):
         }), 403
 
     existing = current or find_user_by_email(invitation.email)
+    if existing and existing.deleted_at is not None:
+        return jsonify({
+            "error": "This account has been deleted.",
+            "code": "account_deleted",
+        }), 410
     was_unverified = bool(existing and not existing.email_verified)
 
     if existing and existing.email_verified and not current:

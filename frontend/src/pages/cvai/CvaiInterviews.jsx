@@ -7,7 +7,7 @@ import {
 } from "../../utils/cvai";
 import PaywallModal from "../../components/ui/PaywallModal";
 import {
-  FiMic, FiMessageSquare, FiPlayCircle, FiSend, FiSquare, FiCheckCircle, FiRefreshCw, FiCreditCard, FiLock,
+  FiMic, FiMessageSquare, FiPlayCircle, FiSend, FiSquare, FiCheckCircle, FiRefreshCw, FiCreditCard,
 } from "react-icons/fi";
 
 /**

@@ -1,4 +1,5 @@
 import os
+import click
 from dotenv import load_dotenv
 from flask import Flask, current_app, jsonify, send_from_directory, request
 
@@ -45,11 +46,13 @@ def create_app(config_object: object | None = None):
 	- Initializes extensions (db, migrate)
 	- Registers blueprints under /api
 	"""
-	# load .env located next to this file (backend/.env) so CLI runs from
-	# the repo root still pick up the correct DATABASE_URL.
+	# Load .env for the normal entry point. A caller that supplies an explicit
+	# config object (tests, tooling) owns configuration and must not have the
+	# process environment overwritten underneath it.
 	here = os.path.dirname(os.path.abspath(__file__))
 	dotenv_path = os.path.join(here, ".env")
-	load_dotenv(dotenv_path, override=True)
+	if config_object is None:
+		load_dotenv(dotenv_path, override=True)
 
 	app = Flask(__name__)
 	app.config.from_object(config_object or Config)
@@ -130,6 +133,8 @@ def create_app(config_object: object | None = None):
 			user = db.session.get(User, uid)
 			if user is None:
 				return True
+			if user.deleted_at is not None:
+				return True
 			return int(jwt_payload.get("ver", 0)) != int(user.token_version or 0)
 		except Exception:
 			# Fail closed on an unreadable identity/version.
@@ -152,8 +157,11 @@ def create_app(config_object: object | None = None):
 	with app.app_context():
 		from .api import sockets
 
-	# Initialize Kafka service (only if enabled)
-	if os.getenv("KAFKA_ENABLED", "0") == "1" or app.config.get("KAFKA_ENABLED", False):
+	# Initialize Kafka service (only if enabled). The config object is the
+	# source of truth: reading os.getenv() here meant a test config could not
+	# disable the consumer, and every process that imported the module started
+	# one. TESTING always opts out.
+	if app.config.get("KAFKA_ENABLED", False) and not app.config.get("TESTING"):
 		try:
 			from .utils.kafka_service import KafkaService
 			kafka = KafkaService()
@@ -171,16 +179,18 @@ def create_app(config_object: object | None = None):
 		except Exception as e:
 			print(f"Warning: Could not initialize Kafka: {e}")
 
-	# Initialize AI providers
-	try:
-		ai_manager = get_ai_provider_manager()
-		ai_manager.initialize()
-		provider_info = ai_manager.get_provider_info()
-		print(f"AI Providers initialized - LLM: {provider_info['llm_provider']}, Embedding: {provider_info['embedding_provider']}, RAG: {provider_info['rag_enabled']}")
-	except Exception as e:
-		print(f"Warning: Could not initialize AI providers: {e}")
-		import traceback
-		traceback.print_exc()
+	# Initialize AI providers. Tests and one-off tooling do not need provider
+	# discovery, and it can incur network calls during import.
+	if not app.config.get("TESTING"):
+		try:
+			ai_manager = get_ai_provider_manager()
+			ai_manager.initialize()
+			provider_info = ai_manager.get_provider_info()
+			print(f"AI Providers initialized - LLM: {provider_info['llm_provider']}, Embedding: {provider_info['embedding_provider']}, RAG: {provider_info['rag_enabled']}")
+		except Exception as e:
+			print(f"Warning: Could not initialize AI providers: {e}")
+			import traceback
+			traceback.print_exc()
 
 	# Security: Initialize rate limiter (Redis-backed when available so
 	# limits are shared across workers; falls back to memory otherwise).
@@ -210,37 +220,43 @@ def create_app(config_object: object | None = None):
 		except Exception:
 			return f"ip:{request.remote_addr or 'unknown'}"
 
-	try:
-		from flask_limiter import Limiter
-		storage_uri = app.config.get('RATELIMIT_STORAGE_URL', "memory://")
-		if (not storage_uri or storage_uri == "memory://") and app.config.get("REDIS_ENABLED"):
-			storage_uri = app.config.get("REDIS_URL", "redis://127.0.0.1:6379/0")
-		# Defaults are deliberately generous: every unannotated read-only route
-		# gets this ceiling. Auth/OTP/AI/write routes keep their tighter limits
-		# below. 50/hour was low enough for one dashboard session to exhaust.
-		default_limits = ["30000 per day", "3000 per hour"]
+	# A disabled limiter must not wrap view functions at all. Flask-Limiter's
+	# wrappers hold only a weak reference to the extension; when the extension
+	# is disabled it is not retained on app.extensions, so wrapped routes later
+	# raise "weakly-referenced object no longer exists" on every request.
+	limiter = None
+	if app.config.get("RATELIMIT_ENABLED", True):
 		try:
-			limiter = Limiter(
-				app=app,
-				key_func=_rate_limit_key,
-				storage_uri=storage_uri,
-				strategy=app.config.get('RATELIMIT_STRATEGY', "fixed-window"),
-				default_limits=default_limits,
-			)
-		except Exception as e:
-			print(f"Warning: Redis rate-limit storage unavailable ({e}); using memory://")
-			limiter = Limiter(
-				app=app,
-				key_func=_rate_limit_key,
-				storage_uri="memory://",
-				strategy=app.config.get('RATELIMIT_STRATEGY', "fixed-window"),
-				default_limits=default_limits,
-			)
-	except ImportError:
-		print("Warning: Flask-Limiter not installed. Rate limiting disabled.")
-		limiter = None
-		if app.config.get("IS_PRODUCTION"):
-			raise RuntimeError("Flask-Limiter required in production")
+			from flask_limiter import Limiter
+			storage_uri = app.config.get('RATELIMIT_STORAGE_URL', "memory://")
+			if (not storage_uri or storage_uri == "memory://") and app.config.get("REDIS_ENABLED"):
+				storage_uri = app.config.get("REDIS_URL", "redis://127.0.0.1:6379/0")
+			# Defaults are deliberately generous: every unannotated read-only route
+			# gets this ceiling. Auth/OTP/AI/write routes keep their tighter limits
+			# below. 50/hour was low enough for one dashboard session to exhaust.
+			default_limits = ["30000 per day", "3000 per hour"]
+			try:
+				limiter = Limiter(
+					app=app,
+					key_func=_rate_limit_key,
+					storage_uri=storage_uri,
+					strategy=app.config.get('RATELIMIT_STRATEGY', "fixed-window"),
+					default_limits=default_limits,
+				)
+			except Exception as e:
+				print(f"Warning: Redis rate-limit storage unavailable ({e}); using memory://")
+				limiter = Limiter(
+					app=app,
+					key_func=_rate_limit_key,
+					storage_uri="memory://",
+					strategy=app.config.get('RATELIMIT_STRATEGY', "fixed-window"),
+					default_limits=default_limits,
+				)
+		except ImportError:
+			print("Warning: Flask-Limiter not installed. Rate limiting disabled.")
+			limiter = None
+			if app.config.get("IS_PRODUCTION"):
+				raise RuntimeError("Flask-Limiter required in production")
 
 	# Skip rate limiting for CORS preflight (OPTIONS) and video polling endpoints
 	# that fire every 5-8s and would blow through normal limits instantly.
@@ -295,14 +311,9 @@ def create_app(config_object: object | None = None):
 		print("Warning: Flask-Talisman not installed. Security headers disabled.")
 		talisman = None
 
-	# Initialize background scheduler for interview status updates
-	# Temporarily disabled to debug API issues
-	# try:
-	# 	from .scheduler import init_scheduler
-	# 	init_scheduler(app)
-	# except Exception as e:
-	# 	print(f"Warning: Could not initialize background scheduler: {e}")
-	pass
+	# The scheduler is deliberately not started here. `backend.worker` owns it
+	# as a separate service; starting APScheduler in every gunicorn worker would
+	# duplicate every job. See backend/scheduler.py and docker-compose.aws.yml.
 
 	# enable CORS for API routes so frontend dev server can call /api/*
 	try:
@@ -338,6 +349,11 @@ def create_app(config_object: object | None = None):
 		_limit("api.refresh_session", "60 per minute")
 		_limit("api.logout", "30 per minute")
 		_limit("api.get_me", "100 per minute")
+		# Privacy endpoints re-authenticate and touch many rows; keep them rare.
+		_limit("api.export_my_data", "5 per hour")
+		_limit("api.delete_my_account", "5 per hour")
+		_limit("api.deletion_status", "60 per minute")
+		_limit("api.health_scheduler", "60 per minute")
 		# Unauthenticated public-profile views write an analytics row per hit
 		_limit("api.get_public_profile", "60 per minute")
 		# OTP: tight caps stop email bombing and code guessing
@@ -504,6 +520,22 @@ def create_app(config_object: object | None = None):
 	    # Flask-CORS already handles ACAO; do not echo origins or errors here.
 	    return jsonify({"error": "Internal Server Error"}), 500
 
+	# Budget refusals are expected product states. A route that lets the
+	# exception escape gets a stable 402 JSON body instead of a 500.
+	try:
+		from .utils.ai_budget import AIBudgetError
+
+		@app.errorhandler(AIBudgetError)
+		def ai_budget_exceeded(error):
+			response = jsonify({
+				"error": error.message,
+				"code": error.code,
+			})
+			response.status_code = getattr(error, "status_code", 402)
+			return response
+	except Exception:
+		pass
+
 	# Serve uploaded files with MIME-sniffing protection
 	@app.route('/uploads/<path:filename>')
 	def uploaded_file(filename):
@@ -598,14 +630,78 @@ def create_app(config_object: object | None = None):
 		# models may not be importable before deps/migrations — ignore
 		pass
 
+	# Register the maintenance CLI command (defined below). Registering it here
+	# keeps one app instance per process; the old module-level `app` built a
+	# second one before gunicorn ever called the factory.
+	app.cli.command("db-optimize")(optimize_database)
+	app.cli.command("scheduler-run")(scheduler_run)
+	app.cli.command("scheduler-health")(scheduler_health_command)
+	app.cli.command("purge-account")(purge_account_command)
+	app.cli.command("purge-due-accounts")(purge_due_accounts_command)
+
 	return app
 
 
-# Create the app instance for gunicorn
-app = create_app()
+@click.argument("job", type=str)
+def scheduler_run(job):
+	"""Run one scheduler job in the foreground (for backfills and debugging)."""
+	import json
+	from .scheduler import JOB_DEFINITIONS, run_job
+
+	if job not in JOB_DEFINITIONS:
+		raise click.BadParameter(f"unknown job; choose from {', '.join(sorted(JOB_DEFINITIONS))}")
+	result = run_job(current_app._get_current_object(), job)
+	click.echo(json.dumps(result, indent=2, default=str))
 
 
-@app.cli.command("db-optimize")
+def scheduler_health_command():
+	"""Print scheduler freshness and exit non-zero if a job is stale."""
+	import json
+	from .scheduler import scheduler_health
+
+	health = scheduler_health(current_app._get_current_object())
+	click.echo(json.dumps(health, indent=2, default=str))
+	if not health["healthy"]:
+		raise click.ClickException("one or more scheduler jobs are stale")
+
+
+@click.argument("identifier", type=str)
+@click.option("--force", is_flag=True, help="Delete immediately, even inside the grace period.")
+def purge_account_command(identifier, force):
+	"""Hard-delete one account by id or email.
+
+	Without --force this only purges an account whose grace period has elapsed.
+	--force is the documented support path for an immediate, audited deletion.
+	"""
+	from .models import User
+	from .utils.account_deletion import purge_account, purge_account_now
+
+	user = None
+	try:
+		user = db.session.get(User, int(identifier))
+	except (TypeError, ValueError):
+		pass
+	if user is None:
+		user = User.query.filter(User.email.ilike(identifier)).first()
+	if user is None:
+		raise click.ClickException("account not found")
+
+	if force:
+		ok = purge_account_now(user, reason="support-cli")
+		click.echo(f"purged={ok} user_id={user.id}")
+	else:
+		result = purge_account(user.id, force=False, reason="scheduler-cli")
+		click.echo(f"result={result} user_id={user.id}")
+
+
+@click.option("--limit", default=25, type=int, help="Maximum accounts to purge in this run.")
+def purge_due_accounts_command(limit):
+	"""Run the due-account purge once (normally the scheduler does this)."""
+	from .utils.account_deletion import purge_due_accounts
+
+	click.echo(f"purged={purge_due_accounts(batch_size=limit)}")
+
+
 def optimize_database():
     """Create database indexes for optimal query performance"""
     from sqlalchemy import text
@@ -693,6 +789,7 @@ def optimize_database():
 
 
 if __name__ == "__main__":
+	app = create_app()
 	# quick dev runner - PORT read from backend/.env (no hardcoded fallback duplicated).
 	# Debug defaults OFF and is forced off in production; opt in with FLASK_DEBUG=1.
 	_debug = os.getenv("FLASK_DEBUG", "0") == "1" and not app.config.get("IS_PRODUCTION")

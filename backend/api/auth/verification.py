@@ -43,7 +43,7 @@ def request_email_otp():
         return jsonify({"error": "email is required"}), 400
     user = User.query.filter_by(email=email).first()
     # Same response shape for unknown emails so addresses can't be enumerated.
-    if not user:
+    if not user or user.deleted_at is not None:
         log_security_event("otp_request_unknown_email", ip_address=request.remote_addr, email=email)
         return jsonify({"message": "If an account exists for this email, a code was sent."}), 200
     if user.email_verified:
@@ -64,7 +64,7 @@ def verify_email_otp():
     if not email or not code:
         return jsonify({"error": "email and code are required"}), 400
     user = User.query.filter_by(email=email).first()
-    if not user:
+    if not user or user.deleted_at is not None:
         return jsonify({"error": "Invalid code"}), 400
     if user.email_verified:
         return jsonify({"error": "Email is already verified. Please sign in."}), 400

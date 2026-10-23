@@ -63,6 +63,13 @@ def login():
         kafka_service.emit_event("user_login_failed", {"user_id": user.id, "email": email, "reason": "invalid_password", "ip": request.remote_addr})
         return jsonify({"error": "invalid credentials"}), 401
 
+    if user.deleted_at is not None:
+        log_security_event("login_blocked_deleted", user_id=user.id, ip_address=request.remote_addr)
+        return jsonify({
+            "error": "This account has been deleted.",
+            "code": "account_deleted",
+        }), 410
+
     if not user.email_verified:
         log_security_event("login_blocked_unverified", user_id=user.id, ip_address=request.remote_addr, email=email)
         # Help the user forward: (re)send a code, respecting the cooldown.
