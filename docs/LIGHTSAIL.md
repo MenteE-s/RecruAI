@@ -52,10 +52,13 @@ docker compose -f docker-compose.vps.yml exec backend flask db upgrade --directo
 curl -f https://api.menteeai.org/api/health
 ```
 
-Renewal cron (monthly is plenty; certbot renews <30d):
+Renewal (daily; reloads nginx only when a certificate changes):
 ```cron
-0 3 1 * * docker stop recruai_nginx; docker run --rm -p 80:80 -v recruai_letsencrypt:/etc/letsencrypt certbot/certbot renew -q; docker start recruai_nginx
+0 3 * * * API_DOMAIN=api.menteeai.org /opt/recruai/scripts/renew-tls.sh >> /var/log/recruai-tls.log 2>&1
 ```
+The script checks expiry, runs the webroot renewal, and reloads nginx only when
+the certificate hash changes. Alert if `/var/log/recruai-tls.log` contains
+`WARNING: certificate expires`.
 
 ## 4. Vercel (frontend rebuild — vars are baked at build time)
 
