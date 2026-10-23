@@ -91,6 +91,12 @@ jobs:
         working-directory: frontend
         run: npm run build
 
+      - name: Run Playwright E2E
+        working-directory: frontend
+        run: |
+          npx playwright install --with-deps chromium
+          npm run e2e
+
   # ===========================================================================
   # Deploy job — runs on push to main. Push code, it lands on EC2.
   # ===========================================================================
