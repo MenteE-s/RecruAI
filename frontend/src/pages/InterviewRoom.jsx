@@ -544,6 +544,24 @@ const InterviewRoom = () => {
 
       case "video":
       case "human_video":
+        if (process.env.REACT_APP_VIDEO_ENABLED !== "true") {
+          return (
+            <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+              <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full text-center">
+                <h2 className="text-xl font-semibold text-gray-900 mb-2">Video interviews are disabled</h2>
+                <p className="text-gray-600 mb-4">
+                  Video interviews are not available during this beta. Please use text or AI interviews instead.
+                </p>
+                <button
+                  onClick={() => navigate("/feed")}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  Return to Dashboard
+                </button>
+              </div>
+            </div>
+          );
+        }
         return <VideoRoom interviewId={interviewId} interview={interview} onLeave={() => navigate(`/in/interviews/${interviewId}`)} />;
 
       default:

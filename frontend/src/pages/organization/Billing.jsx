@@ -196,19 +196,28 @@ export default function Billing() {
           <h2 className="text-sm font-semibold text-gray-900">Billing actions</h2>
         </div>
         <div className="p-6 space-y-3">
-          {!isPaidActive ? (
-            <button onClick={() => alert('Upgrade functionality with Stripe integration')} className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors">
-              Upgrade to Pro <FiArrowRight className="w-4 h-4" />
-            </button>
-          ) : (
-            <button onClick={() => { if (window.confirm('Cancel Pro subscription?')) alert('Cancellation'); }} className="w-full px-6 py-3 bg-white border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50">
-              Cancel subscription
-            </button>
+          {process.env.REACT_APP_BILLING_ENABLED !== "true" && (
+            <div className="bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-700">
+              Paid billing is disabled during this beta. Plan upgrades and payment changes are not available yet.
+            </div>
           )}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <button onClick={() => alert('Invoice download')} className="inline-flex items-center justify-center gap-1.5 px-4 py-3 bg-white border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50"><FiDownload className="w-4 h-4" /> Download invoice</button>
-            <button onClick={() => alert('Payment method update')} className="inline-flex items-center justify-center gap-1.5 px-4 py-3 bg-white border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50"><FiCreditCard className="w-4 h-4" /> Update payment</button>
-          </div>
+          {process.env.REACT_APP_BILLING_ENABLED === "true" && (
+            <>
+              {!isPaidActive ? (
+                <button onClick={() => alert('Upgrade functionality with Stripe integration')} className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors">
+                  Upgrade to Pro <FiArrowRight className="w-4 h-4" />
+                </button>
+              ) : (
+                <button onClick={() => { if (window.confirm('Cancel Pro subscription?')) alert('Cancellation'); }} className="w-full px-6 py-3 bg-white border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                  Cancel subscription
+                </button>
+              )}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button onClick={() => alert('Invoice download')} className="inline-flex items-center justify-center gap-1.5 px-4 py-3 bg-white border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50"><FiDownload className="w-4 h-4" /> Download invoice</button>
+                <button onClick={() => alert('Payment method update')} className="inline-flex items-center justify-center gap-1.5 px-4 py-3 bg-white border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50"><FiCreditCard className="w-4 h-4" /> Update payment</button>
+              </div>
+            </>
+          )}
           <p className="text-xs text-gray-500 text-center pt-2">Secure billing via Stripe • Invoices sent to your email</p>
         </div>
       </div>
