@@ -224,8 +224,8 @@
           <span class="pill red">2 P0 launch blockers</span> <span class="pill amber">1 partial</span>
           <span class="pill green">P0-03 + P0-04 fixed in code</span>
           <span class="pill amber">P0-05 test gate live · staging E2E pending</span>
-          <span class="pill green">P1-01 + P1-07 fixed in code</span>
-          <span class="pill amber">9 P1 open · 7 fixed</span>
+          <span class="pill green">P1-01 + P1-08 fixed in code</span>
+          <span class="pill amber">8 P1 open · 8 fixed</span>
           <span class="pill">10 P2 hardening</span>
           <span class="pill green">No committed secrets found</span>
         </div>
@@ -266,7 +266,7 @@
 
   <div class="grid4" style="margin-bottom:16px">
     <div class="stat red"><b>3</b><span>P0 launch blockers</span></div>
-    <div class="stat amber"><b>13</b><span>P1 open · 7 fixed in code</span></div>
+    <div class="stat amber"><b>8</b><span>P1 open · 8 fixed in code</span></div>
     <div class="stat blue"><b>10</b><span>P2 hardening items</span></div>
     <div class="stat green"><b>4/4</b><span>frontend suites pass (37 tests)</span></div>
   </div>
@@ -868,14 +868,14 @@ repo-wide                  no Sentry / OpenTelemetry / Prometheus / structured l
     </details>
   </article>
 
-  <article class="finding" data-severity="P1" data-area="Ops">
+  <article class="finding" data-status="fixed" data-severity="P1" data-area="Ops">
     <details>
       <summary>
         <span class="fid">P1-08</span>
         <span>
           <span class="ftitle">Backups cover the database only — uploaded files and restore procedures are untested</span>
           <span class="fsum">RDS has automated snapshots; the Docker uploads volume has no backup, and no one has restored either.</span>
-          <span class="badges"><span class="badge p1">P1</span><span class="badge area">Ops</span><span class="badge eff">0.5–1 day</span></span>
+          <span class="badges"><span class="badge p1">P1</span><span class="badge fixed">Fixed</span><span class="badge area">Ops</span><span class="badge eff">0.5–1 day</span></span>
         </span>
       </summary>
       <div class="fbody">
@@ -1350,7 +1350,7 @@ frontend/Dockerfile / Dockerfile.prod      two build paths</div>
         <tr><td><b>P1-05</b> AI budget/logs</td><td><span class="tag green">Code</span> <span class="tag green">Fixed in code</span></td><td>Provider-level atomic reservation, org attribution, usage ledger, 402 propagation, removed content logs, tests</td><td>Vendor spend caps optional</td><td><b>Yes</b></td></tr>
         <tr><td><b>P1-06</b> Cosmetic roles</td><td><span class="tag green">Code</span> <span class="tag green">Fixed in code</span></td><td>Permission matrix/decorator, protect billing/member/org routes, last-admin guard</td><td>None</td><td><b>Yes</b> — after the role matrix is agreed</td></tr>
         <tr><td><b>P1-07</b> No error tracking/real health</td><td><span class="tag amber">Code + prod</span> <span class="tag green">Fixed in code</span></td><td>Sentry init, request IDs, split liveness/readiness, alert hooks</td><td>Sentry project/DSN (free tier works); alert routing</td><td><b>Yes</b> — no-op without a DSN</td></tr>
-        <tr><td><b>P1-08</b> Backups/restore</td><td><span class="tag amber">Code + prod</span></td><td>Backup/restore scripts, uploads sync, runbook, restore smoke test</td><td>S3 bucket/IAM/lifecycle, cron, restore drill</td><td><b>Yes</b> — scripts can ship; backups need the bucket</td></tr>
+        <tr><td><b>P1-08</b> Backups/restore</td><td><span class="tag amber">Code + prod</span> <span class="tag green">Fixed in code</span></td><td>Backup/restore scripts, uploads sync, runbook, restore smoke test</td><td>S3 bucket/IAM/lifecycle, cron, restore drill</td><td><b>Yes</b> — scripts can ship; backups need the bucket</td></tr>
         <tr><td><b>P1-09</b> TLS renewal</td><td><span class="tag gray">Prod only</span></td><td>None (minor nginx template edit if needed)</td><td>Host timer/cron, nginx reload, expiry alert, renewal test</td><td>Existing cert remains valid; close before 90 days</td></tr>
         <tr><td><b>P1-10</b> Unsafe auto-deploy</td><td><span class="tag amber">Code + prod</span></td><td>CI gates, pre-deploy snapshot, rollback job, env checks, staging workflow</td><td>Staging host/DB/secrets; branch protection</td><td><b>Yes</b> — add gates before the next deploy</td></tr>
         <tr><td><b>P1-11</b> Vulnerable dependencies</td><td><span class="tag green">Code</span></td><td>Pin/lock versions, upgrade critical/high, audit gate, regression test</td><td>None</td><td><b>Yes</b> — test the upgrades first</td></tr>
@@ -2521,7 +2521,7 @@ proxy_read_timeout 3600s;
           <tr><td><b>P1-05</b></td><td>Provider-level AI budget, usage ledger, no content logs</td><td><span class="tag amber">P1</span> <span class="tag green">Fixed</span></td><td>Billing</td></tr>
           <tr><td><b>P1-06</b></td><td>Team roles are cosmetic</td><td><span class="tag amber">P1</span> <span class="tag green">Fixed</span></td><td>Security</td></tr>
           <tr><td><b>P1-07</b></td><td>No error tracking; fake readiness</td><td><span class="tag amber">P1</span> <span class="tag green">Fixed</span></td><td>Ops</td></tr>
-          <tr><td><b>P1-08</b></td><td>Uploads not backed up; no restore drill</td><td><span class="tag amber">P1</span></td><td>Ops</td></tr>
+          <tr><td><b>P1-08</b></td><td>Uploads not backed up; no restore drill</td><td><span class="tag amber">P1</span> <span class="tag green">Fixed</span></td><td>Ops</td></tr>
           <tr><td><b>P1-09</b></td><td>Cert renewal doesn’t reload nginx</td><td><span class="tag amber">P1</span></td><td>Ops</td></tr>
           <tr><td><b>P1-10</b></td><td>No staging/tests/snapshot/rollback on deploy</td><td><span class="tag amber">P1</span></td><td>Ops</td></tr>
           <tr><td><b>P1-11</b></td><td>Unpinned deps; 105 npm advisories; CRA EOL</td><td><span class="tag amber">P1</span></td><td>Quality</td></tr>
