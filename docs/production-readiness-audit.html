@@ -221,7 +221,7 @@
         <h2>Production readiness: 36 / 100 — “controlled beta only”</h2>
         <p>Strong modular code and real security work already exist. The blockers are not code quality — they are broken revenue controls, a dead video path, missing test gates, and the production dependencies behind the fixes already landed.</p>
         <div class="pills">
-          <span class="pill red">2 P0 launch blockers</span> <span class="pill amber">1 partial</span>
+          <span class="pill red">1 P0 launch blocker</span> <span class="pill amber">1 partial</span>
           <span class="pill green">P0-03 + P0-04 fixed in code</span>
           <span class="pill amber">P0-05 test gate live · staging E2E pending</span>
           <span class="pill green">P1-01 + P1-010 fixed in code</span>
@@ -265,7 +265,7 @@
   </div>
 
   <div class="grid4" style="margin-bottom:16px">
-    <div class="stat red"><b>3</b><span>P0 launch blockers</span></div>
+    <div class="stat red"><b>1</b><span>P0 launch blocker</span></div>
     <div class="stat amber"><b>6</b><span>P1 open · 10 fixed in code</span></div>
     <div class="stat blue"><b>10</b><span>P2 hardening items</span></div>
     <div class="stat green"><b>4/4</b><span>frontend suites pass (37 tests)</span></div>
@@ -415,7 +415,7 @@
     These five either break a customer promise, give away the paid product, or make onboarding impossible. None is a refactor; each is a bounded fix.
   </div>
 
-  <article class="finding" data-severity="P0" data-area="Product">
+  <article class="finding" data-status="partial" data-severity="P0" data-area="Product">
     <details open>
       <summary>
         <span class="fid">P0-01</span>
@@ -487,7 +487,7 @@ backend/api/interviews/video.py:25    returns 503 "Video calls are not configure
     </details>
   </article>
 
-  <article class="finding" data-severity="P0" data-area="Billing">
+  <article class="finding" data-status="partial" data-severity="P0" data-area="Billing">
     <details>
       <summary>
         <span class="fid">P0-02</span>
@@ -1337,8 +1337,8 @@ frontend/Dockerfile / Dockerfile.prod      two build paths</div>
     <table>
       <thead><tr><th>Finding</th><th>Type</th><th>Code work you can finish now</th><th>Production checklist item</th><th>Safe to deploy before it?</th></tr></thead>
       <tbody>
-        <tr><td><b>P0-01</b> Video broken</td><td><span class="tag amber">Code + prod</span> <span class="tag blue">Decision</span></td><td>Allow camera/mic in all three header locations; public LiveKit URL config; token endpoint; hide/flag video route if unconfigured</td><td>LiveKit Cloud or self-hosted LiveKit + Egress; TCP/UDP/TURN ports; TLS/WSS; secrets; S3 bucket/credentials for recordings; two-browser + recording test</td><td><b>Yes</b> — ship with <code>VIDEO_ENABLED=0</code> and remove the pricing claim until ready</td></tr>
-        <tr><td><b>P0-02</b> Free/self-service billing</td><td><span class="tag amber">Code + prod</span> <span class="tag blue">Decision</span></td><td>Remove free upgrade and trial reset; server-side entitlements only; hide paid CTAs. If paid: checkout, webhook, portal, migration</td><td><b>Paid only:</b> Stripe business verification, bank, products/prices, webhook secret, tax/refund policy</td><td><b>Yes</b> — free beta with paid CTAs hidden and <code>BILLING_ENABLED=0</code></td></tr>
+        <tr><td><b>P0-01</b> Video broken</td><td><span class="tag amber">Code + prod</span> <span class="tag amber">Partial</span></td><td>Allow camera/mic in all three header locations; public LiveKit URL config; token endpoint; hide/flag video route if unconfigured</td><td>LiveKit Cloud or self-hosted LiveKit + Egress; TCP/UDP/TURN ports; TLS/WSS; secrets; S3 bucket/credentials for recordings; two-browser + recording test</td><td><b>Yes</b> — ship with <code>VIDEO_ENABLED=0</code> and remove the pricing claim until ready</td></tr>
+        <tr><td><b>P0-02</b> Free/self-service billing</td><td><span class="tag amber">Code + prod</span> <span class="tag amber">Partial</span></td><td>Remove free upgrade and trial reset; server-side entitlements only; hide paid CTAs. If paid: checkout, webhook, portal, migration</td><td><b>Paid only:</b> Stripe business verification, bank, products/prices, webhook secret, tax/refund policy</td><td><b>Yes</b> — free beta with paid CTAs hidden and <code>BILLING_ENABLED=0</code></td></tr>
         <tr><td><b>P0-03</b> No password reset</td><td><span class="tag amber">Code + prod</span> <span class="tag green">Fixed in code</span></td><td>Forgot/reset endpoints, single-use OTP, signed-out pages, revoke-all sessions, throttle, tests</td><td>Resend domain verified (SPF/DKIM/DMARC); deliverability test; support runbook</td><td><b>Yes</b> — deploy only after Resend domain/DNS verification; do not ship a dead reset link</td></tr>
         <tr><td><b>P0-04</b> Broken org invites</td><td><span class="tag amber">Code + prod</span> <span class="tag green">Fixed in code</span></td><td>Invitation model/migration, hashed single-use token, create/list/revoke/accept, stop pre-creating users, accept page, tests</td><td>Run migration with snapshot; verified email; external-domain invite test</td><td><b>Yes</b> — migration is a normal deploy step; email is required for external invites</td></tr>
         <tr><td><b>P0-05</b> No tests/CI gates</td><td><span class="tag green">Code</span> <span class="tag amber">Partial</span></td><td>44 backend tests on PostgreSQL/pgvector, 37 frontend tests, 2 Playwright smoke E2E journeys, deploy-blocking CI validation, production audit gate, 43-revision empty-schema migration check</td><td>GitHub branch protection/required checks (documented); staging env</td><td><b>Yes</b> — test gate is live; E2E is additional assurance</td></tr>
