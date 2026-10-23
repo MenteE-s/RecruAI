@@ -28,5 +28,7 @@ livekit-api>=1.2
 redis>=5.0
 pgvector>=0.3.0
 resend>=2.0
+# Optional: only needed when SENTRY_DSN is set. Import is guarded at runtime.
+sentry-sdk[flask]>=1.40
 # NOTE: eventlet removed — app uses async_mode="threading" (extensions.py:17).
 # TODO: pin exact == versions with pip-compile --generate-hashes for reproducible builds.

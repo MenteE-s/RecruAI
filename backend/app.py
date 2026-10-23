@@ -1,7 +1,9 @@
 import os
 import click
 from dotenv import load_dotenv
-from flask import Flask, current_app, jsonify, send_from_directory, request
+import uuid
+
+from flask import Flask, current_app, g, jsonify, send_from_directory, request
 
 # support running as a module (recommended) and as a script
 try:
@@ -67,6 +69,35 @@ def create_app(config_object: object | None = None):
 
 	# Security: Set max content length
 	app.config['MAX_CONTENT_LENGTH'] = app.config.get('MAX_CONTENT_LENGTH', 16 * 1024 * 1024)  # 16MB
+
+	# Observability: propagate a request ID on every response and make it
+	# available to handlers and structured logs. Reuse an incoming ID when the
+	# caller (nginx, a job runner, another service) already set one.
+	@app.before_request
+	def _assign_request_id():
+		g.request_id = request.headers.get("X-Request-ID") or uuid.uuid4().hex
+
+	@app.after_request
+	def _add_request_id(response):
+		response.headers.setdefault("X-Request-ID", getattr(g, "request_id", ""))
+		return response
+
+	# Error tracking is optional and must never break startup. Configure with
+	# SENTRY_DSN; the package is an optional dependency.
+	sentry_dsn = app.config.get("SENTRY_DSN")
+	if sentry_dsn:
+		try:
+			import sentry_sdk
+			from sentry_sdk.integrations.flask import FlaskIntegration
+
+			sentry_sdk.init(
+				dsn=sentry_dsn,
+				integrations=[FlaskIntegration()],
+				traces_sample_rate=app.config.get("SENTRY_TRACES_SAMPLE_RATE", 0.0),
+				environment=app.config.get("FLASK_ENV", "production"),
+			)
+		except ImportError:
+			app.logger.warning("SENTRY_DSN is set but sentry-sdk is not installed")
 
 	# Allowed frontend origins (comma-separated FRONTEND_ORIGIN); single source
 	# used by Flask-CORS and Socket.IO so credentialed requests match.
