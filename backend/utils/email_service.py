@@ -246,6 +246,27 @@ def send_password_changed_email(to_email: str, name: str) -> Tuple[bool, Optiona
     )
 
 
+def send_email_change_notice(to_email: str, name: str, new_email: str) -> Tuple[bool, Optional[str]]:
+    """Notify the old address that its account email was changed."""
+    sender = _config("RESEND_FROM_EMAIL", f"{BRAND_NAME} <no-reply@menteeai.org>")
+    first = (name or "there").split(" ")[0]
+    html = _shell_html(
+        f"Your {BRAND_NAME} email address was changed",
+        f"""
+<tr><td align="center" style="padding:36px 36px 8px 36px;text-align:center;">
+  <p style="margin:0;font-size:24px;font-weight:800;letter-spacing:-0.4px;color:{CHARCOAL};text-align:center;">Email address changed</p>
+  <p style="margin:10px 0 0 0;font-size:14px;line-height:1.7;color:#525252;text-align:center;">Hi {first}, the sign-in email for your {BRAND_NAME} account was changed to <b>{new_email}</b>.</p>
+  <p style="margin:10px 0 0 0;font-size:14px;line-height:1.7;color:#525252;text-align:center;">If you did not make this change, contact support immediately and change your password.</p>
+</td></tr>
+""",
+    )
+    text = (
+        f"Hi {first}, the sign-in email for your {BRAND_NAME} account was changed to {new_email}. "
+        "If you did not make this change, contact support immediately and change your password."
+    )
+    return _send(to_email, f"Your {BRAND_NAME} email address was changed", html, text, sender)
+
+
 def organization_invitation_email_html(
     organization_name: str,
     inviter_name: str,

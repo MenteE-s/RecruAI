@@ -121,8 +121,19 @@ def verify_email_change():
     log_security_event("email_changed", user_id=user.id, ip_address=request.remote_addr,
                        email=new_email, details={"old_email": old_email})
     # Security: notify the old address so the legitimate owner can spot a
-    # hijack. TODO: send via Resend using _send() helper (no generic
-    # send_email exists yet) — currently logged + Kafka event only.
+    # hijack. The send is fail-soft and never blocks the verified change.
+    try:
+        from ...utils.email_service import send_email_change_notice
+
+        ok, send_err = send_email_change_notice(old_email, user.name, new_email)
+        if not ok:
+            log_security_event("email_change_old_notice_failed", user_id=user.id,
+                               ip_address=request.remote_addr, email=old_email,
+                               details={"new_email": new_email, "error": send_err})
+    except Exception as exc:
+        log_security_event("email_change_old_notice_failed", user_id=user.id,
+                           ip_address=request.remote_addr, email=old_email,
+                           details={"new_email": new_email, "error": str(exc)})
     log_security_event("email_change_old_notified", user_id=user.id,
                        ip_address=request.remote_addr, email=old_email,
                        details={"new_email": new_email})

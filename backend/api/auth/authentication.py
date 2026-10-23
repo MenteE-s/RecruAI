@@ -72,20 +72,13 @@ def login():
         }), 410
 
     if not user.email_verified:
+        # Security: do not distinguish an unverified account from an invalid
+        # login. Auto-sending a code here would also leak timing and account
+        # state. Verification codes are requested through the dedicated OTP
+        # flow instead.
         log_security_event("login_blocked_unverified", user_id=user.id, ip_address=request.remote_addr, email=email)
-        # Help the user forward: (re)send a code, respecting the cooldown.
-        try:
-            from .verification import _send_otp
-            code_status, _ = _send_otp(user)
-            resent = code_status == 200
-        except Exception:
-            resent = False
-        return jsonify({
-            "error": "Please verify your email first. Enter the code we sent you.",
-            "code": "email_not_verified",
-            "email": email,
-            "code_resent": resent,
-        }), 403
+        kafka_service.emit_event("user_login_failed", {"email": email, "reason": "unverified", "ip": request.remote_addr})
+        return jsonify({"error": "invalid credentials"}), 401
 
     log_security_event("login_success", user_id=user.id, ip_address=request.remote_addr, email=email)
     kafka_service.emit_event("user_login_success", {

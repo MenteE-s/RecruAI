@@ -224,8 +224,8 @@
           <span class="pill red">2 P0 launch blockers</span> <span class="pill amber">1 partial</span>
           <span class="pill green">P0-03 + P0-04 fixed in code</span>
           <span class="pill amber">P0-05 test gate live · staging E2E pending</span>
-          <span class="pill green">P1-01 + P1-02 fixed in code</span>
-          <span class="pill amber">13 P1 open · 2 fixed</span>
+          <span class="pill green">P1-01 + P1-07 fixed in code</span>
+          <span class="pill amber">9 P1 open · 7 fixed</span>
           <span class="pill">10 P2 hardening</span>
           <span class="pill green">No committed secrets found</span>
         </div>
@@ -266,7 +266,7 @@
 
   <div class="grid4" style="margin-bottom:16px">
     <div class="stat red"><b>3</b><span>P0 launch blockers</span></div>
-    <div class="stat amber"><b>13</b><span>P1 open · 2 fixed in code</span></div>
+    <div class="stat amber"><b>13</b><span>P1 open · 7 fixed in code</span></div>
     <div class="stat blue"><b>10</b><span>P2 hardening items</span></div>
     <div class="stat green"><b>4/4</b><span>frontend suites pass (37 tests)</span></div>
   </div>
@@ -806,7 +806,7 @@ backend/ai_service.py:90           print(f"DEBUG: AI response length: ...")</div
     </details>
   </article>
 
-  <article class="finding" data-severity="P1" data-area="Security">
+  <article class="finding" data-status="fixed" data-severity="P1" data-area="Security">
     <details>
       <summary>
         <span class="fid">P1-06</span>
@@ -836,7 +836,7 @@ backend/models/team_member.py          role column: 'Admin', 'HR', 'Manager', 'M
     </details>
   </article>
 
-  <article class="finding" data-severity="P1" data-area="Ops">
+  <article class="finding" data-status="fixed" data-severity="P1" data-area="Ops">
     <details>
       <summary>
         <span class="fid">P1-07</span>
@@ -984,7 +984,7 @@ npm audit --omit=dev           105 total: 3 critical, 81 high, 17 moderate, 4 lo
     </details>
   </article>
 
-  <article class="finding" data-severity="P1" data-area="Security">
+  <article class="finding" data-status="fixed" data-severity="P1" data-area="Security">
     <details>
       <summary>
         <span class="fid">P1-12</span>
@@ -1354,7 +1354,7 @@ frontend/Dockerfile / Dockerfile.prod      two build paths</div>
         <tr><td><b>P1-09</b> TLS renewal</td><td><span class="tag gray">Prod only</span></td><td>None (minor nginx template edit if needed)</td><td>Host timer/cron, nginx reload, expiry alert, renewal test</td><td>Existing cert remains valid; close before 90 days</td></tr>
         <tr><td><b>P1-10</b> Unsafe auto-deploy</td><td><span class="tag amber">Code + prod</span></td><td>CI gates, pre-deploy snapshot, rollback job, env checks, staging workflow</td><td>Staging host/DB/secrets; branch protection</td><td><b>Yes</b> — add gates before the next deploy</td></tr>
         <tr><td><b>P1-11</b> Vulnerable dependencies</td><td><span class="tag green">Code</span></td><td>Pin/lock versions, upgrade critical/high, audit gate, regression test</td><td>None</td><td><b>Yes</b> — test the upgrades first</td></tr>
-        <tr><td><b>P1-12</b> Auth enumeration/session revocation</td><td><span class="tag green">Code</span></td><td>Generic login errors, token-version/revoke-all, old-email notice</td><td>Email service (already present)</td><td><b>Yes</b></td></tr>
+        <tr><td><b>P1-12</b> Auth enumeration/session revocation</td><td><span class="tag green">Code</span> <span class="tag green">Fixed in code</span></td><td>Generic login errors, token-version/revoke-all, old-email notice</td><td>Email service (already present)</td><td><b>Yes</b></td></tr>
         <tr><td><b>P1-13</b> Config drift</td><td><span class="tag green">Code</span></td><td>Config schema/fail-fast, remove duplicate property and wrong API fallback</td><td>Set real env values per environment</td><td><b>Yes</b> — use safe defaults</td></tr>
         <tr><td><b>P1-14</b> No edge protection</td><td><span class="tag amber">Code + prod</span></td><td>nginx <code>limit_req</code>/<code>limit_conn</code>, body size, security headers</td><td>Cloudflare proxy/WAF (optional paid tier)</td><td><b>Yes</b> — nginx limits now, WAF later</td></tr>
         <tr><td><b>P1-15</b> Pricing mismatch</td><td><span class="tag green">Code</span> <span class="tag blue">Decision</span></td><td>One plan catalogue; copy, trial length, and entitlements agree; tests</td><td>None</td><td><b>Yes</b> — after pricing/trial decision</td></tr>
@@ -2525,7 +2525,7 @@ proxy_read_timeout 3600s;
           <tr><td><b>P1-09</b></td><td>Cert renewal doesn’t reload nginx</td><td><span class="tag amber">P1</span></td><td>Ops</td></tr>
           <tr><td><b>P1-10</b></td><td>No staging/tests/snapshot/rollback on deploy</td><td><span class="tag amber">P1</span></td><td>Ops</td></tr>
           <tr><td><b>P1-11</b></td><td>Unpinned deps; 105 npm advisories; CRA EOL</td><td><span class="tag amber">P1</span></td><td>Quality</td></tr>
-          <tr><td><b>P1-12</b></td><td>Login enumeration; sessions survive password change</td><td><span class="tag amber">P1</span></td><td>Security</td></tr>
+          <tr><td><b>P1-12</b></td><td>Login enumeration; sessions survive password change</td><td><span class="tag amber">P1</span> <span class="tag green">Fixed</span></td><td>Security</td></tr>
           <tr><td><b>P1-13</b></td><td>Config drift / wrong API fallback / duplicate property</td><td><span class="tag amber">P1</span></td><td>Config</td></tr>
           <tr><td><b>P1-14</b></td><td>No edge rate limiting or WAF</td><td><span class="tag amber">P1</span></td><td>Security</td></tr>
           <tr><td><b>P1-15</b></td><td>Pricing contradicts product</td><td><span class="tag amber">P1</span></td><td>Billing</td></tr>
