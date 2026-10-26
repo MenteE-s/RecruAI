@@ -185,12 +185,23 @@ def create_app(config_object: object | None = None):
 
 
 
-	# Initialize Redis cache
+	# Initialize Redis cache. Production fails closed without it: the token
+	# blocklist, rate-limit counters, and cache all assume shared Redis, and a
+	# silent memory fallback would un-share limits and un-revoke logouts.
 	try:
 		from .extensions import init_redis
 		init_redis(app)
 	except Exception as e:
 		print(f"Warning: Could not initialize Redis: {e}")
+	if (
+		app.config.get("IS_PRODUCTION")
+		and app.config.get("REDIS_ENABLED", True)
+		and app.extensions.get("redis_client") is None
+	):
+		raise RuntimeError(
+			"Production config error: Redis is required (REDIS_URL) but unreachable. "
+			"Rate limits and token revocation must be shared, not per-process memory."
+		)
 
 	# Register socket events
 	with app.app_context():
@@ -284,6 +295,10 @@ def create_app(config_object: object | None = None):
 				)
 			except Exception as e:
 				print(f"Warning: Redis rate-limit storage unavailable ({e}); using memory://")
+				if app.config.get("IS_PRODUCTION"):
+					raise RuntimeError(
+						"Production config error: rate-limit storage must be Redis, not per-process memory."
+					)
 				limiter = Limiter(
 					app=app,
 					key_func=_rate_limit_key,

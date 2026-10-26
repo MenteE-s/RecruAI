@@ -12,6 +12,7 @@ def _prod_env(**overrides):
         "DATABASE_URL": "postgresql+psycopg2://u:p@h:5432/db",
         "RESEND_API_KEY": "re_test",
         "GROQ_API_KEY": "gsk_test",
+        "REDIS_ENABLED": True,
         "VIDEO_ENABLED": "0",
     }
     env.update(overrides)
@@ -45,6 +46,11 @@ def test_production_validation_requires_resend_and_an_ai_key():
         validate_production_config(_prod_env(GROQ_API_KEY=""))
 
 
+def test_production_validation_requires_shared_redis():
+    with pytest.raises(RuntimeError, match="REDIS_ENABLED"):
+        validate_production_config(_prod_env(REDIS_ENABLED=False))
+
+
 def test_production_validation_requires_livekit_only_when_video_enabled():
     warnings = validate_production_config(_prod_env())
     assert any("LIVEKIT" in w for w in warnings)
@@ -59,3 +65,41 @@ def test_production_validation_requires_livekit_only_when_video_enabled():
         LIVEKIT_API_SECRET="secret",
     )
     assert validate_production_config(ok) == []
+
+
+def test_production_boot_fails_closed_without_redis():
+    """IS_PRODUCTION + unreachable Redis must raise at boot, not warn."""
+    from backend import create_app
+
+    class ProdWithoutRedis:
+        TESTING = True
+        IS_PRODUCTION = True
+        SECRET_KEY = "test-secret-key"
+        JWT_SECRET_KEY = "test-jwt-secret"
+        SQLALCHEMY_DATABASE_URI = "postgresql+psycopg2://u:p@h:5432/db"
+        RESEND_API_KEY = "re_test"
+        GROQ_API_KEY = "gsk_test"
+        REDIS_ENABLED = True
+        REDIS_URL = "redis://127.0.0.1:6390/0"
+        RATELIMIT_ENABLED = False
+
+    with pytest.raises(RuntimeError, match="Redis is required"):
+        create_app(ProdWithoutRedis)
+
+
+def test_nginx_template_has_edge_limits():
+    from pathlib import Path
+
+    template = (
+        Path(__file__).resolve().parents[2] / "nginx" / "nginx.vps.conf.template"
+    ).read_text(encoding="utf-8")
+    for directive in (
+        "limit_req_zone",
+        "limit_conn_zone",
+        "limit_req_status 429",
+        "limit_conn_status 429",
+        "limit_req zone=auth",
+        "limit_req zone=ai",
+        "client_max_body_size",
+    ):
+        assert directive in template, f"missing edge directive: {directive}"

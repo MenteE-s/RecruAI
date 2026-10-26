@@ -225,7 +225,7 @@
           <span class="pill green">P0-03 + P0-04 fixed in code</span>
           <span class="pill amber">P0-05 test gate live · staging E2E pending</span>
           <span class="pill green">P1-01 + P1-010 fixed in code</span>
-          <span class="pill amber">5 P1 open · 11 fixed</span>
+          <span class="pill amber">4 P1 open · 12 fixed</span>
           <span class="pill">10 P2 hardening</span>
           <span class="pill green">No committed secrets found</span>
         </div>
@@ -266,7 +266,7 @@
 
   <div class="grid4" style="margin-bottom:16px">
     <div class="stat red"><b>1</b><span>P0 launch blocker</span></div>
-    <div class="stat amber"><b>5</b><span>P1 open · 11 fixed in code</span></div>
+    <div class="stat amber"><b>4</b><span>P1 open · 12 fixed in code</span></div>
     <div class="stat blue"><b>10</b><span>P2 hardening items</span></div>
     <div class="stat green"><b>4/4</b><span>frontend suites pass (37 tests)</span></div>
   </div>
@@ -1048,14 +1048,14 @@ backend/utils/email_service.py:217   missing RESEND_API_KEY only logs a warning<
     </details>
   </article>
 
-  <article class="finding" data-severity="P1" data-area="Security">
+  <article class="finding" data-status="fixed" data-severity="P1" data-area="Security">
     <details>
       <summary>
         <span class="fid">P1-14</span>
         <span>
           <span class="ftitle">No edge rate limiting, body limits, or WAF — abuse protection is entirely in-process</span>
           <span class="fsum">The API is directly reachable, and nginx forwards everything without a request budget.</span>
-          <span class="badges"><span class="badge p1">P1</span><span class="badge area">Security</span><span class="badge eff">0.5 day</span></span>
+          <span class="badges"><span class="badge p1">P1</span><span class="badge fixed">Fixed</span><span class="badge area">Security</span><span class="badge eff">0.5 day</span></span>
         </span>
       </summary>
       <div class="fbody">
@@ -1356,7 +1356,7 @@ frontend/Dockerfile / Dockerfile.prod      two build paths</div>
         <tr><td><b>P1-11</b> Vulnerable dependencies</td><td><span class="tag green">Code</span> <span class="tag green">Fixed in code</span></td><td>Pin/lock versions, upgrade critical/high, audit gate, regression test</td><td>None</td><td><b>Yes</b> — test the upgrades first</td></tr>
         <tr><td><b>P1-12</b> Auth enumeration/session revocation</td><td><span class="tag green">Code</span> <span class="tag green">Fixed in code</span></td><td>Generic login errors, token-version/revoke-all, old-email notice</td><td>Email service (already present)</td><td><b>Yes</b></td></tr>
         <tr><td><b>P1-13</b> Config drift</td><td><span class="tag green">Code</span> <span class="tag green">Fixed in code</span></td><td>Config schema/fail-fast, remove duplicate property and wrong API fallback</td><td>Set real env values per environment</td><td><b>Yes</b> — use safe defaults</td></tr>
-        <tr><td><b>P1-14</b> No edge protection</td><td><span class="tag amber">Code + prod</span></td><td>nginx <code>limit_req</code>/<code>limit_conn</code>, body size, security headers</td><td>Cloudflare proxy/WAF (optional paid tier)</td><td><b>Yes</b> — nginx limits now, WAF later</td></tr>
+        <tr><td><b>P1-14</b> No edge protection</td><td><span class="tag amber">Code + prod</span> <span class="tag green">Fixed in code</span></td><td>nginx <code>limit_req</code>/<code>limit_conn</code>, body size, security headers</td><td>Cloudflare proxy/WAF (optional paid tier)</td><td><b>Yes</b> — nginx limits now, WAF later</td></tr>
         <tr><td><b>P1-15</b> Pricing mismatch</td><td><span class="tag green">Code</span> <span class="tag blue">Decision</span></td><td>One plan catalogue; copy, trial length, and entitlements agree; tests</td><td>None</td><td><b>Yes</b> — after pricing/trial decision</td></tr>
 
         <tr><td><b>P2-01</b> Redis <code>KEYS</code></td><td><span class="tag green">Code</span></td><td>Replace with <code>SCAN</code>/<code>UNLINK</code>; test invalidation</td><td>None</td><td><b>Yes</b></td></tr>
@@ -2527,7 +2527,7 @@ proxy_read_timeout 3600s;
           <tr><td><b>P1-11</b></td><td>Unpinned deps; 105 npm advisories; CRA EOL</td><td><span class="tag amber">P1</span> <span class="tag green">Fixed</span></td><td>Quality</td></tr>
           <tr><td><b>P1-12</b></td><td>Login enumeration; sessions survive password change</td><td><span class="tag amber">P1</span> <span class="tag green">Fixed</span></td><td>Security</td></tr>
           <tr><td><b>P1-13</b></td><td>Config drift / wrong API fallback / duplicate property</td><td><span class="tag amber">P1</span> <span class="tag green">Fixed</span></td><td>Config</td></tr>
-          <tr><td><b>P1-14</b></td><td>No edge rate limiting or WAF</td><td><span class="tag amber">P1</span></td><td>Security</td></tr>
+          <tr><td><b>P1-14</b></td><td>No edge rate limiting or WAF</td><td><span class="tag amber">P1</span> <span class="tag green">Fixed</span></td><td>Security</td></tr>
           <tr><td><b>P1-15</b></td><td>Pricing contradicts product</td><td><span class="tag amber">P1</span></td><td>Billing</td></tr>
           <tr><td><b>P2-01</b></td><td>Redis KEYS invalidation</td><td><span class="tag blue">P2</span></td><td>Performance</td></tr>
           <tr><td><b>P2-02</b></td><td>Profile serialization N+1</td><td><span class="tag blue">P2</span></td><td>Performance</td></tr>

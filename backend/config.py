@@ -363,6 +363,14 @@ def validate_production_config(config=None) -> list:
             "(GROQ_API_KEY, OPENAI_API_KEY, or OPENROUTER_API_KEY)."
         )
 
+    # Rate limits and token revocation must be shared across workers. A
+    # disabled Redis silently turns both into per-process memory.
+    if not get("REDIS_ENABLED"):
+        raise RuntimeError(
+            "Production config error: REDIS_ENABLED must be true so limits and "
+            "revocations are shared, not per-process memory."
+        )
+
     if str(get("VIDEO_ENABLED") or "0") == "1":
         for name in ("LIVEKIT_URL", "LIVEKIT_API_KEY", "LIVEKIT_API_SECRET"):
             required(name)
