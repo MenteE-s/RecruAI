@@ -15,25 +15,31 @@ from backend.utils.invitations import hash_invitation_token
 
 
 def _capture_invitation_emails(monkeypatch):
+    """Capture queued invitation emails instead of sending them."""
     captured = []
-    monkeypatch.setattr(
-        org_routes,
-        "send_organization_invitation_email",
-        lambda email, org_name, inviter, role, token, ttl: (
-            captured.append(
-                {
-                    "email": email,
-                    "org_name": org_name,
-                    "inviter": inviter,
-                    "role": role,
-                    "token": token,
-                    "ttl": ttl,
-                }
-            )
-            or (True, None)
-        ),
-    )
+
+    def fake_enqueue(kind, to_email, context=None, **kwargs):
+        captured.append(
+            {
+                "email": to_email,
+                "org_name": (context or {}).get("organization_name"),
+                "inviter": (context or {}).get("inviter_name"),
+                "role": (context or {}).get("role"),
+                "token": (context or {}).get("token"),
+                "ttl": (context or {}).get("expires_days"),
+            }
+        )
+        return None
+
+    monkeypatch.setattr(org_routes, "enqueue_email", fake_enqueue)
     return captured
+
+
+def _noop_enqueue(monkeypatch):
+    """Swallow welcome-email queueing on the accept path."""
+    monkeypatch.setattr(
+        invitation_routes, "enqueue_email", lambda *a, **k: None
+    )
 
 
 def _invite(client, headers, org, email, role="Member"):
@@ -50,9 +56,7 @@ def test_invitation_does_not_create_an_account_or_store_a_raw_token(
     org = make_org()
     admin = make_user(role="organization", organization_id=org.id)
     sent = _capture_invitation_emails(monkeypatch)
-    monkeypatch.setattr(
-        invitation_routes, "send_welcome_email", lambda *a, **k: (True, None)
-    )
+    _noop_enqueue(monkeypatch)
 
     response = _invite(
         client, auth_headers(admin), org, "invitee@example.com"
@@ -117,9 +121,7 @@ def test_existing_verified_user_must_sign_in_to_accept(
     admin = make_user(role="organization", organization_id=org.id)
     existing = make_user(email="existing@example.com", password="TestPass123")
     sent = _capture_invitation_emails(monkeypatch)
-    monkeypatch.setattr(
-        invitation_routes, "send_welcome_email", lambda *a, **k: (True, None)
-    )
+    _noop_enqueue(monkeypatch)
 
     assert _invite(client, auth_headers(admin), org, existing.email).status_code == 201
     token = sent[0]["token"]
@@ -173,9 +175,7 @@ def test_unverified_placeholder_can_reclaim_by_setting_a_password(
         password="OldPass123",
     )
     sent = _capture_invitation_emails(monkeypatch)
-    monkeypatch.setattr(
-        invitation_routes, "send_welcome_email", lambda *a, **k: (True, None)
-    )
+    _noop_enqueue(monkeypatch)
 
     assert _invite(client, auth_headers(admin), org, placeholder.email).status_code == 201
     token = sent[0]["token"]
@@ -240,9 +240,7 @@ def test_resend_rotates_the_token_and_invalidates_the_old_link(
     org = make_org()
     admin = make_user(role="organization", organization_id=org.id)
     sent = _capture_invitation_emails(monkeypatch)
-    monkeypatch.setattr(
-        invitation_routes, "send_welcome_email", lambda *a, **k: (True, None)
-    )
+    _noop_enqueue(monkeypatch)
 
     first = _invite(client, auth_headers(admin), org, "rotate-invite@example.com")
     assert first.status_code == 201

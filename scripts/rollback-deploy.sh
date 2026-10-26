@@ -26,8 +26,8 @@ cd "$DEPLOY_DIR"
 echo "=== Restoring previous backend image ${PREVIOUS_IMAGE_ID} ==="
 docker tag "${PREVIOUS_IMAGE_ID}" recruai_backend:latest
 
-echo "=== Restarting backend, scheduler, nginx ==="
-docker compose -f "$COMPOSE_FILE" up -d --no-build backend scheduler
+echo "=== Restarting backend, scheduler, outbox worker, nginx ==="
+docker compose -f "$COMPOSE_FILE" up -d --no-build backend scheduler outbox-worker
 docker compose -f "$COMPOSE_FILE" restart nginx
 
 echo "=== Waiting for rollback to become healthy ==="
@@ -42,7 +42,7 @@ for _ in $(seq 1 30); do
 done
 
 echo "Rollback did not become healthy (last status ${STATUS})."
-echo "Inspect with: docker compose -f ${COMPOSE_FILE} logs --tail=200 backend scheduler nginx"
+echo "Inspect with: docker compose -f ${COMPOSE_FILE} logs --tail=200 backend scheduler outbox-worker nginx"
 echo "If the migration broke things, restore the database:"
 echo "  ${DEPLOY_DIR}/scripts/restore-db.sh"
 exit 1

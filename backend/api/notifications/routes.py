@@ -349,12 +349,15 @@ def create_interview_notification(interview_id, notification_type, user_id, titl
         **kwargs
     )
     db.session.add(notification)
-    db.session.commit()
-
-    # Emit Kafka event for notification created
+    # Flush so notification.id exists for the fan-out payload; the outbox row
+    # and the notification row commit together.
+    db.session.flush()
+    # The notification row and its fan-out event commit together; the outbox
+    # worker publishes to Kafka with retries.
     try:
-        kafka = KafkaService()
-        kafka.emit_event('notification_created', {
+        from ...utils.outbox import enqueue_kafka_event
+
+        enqueue_kafka_event('notification_created', {
             'notification_id': notification.id,
             'user_id': user_id,
             'type': notification_type,
@@ -362,7 +365,8 @@ def create_interview_notification(interview_id, notification_type, user_id, titl
             'related_interview_id': interview_id
         })
     except Exception as ke:
-        print(f"Failed to emit Kafka message for notification creation: {ke}")
+        print(f"Failed to queue Kafka message for notification creation: {ke}")
+    db.session.commit()
 
     return notification
 
@@ -378,12 +382,16 @@ def create_profile_notification(user_id, notification_type, title, message, rela
         related_organization_id=related_org_id
     )
     db.session.add(notification)
-    db.session.commit()
 
-    # Emit Kafka event for notification created
+    # Flush so notification.id exists for the fan-out payload; the outbox row
+    # and the notification row commit together.
+    db.session.flush()
+    # The notification row and its fan-out event commit together; the outbox
+    # worker publishes to Kafka with retries.
     try:
-        kafka = KafkaService()
-        kafka.emit_event('notification_created', {
+        from ...utils.outbox import enqueue_kafka_event
+
+        enqueue_kafka_event('notification_created', {
             'notification_id': notification.id,
             'user_id': user_id,
             'type': notification_type,
@@ -392,6 +400,7 @@ def create_profile_notification(user_id, notification_type, title, message, rela
             'related_organization_id': related_org_id
         })
     except Exception as ke:
-        print(f"Failed to emit Kafka message for notification creation: {ke}")
+        print(f"Failed to queue Kafka message for notification creation: {ke}")
+    db.session.commit()
 
     return notification

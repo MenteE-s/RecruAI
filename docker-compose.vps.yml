@@ -151,6 +151,52 @@ services:
       start_period: 60s
       retries: 3
 
+  # Exactly one scheduler process (see docker-compose.aws.yml for why the API
+  # must never start APScheduler itself).
+  scheduler:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    image: recruai_backend:latest
+    container_name: recruai_scheduler
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env.vps
+    command: ["python", "-m", "backend.worker"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
+        required: false
+      redis:
+        condition: service_healthy
+
+  # Outbox worker: delivers queued email/Kafka/notifications with retries.
+  # Two parallel claim loops per process; raise OUTBOX_WORKERS on bigger hosts.
+  outbox-worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    image: recruai_backend:latest
+    container_name: recruai_outbox_worker
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env.vps
+    environment:
+      OUTBOX_WORKERS: "2"
+      OUTBOX_BATCH_SIZE: "25"
+      OUTBOX_POLL_INTERVAL: "2"
+    command: ["python", "-m", "backend.outbox_worker"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
+        required: false
+      redis:
+        condition: service_healthy
+
   # Self-hosted video (LiveKit SFU + TURN + recording egress).
   # Firewall must allow: TCP 7881, TCP+UDP 7882, TCP+UDP 3478, UDP 50000-50050.
   # Signaling reaches browsers as wss://<API_DOMAIN>/livekit/ via nginx.

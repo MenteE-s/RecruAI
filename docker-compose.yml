@@ -188,6 +188,32 @@ services:
       start_period: 40s
       retries: 3
 
+  # Outbox worker for local dev (behind the app profile so plain `up` is
+  # unchanged). Drains queued email/Kafka/notifications with 2 workers.
+  outbox-worker:
+    profiles: ["app"]
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    image: recruai_backend:dev
+    container_name: recruai_outbox_worker_dev
+    env_file:
+      - ./backend/.env
+    environment:
+      DATABASE_URL: postgresql+psycopg2://recruai:recruai_pass@db:5432/recruai
+      REDIS_URL: redis://redis:6379/0
+      OUTBOX_WORKERS: "2"
+      OUTBOX_BATCH_SIZE: "10"
+      OUTBOX_POLL_INTERVAL: "2"
+    command: ["python", "-m", "backend.outbox_worker"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
   # CVAI content: question bank -> quizzes -> projects. Idempotent, and behind
   # its own profile so it never runs on `up`:
   #   docker compose --profile seed run --rm cvai-seed

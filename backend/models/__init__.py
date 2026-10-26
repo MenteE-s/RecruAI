@@ -57,6 +57,7 @@ from .job_embedding import JobEmbedding
 from .agent_embedding import AgentEmbedding
 from .scheduler_run import SchedulerRun
 from .account_deletion import AccountDeletion
+from .outbox_event import OutboxEvent
 
 __all__ = [
     "User",
@@ -119,4 +120,5 @@ __all__ = [
     "AgentEmbedding",
     "SchedulerRun",
     "AccountDeletion",
+    "OutboxEvent",
 ]

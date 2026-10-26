@@ -25,11 +25,8 @@ from ...extensions import db
 from ...models import User
 from ...utils.cache import invalidate_auth_cache
 from .session import revoke_all_refresh_tokens
-from ...utils.email_service import (
-    maybe_dev_log_otp,
-    send_password_changed_email,
-    send_password_reset_email,
-)
+from ...utils.email_service import maybe_dev_log_otp
+from ...utils.outbox import enqueue_email, EMAIL_PASSWORD_RESET, EMAIL_PASSWORD_CHANGED
 from ...utils.kafka_service import kafka_service
 from ...utils.otp import OTP_TTL_MINUTES, check_otp, issue_otp
 from ...utils.security import (
@@ -105,7 +102,15 @@ def forgot_password():
         )
         return _generic_forgot_response(started_at)
 
-    sent, send_err = send_password_reset_email(user.email, user.name, code)
+    sent, send_err = None, None
+    try:
+        enqueue_email(EMAIL_PASSWORD_RESET, user.email, {"name": user.name, "code": code})
+        db.session.commit()
+        sent = True
+    except Exception:
+        db.session.rollback()
+        sent = False
+        send_err = "enqueue_failed"
     if not sent:
         maybe_dev_log_otp(user.email, code)
         log_security_event(
@@ -230,19 +235,20 @@ def reset_password():
     except Exception:
         pass
 
-    # The reset must succeed even if the notification mail fails.
+    # The reset must succeed even if the notification mail fails: queue it
+    # and let the outbox worker deliver with retries.
     try:
-        sent, send_err = send_password_changed_email(user.email, user.name)
-        if not sent:
-            log_security_event(
-                "password_changed_email_failed",
-                user_id=user.id,
-                ip_address=request.remote_addr,
-                email=email,
-                details={"error": send_err},
-            )
+        enqueue_email(EMAIL_PASSWORD_CHANGED, user.email, {"name": user.name})
+        db.session.commit()
     except Exception:
-        pass
+        db.session.rollback()
+        log_security_event(
+            "password_changed_email_failed",
+            user_id=user.id,
+            ip_address=request.remote_addr,
+            email=email,
+            details={"error": "enqueue_failed"},
+        )
 
     return jsonify({
         "message": "Password reset. Sign in with your new password.",

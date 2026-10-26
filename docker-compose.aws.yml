@@ -165,6 +165,36 @@ services:
         condition: service_healthy
     mem_limit: 192m
 
+  # Outbox worker: delivers queued email/Kafka/notifications with retries.
+  # Two parallel claim loops per process (OUTBOX_WORKERS=2); scale on bigger
+  # hosts with `docker compose up -d --scale outbox-worker=2` after removing
+  # container_name, or raise OUTBOX_WORKERS. The claim is atomic per row, so
+  # threads and replicas never double-process.
+  outbox-worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    image: recruai_backend:latest
+    container_name: recruai_outbox_worker
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env.production
+    environment:
+      FLASK_ENV: production
+      IS_PRODUCTION: "1"
+      OUTBOX_WORKERS: "2"
+      OUTBOX_BATCH_SIZE: "25"
+      OUTBOX_POLL_INTERVAL: "2"
+    command: ["python", "-m", "backend.outbox_worker"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    mem_limit: 192m
+
   nginx:
     image: nginx:1.25-alpine
     container_name: recruai_nginx

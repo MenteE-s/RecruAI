@@ -22,25 +22,35 @@ def _login(client, email, password="TestPass123"):
 
 
 def _request_code(monkeypatch, client, email):
-    captured = {}
-
-    def fake_send(to_email, name, code):
-        captured["email"] = to_email
-        captured["name"] = name
-        captured["code"] = code
-        return True, None
+    from backend.models import OutboxEvent
 
     monkeypatch.setattr(
         password_reset_module, "MIN_FORGOT_RESPONSE_SECONDS", 0
     )
-    monkeypatch.setattr(
-        password_reset_module, "send_password_reset_email", fake_send
-    )
     response = client.post("/api/auth/password/forgot", json={"email": email})
     assert response.status_code == 200
-    assert captured["email"] == email
-    assert len(captured["code"]) == 6
-    return captured["code"]
+    # The email is queued, not sent: the worker delivers it with retries.
+    event = (
+        OutboxEvent.query.filter_by(type="email.send")
+        .order_by(OutboxEvent.id.desc())
+        .first()
+    )
+    assert event is not None
+    assert event.payload["kind"] == "password_reset"
+    assert event.payload["to_email"] == email
+    code = event.payload["context"]["code"]
+    assert len(code) == 6
+    return code
+
+
+def _password_changed_events():
+    from backend.models import OutboxEvent
+
+    return (
+        OutboxEvent.query.filter_by(type="email.send")
+        .filter(OutboxEvent.payload["kind"].astext == "password_changed")
+        .all()
+    )
 
 
 def test_unknown_email_gets_the_same_generic_response(
@@ -65,12 +75,7 @@ def test_weak_password_does_not_consume_the_reset_code(
 ):
     user = make_user(email="reset@example.com")
     code = _request_code(monkeypatch, client, user.email)
-    patched = {}
-    monkeypatch.setattr(
-        password_reset_module,
-        "send_password_changed_email",
-        lambda *args, **kwargs: (True, None),
-    )
+    assert _password_changed_events() == []
 
     weak = client.post(
         "/api/auth/password/reset",
@@ -105,15 +110,6 @@ def test_reset_changes_password_and_revokes_every_existing_session(
     old_version = user.token_version
 
     code = _request_code(monkeypatch, client, user.email)
-    sent_changed = {}
-    monkeypatch.setattr(
-        password_reset_module,
-        "send_password_changed_email",
-        lambda to_email, name: (
-            sent_changed.update({"email": to_email}) or True,
-            None,
-        ),
-    )
 
     bad = client.post(
         "/api/auth/password/reset",
@@ -136,7 +132,9 @@ def test_reset_changes_password_and_revokes_every_existing_session(
     )
     assert reset.status_code == 200
     assert "Password reset" in reset.get_json()["message"]
-    assert sent_changed["email"] == user.email
+    changed = _password_changed_events()
+    assert len(changed) == 1
+    assert changed[0].payload["to_email"] == user.email
 
     db.session.expire_all()
     refreshed_user = db.session.get(User, user.id)
@@ -189,11 +187,6 @@ def test_reset_verifies_an_unverified_account_and_clears_lockout(
     db.session.commit()
 
     code = _request_code(monkeypatch, client, user.email)
-    monkeypatch.setattr(
-        password_reset_module,
-        "send_password_changed_email",
-        lambda *args, **kwargs: (True, None),
-    )
     reset = client.post(
         "/api/auth/password/reset",
         json={
@@ -231,11 +224,6 @@ def test_reset_rows_are_hashed_not_stored_raw(
 ):
     user = make_user(email="hash-reset@example.com")
     code = _request_code(monkeypatch, client, user.email)
-    monkeypatch.setattr(
-        password_reset_module,
-        "send_password_changed_email",
-        lambda *args, **kwargs: (True, None),
-    )
     assert (
         client.post(
             "/api/auth/password/reset",

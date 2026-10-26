@@ -24,7 +24,7 @@ PR -> validate (tests + build) -> manual approval -> deploy to EC2
 7. `Build backend image` creates a new `recruai_backend:latest` and tags it
    with the commit SHA (`recruai_backend:<sha>`).
 8. `Run DB migrations` applies `flask db upgrade`.
-9. `Start backend and scheduler` brings up the app.
+9. `Start backend, scheduler, and outbox worker` brings up the app.
 10. `Issue TLS cert on first boot` (skips if a cert already exists).
 11. `Start nginx + certbot` renders the nginx template and reloads.
 12. `Wait for public HTTPS health` polls `https://api.recruai.menteeai.org/api/health`
@@ -73,7 +73,7 @@ source backend/.env.production
 ./scripts/restore-db.sh
 
 # Restart and verify:
-docker compose -f docker-compose.aws.yml up -d backend scheduler nginx
+docker compose -f docker-compose.aws.yml up -d backend scheduler outbox-worker nginx
 curl -f https://api.recruai.menteeai.org/api/health
 ```
 

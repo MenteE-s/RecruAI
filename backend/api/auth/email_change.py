@@ -14,7 +14,7 @@ from ...utils.security import log_security_event, sanitize_input, validate_email
 from ...utils.kafka_service import kafka_service
 from ...utils.otp import issue_otp, check_otp, OTP_TTL_MINUTES
 from ...utils.cache import invalidate_auth_cache
-from ...utils.email_service import send_otp_email, maybe_dev_log_otp
+from ...utils.outbox import enqueue_email, EMAIL_CHANGE_OTP, EMAIL_CHANGE_NOTICE
 
 
 def _current_user():
@@ -62,14 +62,24 @@ def request_email_change():
             return jsonify({"error": f"Please wait {wait}s before requesting a new code", "retry_after": int(wait)}), 429
         return jsonify({"error": "Too many codes requested. Please try again later."}), 429
 
-    ok, send_err = send_otp_email(new_email, user.name, code, context="change_email")
-    if not ok:
-        maybe_dev_log_otp(new_email, code)
+    # Queue delivery: the request only commits the OTP + outbox rows. The
+    # outbox worker sends via Resend with retries.
+    try:
+        enqueue_email(EMAIL_CHANGE_OTP, new_email, {"name": user.name, "code": code})
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
         log_security_event("change_email_otp_failed", user_id=user.id, ip_address=request.remote_addr,
-                           email=new_email, details={"error": send_err})
-        if send_err == "email_not_configured":
-            return jsonify({"error": "Email service is not configured. Please contact support."}), 503
-        return jsonify({"error": "Could not send the code. Please try again."}), 502
+                           email=new_email, details={"error": "enqueue_failed"})
+        return jsonify({"error": "Could not queue the code. Please try again."}), 502
+
+    # Dev without Resend: the worker cannot deliver, so keep the local log.
+    try:
+        from ...utils.email_service import maybe_dev_log_otp
+
+        maybe_dev_log_otp(new_email, code)
+    except Exception:
+        pass
 
     log_security_event("change_email_otp_sent", user_id=user.id, ip_address=request.remote_addr, email=new_email)
     return jsonify({"message": f"Verification code sent to {new_email}", "expires_in_minutes": OTP_TTL_MINUTES}), 200
@@ -121,19 +131,16 @@ def verify_email_change():
     log_security_event("email_changed", user_id=user.id, ip_address=request.remote_addr,
                        email=new_email, details={"old_email": old_email})
     # Security: notify the old address so the legitimate owner can spot a
-    # hijack. The send is fail-soft and never blocks the verified change.
+    # hijack. Queued — the worker delivers with retries and never blocks the
+    # verified change.
     try:
-        from ...utils.email_service import send_email_change_notice
-
-        ok, send_err = send_email_change_notice(old_email, user.name, new_email)
-        if not ok:
-            log_security_event("email_change_old_notice_failed", user_id=user.id,
-                               ip_address=request.remote_addr, email=old_email,
-                               details={"new_email": new_email, "error": send_err})
-    except Exception as exc:
+        enqueue_email(EMAIL_CHANGE_NOTICE, old_email, {"name": user.name, "new_email": new_email})
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
         log_security_event("email_change_old_notice_failed", user_id=user.id,
                            ip_address=request.remote_addr, email=old_email,
-                           details={"new_email": new_email, "error": str(exc)})
+                           details={"new_email": new_email, "error": "enqueue_failed"})
     log_security_event("email_change_old_notified", user_id=user.id,
                        ip_address=request.remote_addr, email=old_email,
                        details={"new_email": new_email})

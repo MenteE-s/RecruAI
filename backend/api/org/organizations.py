@@ -6,6 +6,7 @@ from ...extensions import db
 from ...models import Organization, TeamMember, User, AIInterviewAgent, OrganizationInvitation
 from ...utils.timezone_utils import is_valid_timezone, get_current_time_info, utc_iso, utc_now_iso
 from ...utils.kafka_service import kafka_service as kafka
+from ...utils.outbox import enqueue_email, EMAIL_INVITATION
 from ...utils.cache import cached, invalidate_org_cache
 from ...utils.security import sanitize_input, log_security_event, validate_email
 from ...utils.org_permissions import (
@@ -35,7 +36,6 @@ from ...utils.invitations import (
     normalize_email,
     recent_invitation_count,
 )
-from ...utils.email_service import send_organization_invitation_email
 import json
 from datetime import datetime, timedelta
 
@@ -1364,32 +1364,14 @@ def invite_team_member(org_id):
     invitation.token_hash = hash_invitation_token(token)
     invitation.expires_at = now + timedelta(days=INVITATION_TTL_DAYS)
     invitation.last_sent_at = now
+    enqueue_email(EMAIL_INVITATION, email, {
+        "organization_name": org.name,
+        "inviter_name": caller.name or caller.email,
+        "role": role,
+        "token": token,
+        "expires_days": INVITATION_TTL_DAYS,
+    })
     db.session.commit()
-
-    sent, send_err = send_organization_invitation_email(
-        email,
-        org.name,
-        caller.name or caller.email,
-        role,
-        token,
-        INVITATION_TTL_DAYS,
-    )
-    if not sent:
-        # Keep the invitation so an admin can retry, but open the cooldown
-        # immediately because no email actually left the building.
-        invitation.last_sent_at = None
-        db.session.commit()
-        log_security_event(
-            "organization_invitation_email_failed",
-            user_id=caller.id,
-            ip_address=request.remote_addr,
-            email=email,
-            details={"org_id": org.id, "error": send_err},
-        )
-        return jsonify({
-            "error": "The invitation was saved, but the email could not be sent. Try resending it.",
-            "invitation": invitation.to_dict(),
-        }), 502
 
     log_security_event(
         "organization_invitation_sent",
@@ -1471,30 +1453,14 @@ def resend_organization_invitation(org_id, invitation_id):
     invitation.expires_at = now + timedelta(days=INVITATION_TTL_DAYS)
     invitation.last_sent_at = now
     invitation.invited_by_id = caller.id
+    enqueue_email(EMAIL_INVITATION, invitation.email, {
+        "organization_name": org.name,
+        "inviter_name": caller.name or caller.email,
+        "role": invitation.role,
+        "token": token,
+        "expires_days": INVITATION_TTL_DAYS,
+    })
     db.session.commit()
-
-    sent, send_err = send_organization_invitation_email(
-        invitation.email,
-        org.name,
-        caller.name or caller.email,
-        invitation.role,
-        token,
-        INVITATION_TTL_DAYS,
-    )
-    if not sent:
-        invitation.last_sent_at = None
-        db.session.commit()
-        log_security_event(
-            "organization_invitation_email_failed",
-            user_id=caller.id,
-            ip_address=request.remote_addr,
-            email=invitation.email,
-            details={"org_id": org.id, "error": send_err, "resend": True},
-        )
-        return jsonify({
-            "error": "The invitation could not be emailed. Try again.",
-            "invitation": invitation.to_dict(),
-        }), 502
 
     log_security_event(
         "organization_invitation_resent",

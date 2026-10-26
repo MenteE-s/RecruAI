@@ -65,9 +65,11 @@ def _notify_candidate(application, title, message):
             related_organization_id=post.organization_id if post else None,
         )
         db.session.add(notification)
-        db.session.commit()
+        db.session.flush()
         try:
-            kafka.emit_event('notification_created', {
+            from ...utils.outbox import enqueue_kafka_event
+
+            enqueue_kafka_event('notification_created', {
                 'notification_id': notification.id,
                 'user_id': application.user_id,
                 'type': 'application_status',
@@ -75,7 +77,8 @@ def _notify_candidate(application, title, message):
                 'related_application_id': application.id,
             })
         except Exception as ke:
-            print(f"Failed to emit Kafka message for application notification: {ke}")
+            print(f"Failed to queue Kafka message for application notification: {ke}")
+        db.session.commit()
     except Exception as e:
         print(f"Failed to create application status notification: {e}")
 

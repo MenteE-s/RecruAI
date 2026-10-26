@@ -9,26 +9,34 @@ from ...utils.security import log_security_event, sanitize_input
 from ...utils.kafka_service import kafka_service
 from ...utils.org_permissions import user_payload_with_access
 from ...utils.otp import issue_otp, check_otp, OTP_TTL_MINUTES
-from ...utils.email_service import send_otp_email, send_welcome_email, maybe_dev_log_otp
+from ...utils.outbox import enqueue_email, EMAIL_OTP
+from ...utils.email_service import maybe_dev_log_otp
 from .session import access_token_expires_in, create_session_tokens, set_refresh_cookie
 
 
 def _send_otp(user):
-    """Issue a code and email it. Returns (http_status, payload)."""
+    """Issue a code and queue the email. Returns (http_status, payload).
+
+    Delivery is asynchronous: the request only commits the OTP row + outbox
+    row and returns. The outbox worker sends via Resend with retries, so a
+    mail outage never blocks registration or login.
+    """
     code, err = issue_otp(user)
     if err:
         if err.startswith("cooldown:"):
             wait = err.split(":", 1)[1]
             return 429, {"error": f"Please wait {wait}s before requesting a new code", "retry_after": int(wait)}
         return 429, {"error": "Too many codes requested. Please try again later."}
-    ok, send_err = send_otp_email(user.email, user.name, code)
-    if not ok:
-        maybe_dev_log_otp(user.email, code)
-        log_security_event("otp_email_failed", user_id=user.id, ip_address=request.remote_addr,
-                           email=user.email, details={"error": send_err})
-        if send_err == "email_not_configured":
-            return 503, {"error": "Email service is not configured. Please contact support."}
-        return 502, {"error": "Could not send the code. Please try again."}
+    enqueue_email(EMAIL_OTP, user.email, {"name": user.name, "code": code})
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        log_security_event("otp_enqueue_failed", user_id=user.id, ip_address=request.remote_addr,
+                           email=user.email)
+        return 502, {"error": "Could not queue the code. Please try again."}
+    # Dev without Resend: the worker cannot deliver, so keep the local log.
+    maybe_dev_log_otp(user.email, code)
     log_security_event("otp_sent", user_id=user.id, ip_address=request.remote_addr, email=user.email)
     return 200, {"message": "Verification code sent", "expires_in_minutes": OTP_TTL_MINUTES}
 
@@ -95,14 +103,16 @@ def verify_email_otp():
     except Exception:
         current_app.logger.debug("Failed to emit email_verified event", exc_info=True)
 
-    # The greeting mail must never block sign-in.
+    # The greeting mail must never block sign-in: queue it and let the
+    # outbox worker deliver with retries.
     try:
-        sent, send_err = send_welcome_email(user.email, user.name, user.role)
-        if not sent:
-            log_security_event("welcome_email_failed", user_id=user.id, ip_address=request.remote_addr,
-                               email=email, details={"error": send_err})
+        from ...utils.outbox import enqueue_email, EMAIL_WELCOME
+
+        enqueue_email(EMAIL_WELCOME, user.email, {"name": user.name, "role": user.role})
+        db.session.commit()
     except Exception:
-        current_app.logger.debug("Failed to send welcome email", exc_info=True)
+        db.session.rollback()
+        current_app.logger.debug("Failed to queue welcome email", exc_info=True)
 
     access_token, refresh_token = create_session_tokens(user)
     resp = make_response(jsonify({

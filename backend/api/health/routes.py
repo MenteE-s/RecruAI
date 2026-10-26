@@ -72,6 +72,74 @@ def _check_scheduler():
         return {"healthy": False, "error": str(exc)}
 
 
+def _check_outbox():
+    """Outbox backlog for alerting. Informational: a lagging worker must page,
+    but it must not mark the API itself unhealthy."""
+    try:
+        from datetime import datetime
+
+        from sqlalchemy import func
+
+        from ...extensions import db
+        from ...models.outbox_event import (
+            STATUS_DEAD,
+            STATUS_FAILED,
+            STATUS_PENDING,
+            STATUS_PROCESSING,
+            OutboxEvent,
+        )
+
+        now = datetime.utcnow()
+        counts = dict(
+            db.session.query(OutboxEvent.status, func.count(OutboxEvent.id))
+            .filter(OutboxEvent.status.in_([STATUS_PENDING, STATUS_FAILED, STATUS_PROCESSING]))
+            .group_by(OutboxEvent.status)
+            .all()
+        )
+        oldest = (
+            db.session.query(func.min(OutboxEvent.created_at))
+            .filter(OutboxEvent.status.in_([STATUS_PENDING, STATUS_FAILED]))
+            .scalar()
+        )
+        dead = (
+            db.session.query(func.count(OutboxEvent.id))
+            .filter(OutboxEvent.status == STATUS_DEAD)
+            .scalar()
+            or 0
+        )
+        lag_seconds = int((now - oldest).total_seconds()) if oldest else 0
+        return {
+            "healthy": True,
+            "pending": int(counts.get(STATUS_PENDING, 0)),
+            "failed": int(counts.get(STATUS_FAILED, 0)),
+            "processing": int(counts.get(STATUS_PROCESSING, 0)),
+            "dead": int(dead),
+            "oldest_pending_age_seconds": lag_seconds,
+        }
+    except Exception as exc:
+        return {"healthy": False, "error": str(exc)}
+
+
+@api_bp.route("/health/outbox", methods=["GET"])
+def health_outbox():
+    """Outbox backlog: pending/failed/dead counts and oldest pending age.
+
+    Fails (503) when dead rows need attention or the oldest pending row is
+    older than the alert threshold, so monitors can page on it.
+    """
+    import os
+
+    check = _check_outbox()
+    if not check.get("healthy", False):
+        return jsonify(check), 503
+    try:
+        max_lag = int(os.getenv("OUTBOX_ALERT_LAG_SECONDS", "600"))
+    except (TypeError, ValueError):
+        max_lag = 600
+    alert = bool(check.get("dead", 0)) or check.get("oldest_pending_age_seconds", 0) > max_lag
+    return jsonify({**check, "alert": alert}), (503 if alert else 200)
+
+
 def _overall(checks):
     # Database is required. Kafka/Redis/AI are reported but do not by themselves
     # make the process unready; scheduler is informational for the web process.
@@ -112,6 +180,7 @@ def health_ready():
         "kafka": _check_kafka(),
         "ai_providers": _check_ai_providers(),
         "scheduler": _check_scheduler(),
+        "outbox": _check_outbox(),
     }
     healthy = _overall(checks)
     return jsonify({
@@ -128,6 +197,7 @@ def health_detailed():
         "kafka": _check_kafka(),
         "ai_providers": _check_ai_providers(),
         "scheduler": _check_scheduler(),
+        "outbox": _check_outbox(),
     }
     healthy = _overall(checks)
     return jsonify({

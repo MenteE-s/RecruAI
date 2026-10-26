@@ -22,7 +22,7 @@ from ..auth.session import (
 from ...extensions import db
 from ...models import Organization, OrganizationInvitation, TeamMember, User
 from ...utils.cache import invalidate_org_cache
-from ...utils.email_service import send_welcome_email
+from ...utils.outbox import enqueue_email, EMAIL_WELCOME
 from ...utils.invitations import (
     find_invitation_by_token,
     find_user_by_email,
@@ -313,16 +313,10 @@ def accept_invitation(token):
 
     if created_user or was_unverified:
         try:
-            sent, send_err = send_welcome_email(user.email, user.name, user.role)
-            if not sent:
-                log_security_event(
-                    "welcome_email_failed",
-                    user_id=user.id,
-                    ip_address=request.remote_addr,
-                    email=user.email,
-                    details={"error": send_err, "context": "invitation"},
-                )
+            enqueue_email(EMAIL_WELCOME, user.email, {"name": user.name, "role": user.role})
+            db.session.commit()
         except Exception:
+            db.session.rollback()
             pass
 
     if invitation.invited_by_id and invitation.invited_by_id != user.id:
