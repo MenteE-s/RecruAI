@@ -38,7 +38,7 @@ def list_applied_jobs(user_id):
 @api_bp.route("/applied-jobs/<int:application_id>", methods=["GET"])
 @jwt_required()
 def get_application_details(application_id):
-    application = Application.query.get_or_404(application_id)
+    application = db.get_or_404(Application, application_id)
     if application.user_id != _identity():
         return jsonify({"error": "Forbidden"}), 403
     return jsonify(application.to_dict()), 200
@@ -47,7 +47,7 @@ def get_application_details(application_id):
 @jwt_required()
 def cancel_application(application_id):
     """Cancel/withdraw a job application"""
-    application = Application.query.get_or_404(application_id)
+    application = db.get_or_404(Application, application_id)
     if application.user_id != _identity():
         return jsonify({"error": "Forbidden"}), 403
 

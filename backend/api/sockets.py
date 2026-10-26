@@ -60,7 +60,7 @@ def handle_connect(auth=None):
 
     try:
         from ..models import User
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         if not user:
             logger.warning(f"Connection attempt for unknown user {user_id}")
             return False
@@ -100,7 +100,7 @@ def handle_join_org(data):
     try:
         from ..models import User as _User
         from ...utils.org_permissions import get_org_access
-        user = _User.query.get(uid)
+        user = db.session.get(_User, uid)
         if not user:
             return
         allowed = get_org_access(user, org_id) is not None

@@ -34,9 +34,10 @@ def require_verified_email():
             user_id = int(uid)
         except (TypeError, ValueError):
             return None
+        from ..extensions import db
         from ..models import User
 
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         if user is not None and not user.email_verified:
             return jsonify({"error": "Please verify your email first.", "code": "email_not_verified"}), 403
         return None

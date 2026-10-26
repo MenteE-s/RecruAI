@@ -178,7 +178,9 @@ const PrivacyPolicy = () => {
                   for the purposes outlined in this Privacy Policy, unless a
                   longer retention period is required by law. When we no longer
                   need your information, we will securely delete or anonymize
-                  it.
+                  it. Verification codes are deleted within 24 hours of use or
+                  expiry, and inactive accounts are purged 30 days after a
+                  confirmed deletion request.
                 </p>
               </section>
 

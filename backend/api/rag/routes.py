@@ -391,7 +391,7 @@ def clear_cache():
     """Clear embedding cache (organization accounts only — global effect)."""
     try:
         try:
-            me = User.query.get(int(get_jwt_identity()))
+            me = db.session.get(User, int(get_jwt_identity()))
         except (TypeError, ValueError):
             me = None
         if not me:

@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 def _me():
     try:
-        return User.query.get(int(get_jwt_identity()))
+        return db.session.get(User, int(get_jwt_identity()))
     except (TypeError, ValueError):
         return None
 
@@ -74,7 +74,7 @@ def list_ai_agents(org_id):
     user = _me()
     if not _can_view_org(user, org_id):
         return jsonify({"error": "Forbidden for this organization"}), 403
-    Organization.query.get_or_404(org_id)
+    db.get_or_404(Organization, org_id)
     agents = (
         AIInterviewAgent.query
         .filter_by(organization_id=org_id)
@@ -90,7 +90,7 @@ def create_ai_agent(org_id):
     user = _me()
     if not _can_manage_org(user, org_id):
         return jsonify({"error": "Forbidden for this organization"}), 403
-    Organization.query.get_or_404(org_id)
+    db.get_or_404(Organization, org_id)
     payload = request.get_json(silent=True) or {}
 
     name = payload.get("name")
@@ -120,7 +120,7 @@ def create_ai_agent(org_id):
 @jwt_required()
 def get_ai_agent(agent_id):
     """Return a single AI interview agent (managing org only)."""
-    agent = AIInterviewAgent.query.get_or_404(agent_id)
+    agent = db.get_or_404(AIInterviewAgent, agent_id)
     if not _can_view_org(_me(), agent.organization_id):
         return jsonify({"error": "Forbidden for this organization"}), 403
     return jsonify(agent.to_dict()), 200
@@ -129,7 +129,7 @@ def get_ai_agent(agent_id):
 @jwt_required()
 def update_ai_agent(agent_id):
     """Update an AI interview agent (managing org only)."""
-    agent = AIInterviewAgent.query.get_or_404(agent_id)
+    agent = db.get_or_404(AIInterviewAgent, agent_id)
     if not _can_manage_org(_me(), agent.organization_id):
         return jsonify({"error": "Forbidden for this organization"}), 403
     payload = request.get_json(silent=True) or {}
@@ -157,7 +157,7 @@ def update_ai_agent(agent_id):
 @jwt_required()
 def delete_ai_agent(agent_id):
     """Delete an AI interview agent (managing org only)."""
-    agent = AIInterviewAgent.query.get_or_404(agent_id)
+    agent = db.get_or_404(AIInterviewAgent, agent_id)
     if not _can_manage_org(_me(), agent.organization_id):
         return jsonify({"error": "Forbidden for this organization"}), 403
     db.session.delete(agent)
@@ -168,7 +168,7 @@ def delete_ai_agent(agent_id):
 @jwt_required()
 def test_ai_agent(agent_id):
     """Test an AI interview agent with a sample conversation (managing org only)."""
-    agent = AIInterviewAgent.query.get_or_404(agent_id)
+    agent = db.get_or_404(AIInterviewAgent, agent_id)
     user = _me()
     if not _can_manage_org(user, agent.organization_id):
         return jsonify({"error": "Forbidden for this organization"}), 403
@@ -224,14 +224,14 @@ def test_ai_agent(agent_id):
 @jwt_required()
 def start_ai_interview(interview_id):
     """Start an AI-powered interview (participant or managing org)."""
-    interview = Interview.query.get_or_404(interview_id)
+    interview = db.get_or_404(Interview, interview_id)
     if not _can_manage_interview(_me(), interview):
         return jsonify({"error": "Forbidden"}), 403
 
     if not interview.ai_agent_id:
         return jsonify({"error": "This interview is not assigned to an AI agent"}), 400
 
-    agent = AIInterviewAgent.query.get(interview.ai_agent_id)
+    agent = db.session.get(AIInterviewAgent, interview.ai_agent_id)
     if not agent or not agent.is_active:
         return jsonify({"error": "AI agent not found or inactive"}), 400
 
@@ -257,7 +257,7 @@ def start_ai_interview(interview_id):
 @jwt_required()
 def send_ai_message(interview_id):
     """Send a message to the AI interviewer and get response (participant or managing org)."""
-    interview = Interview.query.get_or_404(interview_id)
+    interview = db.get_or_404(Interview, interview_id)
     user = _me()
     if not _can_manage_interview(user, interview):
         return jsonify({"error": "Forbidden"}), 403
@@ -270,7 +270,7 @@ def send_ai_message(interview_id):
     if not interview.ai_agent_id:
         return jsonify({"error": "This interview is not assigned to an AI agent"}), 400
 
-    agent = AIInterviewAgent.query.get(interview.ai_agent_id)
+    agent = db.session.get(AIInterviewAgent, interview.ai_agent_id)
     if not agent or not agent.is_active:
         return jsonify({"error": "AI agent not found or inactive"}), 400
 
@@ -335,7 +335,7 @@ def send_ai_message(interview_id):
 @jwt_required()
 def get_ai_interview_history(interview_id):
     """Get the conversation history of an AI interview (participant or managing org)."""
-    interview = Interview.query.get_or_404(interview_id)
+    interview = db.get_or_404(Interview, interview_id)
     if not _can_see_interview(_me(), interview):
         return jsonify({"error": "Forbidden"}), 403
 
@@ -359,7 +359,7 @@ def get_ai_interview_history(interview_id):
 @jwt_required()
 def assign_ai_agent_to_interview(interview_id):
     """Assign an AI agent to an interview (managing org only)."""
-    interview = Interview.query.get_or_404(interview_id)
+    interview = db.get_or_404(Interview, interview_id)
     user = _me()
     if interview.organization_id is None or not has_org_permission(
         user, interview.organization_id, INTERVIEWS_MANAGE
@@ -371,7 +371,7 @@ def assign_ai_agent_to_interview(interview_id):
     if not agent_id:
         return jsonify({"error": "agent_id required"}), 400
 
-    agent = AIInterviewAgent.query.get(agent_id)
+    agent = db.session.get(AIInterviewAgent, agent_id)
     if not agent or not agent.is_active:
         return jsonify({"error": "AI agent not found or inactive"}), 400
 

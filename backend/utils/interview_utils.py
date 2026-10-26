@@ -164,7 +164,7 @@ def update_interview_decision(interview_id, decision, feedback=None, rating=None
         rating: Optional rating (1-5)
     """
     try:
-        interview = Interview.query.get(interview_id)
+        interview = db.session.get(Interview, interview_id)
         if not interview:
             return False, "Interview not found"
 

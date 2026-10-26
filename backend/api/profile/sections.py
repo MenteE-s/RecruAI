@@ -118,7 +118,7 @@ def save_profile_section():
 
         # Auto-generate embedding
         try:
-            user = User.query.get(user_id)
+            user = db.session.get(User, user_id)
             if user:
                 sup = _get_supervisor()
                 profile_data = _assemble_profile_data(user)
@@ -151,7 +151,7 @@ def save_profile_section():
 
         # Auto-generate embedding
         try:
-            user = User.query.get(user_id)
+            user = db.session.get(User, user_id)
             if user:
                 sup = _get_supervisor()
                 profile_data = _assemble_profile_data(user)

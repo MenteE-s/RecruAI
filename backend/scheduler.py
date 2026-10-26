@@ -68,6 +68,28 @@ def _job_mentorship_nudges(app):
     return {"rows_updated": summary.get("created", 0), "detail": str(summary)}
 
 
+def _job_retention_cleanup():
+    """Delete consumed/expired OTPs older than 24h (P2-08).
+
+    OTP rows hold HMACs, not codes, but they and their email/IP metadata must
+    not accumulate forever. Security events are log-only (no table) and need
+    no cleanup.
+    """
+    from datetime import timedelta
+
+    from .models import EmailOtp
+
+    cutoff = datetime.utcnow() - timedelta(hours=24)
+    deleted = (
+        EmailOtp.query.filter(
+            EmailOtp.created_at < cutoff,
+            ((EmailOtp.consumed_at.isnot(None)) | (EmailOtp.expires_at < cutoff)),
+        ).delete(synchronize_session=False)
+    )
+    db.session.commit()
+    return {"rows_updated": deleted, "detail": "expired/consumed otps"}
+
+
 # (id, interval seconds, callable). The interval is used both by APScheduler and
 # by the health endpoint; keeping them together prevents drift.
 JOB_DEFINITIONS = {
@@ -76,6 +98,7 @@ JOB_DEFINITIONS = {
     "account_purge": (3600, _job_account_purge),
     "ai_usage_report": (86400, _job_ai_usage_report),
     "mentorship_nudges": (21600, _job_mentorship_nudges),
+    "retention_cleanup": (43200, _job_retention_cleanup),
 }
 
 

@@ -19,7 +19,7 @@ from ...utils.outbox import enqueue_email, EMAIL_CHANGE_OTP, EMAIL_CHANGE_NOTICE
 
 def _current_user():
     try:
-        return User.query.get(int(get_jwt_identity()))
+        return db.session.get(User, int(get_jwt_identity()))
     except (TypeError, ValueError):
         return None
 

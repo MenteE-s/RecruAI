@@ -30,7 +30,7 @@ def list_practice_ai_agents():
     from ...utils.subscription import SubscriptionManager
 
     user_id = get_jwt_identity()
-    user = User.query.get_or_404(user_id)
+    user = db.get_or_404(User, user_id)
 
     # Check if user can access this feature (free during trial)
     if not user.can_access_feature("practice_ai_agents"):
@@ -54,7 +54,7 @@ def create_practice_ai_agent():
     from ...utils.subscription import SubscriptionManager
 
     user_id = get_jwt_identity()
-    user = User.query.get_or_404(user_id)
+    user = db.get_or_404(User, user_id)
 
     # Check if user can access this feature (free during trial)
     if not user.can_access_feature("practice_ai_agents"):
@@ -180,7 +180,7 @@ def schedule_practice_interview(agent_id):
     from ...models import PracticeAIAgent, Interview, User
 
     user_id = get_jwt_identity()
-    user = User.query.get_or_404(user_id)
+    user = db.get_or_404(User, user_id)
     agent = PracticeAIAgent.query.filter_by(id=agent_id, user_id=user_id).first_or_404()
 
     # Check if user can schedule interviews (free during trial)

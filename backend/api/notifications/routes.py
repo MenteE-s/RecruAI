@@ -22,7 +22,7 @@ def get_notifications():
         # Get current user
         uid = get_jwt_identity()
         user_id = int(uid)
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         if not user:
             return jsonify({"error": "user not found"}), 404
         # Get pagination parameters
@@ -80,7 +80,7 @@ def mark_notification_read(notification_id):
         # Get current user
         uid = get_jwt_identity()
         user_id = int(uid)
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         if not user:
             return jsonify({"error": "user not found"}), 404
 
@@ -121,7 +121,7 @@ def archive_notification(notification_id):
         # Get current user
         uid = get_jwt_identity()
         user_id = int(uid)
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         if not user:
             return jsonify({"error": "user not found"}), 404
 
@@ -150,7 +150,7 @@ def unarchive_notification(notification_id):
     try:
         uid = get_jwt_identity()
         user_id = int(uid)
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         if not user:
             return jsonify({"error": "user not found"}), 404
 
@@ -180,7 +180,7 @@ def favorite_notification(notification_id):
         # Get current user
         uid = get_jwt_identity()
         user_id = int(uid)
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         if not user:
             return jsonify({"error": "user not found"}), 404
 
@@ -210,7 +210,7 @@ def delete_notification(notification_id):
         # Get current user
         uid = get_jwt_identity()
         user_id = int(uid)
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         if not user:
             return jsonify({"error": "user not found"}), 404
 
@@ -250,7 +250,7 @@ def bulk_mark_read():
         # Get current user
         uid = get_jwt_identity()
         user_id = int(uid)
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         if not user:
             return jsonify({"error": "user not found"}), 404
 
@@ -289,7 +289,7 @@ def get_notification_stats():
         # Get current user
         uid = get_jwt_identity()
         user_id = int(uid)
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         if not user:
             return jsonify({"error": "user not found"}), 404
 

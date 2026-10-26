@@ -604,7 +604,7 @@ def create_organization_page():
     payload = request.get_json(silent=True) or {}
 
     try:
-        caller = User.query.get(int(get_jwt_identity()))
+        caller = db.session.get(User, int(get_jwt_identity()))
     except (TypeError, ValueError):
         caller = None
     if not caller:
@@ -723,7 +723,7 @@ def create_organization_page():
 def list_my_organization_pages():
     """Pages the signed-in user administers (founded + invited to)."""
     try:
-        caller = User.query.get(int(get_jwt_identity()))
+        caller = db.session.get(User, int(get_jwt_identity()))
     except (TypeError, ValueError):
         caller = None
     if not caller:
@@ -731,12 +731,12 @@ def list_my_organization_pages():
 
     rows = {}
     if caller.organization_id:
-        org = Organization.query.get(caller.organization_id)
+        org = db.session.get(Organization, caller.organization_id)
         if org and get_org_access(caller, org.id) is not None:
             rows[org.id] = org
     for tm in TeamMember.query.filter_by(user_id=caller.id).all():
         if tm.organization_id not in rows:
-            org = Organization.query.get(tm.organization_id)
+            org = db.session.get(Organization, tm.organization_id)
             if org and get_org_access(caller, org.id) is not None:
                 rows[org.id] = org
 
@@ -785,7 +785,7 @@ def get_organization_by_slug(slug):
 # response (contacts + inactive posts) to an unrelated requester on HIT.
 @cached("org_details", ttl=300, key_func=lambda org_id: f"{get_jwt_identity()}:org_{org_id}")
 def get_organization(org_id):
-    org = Organization.query.get_or_404(org_id)
+    org = db.get_or_404(Organization, org_id)
     access = get_org_access(current_user(), org_id)
     is_manager = bool(access and access.can(ORG_VIEW))
     if is_manager:
@@ -830,7 +830,7 @@ def get_organization(org_id):
 @jwt_required()
 def get_organization_permissions(org_id):
     """The caller's own role and permissions for this page."""
-    Organization.query.get_or_404(org_id)
+    db.get_or_404(Organization, org_id)
     access = get_org_access(current_user(), org_id)
     if access is None:
         return jsonify({"error": "Forbidden for this organization"}), 403
@@ -841,7 +841,7 @@ def get_organization_permissions(org_id):
 @jwt_required()
 @org_permission_required(ORG_EDIT)
 def update_organization(org_id):
-    org = Organization.query.get_or_404(org_id)
+    org = db.get_or_404(Organization, org_id)
     payload = request.get_json(silent=True) or {}
 
     # Update basic fields
@@ -889,7 +889,7 @@ def update_organization(org_id):
 @org_permission_required(ORG_EDIT)
 def update_organization_timezone(org_id):
     """Update organization's timezone preference."""
-    org = Organization.query.get_or_404(org_id)
+    org = db.get_or_404(Organization, org_id)
     payload = request.get_json(silent=True) or {}
     
     tz = payload.get("timezone")
@@ -920,7 +920,7 @@ def update_organization_timezone(org_id):
 @jwt_required()
 def get_organization_current_time(org_id):
     """Get current time information in organization's timezone (auth required to prevent ID enumeration)."""
-    org = Organization.query.get_or_404(org_id)
+    org = db.get_or_404(Organization, org_id)
     tz = org.timezone or "UTC"
     return jsonify(get_current_time_info(tz)), 200
 
@@ -929,7 +929,7 @@ def get_organization_current_time(org_id):
 @jwt_required()
 @org_permission_required(ORG_EDIT)
 def update_organization_profile(org_id):
-    org = Organization.query.get_or_404(org_id)
+    org = db.get_or_404(Organization, org_id)
     payload = request.get_json(silent=True) or {}
 
     # Same validation as page creation — otherwise editing a page would be a
@@ -998,7 +998,7 @@ def update_organization_slug(org_id):
     break a URL that has already been printed on a job ad or pasted into an
     email, so the admin opts in to the move.
     """
-    org = Organization.query.get_or_404(org_id)
+    org = db.get_or_404(Organization, org_id)
     payload = request.get_json(silent=True) or {}
 
     requested = sanitize_input(payload.get("slug", "") or "", max_length=60).strip().lower()
@@ -1040,7 +1040,7 @@ def update_organization_slug(org_id):
 @org_permission_required(ORG_EDIT)
 def update_organization_visibility(org_id):
     """Toggle how a page appears to people who don't administer it."""
-    org = Organization.query.get_or_404(org_id)
+    org = db.get_or_404(Organization, org_id)
     payload = request.get_json(silent=True) or {}
 
     # Explicit `is True/False` only: a missing key means "leave unchanged", and
@@ -1069,7 +1069,7 @@ def update_organization_visibility(org_id):
 @jwt_required()
 @org_permission_required(TEAM_VIEW)
 def list_team_members(org_id):
-    org = Organization.query.get_or_404(org_id)
+    org = db.get_or_404(Organization, org_id)
     team_members = [tm.to_dict() for tm in org.team_members]
     return jsonify(team_members), 200
 
@@ -1078,7 +1078,7 @@ def list_team_members(org_id):
 @org_permission_required(TEAM_MANAGE)
 def add_team_member(org_id):
     caller = current_user()
-    org = Organization.query.get_or_404(org_id)
+    org = db.get_or_404(Organization, org_id)
     payload = request.get_json(silent=True) or {}
     user_id = payload.get("user_id")
     role = parse_org_role(payload.get("role"))
@@ -1098,7 +1098,7 @@ def add_team_member(org_id):
         return join_err
 
     # Check if user exists
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     if not user:
         return jsonify({"error": "user not found"}), 404
 
@@ -1234,7 +1234,7 @@ def remove_team_member(org_id, member_id):
 @org_permission_required(TEAM_VIEW)
 def list_organization_users(org_id):
     """Get all users belonging to an organization (managers only)."""
-    org = Organization.query.get_or_404(org_id)
+    org = db.get_or_404(Organization, org_id)
     users = User.query.filter_by(organization_id=org_id).all()
     return jsonify([user.to_dict() for user in users]), 200
 
@@ -1249,7 +1249,7 @@ def list_organization_people(org_id):
     from datetime import date, datetime, timezone
     from sqlalchemy import func, or_
     from ...models import Experience
-    org = Organization.query.get_or_404(org_id)
+    org = db.get_or_404(Organization, org_id)
     # UTC calendar date (not server-local): consistent for viewers worldwide.
     today = datetime.now(timezone.utc).date()
     rows = (db.session.query(Experience, User)
@@ -1291,7 +1291,7 @@ def invite_team_member(org_id):
     a hashed single-use token; the account is created only when the recipient
     accepts it.
     """
-    org = Organization.query.get_or_404(org_id)
+    org = db.get_or_404(Organization, org_id)
     caller = current_user()
     if not caller:
         return jsonify({"error": "User not found"}), 404
@@ -1431,7 +1431,7 @@ def resend_organization_invitation(org_id, invitation_id):
         return jsonify({"error": "This invitation has expired. Create a new one."}), 410
 
     try:
-        caller = User.query.get(int(get_jwt_identity()))
+        caller = db.session.get(User, int(get_jwt_identity()))
     except (TypeError, ValueError):
         caller = None
     if not caller:
@@ -1447,7 +1447,7 @@ def resend_organization_invitation(org_id, invitation_id):
                 "retry_after": wait,
             }), 429
 
-    org = Organization.query.get_or_404(org_id)
+    org = db.get_or_404(Organization, org_id)
     token = generate_invitation_token()
     invitation.token_hash = hash_invitation_token(token)
     invitation.expires_at = now + timedelta(days=INVITATION_TTL_DAYS)

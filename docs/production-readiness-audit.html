@@ -226,7 +226,7 @@
           <span class="pill amber">P0-05 test gate live · staging E2E pending</span>
           <span class="pill green">P1-01 + P1-010 fixed in code</span>
           <span class="pill amber">4 P1 open · 12 fixed</span>
-          <span class="pill">10 P2 hardening</span>
+          <span class="pill">10 P2 hardening (8 fixed, 2 partial)</span>
           <span class="pill green">No committed secrets found</span>
         </div>
       </div>
@@ -267,7 +267,7 @@
   <div class="grid4" style="margin-bottom:16px">
     <div class="stat red"><b>1</b><span>P0 launch blocker</span></div>
     <div class="stat amber"><b>4</b><span>P1 open · 12 fixed in code</span></div>
-    <div class="stat blue"><b>10</b><span>P2 hardening items</span></div>
+    <div class="stat blue"><b>10</b><span>P2 hardening items (8 fixed, 2 partial)</span></div>
     <div class="stat green"><b>4/4</b><span>frontend suites pass (37 tests)</span></div>
   </div>
 
@@ -365,7 +365,7 @@
       <tbody>
         <tr><td><b>Frontend</b></td><td>React 18 + CRA 5, React Router 7, Tailwind, LiveKit React, Socket.IO client</td><td>Vercel static build. Sends a restrictive <code>Permissions-Policy</code>. API/socket URLs depend on Vercel env vars; fallback is wrong for this split-domain architecture.</td></tr>
         <tr><td><b>API</b></td><td>Flask 3 app factory, 296 routes, short-lived JWT access tokens + rotating refresh sessions, Talisman, CORS, Flask-Limiter</td><td>Gunicorn, 1 worker / 4 threads on t3.small. Real-time uses Flask-SocketIO threading mode.</td></tr>
-        <tr><td><b>Data</b></td><td>PostgreSQL + pgvector (RDS in AWS), 43 migrations</td><td>Single head <code>a7b8c9d0e1f2</code>; migrations container runs before API. 7-day automated RDS backups (external setup).</td></tr>
+        <tr><td><b>Data</b></td><td>PostgreSQL + pgvector (RDS in AWS), 45 migrations</td><td>Single head <code>c9d0e1f2a3b4</code>; migrations container runs before API. 7-day automated RDS backups (external setup).</td></tr>
         <tr><td><b>Async</b></td><td>Redis (cache, rate limit, JWT blocklist), Kafka (events), APScheduler</td><td>Dedicated scheduler worker with PostgreSQL advisory locks and run records; Kafka is optional but enabled in the AWS compose.</td></tr>
         <tr><td><b>AI</b></td><td>Groq LLM, OpenRouter/HF embeddings, RAG + recommendations, 50k-token allowance</td><td>Every provider call passes through <code>BudgetedLLMProvider</code>; reservations, actual usage, and organization attribution are enforced there.</td></tr>
         <tr><td><b>Video</b></td><td>LiveKit SFU + TURN + Egress</td><td>Present in <code>docker-compose.vps.yml</code> and dev. <b>Absent from <code>docker-compose.aws.yml</code></b> (the CI deploy target).</td></tr>
@@ -583,7 +583,7 @@ backend/api/auth/registration.py:31  duplicate email → "email already register
         </ul>
         <div class="callout green" style="margin:12px 0">
           <b>FIXED — 23 Oct 2026 (working tree; not deployed)</b>
-          Added the <code>organization_invitations</code> table and <code>a8b9c0d1e2f3</code> migration. Inviting an address now stores only a SHA-256 hash of a 7-day, single-use token and sends a Resend email; it no longer creates a <code>User</code> or a team row. Accepting the link creates a verified account with the invitee's chosen name/password (or attaches an existing signed-in user) and then creates the <code>TeamMember</code>; legacy unverified placeholder accounts can reclaim their membership through the same token. Added list/resend/revoke endpoints, per-IP and per-org/address throttles, a 60-second resend cooldown, a signed-out <code>/accept-invite</code> page, and pending-invitation controls in the team dashboard. Verified end-to-end: no account at invite time, normal registration still works, new-user accept, existing-user sign-in, legacy reclaim, resend token rotation, revoke, and expiry; covered by 7 backend tests. Migration <code>f4a5b6c7d8e9</code> adds the invited-address lookup index. 26 Oct 2026: invitation/resend emails and the accept-path welcome email are queued to the transactional <code>outbox_events</code> table and delivered by the outbox worker with retries; the request path no longer calls Resend. Frontend production build passes. <b>Deploy step:</b> run <code>flask db upgrade</code>; Resend domain/DNS verification is still required before external invites.
+          Added the <code>organization_invitations</code> table and <code>a8b9c0d1e2f3</code> migration. Inviting an address now stores only a SHA-256 hash of a 7-day, single-use token and sends a Resend email; it no longer creates a <code>User</code> or a team row. Accepting the link creates a verified account with the invitee's chosen name/password (or attaches an existing signed-in user) and then creates the <code>TeamMember</code>; legacy unverified placeholder accounts can reclaim their membership through the same token. Added list/resend/revoke endpoints, per-IP and per-org/address throttles, a 60-second resend cooldown, a signed-out <code>/accept-invite</code> page, and pending-invitation controls in the team dashboard. Verified end-to-end: no account at invite time, normal registration still works, new-user accept, existing-user sign-in, legacy reclaim, resend token rotation, revoke, and expiry; covered by 7 backend tests. Migration <code>f4a5b6c7d8e9</code> adds the invited-address lookup index. 26 Oct 2026: invitation/resend emails and the accept-path welcome email are queued to the transactional <code>outbox_events</code> table (migration <code>c9d0e1f2a3b4</code>) and delivered by the outbox worker with retries; the request path no longer calls Resend. Frontend production build passes. <b>Deploy step:</b> run <code>flask db upgrade</code>; Resend domain/DNS verification is still required before external invites.
         </div>
         <div class="done"><b>Done when</b><br>An invited address receives an email, sets a password, joins the org, and appears in the team list; the same address can still register if no invite is accepted; an org cannot squat an unrelated address; revoke/expired-token paths are tested.</div>
       </div>
@@ -1110,11 +1110,11 @@ backend/api/subscription/routes.py   free upgrade, no processor</div>
     These are real but not launch-gating. Several become important at the first traffic spike or compliance review.
   </div>
 
-  <article class="finding" data-severity="P2" data-area="Performance">
+  <article class="finding" data-status="fixed" data-severity="P2" data-area="Performance">
     <details>
       <summary>
         <span class="fid">P2-01</span>
-        <span><span class="ftitle">Cache invalidation uses Redis <code>KEYS</code>, which blocks the server</span><span class="fsum">Replace with <code>SCAN</code> or versioned key prefixes.</span><span class="badges"><span class="badge p2">P2</span><span class="badge area">Performance</span><span class="badge eff">2 hours</span></span></span>
+        <span><span class="ftitle">Cache invalidation uses Redis <code>KEYS</code>, which blocks the server</span><span class="fsum">Replace with <code>SCAN</code> or versioned key prefixes.</span><span class="badges"><span class="badge p2">P2</span><span class="badge fixed">Fixed</span><span class="badge area">Performance</span><span class="badge eff">2 hours</span></span></span>
       </summary>
       <div class="fbody">
         <h4>Evidence</h4>
@@ -1128,11 +1128,11 @@ backend/api/subscription/routes.py   free upgrade, no processor</div>
     </details>
   </article>
 
-  <article class="finding" data-severity="P2" data-area="Performance">
+  <article class="finding" data-status="fixed" data-severity="P2" data-area="Performance">
     <details>
       <summary>
         <span class="fid">P2-02</span>
-        <span><span class="ftitle">Profile serialization is N+1 and returns more than most callers need</span><span class="fsum">List views can issue dozens of queries per profile.</span><span class="badges"><span class="badge p2">P2</span><span class="badge area">Performance</span><span class="badge eff">1 day</span></span></span>
+        <span><span class="ftitle">Profile serialization is N+1 and returns more than most callers need</span><span class="fsum">List views can issue dozens of queries per profile.</span><span class="badges"><span class="badge p2">P2</span><span class="badge fixed">Fixed</span><span class="badge area">Performance</span><span class="badge eff">1 day</span></span></span>
       </summary>
       <div class="fbody">
         <h4>Evidence</h4>
@@ -1147,11 +1147,11 @@ backend/api/...                 list endpoints serialize per row without eager l
     </details>
   </article>
 
-  <article class="finding" data-severity="P2" data-area="Security">
+  <article class="finding" data-status="fixed" data-severity="P2" data-area="Security">
     <details>
       <summary>
         <span class="fid">P2-03</span>
-        <span><span class="ftitle">Detailed health is public and does expensive work per request</span><span class="fsum">Unauthenticated callers can trigger provider health checks.</span><span class="badges"><span class="badge p2">P2</span><span class="badge area">Security</span><span class="badge eff">1 hour</span></span></span>
+        <span><span class="ftitle">Detailed health is public and does expensive work per request</span><span class="fsum">Unauthenticated callers can trigger provider health checks.</span><span class="badges"><span class="badge p2">P2</span><span class="badge fixed">Fixed</span><span class="badge area">Security</span><span class="badge eff">1 hour</span></span></span>
       </summary>
       <div class="fbody">
         <h4>Evidence</h4>
@@ -1166,11 +1166,11 @@ backend/api/health/routes.py:8  ai_manager.healthcheck() on every call</div>
     </details>
   </article>
 
-  <article class="finding" data-severity="P2" data-area="Performance">
+  <article class="finding" data-status="partial" data-severity="P2" data-area="Performance">
     <details>
       <summary>
         <span class="fid">P2-04</span>
-        <span><span class="ftitle">The main JS bundle is 511 kB gzip and every route is eagerly imported</span><span class="fsum">Slow first load on mobile; CRA makes code-splitting manual.</span><span class="badges"><span class="badge p2">P2</span><span class="badge area">Performance</span><span class="badge eff">1–2 days</span></span></span>
+        <span><span class="ftitle">The main JS bundle is 511 kB gzip and every route is eagerly imported</span><span class="fsum">Slow first load on mobile; CRA makes code-splitting manual.</span><span class="badges"><span class="badge p2">P2</span><span class="badge partial">Partial</span><span class="badge area">Performance</span><span class="badge eff">1–2 days</span></span></span>
       </summary>
       <div class="fbody">
         <h4>Evidence</h4>
@@ -1178,6 +1178,7 @@ backend/api/health/routes.py:8  ai_manager.healthcheck() on every call</div>
 frontend/src/App.js  all pages imported at top (single bundle)</div>
         <h4>Why it matters</h4>
         <p>Half a megabyte of JS before the first dashboard paint is rough on 3G/mid-range phones, and it delays the authenticated fetch waterfall. The charting and LiveKit libraries are the main weight.</p>
+        <p><b>Partial fix — 26 Oct 2026:</b> route-level splitting was tried and reverted (a spinner on every first page visit felt slower), so the split is vendor-island based instead: <code>VideoRoom</code> (LiveKit, ~156 kB gzip) lazy-loads only inside a video interview with the standard loader; unused <code>chart.js</code>/<code>react-chartjs-2</code> deps were removed; main is now ~353 kB gzip with a 400 kB CI budget gate (<code>frontend/scripts/check-bundle.js</code>, runs as <code>postbuild</code>). Full per-route splitting waits for the Vite migration.</p>
         <h4>Fix</h4>
         <p>Use <code>React.lazy</code> for dashboards, interview rooms, analytics, and marketing pages; split chart/LiveKit vendors; add bundle-budget CI checks. A Vite migration will make this easier.</p>
         <div class="done"><b>Done when</b><br>The signed-out landing route ships under 200 kB gzip, and the interview room chunk loads only on demand.</div>
@@ -1185,11 +1186,11 @@ frontend/src/App.js  all pages imported at top (single bundle)</div>
     </details>
   </article>
 
-  <article class="finding" data-severity="P2" data-area="Ops">
+  <article class="finding" data-status="fixed" data-severity="P2" data-area="Ops">
     <details>
       <summary>
         <span class="fid">P2-05</span>
-        <span><span class="ftitle">Container images are tag-pinned, not digest-pinned, and some tags are EOL</span><span class="fsum">Rebuilds can pull different bytes; nginx 1.25 is past its support window.</span><span class="badges"><span class="badge p2">P2</span><span class="badge area">Ops</span><span class="badge eff">2 hours</span></span></span>
+        <span><span class="ftitle">Container images are tag-pinned, not digest-pinned, and some tags are EOL</span><span class="fsum">Rebuilds can pull different bytes; nginx 1.25 is past its support window.</span><span class="badges"><span class="badge p2">P2</span><span class="badge fixed">Fixed</span><span class="badge area">Ops</span><span class="badge eff">2 hours</span></span></span>
       </summary>
       <div class="fbody">
         <h4>Evidence</h4>
@@ -1204,11 +1205,11 @@ docker-compose.*.yml  tags only, no @sha256 digests</div>
     </details>
   </article>
 
-  <article class="finding" data-severity="P2" data-area="Quality">
+  <article class="finding" data-status="fixed" data-severity="P2" data-area="Quality">
     <details>
       <summary>
         <span class="fid">P2-06</span>
-        <span><span class="ftitle">Repo hygiene: an unrelated Flask app and SQLite DB sit at the repo root</span><span class="fsum">Untracked <code>app.py</code> (53 KB) and <code>inventory.db</code> are easy to commit or ship by accident.</span><span class="badges"><span class="badge p2">P2</span><span class="badge area">Quality</span><span class="badge eff">30 min</span></span></span>
+        <span><span class="ftitle">Repo hygiene: an unrelated Flask app and SQLite DB sit at the repo root</span><span class="fsum">Untracked <code>app.py</code> (53 KB) and <code>inventory.db</code> are easy to commit or ship by accident.</span><span class="badges"><span class="badge p2">P2</span><span class="badge fixed">Fixed</span><span class="badge area">Quality</span><span class="badge eff">30 min</span></span></span>
       </summary>
       <div class="fbody">
         <h4>Evidence</h4>
@@ -1223,11 +1224,11 @@ app.py imports sqlite3, renders templates, no auth — unrelated to RecruAI</div
     </details>
   </article>
 
-  <article class="finding" data-severity="P2" data-area="Quality">
+  <article class="finding" data-status="fixed" data-severity="P2" data-area="Quality">
     <details>
       <summary>
         <span class="fid">P2-07</span>
-        <span><span class="ftitle">Legacy <code>Query.get()</code> is deprecated and will block the SQLAlchemy 2.x upgrade</span><span class="fsum">Deprecation warnings now, hard failures on upgrade.</span><span class="badges"><span class="badge p2">P2</span><span class="badge area">Quality</span><span class="badge eff">0.5 day</span></span></span>
+        <span><span class="ftitle">Legacy <code>Query.get()</code> is deprecated and will block the SQLAlchemy 2.x upgrade</span><span class="fsum">Deprecation warnings now, hard failures on upgrade.</span><span class="badges"><span class="badge p2">P2</span><span class="badge fixed">Fixed</span><span class="badge area">Quality</span><span class="badge eff">0.5 day</span></span></span>
       </summary>
       <div class="fbody">
         <h4>Evidence</h4>
@@ -1242,11 +1243,11 @@ backend/api/...                     multiple Model.query.get(...) calls</div>
     </details>
   </article>
 
-  <article class="finding" data-severity="P2" data-area="Privacy">
+  <article class="finding" data-status="fixed" data-severity="P2" data-area="Privacy">
     <details>
       <summary>
         <span class="fid">P2-08</span>
-        <span><span class="ftitle">OTP and security-event tables have no retention policy</span><span class="fsum">Hashed codes and IP/email audit trails accumulate indefinitely.</span><span class="badges"><span class="badge p2">P2</span><span class="badge area">Privacy</span><span class="badge eff">2 hours</span></span></span>
+        <span><span class="ftitle">OTP and security-event tables have no retention policy</span><span class="fsum">Hashed codes and IP/email audit trails accumulate indefinitely.</span><span class="badges"><span class="badge p2">P2</span><span class="badge fixed">Fixed</span><span class="badge area">Privacy</span><span class="badge eff">2 hours</span></span></span>
       </summary>
       <div class="fbody">
         <h4>Evidence</h4>
@@ -1261,11 +1262,11 @@ no cleanup job or TTL in migrations</div>
     </details>
   </article>
 
-  <article class="finding" data-severity="P2" data-area="Reliability">
+  <article class="finding" data-status="partial" data-severity="P2" data-area="Reliability">
     <details>
       <summary>
         <span class="fid">P2-09</span>
-        <span><span class="ftitle">Socket.IO runs in threading mode on one 4-thread worker — no horizontal scale</span><span class="fsum">Each connection occupies a thread; multiple workers would split rooms.</span><span class="badges"><span class="badge p2">P2</span><span class="badge area">Reliability</span><span class="badge eff">1–2 days</span></span></span>
+        <span><span class="ftitle">Socket.IO runs in threading mode on one 4-thread worker — no horizontal scale</span><span class="fsum">Each connection occupies a thread; multiple workers would split rooms.</span><span class="badges"><span class="badge p2">P2</span><span class="badge partial">Partial</span><span class="badge area">Reliability</span><span class="badge eff">1–2 days</span></span></span>
       </summary>
       <div class="fbody">
         <h4>Evidence</h4>
@@ -1274,6 +1275,7 @@ backend/Dockerfile           gunicorn 1 worker, 4 threads (AWS)
 frontend/src/utils/socket.js transports: ["websocket"] only</div>
         <h4>Why it matters</h4>
         <p>Real-time notifications work at low concurrency but degrade sharply: long-lived sockets consume the small thread pool, and adding workers without a Redis message queue would make emits reach only the worker that owns the socket.</p>
+        <p><b>Partial fix — 26 Oct 2026:</b> the Redis message queue is now wired (<code>socketio.init_app(..., message_queue=REDIS_URL)</code> when Redis is enabled), so emits fan out across workers whenever the API scales horizontally. Threading mode stays: moving to eventlet/gevent plus the 200-socket load test is deferred until scale demands it.</p>
         <h4>Fix</h4>
         <p>Before scaling beyond one worker, add <code>socketio</code> Redis message queue, switch to eventlet/gevent or an async worker, and load-test 200 concurrent sockets. Keep websocket-only but verify the server advertises it.</p>
         <div class="done"><b>Done when</b><br>200 concurrent sockets hold for 30 minutes with stable memory and sub-second notification delivery across two workers.</div>
@@ -1281,15 +1283,15 @@ frontend/src/utils/socket.js transports: ["websocket"] only</div>
     </details>
   </article>
 
-  <article class="finding" data-severity="P2" data-area="Config">
+  <article class="finding" data-status="fixed" data-severity="P2" data-area="Config">
     <details>
       <summary>
         <span class="fid">P2-10</span>
-        <span><span class="ftitle">Docs and deploy files drift: docs vs 43 migrations, three compose files, two frontend Dockerfiles</span><span class="fsum">Operators cannot tell which file is authoritative.</span><span class="badges"><span class="badge p2">P2</span><span class="badge area">Config</span><span class="badge eff">0.5 day</span></span></span>
+        <span><span class="ftitle">Docs and deploy files drift: docs vs 43 migrations, three compose files, two frontend Dockerfiles</span><span class="fsum">Operators cannot tell which file is authoritative.</span><span class="badges"><span class="badge p2">P2</span><span class="badge fixed">Fixed</span><span class="badge area">Config</span><span class="badge eff">0.5 day</span></span></span>
       </summary>
       <div class="fbody">
         <h4>Evidence</h4>
-        <div class="evidence">backend/migrations/versions/*.py   43 files, one head a7b8c9d0e1f2
+        <div class="evidence">backend/migrations/versions/*.py   45 files, one head c9d0e1f2a3b4 (verified by scripts/check-migration-head.sh in CI)
 docs/comments                     have disagreed on the migration count
 docker-compose.yml / .prod / .vps / .aws   four topologies
 frontend/Dockerfile / Dockerfile.prod      two build paths</div>
@@ -2529,16 +2531,16 @@ proxy_read_timeout 3600s;
           <tr><td><b>P1-13</b></td><td>Config drift / wrong API fallback / duplicate property</td><td><span class="tag amber">P1</span> <span class="tag green">Fixed</span></td><td>Config</td></tr>
           <tr><td><b>P1-14</b></td><td>No edge rate limiting or WAF</td><td><span class="tag amber">P1</span> <span class="tag green">Fixed</span></td><td>Security</td></tr>
           <tr><td><b>P1-15</b></td><td>Pricing contradicts product</td><td><span class="tag amber">P1</span></td><td>Billing</td></tr>
-          <tr><td><b>P2-01</b></td><td>Redis KEYS invalidation</td><td><span class="tag blue">P2</span></td><td>Performance</td></tr>
-          <tr><td><b>P2-02</b></td><td>Profile serialization N+1</td><td><span class="tag blue">P2</span></td><td>Performance</td></tr>
-          <tr><td><b>P2-03</b></td><td>Public detailed health</td><td><span class="tag blue">P2</span></td><td>Security</td></tr>
-          <tr><td><b>P2-04</b></td><td>511 kB gzip bundle / eager imports</td><td><span class="tag blue">P2</span></td><td>Performance</td></tr>
-          <tr><td><b>P2-05</b></td><td>Mutable/EOL container tags</td><td><span class="tag blue">P2</span></td><td>Ops</td></tr>
-          <tr><td><b>P2-06</b></td><td>Unrelated root app + SQLite DB</td><td><span class="tag blue">P2</span></td><td>Quality</td></tr>
-          <tr><td><b>P2-07</b></td><td>Legacy Query.get</td><td><span class="tag blue">P2</span></td><td>Quality</td></tr>
-          <tr><td><b>P2-08</b></td><td>OTP/security log retention</td><td><span class="tag blue">P2</span></td><td>Privacy</td></tr>
-          <tr><td><b>P2-09</b></td><td>Socket.IO threading scale</td><td><span class="tag blue">P2</span></td><td>Reliability</td></tr>
-          <tr><td><b>P2-10</b></td><td>Docs/compose drift</td><td><span class="tag blue">P2</span></td><td>Config</td></tr>
+          <tr><td><b>P2-01</b></td><td>Redis KEYS invalidation</td><td><span class="tag blue">P2</span> <span class="tag green">Fixed</span></td><td>Performance</td></tr>
+          <tr><td><b>P2-02</b></td><td>Profile serialization N+1</td><td><span class="tag blue">P2</span> <span class="tag green">Fixed</span></td><td>Performance</td></tr>
+          <tr><td><b>P2-03</b></td><td>Public detailed health</td><td><span class="tag blue">P2</span> <span class="tag green">Fixed</span></td><td>Security</td></tr>
+          <tr><td><b>P2-04</b></td><td>511 kB gzip bundle / eager imports</td><td><span class="tag blue">P2</span> <span class="tag amber">Partial</span></td><td>Performance</td></tr>
+          <tr><td><b>P2-05</b></td><td>Mutable/EOL container tags</td><td><span class="tag blue">P2</span> <span class="tag green">Fixed</span></td><td>Ops</td></tr>
+          <tr><td><b>P2-06</b></td><td>Unrelated root app + SQLite DB</td><td><span class="tag blue">P2</span> <span class="tag green">Fixed</span></td><td>Quality</td></tr>
+          <tr><td><b>P2-07</b></td><td>Legacy Query.get</td><td><span class="tag blue">P2</span> <span class="tag green">Fixed</span></td><td>Quality</td></tr>
+          <tr><td><b>P2-08</b></td><td>OTP/security log retention</td><td><span class="tag blue">P2</span> <span class="tag green">Fixed</span></td><td>Privacy</td></tr>
+          <tr><td><b>P2-09</b></td><td>Socket.IO threading scale</td><td><span class="tag blue">P2</span> <span class="tag amber">Partial</span></td><td>Reliability</td></tr>
+          <tr><td><b>P2-10</b></td><td>Docs/compose drift</td><td><span class="tag blue">P2</span> <span class="tag green">Fixed</span></td><td>Config</td></tr>
         </tbody>
       </table>
     </div>

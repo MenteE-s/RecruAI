@@ -21,7 +21,7 @@ from ...utils.slug import (
 
 def _me():
     try:
-        return User.query.get(int(get_jwt_identity()))
+        return db.session.get(User, int(get_jwt_identity()))
     except (TypeError, ValueError):
         return None
 
@@ -38,7 +38,7 @@ def get_public_profile_by_slug(slug):
     # the same fallback the org and job endpoints offer. Slugs are
     # generated from names, so a numeric segment can only be an id.
     if not user and clean.isdigit():
-        user = User.query.get(int(clean))
+        user = db.session.get(User, int(clean))
     if not user:
         return jsonify({"error": "Not found"}), 404
 

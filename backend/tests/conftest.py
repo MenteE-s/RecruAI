@@ -147,6 +147,7 @@ class TestConfig:
     ENABLE_HSTS = False
 
     RESEND_API_KEY = None
+    OPS_TOKEN = "test-ops-token"
     OPENAI_API_KEY = None
     GROQ_API_KEY = None
     OPENROUTER_API_KEY = None

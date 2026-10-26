@@ -51,7 +51,7 @@ def create_experience():
     company_text = data['company']
     organization_id = data.get('organization_id') or None
     if organization_id:
-        org = Organization.query.get(organization_id)
+        org = db.session.get(Organization, organization_id)
         if not org:
             return jsonify({'error': 'Organization not found'}), 400
         company_text = org.name
@@ -99,7 +99,7 @@ def update_experience(exp_id):
     if 'organization_id' in data:
         org_id = data.pop('organization_id') or None
         if org_id:
-            org = Organization.query.get(org_id)
+            org = db.session.get(Organization, org_id)
             if not org:
                 return jsonify({'error': 'Organization not found'}), 400
             experience.organization_id = org.id

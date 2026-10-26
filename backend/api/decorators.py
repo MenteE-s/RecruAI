@@ -3,6 +3,7 @@ from flask import jsonify
 from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
 
 
+from ..extensions import db
 from ..models import User
 
 
@@ -25,7 +26,7 @@ def require_auth(fn):
         uid = get_jwt_identity()
         try:
             user_id = int(uid)
-            user = User.query.get(user_id)
+            user = db.session.get(User, user_id)
             if not user:
                 return jsonify({"error": "user not found"}), 404
         except (ValueError, TypeError):
@@ -56,7 +57,7 @@ def organization_required(fn):
 
         uid = get_jwt_identity()
         try:
-            user = User.query.get(int(uid))
+            user = db.session.get(User, int(uid))
         except (TypeError, ValueError):
             return jsonify({"error": "invalid user identity"}), 400
         if not user or user.role != "organization":

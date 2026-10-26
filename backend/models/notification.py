@@ -90,13 +90,13 @@ class Notification(db.Model):
 
         org = None
         if self.related_organization_id:
-            org = Organization.query.get(self.related_organization_id)
+            org = db.session.get(Organization, self.related_organization_id)
 
         post = None
         if self.related_post_id:
-            post = Post.query.get(self.related_post_id)
+            post = db.session.get(Post, self.related_post_id)
         elif self.related_application_id:
-            app = Application.query.get(self.related_application_id)
+            app = db.session.get(Application, self.related_application_id)
             if app:
                 post = app.post
 

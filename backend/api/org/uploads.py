@@ -13,7 +13,7 @@ def upload_organization_profile_image(org_id):
     """Upload a profile image for an organization"""
     # Get current user
     user_id = get_jwt_identity()
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
 
     if not user:
         return jsonify({"error": "User not found"}), 404
@@ -25,7 +25,7 @@ def upload_organization_profile_image(org_id):
             "permission": ORG_EDIT,
         }), 403
 
-    org = Organization.query.get_or_404(org_id)
+    org = db.get_or_404(Organization, org_id)
 
     if 'profile_image' not in request.files:
         return jsonify({'error': 'No file provided'}), 400
@@ -64,7 +64,7 @@ def upload_organization_banner_image(org_id):
     """Upload a banner image for an organization"""
     # Get current user
     user_id = get_jwt_identity()
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
 
     if not user:
         return jsonify({"error": "User not found"}), 404
@@ -76,7 +76,7 @@ def upload_organization_banner_image(org_id):
             "permission": ORG_EDIT,
         }), 403
 
-    org = Organization.query.get_or_404(org_id)
+    org = db.get_or_404(Organization, org_id)
 
     if 'banner_image' not in request.files:
         return jsonify({'error': 'No file provided'}), 400

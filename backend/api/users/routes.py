@@ -42,7 +42,7 @@ def update_user_timezone(user_id):
     denied = _own_id_or_403(user_id)
     if denied:
         return denied
-    user = User.query.get_or_404(user_id)
+    user = db.get_or_404(User, user_id)
 
     try:
         payload = request.get_json()
@@ -93,7 +93,7 @@ def update_user_timezone(user_id):
 @jwt_required()
 def get_user_current_time(user_id):
     """Get current time information in user's timezone (auth required to prevent ID enumeration)."""
-    user = User.query.get_or_404(user_id)
+    user = db.get_or_404(User, user_id)
     tz = user.timezone or "UTC"
     return jsonify(get_current_time_info(tz)), 200
 
@@ -107,7 +107,7 @@ def list_users():
     team members may browse candidates.
     """
     try:
-        me = User.query.get(int(get_jwt_identity()))
+        me = db.session.get(User, int(get_jwt_identity()))
     except (TypeError, ValueError):
         return jsonify({"error": "Invalid user identity"}), 400
     if not me:
@@ -221,7 +221,7 @@ def create_user():
     if requested_org is not None and requested_org != "":
         try:
             from flask_jwt_extended import get_jwt_identity as _gj
-            caller = User.query.get(int(_gj()))
+            caller = db.session.get(User, int(_gj()))
         except (TypeError, ValueError):
             caller = None
         try:
@@ -270,7 +270,7 @@ def get_user_full_profile(user_id):
         me_id = int(get_jwt_identity())
     except (TypeError, ValueError):
         return jsonify({"error": "Invalid user identity"}), 400
-    me = User.query.get_or_404(me_id)
+    me = db.get_or_404(User, me_id)
     if me.id != int(user_id):
         managed_ids = get_permitted_org_ids(me, HIRING_VIEW)
         related = False
@@ -292,7 +292,7 @@ def get_user_full_profile(user_id):
             )
         if not related:
             return jsonify({"error": "Forbidden"}), 403
-    user = User.query.get_or_404(user_id)
+    user = db.get_or_404(User, user_id)
 
     # Get all profile data
     profile_data = {
@@ -355,8 +355,8 @@ def toggle_favorite(user_id, target_user_id):
     else:
         # If favorite doesn't exist, create it (favorite)
         # Check if both users exist
-        user = User.query.get_or_404(user_id)
-        target_user = User.query.get_or_404(target_user_id)
+        user = db.get_or_404(User, user_id)
+        target_user = db.get_or_404(User, target_user_id)
         
         favorite = Favorite(
             user_id=user_id,
@@ -402,7 +402,7 @@ def get_favorites(user_id):
     denied = _own_id_or_403(user_id)
     if denied:
         return denied
-    user = User.query.get_or_404(user_id)
+    user = db.get_or_404(User, user_id)
     
     # Get pagination parameters
     page, per_page = get_pagination_params()
@@ -449,7 +449,7 @@ def join_position(user_id):
     denied = _own_id_or_403(user_id)
     if denied:
         return denied
-    user = User.query.get_or_404(user_id)
+    user = db.get_or_404(User, user_id)
 
     # Check if user is hired
     if user.employment_status != 'hired':
@@ -493,7 +493,7 @@ def join_position(user_id):
 def get_my_referrals():
     """List users who were referred by the current user."""
     user_id = int(get_jwt_identity())
-    me = User.query.get_or_404(user_id)
+    me = db.get_or_404(User, user_id)
 
     referrals = User.query.filter_by(referred_by_user_id=user_id).order_by(User.created_at.desc()).all()
 

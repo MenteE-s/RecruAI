@@ -111,7 +111,7 @@ def change_password():
         uid = int(get_jwt_identity())
     except (TypeError, ValueError):
         return jsonify({"error": "Invalid user identity"}), 400
-    user = User.query.get(uid)
+    user = db.session.get(User, uid)
     if not user:
         return jsonify({"error": "user not found"}), 404
     try:
@@ -217,7 +217,7 @@ def get_me():
     except Exception:
         pass
 
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     if not user:
         return jsonify({"error": "user not found"}), 404
 
@@ -236,7 +236,7 @@ def update_me():
     uid = get_jwt_identity()
     try:
         user_id = int(uid)
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         if not user:
             return jsonify({"error": "user not found"}), 404
     except (ValueError, TypeError):

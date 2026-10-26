@@ -159,6 +159,10 @@ class Config:
     # Security: Audit logging
     ENABLE_AUDIT_LOG = os.getenv("ENABLE_AUDIT_LOG", "1" if IS_PRODUCTION else "0") == "1"
 
+    # Ops token gating the detailed/ready/scheduler/outbox health endpoints.
+    # Never log this value; it is compared with hmac.compare_digest.
+    OPS_TOKEN = os.getenv("OPS_TOKEN")
+
     # AI Provider Configuration (dynamic properties)
     @property
     def AI_PROVIDER(self):
@@ -338,7 +342,7 @@ def validate_production_config(config=None) -> list:
         return value
 
     warnings = []
-    for name in ("SECRET_KEY", "JWT_SECRET_KEY", "RESEND_API_KEY"):
+    for name in ("SECRET_KEY", "JWT_SECRET_KEY", "RESEND_API_KEY", "OPS_TOKEN"):
         if get(name) in (None, "", "dev-secret-change-in-production"):
             raise RuntimeError(
                 f"Production config error: {name} must be set to a real value, not the dev default."

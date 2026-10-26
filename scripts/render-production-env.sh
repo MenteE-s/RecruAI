@@ -16,6 +16,7 @@ OUT="${1:-backend/.env.production}"
 : "${SECRET_KEY:?SECRET_KEY is required}"
 : "${JWT_SECRET_KEY:?JWT_SECRET_KEY is required}"
 : "${RESEND_API_KEY:?RESEND_API_KEY is required}"
+: "${OPS_TOKEN:?OPS_TOKEN is required (gates /health/detailed, /health/ready, /health/scheduler, /health/outbox)}"
 
 # This codebase uses psycopg2. RDS secrets are sometimes returned as
 # postgresql+psycopg:// (v3), which crashes backend boot with "No module named
@@ -64,6 +65,7 @@ mkdir -p "$(dirname "$OUT")"
   printf 'GROQ_API_KEY=%s\n' "${GROQ_API_KEY:-}"
   printf 'OPENAI_API_KEY=%s\n' "${OPENAI_API_KEY:-}"
   printf 'RESEND_API_KEY=%s\n' "$RESEND_API_KEY"
+  printf 'OPS_TOKEN=%s\n' "$OPS_TOKEN"
   printf 'REDIS_URL=redis://redis:6379/0\n'
   printf 'REDIS_ENABLED=1\n'
   printf 'RATELIMIT_STORAGE_URL=redis://redis:6379/0\n'

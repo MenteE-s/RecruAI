@@ -208,7 +208,7 @@ def require_subscription(feature: str):
             from backend.config import Config
 
             user_id = get_jwt_identity()
-            user = User.query.get(user_id)
+            user = db.session.get(User, user_id)
 
             if not user:
                 return {"error": "User not found"}, 404
@@ -264,7 +264,7 @@ def check_content_access(feature: str, free_preview: bool = False):
 
     from flask_jwt_extended import get_jwt_identity
     user_id = get_jwt_identity()
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     if not user:
         return False, {"error": "User not found"}, 404
 
@@ -299,7 +299,7 @@ def require_interview_access():
             from backend.config import Config
 
             user_id = get_jwt_identity()
-            user = User.query.get(user_id)
+            user = db.session.get(User, user_id)
 
             if not user:
                 return {"error": "User not found"}, 404

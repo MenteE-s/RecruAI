@@ -11,6 +11,7 @@ def _prod_env(**overrides):
         "JWT_SECRET_KEY": "test-jwt-secret",
         "DATABASE_URL": "postgresql+psycopg2://u:p@h:5432/db",
         "RESEND_API_KEY": "re_test",
+        "OPS_TOKEN": "test-ops-token",
         "GROQ_API_KEY": "gsk_test",
         "REDIS_ENABLED": True,
         "VIDEO_ENABLED": "0",
@@ -79,6 +80,7 @@ def test_production_boot_fails_closed_without_redis():
         SQLALCHEMY_DATABASE_URI = "postgresql+psycopg2://u:p@h:5432/db"
         RESEND_API_KEY = "re_test"
         GROQ_API_KEY = "gsk_test"
+        OPS_TOKEN = "test-ops-token"
         REDIS_ENABLED = True
         REDIS_URL = "redis://127.0.0.1:6390/0"
         RATELIMIT_ENABLED = False
@@ -103,3 +105,40 @@ def test_nginx_template_has_edge_limits():
         "client_max_body_size",
     ):
         assert directive in template, f"missing edge directive: {directive}"
+
+
+def test_socketio_uses_redis_queue_when_enabled():
+    """Cross-worker fan-out requires the Redis message queue (P2-09)."""
+    from backend import create_app
+    from backend.extensions import socketio
+
+    class NoRedis:
+        TESTING = True
+        IS_PRODUCTION = False
+        REDIS_ENABLED = False
+        SQLALCHEMY_DATABASE_URI = "postgresql+psycopg2://u:p@h:5432/db"
+
+    class WithRedis:
+        TESTING = True
+        IS_PRODUCTION = False
+        REDIS_ENABLED = True
+        REDIS_URL = "redis://127.0.0.1:6390/0"
+        SQLALCHEMY_DATABASE_URI = "postgresql+psycopg2://u:p@h:5432/db"
+
+    create_app(NoRedis)
+    assert type(socketio.server.manager).__name__ == "Manager"
+    create_app(WithRedis)
+    assert type(socketio.server.manager).__name__ == "RedisManager"
+
+
+def test_detailed_health_requires_ops_token(client):
+    assert client.get("/api/health/detailed").status_code == 403
+    assert (
+        client.get(
+            "/api/health/detailed", headers={"X-Ops-Token": "wrong"}
+        ).status_code
+        == 403
+    )
+    assert (
+        client.get("/api/health").status_code == 200
+    )  # liveness stays public

@@ -32,7 +32,7 @@ def _org_scope(user, value, permission):
         org_id = int(value)
     except (TypeError, ValueError):
         return None, (jsonify({"error": "Invalid organization_id"}), 400)
-    if org_id <= 0 or Organization.query.get(org_id) is None:
+    if org_id <= 0 or db.session.get(Organization, org_id) is None:
         return None, (jsonify({"error": "Organization not found"}), 404)
     if not has_org_permission(user, org_id, permission):
         return None, (
@@ -100,7 +100,7 @@ def list_payment_methods():
     user_id = _current_user_id()
     if not user_id:
         return jsonify({"error": "Invalid user identity"}), 400
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     if not user:
         return jsonify({"error": "user not found"}), 404
 
@@ -130,7 +130,7 @@ def create_payment_method():
     user_id = _current_user_id()
     if not user_id:
         return jsonify({"error": "Invalid user identity"}), 400
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     if not user:
         return jsonify({"error": "user not found"}), 404
 
@@ -182,11 +182,11 @@ def set_default_payment_method(card_id):
     user_id = _current_user_id()
     if not user_id:
         return jsonify({"error": "Invalid user identity"}), 400
-    card = PaymentMethod.query.get_or_404(card_id)
+    card = db.get_or_404(PaymentMethod, card_id)
     if card.user_id != user_id:
         return jsonify({"error": "Forbidden"}), 403
     if card.organization_id is not None:
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         if not has_org_permission(user, card.organization_id, BILLING_MANAGE):
             return jsonify({
                 "error": "You do not have permission to manage this organization's billing.",
@@ -214,11 +214,11 @@ def delete_payment_method(card_id):
     user_id = _current_user_id()
     if not user_id:
         return jsonify({"error": "Invalid user identity"}), 400
-    card = PaymentMethod.query.get_or_404(card_id)
+    card = db.get_or_404(PaymentMethod, card_id)
     if card.user_id != user_id:
         return jsonify({"error": "Forbidden"}), 403
     if card.organization_id is not None:
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         if not has_org_permission(user, card.organization_id, BILLING_MANAGE):
             return jsonify({
                 "error": "You do not have permission to manage this organization's billing.",

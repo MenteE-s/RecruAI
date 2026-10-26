@@ -53,7 +53,7 @@ def save_job():
 @api_bp.route("/saved-jobs/<int:saved_id>", methods=["DELETE"])
 @jwt_required()
 def unsave_job(saved_id):
-    saved_job = SavedJob.query.get_or_404(saved_id)
+    saved_job = db.get_or_404(SavedJob, saved_id)
     if saved_job.user_id != _identity():
         return jsonify({"error": "Forbidden"}), 403
     user_id = saved_job.user_id

@@ -32,7 +32,7 @@ def subscription_status():
     user_id = _current_user_id()
     if not user_id:
         return jsonify({"error": "Invalid user identity"}), 400
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     if not user:
         return jsonify({"error": "User not found"}), 404
     return jsonify(user.get_subscription_status()), 200
@@ -50,7 +50,7 @@ def subscription_upgrade():
     user_id = _current_user_id()
     if not user_id:
         return jsonify({"error": "Invalid user identity"}), 400
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     if not user:
         return jsonify({"error": "User not found"}), 404
 
@@ -92,7 +92,7 @@ def subscription_cancel():
     user_id = _current_user_id()
     if not user_id:
         return jsonify({"error": "Invalid user identity"}), 400
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     if not user:
         return jsonify({"error": "User not found"}), 404
 

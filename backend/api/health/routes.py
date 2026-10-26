@@ -1,4 +1,4 @@
-from flask import current_app, jsonify
+from flask import current_app, jsonify, request
 
 from .. import api_bp
 from ...ai_providers import get_ai_provider_manager
@@ -43,12 +43,24 @@ def _check_kafka():
         return {"healthy": False, "error": str(exc)}
 
 
+# Cache for the provider healthcheck (slow / cost-bearing): 60s TTL.
+_AI_HEALTH_CACHE = {"at": 0.0, "value": None}
+
+
 def _check_ai_providers():
+    # Provider healthchecks can be slow or cost-bearing; cache for 60s so a
+    # monitoring scrape storm does not fan out to vendors.
+    import time
+
+    now = time.monotonic()
+    cached = _AI_HEALTH_CACHE.get("value")
+    if cached is not None and now - _AI_HEALTH_CACHE.get("at", 0) < 60:
+        return cached
     try:
         manager = get_ai_provider_manager()
         health = manager.healthcheck()
         info = manager.get_provider_info()
-        return {
+        result = {
             "healthy": bool(health.get("llm") or health.get("embedding")),
             "llm": {"provider": info.get("llm_provider"), "healthy": health.get("llm", False)},
             "embedding": {
@@ -59,7 +71,30 @@ def _check_ai_providers():
             "rag_enabled": info.get("rag_enabled", False),
         }
     except Exception as exc:
-        return {"healthy": False, "error": str(exc)}
+        result = {"healthy": False, "error": str(exc)}
+    _AI_HEALTH_CACHE["value"] = result
+    _AI_HEALTH_CACHE["at"] = now
+    return result
+
+
+def _require_ops_token():
+    """Gate non-liveness health endpoints behind an ops token.
+
+    Detailed checks reveal provider/model topology and do expensive work, so
+    anonymous callers only get the liveness shape. Fail closed in production
+    when no token is configured; allow in dev/test for local debugging.
+    """
+    import hmac
+
+    expected = current_app.config.get("OPS_TOKEN") or ""
+    if not expected:
+        if current_app.config.get("IS_PRODUCTION"):
+            return jsonify({"error": "ops token not configured", "code": "ops_token_required"}), 503
+        return None
+    provided = request.headers.get("X-Ops-Token", "")
+    if not provided or not hmac.compare_digest(provided, expected):
+        return jsonify({"error": "forbidden", "code": "ops_token_required"}), 403
+    return None
 
 
 def _check_scheduler():
@@ -124,10 +159,14 @@ def _check_outbox():
 def health_outbox():
     """Outbox backlog: pending/failed/dead counts and oldest pending age.
 
-    Fails (503) when dead rows need attention or the oldest pending row is
-    older than the alert threshold, so monitors can page on it.
+    Ops-token gated. Fails (503) when dead rows need attention or the oldest
+    pending row is older than the alert threshold, so monitors can page on it.
     """
     import os
+
+    denied = _require_ops_token()
+    if denied:
+        return denied
 
     check = _check_outbox()
     if not check.get("healthy", False):
@@ -151,6 +190,10 @@ def health_scheduler():
     """Fail when the dedicated scheduler worker has missed two cycles."""
     from ...scheduler import scheduler_health
 
+    denied = _require_ops_token()
+    if denied:
+        return denied
+
     try:
         health = scheduler_health(current_app._get_current_object())
     except Exception as exc:
@@ -173,7 +216,10 @@ def health_check():
 
 @api_bp.route("/health/ready", methods=["GET"])
 def health_ready():
-    """Readiness: required dependencies are available."""
+    """Readiness: required dependencies are available (ops-token gated)."""
+    denied = _require_ops_token()
+    if denied:
+        return denied
     checks = {
         "database": _check_database(),
         "redis": _check_redis(),
@@ -191,6 +237,10 @@ def health_ready():
 
 @api_bp.route("/health/detailed", methods=["GET"])
 def health_detailed():
+    """Full dependency detail (ops-token gated; AI check cached 60s)."""
+    denied = _require_ops_token()
+    if denied:
+        return denied
     checks = {
         "database": _check_database(),
         "redis": _check_redis(),

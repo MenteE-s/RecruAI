@@ -40,7 +40,7 @@ def _current_user():
     if identity is None:
         return None
     try:
-        return User.query.get(int(identity))
+        return db.session.get(User, int(identity))
     except (TypeError, ValueError):
         return None
 

@@ -9,14 +9,14 @@ from .interviews import _me, _can_see_interview, _manages_interview
 
 
 def _get_visible_interview(interview_id):
-    interview = Interview.query.get_or_404(interview_id)
+    interview = db.get_or_404(Interview, interview_id)
     if not _can_see_interview(_me(), interview):
         return None, (jsonify({"error": "Forbidden"}), 403)
     return interview, None
 
 
 def _get_manageable_interview(interview_id):
-    interview = Interview.query.get_or_404(interview_id)
+    interview = db.get_or_404(Interview, interview_id)
     if not _manages_interview(_me(), interview):
         return None, (jsonify({"error": "Forbidden"}), 403)
     return interview, None
@@ -114,7 +114,7 @@ def livekit_webhook():
                 except (TypeError, ValueError):
                     interview_id = None
                 if interview_id:
-                    interview = Interview.query.get(interview_id)
+                    interview = db.session.get(Interview, interview_id)
                     files = list(getattr(info, "file_results", []) or [])
                     if interview is not None and files:
                         filename = getattr(files[0], "filename", "") or ""

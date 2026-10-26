@@ -190,7 +190,9 @@ def test_outbox_health_reports_backlog(client, make_user):
         )
         db.session.commit()
 
-    response = client.get("/api/health/outbox")
+    response = client.get(
+        "/api/health/outbox", headers={"X-Ops-Token": "test-ops-token"}
+    )
     assert response.status_code == 200
     body = response.get_json()
     assert body["pending"] >= 1

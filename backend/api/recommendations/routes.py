@@ -26,7 +26,7 @@ def _is_hiring_user(user):
 
 def _owns_job(user, job_id):
     try:
-        post = Post.query.get(int(job_id))
+        post = db.session.get(Post, int(job_id))
     except (TypeError, ValueError):
         return False
     return post is not None and post.organization_id in _managed_org_ids(user)
@@ -56,7 +56,7 @@ def recommend_candidates(job_id):
     """Get recommended candidates for a job posting"""
     try:
         current_user_id = get_jwt_identity()
-        user = User.query.get(current_user_id)
+        user = db.session.get(User, current_user_id)
         if not user:
             return jsonify({'error': 'User not found'}), 404
         if not _is_hiring_user(user):
@@ -111,7 +111,7 @@ def recommend_jobs():
     """Get recommended jobs for the current user"""
     try:
         current_user_id = get_jwt_identity()
-        user = User.query.get(current_user_id)
+        user = db.session.get(User, current_user_id)
         if not user:
             return jsonify({'error': 'User not found'}), 404
 
@@ -161,7 +161,7 @@ def recommend_agents(job_id):
     """Get recommended AI agents for interviewing candidates for a job"""
     try:
         current_user_id = get_jwt_identity()
-        user = User.query.get(current_user_id)
+        user = db.session.get(User, current_user_id)
         if not user:
             return jsonify({'error': 'User not found'}), 404
         if not _is_hiring_user(user):
@@ -205,7 +205,7 @@ def search_profiles():
     """Search profiles by text query using Postgres full-text search (no ML)."""
     try:
         current_user_id = get_jwt_identity()
-        user = User.query.get(current_user_id)
+        user = db.session.get(User, current_user_id)
         if not user:
             return jsonify({'error': 'User not found'}), 404
         if not _is_hiring_user(user):
@@ -264,7 +264,7 @@ def explain_candidate():
     """Generate AI explanation for a specific candidate (on-demand, not during search)"""
     try:
         current_user_id = get_jwt_identity()
-        user = User.query.get(current_user_id)
+        user = db.session.get(User, current_user_id)
         if not user:
             return jsonify({'error': 'User not found'}), 404
 
@@ -298,7 +298,7 @@ def get_candidate_profile(user_id):
     """Get enriched candidate profile with skills, experience, education."""
     try:
         current_user_id = get_jwt_identity()
-        me = User.query.get(current_user_id)
+        me = db.session.get(User, current_user_id)
         if not me:
             return jsonify({'error': 'User not found'}), 404
         if str(user_id) != str(me.id) and not _is_hiring_user(me):
@@ -321,7 +321,7 @@ def compare_candidate_job():
     """Compare a candidate's profile against a job posting."""
     try:
         current_user_id = get_jwt_identity()
-        user = User.query.get(current_user_id)
+        user = db.session.get(User, current_user_id)
         if not user:
             return jsonify({'error': 'User not found'}), 404
 
@@ -357,7 +357,7 @@ def embed_profile():
     """Embed a user profile for recommendations"""
     try:
         current_user_id = get_jwt_identity()
-        user = User.query.get(current_user_id)
+        user = db.session.get(User, current_user_id)
         if not user:
             return jsonify({'error': 'User not found'}), 404
 
@@ -392,7 +392,7 @@ def embed_job(job_id):
     """Embed a job posting for recommendations"""
     try:
         current_user_id = get_jwt_identity()
-        user = User.query.get(current_user_id)
+        user = db.session.get(User, current_user_id)
         if not user:
             return jsonify({'error': 'User not found'}), 404
 
@@ -429,7 +429,7 @@ def embed_agent(agent_id):
     """Embed an AI agent for recommendations"""
     try:
         current_user_id = get_jwt_identity()
-        user = User.query.get(current_user_id)
+        user = db.session.get(User, current_user_id)
         if not user:
             return jsonify({'error': 'User not found'}), 404
 
@@ -438,7 +438,7 @@ def embed_agent(agent_id):
             return jsonify({'error': 'Agent data is required'}), 400
 
         try:
-            agent = AIInterviewAgent.query.get(int(agent_id))
+            agent = db.session.get(AIInterviewAgent, int(agent_id))
         except (TypeError, ValueError):
             agent = None
         if not agent:

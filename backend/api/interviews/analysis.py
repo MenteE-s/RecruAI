@@ -25,8 +25,8 @@ def _can_access_interview_id(interview_id):
         uid = int(get_jwt_identity())
     except (TypeError, ValueError):
         return False
-    user = User.query.get(uid)
-    interview = Interview.query.get(interview_id)
+    user = db.session.get(User, uid)
+    interview = db.session.get(Interview, interview_id)
     if not user or not interview:
         return False
     if interview.user_id == user.id:
@@ -42,7 +42,7 @@ def _manages_org_id(org_id):
         uid = int(get_jwt_identity())
     except (TypeError, ValueError):
         return False
-    user = User.query.get(uid)
+    user = db.session.get(User, uid)
     if not user:
         return False
     return has_org_permission(user, org_id, ANALYTICS_VIEW)
@@ -256,7 +256,7 @@ def generate_interview_analysis(interview_id):
     """Generate AI analysis for completed interview (participant/org only)."""
     if not _can_access_interview_id(interview_id):
         return jsonify({"error": "Forbidden"}), 403
-    interview = Interview.query.get_or_404(interview_id)
+    interview = db.get_or_404(Interview, interview_id)
 
     if interview.status != 'completed':
         return jsonify({"error": "Interview must be completed before analysis"}), 400
@@ -294,7 +294,7 @@ def generate_interview_analysis(interview_id):
         user_id = int(get_jwt_identity())
     except (TypeError, ValueError):
         return jsonify({"error": "Invalid user"}), 401
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     if not user:
         return jsonify({"error": "User not found"}), 404
     if (

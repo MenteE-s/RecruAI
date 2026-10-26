@@ -239,7 +239,7 @@ def universal_search():
     caller = None
     managed_ids = set()
     try:
-        caller = User.query.get(_caller_id())
+        caller = db.session.get(User, _caller_id())
     except (TypeError, ValueError):
         caller = None
     if caller:

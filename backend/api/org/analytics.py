@@ -9,7 +9,7 @@ from ...utils.org_permissions import ANALYTICS_VIEW, get_permitted_org_ids
 def _managed_org_ids():
     """Org ids where the caller may read analytics."""
     try:
-        user = User.query.get(int(get_jwt_identity()))
+        user = db.session.get(User, int(get_jwt_identity()))
     except (TypeError, ValueError):
         return None
     if not user:

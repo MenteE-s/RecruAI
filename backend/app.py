@@ -131,7 +131,19 @@ def create_app(config_object: object | None = None):
 		raise RuntimeError("JWT extension not available; check backend.extensions")
 
 	jwt.init_app(app)
-	socketio.init_app(app, cors_allowed_origins=origins_list)
+	# Cross-worker fan-out: with a Redis message queue, emits from any worker
+	# reach sockets owned by another worker, so the API can scale past one
+	# process without dropping realtime notifications. Without Redis the queue
+	# stays local (single-worker topology). Threading mode is kept: moving to
+	# eventlet/gevent requires a load-tested migration (see P2-09).
+	socketio_queue = None
+	if app.config.get("REDIS_ENABLED", False):
+		socketio_queue = app.config.get("REDIS_URL", "redis://127.0.0.1:6379/0")
+	socketio.init_app(
+		app,
+		cors_allowed_origins=origins_list,
+		message_queue=socketio_queue,
+	)
 
 	# JWT error handlers - return JSON instead of HTML
 	@jwt.expired_token_loader

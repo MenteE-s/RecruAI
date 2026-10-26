@@ -28,12 +28,12 @@ def interview_chat(interview_id):
     # Get authenticated user
     user_id = get_jwt_identity()
     user_id = int(user_id)  # Convert to int for database comparison
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     if not user:
         return jsonify({'error': 'User not found'}), 404
 
     message = data['message']
-    interview = Interview.query.get(interview_id)
+    interview = db.session.get(Interview, interview_id)
     if not interview:
         return jsonify({'error': 'Interview not found'}), 404
 

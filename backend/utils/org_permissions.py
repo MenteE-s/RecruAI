@@ -294,7 +294,7 @@ def current_user():
         user_id = int(get_jwt_identity())
     except (TypeError, ValueError):
         return None
-    return User.query.get(user_id)
+    return db.session.get(User, user_id)
 
 
 def forbidden_response(permission=None):

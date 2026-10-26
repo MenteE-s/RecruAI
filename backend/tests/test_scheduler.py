@@ -84,6 +84,48 @@ def test_expired_interviews_complete_only_after_their_duration(
     assert update_expired_interviews(limit=10) == 0
 
 
+def test_retention_cleanup_deletes_only_old_consumed_or_expired_otps(
+    app, make_user
+):
+    from backend.models import EmailOtp
+
+    user = make_user(email="otp-retention@example.com")
+    now = datetime.utcnow()
+    old_consumed = EmailOtp(
+        user_id=user.id,
+        purpose="verify_email",
+        code_hash="h1",
+        expires_at=now - timedelta(days=2),
+        consumed_at=now - timedelta(days=2),
+        created_at=now - timedelta(days=2),
+    )
+    old_expired = EmailOtp(
+        user_id=user.id,
+        purpose="verify_email",
+        code_hash="h2",
+        expires_at=now - timedelta(days=2),
+        consumed_at=None,
+        created_at=now - timedelta(days=2),
+    )
+    fresh = EmailOtp(
+        user_id=user.id,
+        purpose="verify_email",
+        code_hash="h3",
+        expires_at=now + timedelta(minutes=10),
+        consumed_at=None,
+        created_at=now,
+    )
+    db.session.add_all([old_consumed, old_expired, fresh])
+    db.session.commit()
+
+    result = run_job(app, "retention_cleanup")
+    assert result["status"] == "success"
+    assert result["rows_updated"] == 2
+
+    remaining = {row.code_hash for row in EmailOtp.query.all()}
+    assert remaining == {"h3"}
+
+
 def test_run_job_records_success_error_and_rows(app):
     success = run_job(
         app,

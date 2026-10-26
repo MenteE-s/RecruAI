@@ -1,11 +1,15 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import TextInterview from "../components/interviews/TextInterview";
-import VideoRoom from "../components/interviews/VideoRoom";
+import MenteeLoader from "../components/ui/MenteeLoader";
 import { parseUTC } from "../utils/timezone";
 import DualTime from "../components/ui/DualTime";
 import socketService from "../utils/socket";
 import { getCurrentUser } from "../utils/auth";
+// LiveKit is the heaviest vendor in the bundle: load it only when a video
+// interview actually renders, not on every dashboard visit. (Deliberately
+// not per-route splitting: that put a spinner on every first page visit.)
+const VideoRoom = React.lazy(() => import("../components/interviews/VideoRoom"));
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "";
 
@@ -562,7 +566,15 @@ const InterviewRoom = () => {
             </div>
           );
         }
-        return <VideoRoom interviewId={interviewId} interview={interview} onLeave={() => navigate(`/in/interviews/${interviewId}`)} />;
+        return (
+          <Suspense fallback={
+            <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+              <MenteeLoader size={56} text="Loading video room…" />
+            </div>
+          }>
+            <VideoRoom interviewId={interviewId} interview={interview} onLeave={() => navigate(`/in/interviews/${interviewId}`)} />
+          </Suspense>
+        );
 
       default:
         return (

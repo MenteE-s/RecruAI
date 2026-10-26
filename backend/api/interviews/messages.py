@@ -13,8 +13,8 @@ def _can_access_interview(interview_id, permission=INTERVIEWS_VIEW):
         uid = int(get_jwt_identity())
     except (TypeError, ValueError):
         return False, None
-    user = User.query.get(uid)
-    interview = Interview.query.get(interview_id)
+    user = db.session.get(User, uid)
+    interview = db.session.get(Interview, interview_id)
     if not user or not interview:
         return False, user
     if interview.user_id == user.id:

@@ -14,6 +14,8 @@ jwt = JWTManager()
 # Default origins; create_app() overrides with the configured FRONTEND_ORIGIN
 # list at init_app time. Never "*" in production (breaks credentialed CORS).
 _default_origins = [o.strip().rstrip("/") for o in os.getenv("FRONTEND_ORIGIN", "http://localhost:3000").split(",")]
+# NOTE: no message_queue here — the factory attaches Redis when enabled (see
+# create_app). A module-level client would freeze the dev default forever.
 socketio = SocketIO(cors_allowed_origins=_default_origins, async_mode="threading")
 
 # Redis client — initialized in app factory

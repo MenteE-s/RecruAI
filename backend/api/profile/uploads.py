@@ -206,7 +206,7 @@ def upload_profile_picture():
     user_id = int(get_jwt_identity())
     try:
         user_id_int = int(user_id)
-        user = User.query.get(user_id_int)
+        user = db.session.get(User, user_id_int)
     except (ValueError, TypeError):
         return jsonify({"error": "invalid user identity"}), 400
 
@@ -263,7 +263,7 @@ def upload_banner():
     user_id = int(get_jwt_identity())
     try:
         user_id_int = int(user_id)
-        user = User.query.get(user_id_int)
+        user = db.session.get(User, user_id_int)
     except (ValueError, TypeError):
         return jsonify({"error": "invalid user identity"}), 400
 
