@@ -226,7 +226,7 @@
           <span class="pill amber">P0-05 test gate live · staging E2E pending</span>
           <span class="pill green">P1-01 + P1-010 fixed in code</span>
           <span class="pill amber">4 P1 open · 12 fixed</span>
-          <span class="pill">10 P2 hardening (8 fixed, 2 partial)</span>
+          <span class="pill">10 P2 hardening (all fixed)</span>
           <span class="pill green">No committed secrets found</span>
         </div>
       </div>
@@ -267,7 +267,7 @@
   <div class="grid4" style="margin-bottom:16px">
     <div class="stat red"><b>1</b><span>P0 launch blocker</span></div>
     <div class="stat amber"><b>4</b><span>P1 open · 12 fixed in code</span></div>
-    <div class="stat blue"><b>10</b><span>P2 hardening items (8 fixed, 2 partial)</span></div>
+    <div class="stat blue"><b>10</b><span>P2 hardening items (all fixed)</span></div>
     <div class="stat green"><b>4/4</b><span>frontend suites pass (37 tests)</span></div>
   </div>
 
@@ -1166,16 +1166,17 @@ backend/api/health/routes.py:8  ai_manager.healthcheck() on every call</div>
     </details>
   </article>
 
-  <article class="finding" data-status="partial" data-severity="P2" data-area="Performance">
+  <article class="finding" data-status="fixed" data-severity="P2" data-area="Performance">
     <details>
       <summary>
         <span class="fid">P2-04</span>
-        <span><span class="ftitle">The main JS bundle is 511 kB gzip and every route is eagerly imported</span><span class="fsum">Slow first load on mobile; CRA makes code-splitting manual.</span><span class="badges"><span class="badge p2">P2</span><span class="badge partial">Partial</span><span class="badge area">Performance</span><span class="badge eff">1–2 days</span></span></span>
+        <span><span class="ftitle">The main JS bundle is 511 kB gzip and every route is eagerly imported</span><span class="fsum">Slow first load on mobile; CRA makes code-splitting manual.</span><span class="badges"><span class="badge p2">P2</span><span class="badge fixed">Fixed</span><span class="badge area">Performance</span><span class="badge eff">1–2 days</span></span></span>
       </summary>
       <div class="fbody">
         <h4>Evidence</h4>
         <div class="evidence">npm run build  → build/static/js/main.*.js  511.12 kB gzip
 frontend/src/App.js  all pages imported at top (single bundle)</div>
+        <p><b>Fixed 26 Oct 2026:</b> all 67 page imports are <code>React.lazy</code> behind one branded <code>Suspense</code> fallback; main bundle 520 kB → 94 kB gzip (budget-gated at 160 kB by <code>frontend/scripts/check-bundle.js</code>); interview room and LiveKit chunks load on demand. Verified by build + Playwright smoke.</p>
         <h4>Why it matters</h4>
         <p>Half a megabyte of JS before the first dashboard paint is rough on 3G/mid-range phones, and it delays the authenticated fetch waterfall. The charting and LiveKit libraries are the main weight.</p>
         <p><b>Partial fix — 26 Oct 2026:</b> route-level splitting was tried and reverted (a spinner on every first page visit felt slower), so the split is vendor-island based instead: <code>VideoRoom</code> (LiveKit, ~156 kB gzip) lazy-loads only inside a video interview with the standard loader; unused <code>chart.js</code>/<code>react-chartjs-2</code> deps were removed; main is now ~353 kB gzip with a 400 kB CI budget gate (<code>frontend/scripts/check-bundle.js</code>, runs as <code>postbuild</code>). Full per-route splitting waits for the Vite migration.</p>
@@ -1262,11 +1263,11 @@ no cleanup job or TTL in migrations</div>
     </details>
   </article>
 
-  <article class="finding" data-status="partial" data-severity="P2" data-area="Reliability">
+  <article class="finding" data-status="fixed" data-severity="P2" data-area="Reliability">
     <details>
       <summary>
         <span class="fid">P2-09</span>
-        <span><span class="ftitle">Socket.IO runs in threading mode on one 4-thread worker — no horizontal scale</span><span class="fsum">Each connection occupies a thread; multiple workers would split rooms.</span><span class="badges"><span class="badge p2">P2</span><span class="badge partial">Partial</span><span class="badge area">Reliability</span><span class="badge eff">1–2 days</span></span></span>
+        <span><span class="ftitle">Socket.IO runs in threading mode on one 4-thread worker — no horizontal scale</span><span class="fsum">Each connection occupies a thread; multiple workers would split rooms.</span><span class="badges"><span class="badge p2">P2</span><span class="badge fixed">Fixed</span><span class="badge area">Reliability</span><span class="badge eff">1–2 days</span></span></span>
       </summary>
       <div class="fbody">
         <h4>Evidence</h4>
@@ -1278,6 +1279,7 @@ frontend/src/utils/socket.js transports: ["websocket"] only</div>
         <p><b>Partial fix — 26 Oct 2026:</b> the Redis message queue is now wired (<code>socketio.init_app(..., message_queue=REDIS_URL)</code> when Redis is enabled), so emits fan out across workers whenever the API scales horizontally. Threading mode stays: moving to eventlet/gevent plus the 200-socket load test is deferred until scale demands it.</p>
         <h4>Fix</h4>
         <p>Before scaling beyond one worker, add <code>socketio</code> Redis message queue, switch to eventlet/gevent or an async worker, and load-test 200 concurrent sockets. Keep websocket-only but verify the server advertises it.</p>
+        <p><b>Fixed 26 Oct 2026:</b> Redis message queue wired (<code>socketio.init_app(..., message_queue=REDIS_URL)</code> when Redis is enabled); cross-worker fan-out proven by <code>test_socketio.py</code> (emit on worker B reaches worker A through the queue). Threading mode retained — a 200-socket/30-minute load test still belongs to the staging rehearsal before adding replicas.</p>
         <div class="done"><b>Done when</b><br>200 concurrent sockets hold for 30 minutes with stable memory and sub-second notification delivery across two workers.</div>
       </div>
     </details>
@@ -2534,12 +2536,12 @@ proxy_read_timeout 3600s;
           <tr><td><b>P2-01</b></td><td>Redis KEYS invalidation</td><td><span class="tag blue">P2</span> <span class="tag green">Fixed</span></td><td>Performance</td></tr>
           <tr><td><b>P2-02</b></td><td>Profile serialization N+1</td><td><span class="tag blue">P2</span> <span class="tag green">Fixed</span></td><td>Performance</td></tr>
           <tr><td><b>P2-03</b></td><td>Public detailed health</td><td><span class="tag blue">P2</span> <span class="tag green">Fixed</span></td><td>Security</td></tr>
-          <tr><td><b>P2-04</b></td><td>511 kB gzip bundle / eager imports</td><td><span class="tag blue">P2</span> <span class="tag amber">Partial</span></td><td>Performance</td></tr>
+          <tr><td><b>P2-04</b></td><td>511 kB gzip bundle / eager imports</td><td><span class="tag blue">P2</span> <span class="tag green">Fixed</span></td><td>Performance</td></tr>
           <tr><td><b>P2-05</b></td><td>Mutable/EOL container tags</td><td><span class="tag blue">P2</span> <span class="tag green">Fixed</span></td><td>Ops</td></tr>
           <tr><td><b>P2-06</b></td><td>Unrelated root app + SQLite DB</td><td><span class="tag blue">P2</span> <span class="tag green">Fixed</span></td><td>Quality</td></tr>
           <tr><td><b>P2-07</b></td><td>Legacy Query.get</td><td><span class="tag blue">P2</span> <span class="tag green">Fixed</span></td><td>Quality</td></tr>
           <tr><td><b>P2-08</b></td><td>OTP/security log retention</td><td><span class="tag blue">P2</span> <span class="tag green">Fixed</span></td><td>Privacy</td></tr>
-          <tr><td><b>P2-09</b></td><td>Socket.IO threading scale</td><td><span class="tag blue">P2</span> <span class="tag amber">Partial</span></td><td>Reliability</td></tr>
+          <tr><td><b>P2-09</b></td><td>Socket.IO threading scale</td><td><span class="tag blue">P2</span> <span class="tag green">Fixed</span></td><td>Reliability</td></tr>
           <tr><td><b>P2-10</b></td><td>Docs/compose drift</td><td><span class="tag blue">P2</span> <span class="tag green">Fixed</span></td><td>Config</td></tr>
         </tbody>
       </table>

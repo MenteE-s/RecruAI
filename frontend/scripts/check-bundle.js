@@ -6,10 +6,10 @@ const fs = require("fs");
 const path = require("path");
 const zlib = require("zlib");
 
-// Set from the 26 Oct 2026 build (main ~351 kB gzip after the VideoRoom split
-// and chart.js removal) with ~15% headroom. Bump deliberately, never to
-// silence the gate.
-const MAIN_BUDGET_GZIP_BYTES = 400 * 1024;
+// Set from the 26 Oct 2026 build (main ~95 kB gzip after full route-level
+// splitting; interview room and LiveKit load on demand). Tight enough to
+// catch a vendor accidentally pulled back into the shell; bump deliberately.
+const MAIN_BUDGET_GZIP_BYTES = 160 * 1024;
 
 const jsDir = path.join(__dirname, "..", "build", "static", "js");
 if (!fs.existsSync(jsDir)) {
