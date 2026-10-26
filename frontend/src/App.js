@@ -49,9 +49,8 @@ const Jobs = React.lazy(() => import("./pages/individual/Jobs"));
 const Analytics = React.lazy(() => import("./pages/individual/Analytics"));
 const ResumeBuilder = React.lazy(() => import("./pages/individual/ResumeBuilder"));
 const JobAlerts = React.lazy(() => import("./pages/individual/JobAlerts"));
-// CareerCoaching.jsx was the old hardcoded coaching mockup (a fictional coach,
-// fabricated session counts). Its route now serves the real product; the file is
-// kept only until the sidebar removal decides nothing still wants it.
+// Career coaching lives at /in/coaching/* (Cvai* pages above), backed by the
+// mentorship/quiz/project/interview APIs — not a separate mockup page.
 const CvaiOverview = React.lazy(() => import("./pages/cvai/CvaiOverview"));
 const CvaiSkills = React.lazy(() => import("./pages/cvai/CvaiSkills"));
 const CvaiQuizzes = React.lazy(() => import("./pages/cvai/CvaiQuizzes"));

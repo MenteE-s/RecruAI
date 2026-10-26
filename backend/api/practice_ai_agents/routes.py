@@ -183,9 +183,10 @@ def schedule_practice_interview(agent_id):
     user = db.get_or_404(User, user_id)
     agent = PracticeAIAgent.query.filter_by(id=agent_id, user_id=user_id).first_or_404()
 
-    # Check if user can schedule interviews (free during trial)
-    if not user.can_schedule_interview():
-        return jsonify({"error": "Interview scheduling requires an active subscription or trial"}), 403
+    # Same entitlement as creating/listing agents: practice features are
+    # CVAI-gated, not org-interview-quota-gated.
+    if not user.can_access_feature("practice_ai_agents"):
+        return jsonify({"error": "Practice AI agents require an active subscription or trial"}), 403
 
     payload = request.get_json(silent=True) or {}
 
@@ -202,7 +203,7 @@ def schedule_practice_interview(agent_id):
     )
     db.session.add(interview)
     db.session.commit()
-    
+
     # Emit Kafka event for practice interview scheduling
     kafka.emit_event('practice_interview_scheduled', {
         'interview_id': interview.id,
@@ -212,8 +213,8 @@ def schedule_practice_interview(agent_id):
         'scheduled_at': utc_iso(interview.scheduled_at),
         'timestamp': utc_now_iso()
     })
-    
-    return {
+
+    return jsonify({
         'id': interview.id,
         'message': 'Practice interview scheduled successfully'
-    }, 201
+    }), 201

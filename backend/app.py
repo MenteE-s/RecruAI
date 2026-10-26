@@ -502,10 +502,18 @@ def create_app(config_object: object | None = None):
 	# Register practice AI agents blueprint separately to avoid circular imports
 	try:
 		from .api.practice_ai_agents import practice_ai_bp
+		from .api.guards import require_verified_email as _require_verified_email
+		# Same verified-email gate as api_bp: practice_ai_bp is separate only
+		# to dodge a circular import, not to skip auth hygiene.
+		practice_ai_bp.before_request(_require_verified_email)
 		app.register_blueprint(practice_ai_bp, url_prefix="/api")
 	except ImportError:
 		try:
 			practice_ai_agents_module = importlib.import_module("backend.api.practice_ai_agents")
+			guards_module = importlib.import_module("backend.api.guards")
+			practice_ai_agents_module.practice_ai_bp.before_request(
+				guards_module.require_verified_email
+			)
 			app.register_blueprint(practice_ai_agents_module.practice_ai_bp, url_prefix="/api")
 		except ImportError as e:
 			print(f"Warning: Could not register practice AI agents blueprint: {e}")

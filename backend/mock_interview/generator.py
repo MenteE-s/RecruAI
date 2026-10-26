@@ -64,6 +64,26 @@ def extract_json(text: str) -> Optional[Dict]:
     return None
 
 
+def _post_requirement_texts(post) -> List[str]:
+    """Requirement strings from a Post row.
+
+    ``Post.requirements`` is a JSON list of strings (not a ``required_skills``
+    column — that attribute does not exist and touching it 500s the request).
+    Anything unparseable yields no demands rather than a crash.
+    """
+    raw = getattr(post, "requirements", None) or "[]"
+    if isinstance(raw, list):
+        items = raw
+    else:
+        try:
+            items = json.loads(raw)
+        except (TypeError, ValueError):
+            return []
+    if not isinstance(items, list):
+        return []
+    return [r.strip() for r in items if isinstance(r, str) and r.strip()]
+
+
 def plan_skills(user, post=None, target_role: str = "", limit: int = 6) -> List[Dict]:
     """Which skills this session should cover.
 
@@ -74,17 +94,14 @@ def plan_skills(user, post=None, target_role: str = "", limit: int = 6) -> List[
     """
     from ..utils import skill_gap
 
-    current = []
-    for skill in (user.skills or []):
-        if skill.skill_slug:
-            current.append({"slug": skill.skill_slug, "level": skill.level,
-                            "verified": bool(skill.verified)})
-
     wanted: List[Dict] = []
     if post is not None:
-        requirements = [{"name": r} for r in (post.required_skills or [])]
+        requirements = _post_requirement_texts(post)
         if requirements:
-            gap = skill_gap.compute_gap(current, (), requirements)
+            # Skill rows and plain strings are both documented inputs of
+            # candidate_skill_index()/parse_requirements — no lossy dict
+            # reshaping in between.
+            gap = skill_gap.compute_gap(list(user.skills or []), (), requirements)
             # Gaps first, then level gaps: what they do not have at all is the
             # most worth practising, and a skill they already hold at the wrong
             # level is second.

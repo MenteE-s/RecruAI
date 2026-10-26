@@ -407,7 +407,7 @@ def _write_back(user, project, result, attempt):
     # of work. No fabricated repository link is attached - that is data we do
     # not have, and inventing it would be worse than leaving it absent.
     portfolio_project = None
-    if result.get('passed'):
+    if attempt.passed:
         import json
         from ...models import Project
         description = (attempt.submission or '').strip()[:4000]

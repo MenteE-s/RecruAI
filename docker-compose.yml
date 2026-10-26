@@ -233,7 +233,7 @@ services:
     command:
       - sh
       - -c
-      - "python scripts/seed_skill_questions.py && python scripts/seed_quizzes.py && python scripts/seed_guided_projects.py"
+      - "python scripts/seed_skill_questions.py && python scripts/seed_quizzes.py && python scripts/seed_guided_projects.py && python scripts/seed_mock_interview_questions.py"
     depends_on:
       db:
         condition: service_healthy

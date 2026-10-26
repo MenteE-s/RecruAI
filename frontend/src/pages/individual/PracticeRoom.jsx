@@ -21,8 +21,12 @@ export default function PracticeRoom() {
     setError("");
     try {
       const [interviewRes, conversationRes] = await Promise.all([
-        fetch(`${getBackendUrl()}/api/interviews/${sessionId}`),
-        fetch(conversationUrl),
+        fetch(`${getBackendUrl()}/api/interviews/${sessionId}`, {
+          headers: { ...getAuthHeaders() },
+        }),
+        fetch(conversationUrl, {
+          headers: { ...getAuthHeaders() },
+        }),
       ]);
 
       if (interviewRes.ok) {
