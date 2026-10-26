@@ -30,6 +30,17 @@ DB_PORT="$(printf '%s' "$URL" | sed -E 's|.*@[^:/]+:?([0-9]*)/.*|\1|')"
 DB_PORT="${DB_PORT:-5432}"
 DB_NAME="$(printf '%s' "$URL" | sed -E 's|.*/([^/?]+).*|\1|')"
 
+# Video is gated off for the controlled beta. LiveKit keys are required only
+# when VIDEO_ENABLED=1; fail the deploy otherwise instead of shipping a
+# backend that reports video "unconfigured" at request time.
+VIDEO_ENABLED="${VIDEO_ENABLED:-0}"
+if [ "$VIDEO_ENABLED" = "1" ]; then
+  : "${LIVEKIT_URL:?LIVEKIT_URL is required when VIDEO_ENABLED=1}"
+  : "${LIVEKIT_PUBLIC_URL:?LIVEKIT_PUBLIC_URL is required when VIDEO_ENABLED=1}"
+  : "${LIVEKIT_API_KEY:?LIVEKIT_API_KEY is required when VIDEO_ENABLED=1}"
+  : "${LIVEKIT_API_SECRET:?LIVEKIT_API_SECRET is required when VIDEO_ENABLED=1}"
+fi
+
 # Never echo secrets. Print the normalized scheme only.
 printf 'DB scheme after normalizing: %s\n' "$(printf '%s' "$URL" | sed -E 's#://.*#://***#')"
 
@@ -60,11 +71,18 @@ mkdir -p "$(dirname "$OUT")"
   printf 'KAFKA_ENABLED=1\n'
   printf 'KAFKA_DEFAULT_TOPIC=recruai_events\n'
   printf 'RAG_ENABLED=1\n'
-  printf 'EMBEDDING_PROVIDER=huggingface\n'
-  printf 'EMBEDDING_DIMENSIONS=384\n'
-  printf 'AI_PROVIDER=groq\n'
+  printf 'EMBEDDING_PROVIDER=%s\n' "${EMBEDDING_PROVIDER:-huggingface}"
+  printf 'EMBEDDING_MODEL=%s\n' "${EMBEDDING_MODEL:-}"
+  printf 'EMBEDDING_DIMENSIONS=%s\n' "${EMBEDDING_DIMENSIONS:-384}"
+  printf 'HUGGINGFACE_SPACES_URL=%s\n' "${HUGGINGFACE_SPACES_URL:-https://syedsyab-recruai.hf.space}"
+  printf 'AI_PROVIDER=%s\n' "${AI_PROVIDER:-groq}"
   printf 'AI_MODEL=%s\n' "${AI_MODEL:-qwen/qwen3.8-27b}"
   printf 'GROQ_MODEL=%s\n' "${GROQ_MODEL:-qwen/qwen3.8-27b}"
+  printf 'VIDEO_ENABLED=%s\n' "$VIDEO_ENABLED"
+  printf 'LIVEKIT_URL=%s\n' "${LIVEKIT_URL:-}"
+  printf 'LIVEKIT_PUBLIC_URL=%s\n' "${LIVEKIT_PUBLIC_URL:-}"
+  printf 'LIVEKIT_API_KEY=%s\n' "${LIVEKIT_API_KEY:-}"
+  printf 'LIVEKIT_API_SECRET=%s\n' "${LIVEKIT_API_SECRET:-}"
   printf 'JWT_TOKEN_LOCATION=headers\n'
   printf 'JWT_COOKIE_SECURE=1\n'
   printf 'JWT_COOKIE_SAMESITE=None\n'

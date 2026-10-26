@@ -59,6 +59,14 @@ def create_app(config_object: object | None = None):
 	app = Flask(__name__)
 	app.config.from_object(config_object or Config)
 
+	# Fail fast on production misconfiguration (missing secrets/keys) rather
+	# than degrading silently at request time.
+	if app.config.get("IS_PRODUCTION"):
+		from .config import validate_production_config
+
+		for warning in validate_production_config(app.config):
+			app.logger.warning("config: %s", warning)
+
 	# Security: trust X-Forwarded-For/Proto from nginx (single proxy) so
 	# rate-limit keys and audit IPs see the real client, not the Docker gateway.
 	try:

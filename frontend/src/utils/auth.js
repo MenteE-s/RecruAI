@@ -10,12 +10,16 @@ export function getBackendUrl() {
   const envUrl = process.env.REACT_APP_API_BASE_URL;
   if (envUrl) return envUrl;
 
-  // Fallback: same-origin via nginx in production, otherwise require .env
-  if (typeof window !== "undefined" && window.location.hostname !== "localhost") {
-    return window.location.origin;
+  // Fail fast in production: silently calling the frontend origin for API
+  // traffic produces confusing 404s. Development keeps the same-origin
+  // fallback so local work does not need a .env file.
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "REACT_APP_API_BASE_URL is not set - define it in Vercel (e.g. https://api.recruai.menteeai.org)"
+    );
   }
   console.error("REACT_APP_API_BASE_URL not set - define it in frontend/.env (e.g. http://localhost:8000)");
-  return window.location.origin;
+  return typeof window !== "undefined" ? window.location.origin : "";
 }
 
 // Only allow in-app paths as post-login destinations. Prevents an open redirect

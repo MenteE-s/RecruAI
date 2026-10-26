@@ -62,9 +62,15 @@ the certificate hash changes. Alert if `/var/log/recruai-tls.log` contains
 
 ## 4. Vercel (frontend rebuild — vars are baked at build time)
 
-Set in the Vercel project → redeploy:
-- `REACT_APP_API_BASE_URL=https://api.menteeai.org`
-- `REACT_APP_SOCKET_URL=https://api.menteeai.org`
+Set in the Vercel project → redeploy (all three, both environments):
+- `REACT_APP_API_BASE_URL=https://api.recruai.menteeai.org`
+- `REACT_APP_SOCKET_URL=https://api.recruai.menteeai.org`
+- `REACT_APP_VIDEO_ENABLED=0` (beta; set `1` only after LiveKit is live)
+
+The production build fails with a named error when the first two are unset
+(`frontend/scripts/check-env.js`, run as `prebuild`), and the app throws at
+startup instead of silently calling its own origin. Preview deployments must
+point at the staging API, never production.
 
 ## 5. Kafka toggle (no code changes)
 

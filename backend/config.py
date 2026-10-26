@@ -200,10 +200,6 @@ class Config:
         return self.AI_EMBEDDING_MODEL
 
     @property
-    def EMBEDDING_MODEL(self):
-        return os.getenv("EMBEDDING_MODEL")
-
-    @property
     def EMBEDDING_DIMENSIONS(self):
         # all-MiniLM-L6-v2 (HF space + pgvector columns) is 384-dim.
         return int(os.getenv("EMBEDDING_DIMENSIONS", "384"))
@@ -300,3 +296,80 @@ class Config:
     @property
     def LIVEKIT_MAX_CONCURRENT_RECORDINGS(self):
         return int(os.getenv("LIVEKIT_MAX_CONCURRENT_RECORDINGS", "2"))
+
+
+def _is_production_config(config) -> bool:
+    get = config.get if hasattr(config, "get") else config.__getitem__
+    try:
+        return bool(get("IS_PRODUCTION"))
+    except Exception:
+        return False
+
+
+def validate_production_config(config=None) -> list:
+    """Fail fast when production is misconfigured. Returns warnings.
+
+    Raises ``RuntimeError`` naming the first missing requirement. Pure
+    function of the passed mapping so tests can call it directly; pass
+    ``app.config`` from the factory. LiveKit keys are required only when
+    video is enabled; AI needs at least one provider key; Resend is required
+    because OTP, password reset, and invitations all depend on it.
+    """
+    source = config if config is not None else os.environ
+    if hasattr(source, "get"):
+        raw_get = source.get
+    else:  # pragma: no cover - defensive; mappings always have .get
+        raw_get = source.__getitem__
+
+    def get(name):
+        # from_object() copies @property descriptors unevaluated, so a
+        # property object here means "read the live environment instead".
+        value = raw_get(name)
+        if isinstance(value, property):
+            value = os.environ.get(name)
+        return value
+
+    def required(name):
+        value = get(name)
+        if value is None or (isinstance(value, str) and not value.strip()):
+            raise RuntimeError(
+                f"Production config error: {name} is required but missing or empty."
+            )
+        return value
+
+    warnings = []
+    for name in ("SECRET_KEY", "JWT_SECRET_KEY", "RESEND_API_KEY"):
+        if get(name) in (None, "", "dev-secret-change-in-production"):
+            raise RuntimeError(
+                f"Production config error: {name} must be set to a real value, not the dev default."
+                if "SECRET" in name
+                else f"Production config error: {name} is required but missing or empty."
+            )
+    # The DB URL lives in SQLALCHEMY_DATABASE_URI on the app config and in
+    # DATABASE_URL in the environment; accept either.
+    db_url = (
+        get("DATABASE_URL")
+        or get("SQLALCHEMY_DATABASE_URI")
+        or os.environ.get("DATABASE_URL")
+    )
+    if not db_url or not str(db_url).strip():
+        raise RuntimeError(
+            "Production config error: DATABASE_URL is required but missing or empty."
+        )
+
+    if not any(get(k) for k in ("GROQ_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY")):
+        raise RuntimeError(
+            "Production config error: at least one AI provider key is required "
+            "(GROQ_API_KEY, OPENAI_API_KEY, or OPENROUTER_API_KEY)."
+        )
+
+    if str(get("VIDEO_ENABLED") or "0") == "1":
+        for name in ("LIVEKIT_URL", "LIVEKIT_API_KEY", "LIVEKIT_API_SECRET"):
+            required(name)
+    elif not get("LIVEKIT_API_KEY"):
+        warnings.append(
+            "LIVEKIT_API_KEY is unset; video endpoints will report unconfigured "
+            "(expected while VIDEO_ENABLED=0)."
+        )
+
+    return warnings
