@@ -46,3 +46,7 @@ redisdata/
 # Local scratch files at repo root (not part of the project)
 /app.py
 /inventory.db
+
+# Playwright artifacts
+frontend/playwright-report/
+frontend/test-results/
