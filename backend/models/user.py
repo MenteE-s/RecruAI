@@ -20,6 +20,10 @@ class User(db.Model):
     password_hash = db.Column(db.Text, nullable=True)
     # user role: 'individual' or 'organization'
     role = db.Column(db.String(32), nullable=False, default="individual")
+    # Platform superadmin: bypasses org scoping and may use /api/admin/*.
+    # Orthogonal to team roles; set only via scripts/grant_superadmin.py or
+    # the admin dashboard (by an existing superadmin, never self-granted).
+    is_superadmin = db.Column(db.Boolean, nullable=False, default=False, server_default="0")
     # user plan: 'trial' or 'pro'
     plan = db.Column(db.String(32), nullable=False, default="trial")
     # Subscription fields

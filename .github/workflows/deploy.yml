@@ -97,6 +97,12 @@ jobs:
           REACT_APP_SOCKET_URL: https://api.recruai.menteeai.org
         run: npm run build
 
+      - name: Build admin dashboard
+        working-directory: admin
+        run: |
+          npm ci
+          npm run build
+
       - name: Run Playwright E2E
         working-directory: frontend
         run: |

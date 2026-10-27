@@ -23,5 +23,6 @@ from . import mentorship  # noqa: E402, F401
 from . import quizzes  # noqa: E402, F401
 from . import projects  # noqa: E402, F401
 from . import mock_interviews  # noqa: E402, F401
+from . import admin  # noqa: E402, F401 - platform superadmin endpoints
 # Removed practice_ai_agents import to avoid circular import - registered in app.py instead
 from . import guards  # noqa: E402, F401 - blueprint guards, registered once here

@@ -78,13 +78,31 @@ def _check_ai_providers():
 
 
 def _require_ops_token():
-    """Gate non-liveness health endpoints behind an ops token.
+    """Gate non-liveness health endpoints.
 
-    Detailed checks reveal provider/model topology and do expensive work, so
-    anonymous callers only get the liveness shape. Fail closed in production
-    when no token is configured; allow in dev/test for local debugging.
+    Accepts either the shared ``X-Ops-Token`` (monitoring, scripts) or a
+    superadmin JWT (admin dashboard — no shared secret in the browser).
+    Detailed output stays out of anonymous reach either way. Fail closed in
+    production when no OPS_TOKEN is configured; allow in dev/test.
     """
     import hmac
+
+    from flask_jwt_extended import get_jwt_identity, verify_jwt_in_request
+    from ...extensions import db as _db
+    from ...models import User as _User
+
+    try:
+        verify_jwt_in_request(optional=True)
+        uid = get_jwt_identity()
+    except Exception:
+        uid = None
+    if uid is not None:
+        try:
+            user = _db.session.get(_User, int(uid))
+            if user is not None and user.is_superadmin:
+                return None
+        except (TypeError, ValueError):
+            pass
 
     expected = current_app.config.get("OPS_TOKEN") or ""
     if not expected:

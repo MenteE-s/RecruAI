@@ -24,8 +24,8 @@ memory-bank
 backend/uploads/*
 !backend/uploads/.gitkeep
 
-# Root-level package-lock (frontend has its own)
-package-lock.json
+# Root-level package-lock (frontend and admin keep their own)
+/package-lock.json
 
 # OS files
 .DS_Store
