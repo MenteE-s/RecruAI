@@ -260,7 +260,7 @@
     <div>
       <div class="eyebrow">01 · Executive summary</div>
       <h2>The product is real. The launch controls are not.</h2>
-      <p>This is a substantial application — 296 API routes, 59 models, 46 migrations, a working React build, and meaningful auth hardening. The risk is concentrated in the last mile: the paid path, the video path, and the absence of a staging/E2E layer between a green unit suite and production.</p>
+      <p>This is a substantial application — 296 API routes, 59 models, 47 migrations, a working React build, and meaningful auth hardening. The risk is concentrated in the last mile: the paid path, the video path, and the absence of a staging/E2E layer between a green unit suite and production.</p>
     </div>
   </div>
 
@@ -365,7 +365,7 @@
       <tbody>
         <tr><td><b>Frontend</b></td><td>React 18 + CRA 5, React Router 7, Tailwind, LiveKit React, Socket.IO client</td><td>Vercel static build. Sends a restrictive <code>Permissions-Policy</code>. API/socket URLs depend on Vercel env vars; fallback is wrong for this split-domain architecture.</td></tr>
         <tr><td><b>API</b></td><td>Flask 3 app factory, 296 routes, short-lived JWT access tokens + rotating refresh sessions, Talisman, CORS, Flask-Limiter</td><td>Gunicorn, 1 worker / 4 threads on t3.small. Real-time uses Flask-SocketIO threading mode.</td></tr>
-        <tr><td><b>Data</b></td><td>PostgreSQL + pgvector (RDS in AWS), 46 migrations</td><td>Single head <code>d0e1f2a3b4c5</code>; migrations container runs before API. 7-day automated RDS backups (external setup).</td></tr>
+        <tr><td><b>Data</b></td><td>PostgreSQL + pgvector (RDS in AWS), 47 migrations</td><td>Single head <code>8adb4b6556fa</code>; migrations container runs before API. 7-day automated RDS backups (external setup).</td></tr>
         <tr><td><b>Async</b></td><td>Redis (cache, rate limit, JWT blocklist), Kafka (events), APScheduler</td><td>Dedicated scheduler worker with PostgreSQL advisory locks and run records; Kafka is optional but enabled in the AWS compose.</td></tr>
         <tr><td><b>AI</b></td><td>Groq LLM, OpenRouter/HF embeddings, RAG + recommendations, 50k-token allowance</td><td>Every provider call passes through <code>BudgetedLLMProvider</code>; reservations, actual usage, and organization attribution are enforced there.</td></tr>
         <tr><td><b>Video</b></td><td>LiveKit SFU + TURN + Egress</td><td>Present in <code>docker-compose.vps.yml</code> and dev. <b>Absent from <code>docker-compose.aws.yml</code></b> (the CI deploy target).</td></tr>
@@ -1289,11 +1289,11 @@ frontend/src/utils/socket.js transports: ["websocket"] only</div>
     <details>
       <summary>
         <span class="fid">P2-10</span>
-        <span><span class="ftitle">Docs and deploy files drift: docs vs 46 migrations, three compose files, two frontend Dockerfiles</span><span class="fsum">Operators cannot tell which file is authoritative.</span><span class="badges"><span class="badge p2">P2</span><span class="badge fixed">Fixed</span><span class="badge area">Config</span><span class="badge eff">0.5 day</span></span></span>
+        <span><span class="ftitle">Docs and deploy files drift: docs vs 47 migrations, three compose files, two frontend Dockerfiles</span><span class="fsum">Operators cannot tell which file is authoritative.</span><span class="badges"><span class="badge p2">P2</span><span class="badge fixed">Fixed</span><span class="badge area">Config</span><span class="badge eff">0.5 day</span></span></span>
       </summary>
       <div class="fbody">
         <h4>Evidence</h4>
-        <div class="evidence">backend/migrations/versions/*.py   46 files, one head d0e1f2a3b4c5 (verified by scripts/check-migration-head.sh in CI)
+        <div class="evidence">backend/migrations/versions/*.py   47 files, one head 8adb4b6556fa (verified by scripts/check-migration-head.sh in CI)
 docs/comments                     have disagreed on the migration count
 docker-compose.yml / .prod / .vps / .aws   four topologies
 frontend/Dockerfile / Dockerfile.prod      two build paths</div>
