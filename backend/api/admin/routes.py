@@ -272,7 +272,8 @@ def admin_list_outbox():
 
 @api_bp.route("/admin/outbox/<int:event_id>/retry", methods=["POST"])
 @superadmin_required
-def admin_retry_outbox(event_id):    """Requeue a failed/dead row for immediate delivery (attempts preserved)."""
+def admin_retry_outbox(event_id):
+    """Requeue a failed/dead row for immediate delivery (attempts preserved)."""
     from flask_jwt_extended import get_jwt_identity
 
     from ...models.outbox_event import STATUS_DONE, STATUS_PENDING, STATUS_PROCESSING
