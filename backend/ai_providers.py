@@ -574,14 +574,25 @@ class AIProviderManager:
         if self._initialized:
             return
 
-        logger.info(f"Initializing AI providers - LLM: {self.config.AI_PROVIDER}, Embedding: {self.config.EMBEDDING_PROVIDER}")
+        # Prefer admin-managed DB config; fall back to env-based Config for
+        # local dev and first boot before any row exists.
+        from .utils.ai_provider_resolver import resolve_llm_provider, resolve_embedding_provider
 
-        # Initialize LLM provider. The wrapper is the app-facing provider so
-        # every direct chat()/generate() call is budgeted and attributed.
-        self._llm_provider = BudgetedLLMProvider(self._create_llm_provider())
+        logger.info("Initializing AI providers")
 
-        # Initialize embedding provider
-        self._embedding_provider = self._create_embedding_provider()
+        db_llm = resolve_llm_provider()
+        if db_llm is not None:
+            self._llm_provider = BudgetedLLMProvider(db_llm)
+        else:
+            logger.info("No DB LLM config; falling back to env")
+            self._llm_provider = BudgetedLLMProvider(self._create_llm_provider())
+
+        db_emb = resolve_embedding_provider()
+        if db_emb is not None:
+            self._embedding_provider = db_emb
+        else:
+            logger.info("No DB embedding config; falling back to env")
+            self._embedding_provider = self._create_embedding_provider()
 
         self._initialized = True
         logger.info("AI providers initialized successfully")

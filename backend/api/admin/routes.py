@@ -330,6 +330,165 @@ def admin_content():
     }), 200
 
 
+@api_bp.route("/admin/ai-providers", methods=["GET"])
+@superadmin_required
+def admin_list_ai_providers():
+    from ...models.ai_provider_config import AIProviderConfig
+
+    kind = request.args.get("kind")
+    query = AIProviderConfig.query
+    if kind in ("llm", "embedding"):
+        query = query.filter(AIProviderConfig.kind == kind)
+    rows = query.order_by(AIProviderConfig.kind, AIProviderConfig.id).all()
+    return jsonify([r.to_dict() for r in rows]), 200
+
+
+@api_bp.route("/admin/ai-providers", methods=["POST"])
+@superadmin_required
+def admin_create_ai_provider():
+    from ...models.ai_provider_config import (
+        AIProviderConfig,
+        VALID_EMBEDDING_PROVIDERS,
+        VALID_LLM_PROVIDERS,
+    )
+
+    payload = request.get_json(silent=True) or {}
+    kind = payload.get("kind")
+    provider = (payload.get("provider") or "").strip().lower()
+    model = (payload.get("model") or "").strip()
+    if kind not in ("llm", "embedding"):
+        return jsonify({"error": "kind must be 'llm' or 'embedding'"}), 400
+    allowed = VALID_LLM_PROVIDERS if kind == "llm" else VALID_EMBEDDING_PROVIDERS
+    if provider not in allowed:
+        return jsonify({"error": f"provider must be one of {sorted(allowed)}"}), 400
+    if not model:
+        return jsonify({"error": "model is required"}), 400
+
+    cfg = AIProviderConfig(kind=kind, provider=provider, model=model)
+    cfg.base_url = payload.get("base_url") or None
+    if payload.get("dimensions") is not None:
+        try:
+            cfg.dimensions = int(payload["dimensions"])
+        except (TypeError, ValueError):
+            return jsonify({"error": "dimensions must be an integer"}), 400
+    cfg.set_api_key(payload.get("api_key"))
+    if payload.get("is_active") is True:
+        AIProviderConfig.query.filter_by(kind=kind).update({"is_active": False})
+        cfg.is_active = True
+    db.session.add(cfg)
+    db.session.commit()
+    log_security_event(
+        "admin_ai_provider_created",
+        user_id=__import__("flask_jwt_extended").get_jwt_identity(),
+        ip_address=request.remote_addr,
+        details={"id": cfg.id, "kind": kind, "provider": provider, "model": model},
+    )
+    return jsonify(cfg.to_dict(include_secret=True)), 201
+
+
+@api_bp.route("/admin/ai-providers/<int:config_id>", methods=["PATCH"])
+@superadmin_required
+def admin_update_ai_provider(config_id):
+    from flask_jwt_extended import get_jwt_identity
+
+    from ...models.ai_provider_config import (
+        AIProviderConfig,
+        VALID_EMBEDDING_PROVIDERS,
+        VALID_LLM_PROVIDERS,
+    )
+
+    cfg = db.session.get(AIProviderConfig, config_id)
+    if not cfg:
+        return jsonify({"error": "not found"}), 404
+    payload = request.get_json(silent=True) or {}
+
+    if "provider" in payload:
+        allowed = VALID_LLM_PROVIDERS if cfg.kind == "llm" else VALID_EMBEDDING_PROVIDERS
+        provider = (payload["provider"] or "").strip().lower()
+        if provider not in allowed:
+            return jsonify({"error": f"provider must be one of {sorted(allowed)}"}), 400
+        cfg.provider = provider
+    if "model" in payload:
+        model = (payload["model"] or "").strip()
+        if not model:
+            return jsonify({"error": "model is required"}), 400
+        cfg.model = model
+    if "base_url" in payload:
+        cfg.base_url = payload["base_url"] or None
+    if "dimensions" in payload:
+        if payload["dimensions"] is None:
+            cfg.dimensions = None
+        else:
+            try:
+                cfg.dimensions = int(payload["dimensions"])
+            except (TypeError, ValueError):
+                return jsonify({"error": "dimensions must be an integer"}), 400
+    if "api_key" in payload:
+        cfg.set_api_key(payload["api_key"])
+    if "is_active" in payload:
+        active, error = _bool_param(payload["is_active"], "is_active")
+        if error:
+            return error
+        if active:
+            AIProviderConfig.query.filter_by(kind=cfg.kind).update({"is_active": False})
+        cfg.is_active = active
+
+    db.session.commit()
+    log_security_event(
+        "admin_ai_provider_updated",
+        user_id=int(get_jwt_identity()),
+        ip_address=request.remote_addr,
+        details={"id": cfg.id, "changes": sorted(payload.keys())},
+    )
+    # Force the manager to re-read on next use.
+    from ...ai_providers import get_ai_provider_manager
+
+    get_ai_provider_manager()._initialized = False
+    return jsonify(cfg.to_dict(include_secret=True)), 200
+
+
+@api_bp.route("/admin/ai-providers/<int:config_id>", methods=["DELETE"])
+@superadmin_required
+def admin_delete_ai_provider(config_id):
+    from flask_jwt_extended import get_jwt_identity
+
+    from ...models.ai_provider_config import AIProviderConfig
+
+    cfg = db.session.get(AIProviderConfig, config_id)
+    if not cfg:
+        return jsonify({"error": "not found"}), 404
+    if cfg.is_active:
+        return jsonify({"error": "cannot delete the active provider; activate another first"}), 409
+    db.session.delete(cfg)
+    db.session.commit()
+    log_security_event(
+        "admin_ai_provider_deleted",
+        user_id=int(get_jwt_identity()),
+        ip_address=request.remote_addr,
+        details={"id": config_id},
+    )
+    return jsonify({"message": "deleted"}), 200
+
+
+@api_bp.route("/admin/ai-providers/test", methods=["POST"])
+@superadmin_required
+def admin_test_ai_provider():
+    """Dry-run the active LLM + embedding configs without touching the request path."""
+    from ...ai_providers import get_ai_provider_manager
+
+    manager = get_ai_provider_manager()
+    manager._initialized = False
+    info = manager.get_provider_info()
+    health = manager.healthcheck()
+    return jsonify({
+        "llm": info["llm_provider"],
+        "embedding": info["embedding_provider"],
+        "embedding_dimension": info["embedding_dimension"],
+        "rag_enabled": info["rag_enabled"],
+        "health": health,
+    }), 200
+
+
 @api_bp.route("/admin/plans", methods=["GET"])
 @superadmin_required
 def admin_plans():
