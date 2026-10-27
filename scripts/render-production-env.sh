@@ -18,6 +18,23 @@ OUT="${1:-backend/.env.production}"
 : "${RESEND_API_KEY:?RESEND_API_KEY is required}"
 : "${OPS_TOKEN:?OPS_TOKEN is required (gates /health/detailed, /health/ready, /health/scheduler, /health/outbox)}"
 
+# Optional second frontend (admin dashboard on Vercel). Appended to the
+# credentialed CORS origin list so its fetches are accepted.
+ADMIN_ORIGIN="${ADMIN_ORIGIN:-}"
+FRONTEND_ORIGINS="${FRONTEND_ORIGIN}"
+if [ -n "$ADMIN_ORIGIN" ]; then
+  FRONTEND_ORIGINS="${FRONTEND_ORIGIN},${ADMIN_ORIGIN}"
+fi
+
+# Refresh cookie SameSite. Keep Lax while every frontend is same-site with the
+# API (e.g. *.menteeai.org). Only switch to None if the admin dashboard ever
+# lives on a fully cross-site host (e.g. *.vercel.app) AND you accept that
+# trade-off; Secure must stay on with None.
+REFRESH_COOKIE_SAMESITE="${REFRESH_COOKIE_SAMESITE:-Lax}"
+if [ "$REFRESH_COOKIE_SAMESITE" = "None" ]; then
+  echo "WARNING: refresh cookie SameSite=None allows cross-site use; ensure all admin access still requires superadmin JWTs" >&2
+fi
+
 # This codebase uses psycopg2. RDS secrets are sometimes returned as
 # postgresql+psycopg:// (v3), which crashes backend boot with "No module named
 # 'psycopg'". Normalize to the installed driver.
@@ -53,7 +70,7 @@ mkdir -p "$(dirname "$OUT")"
   printf 'FLASK_DEBUG=0\n'
   printf 'PORT=8000\n'
   printf 'API_DOMAIN=%s\n' "$API_DOMAIN"
-  printf 'FRONTEND_ORIGIN=%s\n' "$FRONTEND_ORIGIN"
+  printf 'FRONTEND_ORIGIN=%s\n' "$FRONTEND_ORIGINS"
   printf 'DATABASE_URL=%s\n' "$URL"
   printf 'VECTOR_DB_HOST=%s\n' "$DB_HOST"
   printf 'VECTOR_DB_PORT=%s\n' "$DB_PORT"
@@ -92,7 +109,7 @@ mkdir -p "$(dirname "$OUT")"
   printf 'JWT_ACCESS_TOKEN_EXPIRES_MINUTES=15\n'
   printf 'REFRESH_TOKEN_TTL_DAYS=30\n'
   printf 'REFRESH_COOKIE_SECURE=1\n'
-  printf 'REFRESH_COOKIE_SAMESITE=Lax\n'
+  printf 'REFRESH_COOKIE_SAMESITE=%s\n' "$REFRESH_COOKIE_SAMESITE"
   printf 'SESSION_COOKIE_SECURE=1\n'
   printf 'ENABLE_HSTS=1\n'
   printf 'ENABLE_AUDIT_LOG=1\n'

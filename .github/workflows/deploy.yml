@@ -193,6 +193,8 @@ jobs:
           RDS_DATABASE_URL: ${{ secrets.RDS_DATABASE_URL }}
           API_DOMAIN: ${{ env.API_DOMAIN }}
           FRONTEND_ORIGIN: ${{ env.FRONTEND_ORIGIN }}
+          ADMIN_ORIGIN: ${{ secrets.ADMIN_ORIGIN }}
+          REFRESH_COOKIE_SAMESITE: ${{ secrets.REFRESH_COOKIE_SAMESITE }}
           SECRET_KEY: ${{ secrets.SECRET_KEY }}
           JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}

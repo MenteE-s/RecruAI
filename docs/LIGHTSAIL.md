@@ -72,6 +72,14 @@ The production build fails with a named error when the first two are unset
 startup instead of silently calling its own origin. Preview deployments must
 point at the staging API, never production.
 
+Admin dashboard — separate Vercel project, Root Directory `admin`:
+- `VITE_API_BASE_URL=https://api.recruai.menteeai.org`
+- Prefer the custom domain `admin.recruai.menteeai.org` (same-site with the
+  API, so the `Lax` refresh cookie keeps working).
+- Backend wiring: set GitHub secrets `ADMIN_ORIGIN` (the admin URL, appended
+  to CORS origins on next deploy) and only-if-cross-site `REFRESH_COOKIE_SAMESITE=None`.
+  See `admin/README.md`.
+
 ## 5. Kafka toggle (no code changes)
 
 - Off (save ~1 GB): `KAFKA_ENABLED=0` in `backend/.env.vps`, then

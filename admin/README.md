@@ -21,19 +21,27 @@ needed locally. The backend must be running (`backend/.venv` + Postgres).
 | `VITE_API_BASE_URL` | Backend origin in production (e.g. `https://api.recruai.menteeai.org`) | same-origin (Vite proxy in dev) |
 | `VITE_DEV_API_PROXY` | Dev proxy target for `/api` | `http://127.0.0.1:8000` |
 
-## Production
+## Production (Vercel)
 
-Build to static files and host anywhere (separate Vercel project recommended):
+Create a **separate Vercel project** pointing at this repo:
 
-```bash
-cd admin
-VITE_API_BASE_URL=https://api.recruai.menteeai.org npm run build   # -> dist/
-```
+- Root Directory: `admin`
+- Build Command: `npm run build` (or leave default)
+- Output Directory: `dist`
+- Environment variable: `VITE_API_BASE_URL=https://api.recruai.menteeai.org`
 
-Add the admin origin to the backend's `FRONTEND_ORIGIN` (comma-separated)
-so credentialed CORS + Socket.IO accept it. The login uses the same
-`/api/auth/login` session as the main app; every admin route re-checks
-`is_superadmin` from the database.
+Then wire the backend to accept it:
+
+1. Add a GitHub secret `ADMIN_ORIGIN` with the admin's public URL
+   (e.g. `https://admin.recruai.menteeai.org`). The deploy renders it into
+   the credentialed CORS origin list alongside the main frontend.
+2. **Prefer a same-parent-domain host** (e.g. `admin.recruai.menteeai.org`
+   as a Vercel custom domain). The refresh cookie is `SameSite=Lax`, which
+   browsers only send same-site — a `*.vercel.app` host would silently lose
+   silent refresh after the 15-minute access token expires. Only if a
+   same-site host is impossible, set the `REFRESH_COOKIE_SAMESITE` secret to
+   `None` (kept `Secure`); that is a deliberate cross-site trade-off.
+3. Redeploy (push to `main`) so `.env.production` picks up both values.
 
 ## First superadmin
 
