@@ -147,18 +147,18 @@ def test_kafka_event_dispatch(monkeypatch, app):
     assert calls and calls[0][0][0] == "user_registered"
 
 
-def test_notification_create_dispatch(app):
+def test_notification_create_dispatch(app, make_user):
     from backend.models import Notification
 
-    user_id = 424242
+    user = make_user(email="notification@example.com")
     with app.app_context():
         outbox_module.enqueue_notification(
-            user_id, "referral_signup", "Hello", "World", related_post_id=None
+            user.id, "referral_signup", "Hello", "World", related_post_id=None
         )
         db.session.commit()
 
     assert _drain(app) == ["done"]
-    created = Notification.query.filter_by(user_id=user_id).all()
+    created = Notification.query.filter_by(user_id=user.id).all()
     assert len(created) == 1
     assert created[0].title == "Hello"
 

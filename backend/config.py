@@ -235,6 +235,17 @@ class Config:
         return int(os.getenv("AI_TIMEOUT", "30"))
 
     @property
+    def AI_PROVIDER_REFRESH_SECONDS(self):
+        """How often workers re-read the active DB provider rows.
+
+        Admin changes invalidate the manager in the worker that handled the
+        request. In a multi-worker deployment the other workers need a cheap
+        periodic check; 60 seconds is fast enough for an operator change and
+        far cheaper than a database round-trip on every AI call.
+        """
+        return int(os.getenv("AI_PROVIDER_REFRESH_SECONDS", "60"))
+
+    @property
     def HUGGINGFACE_SPACES_URL(self):
         return os.getenv("HUGGINGFACE_SPACES_URL", "https://syedsyab-recruai.hf.space")
 

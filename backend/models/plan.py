@@ -21,7 +21,9 @@ class Plan(db.Model):
     __tablename__ = "plans"
 
     id = db.Column(db.Integer, primary_key=True)
-    slug = db.Column(db.String(64), nullable=False, unique=True)
+    # Slugs are unique per scope, not globally: individual and organization
+    # catalogues both have a "free" and "premium" plan.
+    slug = db.Column(db.String(64), nullable=False)
     name = db.Column(db.String(128), nullable=False)
     scope = db.Column(db.String(16), nullable=False)  # "individual" or "organization"
     price_cents = db.Column(db.Integer, nullable=False, default=0)

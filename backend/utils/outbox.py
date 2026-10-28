@@ -125,4 +125,7 @@ def enqueue_notification(
         "message": message,
         "extra": dict(kwargs),
     }
-    return enqueue_event(TYPE_NOTIFICATION_CREATE, payload, **kwargs)
+    # kwargs are notification columns, not outbox scheduling options. Passing
+    # them through to enqueue_event() raised TypeError before the row was ever
+    # written, so notifications queued from request code were silently lost.
+    return enqueue_event(TYPE_NOTIFICATION_CREATE, payload)

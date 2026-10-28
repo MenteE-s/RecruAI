@@ -72,6 +72,8 @@ def test_invitation_does_not_create_an_account_or_store_a_raw_token(
     assert invitation.token_hash == hash_invitation_token(raw_token)
     assert invitation.token_hash != raw_token
     assert raw_token not in (invitation.token_hash or "")
+    # Legacy "Member" input is stored and accepted as the canonical role.
+    assert invitation.role == "Interviewer"
     assert User.query.filter_by(email="invitee@example.com").first() is None
     assert TeamMember.query.count() == 0
 
@@ -100,7 +102,7 @@ def test_invitation_does_not_create_an_account_or_store_a_raw_token(
     assert invitee.check_password("NewPass456")
     assert TeamMember.query.filter_by(
         organization_id=org.id, user_id=invitee.id
-    ).one().role == "Member"
+    ).one().role == "Interviewer"
 
     db.session.refresh(invitation)
     assert invitation.accepted_by_id == invitee.id
@@ -158,7 +160,7 @@ def test_existing_verified_user_must_sign_in_to_accept(
     member = TeamMember.query.filter_by(
         organization_id=org.id, user_id=existing.id
     ).one()
-    assert member.role == "Member"
+    assert member.role == "Interviewer"
     db.session.refresh(existing)
     assert existing.email_verified is True
     assert existing.check_password("TestPass123")

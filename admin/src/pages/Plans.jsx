@@ -1,20 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "../lib/api";
+import { ALL_FEATURE_KEYS as ALL_FEATURES } from "../lib/features";
 
 const SCOPES = ["individual", "organization"];
-const ALL_FEATURES = [
-  "profile_management", "job_search", "basic_matching", "job_posting", "team_management",
-  "cvai_skill_assessment", "cvai_quizzes", "cvai_projects", "cvai_mentorship",
-  "cvai_mock_interview", "career_coaching", "practice_ai_agents",
-  "ai_screening", "ai_interview_agents", "analytics", "reports",
-];
 
 export default function Plans() {
   const [rows, setRows] = useState([]);
   const [error, setError] = useState("");
   const [editing, setEditing] = useState(null);
   const [saving, setSaving] = useState(false);
-  const [creating, setCreating] = useState(false);
 
   const load = useCallback(async () => {
     setError("");
@@ -33,7 +27,6 @@ export default function Plans() {
   }
 
   function openCreate() {
-    setCreating(true);
     setEditing({ ...emptyPlan(), _new: true });
   }
 
@@ -70,7 +63,6 @@ export default function Plans() {
         await api(`/api/admin/plans/${editing.id}`, { method: "PATCH", body });
       }
       setEditing(null);
-      setCreating(false);
       load();
     } catch (err) {
       setError(err.message || "Could not save plan");
@@ -174,7 +166,7 @@ export default function Plans() {
               </div>
             </div>
             <div className="actions">
-              <button className="btn ghost" onClick={() => { setEditing(null); setCreating(false); }}>Cancel</button>
+              <button className="btn ghost" onClick={() => setEditing(null)}>Cancel</button>
               <button className="btn" disabled={saving} onClick={save}>{saving ? "Saving…" : "Save"}</button>
             </div>
           </div>

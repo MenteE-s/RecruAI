@@ -6,6 +6,7 @@ Provider-agnostic interfaces for LLM and embedding services
 import os
 import abc
 import logging
+import time
 from typing import List, Dict, Any, Optional, Union
 from datetime import datetime
 import requests
@@ -568,6 +569,23 @@ class AIProviderManager:
         self._llm_provider: Optional[LLMProvider] = None
         self._embedding_provider: Optional[EmbeddingProvider] = None
         self._initialized = False
+        self._initialized_at = 0.0
+
+    def _refresh_if_stale(self):
+        """Drop cached providers after the configured TTL.
+
+        Admin writes invalidate this process immediately, but other gunicorn
+        workers would otherwise keep their old provider until restart. A small
+        periodic re-read keeps every worker on the same DB-backed config.
+        """
+        if not self._initialized or not self._initialized_at:
+            return
+        try:
+            interval = int(self.config.AI_PROVIDER_REFRESH_SECONDS)
+        except (TypeError, ValueError):
+            interval = 60
+        if interval > 0 and (time.monotonic() - self._initialized_at) >= interval:
+            self._initialized = False
 
     def initialize(self):
         """Initialize providers based on configuration"""
@@ -595,6 +613,7 @@ class AIProviderManager:
             self._embedding_provider = self._create_embedding_provider()
 
         self._initialized = True
+        self._initialized_at = time.monotonic()
         logger.info("AI providers initialized successfully")
 
     def _create_llm_provider(self) -> LLMProvider:
@@ -674,6 +693,7 @@ class AIProviderManager:
     @property
     def llm(self) -> LLMProvider:
         """Get the active LLM provider"""
+        self._refresh_if_stale()
         if not self._initialized:
             self.initialize()
         return self._llm_provider
@@ -681,12 +701,14 @@ class AIProviderManager:
     @property
     def embedding(self) -> EmbeddingProvider:
         """Get the active embedding provider"""
+        self._refresh_if_stale()
         if not self._initialized:
             self.initialize()
         return self._embedding_provider
 
     def healthcheck(self) -> Dict[str, bool]:
         """Check health of all providers"""
+        self._refresh_if_stale()
         if not self._initialized:
             self.initialize()
 
@@ -696,12 +718,35 @@ class AIProviderManager:
         }
 
     def get_provider_info(self) -> Dict[str, Any]:
-        """Get information about active providers"""
+        """Describe the providers actually in use, not just the env defaults."""
+        self._refresh_if_stale()
+        if not self._initialized:
+            self.initialize()
+
+        llm = self._llm_provider
+        embedding = self._embedding_provider
+
+        def _provider_name(provider, suffix):
+            if provider is None:
+                return None
+            name = getattr(provider, "provider_name", None)
+            if name:
+                return name
+            cls = type(provider).__name__
+            for prefix in ("OpenAI", "OpenRouter", "Groq", "HuggingFace"):
+                if cls.startswith(prefix):
+                    return prefix.lower()
+            return cls.replace(suffix, "").lower() or "unknown"
+
         return {
-            "llm_provider": self.config.AI_PROVIDER,
-            "embedding_provider": self.config.EMBEDDING_PROVIDER,
+            "llm_provider": _provider_name(llm, "LLMProvider"),
+            "llm_model": getattr(llm, "model", None),
+            "embedding_provider": _provider_name(embedding, "EmbeddingProvider"),
+            "embedding_model": getattr(embedding, "model", None),
             "rag_enabled": self.config.RAG_ENABLED,
-            "embedding_dimension": self.embedding.embedding_dimension if self._embedding_provider else None,
+            "embedding_dimension": (
+                embedding.embedding_dimension if embedding is not None else None
+            ),
         }
 
 

@@ -28,6 +28,29 @@ def _bool_param(value, field):
     return value, None
 
 
+def _invalidate_ai_provider_manager():
+    """Make the next AI call re-read the active rows from the database."""
+    try:
+        from ...ai_providers import get_ai_provider_manager
+
+        get_ai_provider_manager()._initialized = False
+    except Exception:
+        # Provider invalidation must never take down an admin write after the
+        # database has already committed.
+        pass
+
+
+def _active_ai_config_error(kind, provider, base_url, has_api_key):
+    """Return a human-readable error when an active config cannot be used."""
+    if kind == "llm" and not has_api_key:
+        return "an API key is required to activate an LLM provider"
+    if kind == "embedding" and provider in ("openai", "openrouter") and not has_api_key:
+        return "an API key is required to activate this embedding provider"
+    if provider == "huggingface" and not (base_url or "").strip():
+        return "a base URL is required to activate a HuggingFace embedding provider"
+    return None
+
+
 @api_bp.route("/admin/overview", methods=["GET"])
 @superadmin_required
 def admin_overview():
@@ -100,7 +123,6 @@ def _user_admin_dict(user):
         "paid_plan": bool(user.paid_plan),
         "token_allowance": user.token_allowance,
         "tokens_used": user.tokens_used,
-        "plan": user.plan,
         "feature_overrides": user.feature_override_list(),
         "email_verified": bool(user.email_verified),
         "organization_id": user.organization_id,
@@ -214,6 +236,8 @@ def _org_admin_dict(org):
         "paid_plan": bool(org.paid_plan),
         "plan": org.plan,
         "feature_overrides": org.feature_override_list(),
+        "token_allowance": org.token_allowance,
+        "tokens_used": org.tokens_used or 0,
         "created_at": org.created_at.isoformat() if org.created_at else None,
     }
 
@@ -253,6 +277,14 @@ def admin_update_organization(org_id):
         if error:
             return error
         org.paid_plan = paid
+    if "token_allowance" in payload:
+        try:
+            allowance = int(payload["token_allowance"])
+        except (TypeError, ValueError):
+            return jsonify({"error": "token_allowance must be an integer"}), 400
+        if allowance < 0 or allowance > 100_000_000:
+            return jsonify({"error": "token_allowance out of range"}), 400
+        org.token_allowance = allowance
     if "plan" in payload:
         from ...models.plan import Plan
 
@@ -384,8 +416,10 @@ def admin_list_ai_providers():
 @api_bp.route("/admin/ai-providers", methods=["POST"])
 @superadmin_required
 def admin_create_ai_provider():
-    from ...models.ai_provider_config import (
-        AIProviderConfig,
+    from flask_jwt_extended import get_jwt_identity
+
+    from ...models.ai_provider_config import AIProviderConfig
+    from ...utils.ai_provider_resolver import (
         VALID_EMBEDDING_PROVIDERS,
         VALID_LLM_PROVIDERS,
     )
@@ -402,26 +436,41 @@ def admin_create_ai_provider():
     if not model:
         return jsonify({"error": "model is required"}), 400
 
+    active, error = _bool_param(payload.get("is_active", False), "is_active")
+    if error:
+        return error
+    base_url = (payload.get("base_url") or "").strip() or None
+    api_key = payload.get("api_key")
+    if active:
+        error = _active_ai_config_error(kind, provider, base_url, bool(api_key))
+        if error:
+            return jsonify({"error": error}), 400
+
     cfg = AIProviderConfig(kind=kind, provider=provider, model=model)
-    cfg.base_url = payload.get("base_url") or None
+    cfg.base_url = base_url
     if payload.get("dimensions") is not None:
         try:
             cfg.dimensions = int(payload["dimensions"])
         except (TypeError, ValueError):
             return jsonify({"error": "dimensions must be an integer"}), 400
-    cfg.set_api_key(payload.get("api_key"))
-    if payload.get("is_active") is True:
+        if cfg.dimensions <= 0:
+            return jsonify({"error": "dimensions must be greater than zero"}), 400
+    cfg.set_api_key(api_key)
+    if active:
         AIProviderConfig.query.filter_by(kind=kind).update({"is_active": False})
         cfg.is_active = True
     db.session.add(cfg)
     db.session.commit()
+    _invalidate_ai_provider_manager()
     log_security_event(
         "admin_ai_provider_created",
-        user_id=__import__("flask_jwt_extended").get_jwt_identity(),
+        user_id=int(get_jwt_identity()),
         ip_address=request.remote_addr,
         details={"id": cfg.id, "kind": kind, "provider": provider, "model": model},
     )
-    return jsonify(cfg.to_dict(include_secret=True)), 201
+    # Never echo the secret back, even to a superadmin. The listing shows a
+    # masked value; key rotation happens by posting a new key.
+    return jsonify(cfg.to_dict()), 201
 
 
 @api_bp.route("/admin/ai-providers/<int:config_id>", methods=["PATCH"])
@@ -429,8 +478,8 @@ def admin_create_ai_provider():
 def admin_update_ai_provider(config_id):
     from flask_jwt_extended import get_jwt_identity
 
-    from ...models.ai_provider_config import (
-        AIProviderConfig,
+    from ...models.ai_provider_config import AIProviderConfig
+    from ...utils.ai_provider_resolver import (
         VALID_EMBEDDING_PROVIDERS,
         VALID_LLM_PROVIDERS,
     )
@@ -452,7 +501,7 @@ def admin_update_ai_provider(config_id):
             return jsonify({"error": "model is required"}), 400
         cfg.model = model
     if "base_url" in payload:
-        cfg.base_url = payload["base_url"] or None
+        cfg.base_url = (payload["base_url"] or "").strip() or None
     if "dimensions" in payload:
         if payload["dimensions"] is None:
             cfg.dimensions = None
@@ -461,28 +510,35 @@ def admin_update_ai_provider(config_id):
                 cfg.dimensions = int(payload["dimensions"])
             except (TypeError, ValueError):
                 return jsonify({"error": "dimensions must be an integer"}), 400
+            if cfg.dimensions <= 0:
+                return jsonify({"error": "dimensions must be greater than zero"}), 400
     if "api_key" in payload:
         cfg.set_api_key(payload["api_key"])
     if "is_active" in payload:
         active, error = _bool_param(payload["is_active"], "is_active")
         if error:
             return error
-        if active:
-            AIProviderConfig.query.filter_by(kind=cfg.kind).update({"is_active": False})
         cfg.is_active = active
 
+    if cfg.is_active:
+        error = _active_ai_config_error(
+            cfg.kind, cfg.provider, cfg.base_url, bool(cfg.get_api_key())
+        )
+        if error:
+            db.session.rollback()
+            return jsonify({"error": error}), 400
+        AIProviderConfig.query.filter_by(kind=cfg.kind).update({"is_active": False})
+        cfg.is_active = True
+
     db.session.commit()
+    _invalidate_ai_provider_manager()
     log_security_event(
         "admin_ai_provider_updated",
         user_id=int(get_jwt_identity()),
         ip_address=request.remote_addr,
         details={"id": cfg.id, "changes": sorted(payload.keys())},
     )
-    # Force the manager to re-read on next use.
-    from ...ai_providers import get_ai_provider_manager
-
-    get_ai_provider_manager()._initialized = False
-    return jsonify(cfg.to_dict(include_secret=True)), 200
+    return jsonify(cfg.to_dict()), 200
 
 
 @api_bp.route("/admin/ai-providers/<int:config_id>", methods=["DELETE"])
@@ -499,6 +555,7 @@ def admin_delete_ai_provider(config_id):
         return jsonify({"error": "cannot delete the active provider; activate another first"}), 409
     db.session.delete(cfg)
     db.session.commit()
+    _invalidate_ai_provider_manager()
     log_security_event(
         "admin_ai_provider_deleted",
         user_id=int(get_jwt_identity()),
@@ -512,15 +569,28 @@ def admin_delete_ai_provider(config_id):
 @superadmin_required
 def admin_test_ai_provider():
     """Dry-run the active LLM + embedding configs without touching the request path."""
+    from flask import current_app
+
     from ...ai_providers import get_ai_provider_manager
 
     manager = get_ai_provider_manager()
     manager._initialized = False
-    info = manager.get_provider_info()
-    health = manager.healthcheck()
+    try:
+        info = manager.get_provider_info()
+        health = manager.healthcheck()
+    except Exception:
+        current_app.logger.exception("admin AI provider test failed")
+        return jsonify({
+            "error": (
+                "Could not initialize the active AI providers. Check the "
+                "active model, API key, and endpoint, then save and test again."
+            )
+        }), 502
     return jsonify({
         "llm": info["llm_provider"],
+        "llm_model": info.get("llm_model"),
         "embedding": info["embedding_provider"],
+        "embedding_model": info.get("embedding_model"),
         "embedding_dimension": info["embedding_dimension"],
         "rag_enabled": info["rag_enabled"],
         "health": health,
@@ -530,38 +600,14 @@ def admin_test_ai_provider():
 @api_bp.route("/admin/plans", methods=["GET"])
 @superadmin_required
 def admin_plans():
-    """Plan catalogue (mirrors subscription.py) plus live subscriber counts."""
-    from sqlalchemy import func
+    """Return the editable plan catalogue for the admin dashboard."""
+    from ...models.plan import Plan
 
-    from ...utils.subscription import BASIC_INDIVIDUAL_FEATURES, CVAI_FEATURES
-
-    paid_users = (
-        db.session.query(func.count(User.id))
-        .filter(User.subscription_status == "active", User.paid_plan.is_(True))
-        .scalar()
-        or 0
+    plans = (
+        Plan.query.order_by(Plan.scope.asc(), Plan.price_cents.asc(), Plan.slug.asc())
+        .all()
     )
-    trial_users = (
-        db.session.query(func.count(User.id))
-        .filter(User.subscription_status == "trial")
-        .scalar()
-        or 0
-    )
-    paid_orgs = (
-        db.session.query(func.count(Organization.id))
-        .filter(Organization.subscription_status == "active")
-        .scalar()
-        or 0
-    )
-    return jsonify({
-        "individual_free": sorted(BASIC_INDIVIDUAL_FEATURES),
-        "individual_premium": sorted(set(CVAI_FEATURES) - set(BASIC_INDIVIDUAL_FEATURES)),
-        "subscribers": {
-            "paid_users": paid_users,
-            "trial_users": trial_users,
-            "paid_organizations": paid_orgs,
-        },
-    }), 200
+    return jsonify([plan.to_dict() for plan in plans]), 200
 
 
 @api_bp.route("/admin/plans", methods=["POST"])
@@ -590,6 +636,14 @@ def admin_create_plan():
         features = []
     if not isinstance(features, list) or not all(isinstance(x, str) for x in features):
         return jsonify({"error": "features must be a list of strings"}), 400
+    is_default, error = _bool_param(payload.get("is_default", False), "is_default")
+    if error:
+        return error
+    is_active, error = _bool_param(payload.get("is_active", True), "is_active")
+    if error:
+        return error
+    if is_default and not is_active:
+        return jsonify({"error": "the default plan must stay active"}), 400
 
     import json
 
@@ -599,8 +653,8 @@ def admin_create_plan():
         scope=scope,
         price_cents=price_cents,
         features=json.dumps(features),
-        is_default=bool(payload.get("is_default", False)),
-        is_active=bool(payload.get("is_active", True)),
+        is_default=is_default,
+        is_active=is_active,
     )
     if plan.is_default:
         Plan.query.filter_by(scope=scope).update({"is_default": False})
@@ -653,12 +707,26 @@ def admin_update_plan(plan_id):
             return error
         if is_default:
             Plan.query.filter_by(scope=plan.scope).update({"is_default": False})
+        elif plan.is_default:
+            replacement = (
+                Plan.query.filter_by(scope=plan.scope, is_default=True)
+                .filter(Plan.id != plan.id)
+                .first()
+            )
+            if replacement is None:
+                db.session.rollback()
+                return jsonify(
+                    {"error": "choose a replacement default plan for this scope first"}
+                ), 409
         plan.is_default = is_default
     if "is_active" in payload:
         is_active, error = _bool_param(payload["is_active"], "is_active")
         if error:
             return error
         plan.is_active = is_active
+    if plan.is_default and not plan.is_active:
+        db.session.rollback()
+        return jsonify({"error": "the default plan must stay active"}), 409
 
     db.session.commit()
     log_security_event(
@@ -682,6 +750,13 @@ def admin_delete_plan(plan_id):
         return jsonify({"error": "plan not found"}), 404
     if plan.is_default:
         return jsonify({"error": "cannot delete the default plan"}), 409
+    assigned = (
+        User.query.filter_by(plan=plan.slug).first()
+        if plan.scope == "individual"
+        else Organization.query.filter_by(plan=plan.slug).first()
+    )
+    if assigned is not None:
+        return jsonify({"error": "plan is assigned to accounts; migrate them first"}), 409
     db.session.delete(plan)
     db.session.commit()
     log_security_event(

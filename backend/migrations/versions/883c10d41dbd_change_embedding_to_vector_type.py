@@ -18,6 +18,10 @@ depends_on = None
 
 
 def upgrade():
+    # The vector type must exist before the first vector column is added.
+    # This is idempotent and works on a managed database that has the
+    # pgvector extension available but not installed in this database.
+    op.execute("CREATE EXTENSION IF NOT EXISTS vector")
     # Tables are empty — drop old text column and add vector column
     for table in ['recommendation_agent_embeddings', 'recommendation_job_embeddings', 'recommendation_profile_embeddings']:
         with op.batch_alter_table(table, schema=None) as batch_op:

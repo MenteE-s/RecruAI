@@ -16,7 +16,11 @@ class ThinkingModule:
 
     def __init__(self):
         self.provider_manager = get_ai_provider_manager()
-        self.llm_provider = self.provider_manager.llm
+
+    @property
+    def llm_provider(self):
+        """Resolve at call time so admin provider changes reach this module."""
+        return self.provider_manager.llm
 
     def _extract_json(self, text: str) -> Dict[str, Any]:
         """Extract and parse JSON from LLM response with formatting resilience"""

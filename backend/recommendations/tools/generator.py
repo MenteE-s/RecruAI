@@ -22,7 +22,11 @@ class RecommendationGenerator:
     def __init__(self):
         self.config = RecommendationConfig()
         self.provider_manager = get_ai_provider_manager()
-        self.llm_provider = self.provider_manager.llm
+
+    @property
+    def llm_provider(self):
+        """Resolve at call time so admin provider changes reach this tool."""
+        return self.provider_manager.llm
 
     def generate_profile_explanation(
         self,

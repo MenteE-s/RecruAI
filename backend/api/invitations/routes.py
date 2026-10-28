@@ -30,6 +30,7 @@ from ...utils.invitations import (
     invitation_error,
     normalize_email,
 )
+from ...utils.org_permissions import normalize_stored_role
 from ...utils.security import log_security_event, sanitize_input
 from ...utils.slug import generate_unique_slug
 from ...utils.timezone_utils import utc_iso, utc_now_iso
@@ -64,7 +65,7 @@ def _invitation_payload(invitation):
     org = invitation.organization
     return {
         "email": invitation.email,
-        "role": invitation.role,
+        "role": normalize_stored_role(invitation.role),
         "expires_at": utc_iso(invitation.expires_at),
         "organization": _organization_payload(org),
         "inviter_name": (
@@ -259,7 +260,7 @@ def accept_invitation(token):
         team_member = TeamMember(
             organization_id=org.id,
             user_id=user.id,
-            role=invitation.role,
+            role=normalize_stored_role(invitation.role),
             permissions=invitation.permissions,
             join_date=invitation.join_date,
         )

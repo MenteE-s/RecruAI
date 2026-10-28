@@ -25,7 +25,7 @@ class OrganizationInvitation(db.Model):
         index=True,
     )
     email = db.Column(db.String(120), nullable=False, index=True)
-    role = db.Column(db.String(100), nullable=False, default="Member")
+    role = db.Column(db.String(100), nullable=False, default="Interviewer")
     permissions = db.Column(db.Text, nullable=True)  # JSON list, same shape as TeamMember
     join_date = db.Column(db.Date, nullable=True)
     invited_by_id = db.Column(

@@ -10,6 +10,19 @@ from ...utils.timezone_utils import utc_now_iso, utc_iso
 practice_ai_bp = Blueprint("practice_ai", __name__)
 
 
+@practice_ai_bp.before_request
+def _require_verified_email():
+    """Apply the same verified-email gate as the main API blueprint.
+
+    Registering this in the app factory breaks a second ``create_app`` call
+    (Flask forbids blueprint setup after registration). Importing the guard
+    lazily keeps the circular-import workaround intact.
+    """
+    from ..guards import require_verified_email
+
+    return require_verified_email()
+
+
 def _build_default_system_prompt(name: str, industry: str) -> str:
     agent_name = name or "Practice AI Interviewer"
     industry_label = industry or "your industry"

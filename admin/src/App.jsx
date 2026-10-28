@@ -5,6 +5,7 @@ import Overview from "./pages/Overview";
 import Users from "./pages/Users";
 import Organizations from "./pages/Organizations";
 import Plans from "./pages/Plans";
+import AIProviders from "./pages/AIProviders";
 import Outbox from "./pages/Outbox";
 import Content from "./pages/Content";
 
@@ -24,6 +25,7 @@ export default function App() {
           <Route path="/users" element={<Users />} />
           <Route path="/organizations" element={<Organizations />} />
           <Route path="/plans" element={<Plans />} />
+          <Route path="/ai-providers" element={<AIProviders />} />
           <Route path="/outbox" element={<Outbox />} />
           <Route path="/content" element={<Content />} />
         </Route>

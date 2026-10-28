@@ -15,6 +15,10 @@ def _prod_env(**overrides):
         "GROQ_API_KEY": "gsk_test",
         "REDIS_ENABLED": True,
         "VIDEO_ENABLED": "0",
+        # Full config includes the optional LiveKit values so the only
+        # remaining warning path is the explicit video-disabled test below.
+        "LIVEKIT_API_KEY": "test-livekit-key",
+        "LIVEKIT_API_SECRET": "test-livekit-secret",
     }
     env.update(overrides)
     return env
@@ -53,7 +57,7 @@ def test_production_validation_requires_shared_redis():
 
 
 def test_production_validation_requires_livekit_only_when_video_enabled():
-    warnings = validate_production_config(_prod_env())
+    warnings = validate_production_config(_prod_env(LIVEKIT_API_KEY=""))
     assert any("LIVEKIT" in w for w in warnings)
 
     with pytest.raises(RuntimeError, match="LIVEKIT_URL"):

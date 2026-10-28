@@ -27,7 +27,6 @@ class EmbedderTool:
     def __init__(self):
         self.config = RAGConfig()
         self.provider_manager = get_ai_provider_manager()
-        self.embedding_provider = self.provider_manager.embedding
 
         # Caching and rate limiting
         self._embedding_cache = {}
@@ -39,6 +38,11 @@ class EmbedderTool:
 
         # Thread pool for async processing
         self._executor = ThreadPoolExecutor(max_workers=4)
+
+    @property
+    def embedding_provider(self):
+        """Resolve at call time so admin provider changes reach this tool."""
+        return self.provider_manager.embedding
 
     class _RateLimiter:
         """Simple rate limiter for OpenAI API calls"""

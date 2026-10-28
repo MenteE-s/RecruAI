@@ -304,7 +304,7 @@ class User(db.Model):
         basics. No CVAI key is in that basic list, which is what makes
         "subscribe to get CVAI" true rather than aspirational.
 
-        Admins may grant or revoke individual features per account through
+        Admins may grant individual features per account through
         ``feature_overrides`` without changing the plan or subscription.
         """
         from backend.utils.subscription import BASIC_INDIVIDUAL_FEATURES

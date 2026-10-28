@@ -39,29 +39,64 @@ _DEFAULT_PLANS = [
 ]
 
 
-def upgrade():
-    op.create_table(
-        "plans",
-        sa.Column("id", sa.Integer(), primary_key=True),
-        sa.Column("slug", sa.String(64), nullable=False),
-        sa.Column("name", sa.String(128), nullable=False),
-        sa.Column("scope", sa.String(16), nullable=False),
-        sa.Column("price_cents", sa.Integer(), nullable=False, server_default="0"),
-        sa.Column("features", sa.Text(), nullable=False, server_default="[]"),
-        sa.Column("is_default", sa.Boolean(), nullable=False, server_default="0"),
-        sa.Column("is_active", sa.Boolean(), nullable=False, server_default="1"),
-        sa.Column("created_at", sa.DateTime(), nullable=False),
-        sa.Column("updated_at", sa.DateTime(), nullable=False),
-    )
-    op.create_unique_constraint("uq_plans_slug_scope", "plans", ["slug", "scope"])
-    op.create_index("ix_plans_scope", "plans", ["scope"])
+def _column_names(bind, table):
+    return {column["name"] for column in sa.inspect(bind).get_columns(table)}
 
-    with op.batch_alter_table("users") as batch_op:
-        batch_op.add_column(sa.Column("plan", sa.String(32), nullable=False, server_default="free"))
-        batch_op.add_column(sa.Column("feature_overrides", sa.Text(), nullable=True))
-    with op.batch_alter_table("organizations") as batch_op:
-        batch_op.add_column(sa.Column("plan", sa.String(32), nullable=False, server_default="free"))
-        batch_op.add_column(sa.Column("feature_overrides", sa.Text(), nullable=True))
+
+def upgrade():
+    bind = op.get_bind()
+    tables = set(sa.inspect(bind).get_table_names())
+
+    if "plans" not in tables:
+        op.create_table(
+            "plans",
+            sa.Column("id", sa.Integer(), primary_key=True),
+            sa.Column("slug", sa.String(64), nullable=False),
+            sa.Column("name", sa.String(128), nullable=False),
+            sa.Column("scope", sa.String(16), nullable=False),
+            sa.Column("price_cents", sa.Integer(), nullable=False, server_default="0"),
+            sa.Column("features", sa.Text(), nullable=False, server_default="[]"),
+            sa.Column("is_default", sa.Boolean(), nullable=False, server_default="0"),
+            sa.Column("is_active", sa.Boolean(), nullable=False, server_default="1"),
+            sa.Column("created_at", sa.DateTime(), nullable=False),
+            sa.Column("updated_at", sa.DateTime(), nullable=False),
+        )
+        op.create_unique_constraint("uq_plans_slug_scope", "plans", ["slug", "scope"])
+        op.create_index("ix_plans_scope", "plans", ["scope"])
+
+    # The very first migration already created users.plan. Older databases
+    # that predate that edit may not have it, so add only what is missing.
+    user_columns = _column_names(bind, "users")
+    missing_user_columns = []
+    if "plan" not in user_columns:
+        missing_user_columns.append(
+            sa.Column("plan", sa.String(32), nullable=False, server_default="free")
+        )
+    if "feature_overrides" not in user_columns:
+        missing_user_columns.append(
+            sa.Column("feature_overrides", sa.Text(), nullable=True)
+        )
+    if missing_user_columns:
+        with op.batch_alter_table("users") as batch_op:
+            for column in missing_user_columns:
+                batch_op.add_column(column)
+    op.execute("ALTER TABLE users ALTER COLUMN plan SET DEFAULT 'free'")
+
+    org_columns = _column_names(bind, "organizations")
+    missing_org_columns = []
+    if "plan" not in org_columns:
+        missing_org_columns.append(
+            sa.Column("plan", sa.String(32), nullable=False, server_default="free")
+        )
+    if "feature_overrides" not in org_columns:
+        missing_org_columns.append(
+            sa.Column("feature_overrides", sa.Text(), nullable=True)
+        )
+    if missing_org_columns:
+        with op.batch_alter_table("organizations") as batch_op:
+            for column in missing_org_columns:
+                batch_op.add_column(column)
+    op.execute("ALTER TABLE organizations ALTER COLUMN plan SET DEFAULT 'free'")
 
     # Seed the default catalogue. Idempotent on (slug) so re-running on a
     # partially-migrated database does not duplicate rows.
@@ -97,9 +132,11 @@ def downgrade():
     with op.batch_alter_table("organizations") as batch_op:
         batch_op.drop_column("feature_overrides")
         batch_op.drop_column("plan")
+    # users.plan predates this revision in the initial migration. Dropping it
+    # here would break a clean downgrade/upgrade cycle by removing a column
+    # the initial schema owns.
     with op.batch_alter_table("users") as batch_op:
         batch_op.drop_column("feature_overrides")
-        batch_op.drop_column("plan")
     op.drop_index("ix_plans_scope", table_name="plans")
     op.drop_constraint("uq_plans_slug_scope", "plans", type_="unique")
     op.drop_table("plans")

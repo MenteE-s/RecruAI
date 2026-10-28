@@ -48,7 +48,7 @@ def _password_changed_events():
 
     return (
         OutboxEvent.query.filter_by(type="email.send")
-        .filter(OutboxEvent.payload["kind"].astext == "password_changed")
+        .filter(OutboxEvent.payload.op("->>")("kind") == "password_changed")
         .all()
     )
 

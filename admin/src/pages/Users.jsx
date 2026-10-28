@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, formatDate } from "../lib/api";
+import { INDIVIDUAL_FEATURE_KEYS as FEATURE_KEYS } from "../lib/features";
 
 function StatusPill({ value }) {
   const tone = value === "active" ? "green" : value === "trial" ? "amber" : "grey";
@@ -135,7 +136,7 @@ export default function Users() {
 
       {editing && (
         <div className="modal-back" onClick={() => setEditing(null)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
+          <div className="modal wide" onClick={(e) => e.stopPropagation()}>
             <h2>Manage {editing.email}</h2>
             <p className="sub">Joined {formatDate(editing.created_at)} · {editing.tokens_used ?? 0} tokens used</p>
             <div className="row">
@@ -167,9 +168,9 @@ export default function Users() {
               </select>
             </div>
             <div style={{ marginTop: 12 }}>
-              <label style={{ display: "block", fontSize: 12, color: "var(--muted)", marginBottom: 6 }}>Per-user feature overrides (grant/revoke without changing plan)</label>
+              <label style={{ display: "block", fontSize: 12, color: "var(--muted)", marginBottom: 6 }}>Per-user feature grants (unlock without changing plan)</label>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
-                {["profile_management", "job_search", "basic_matching", "cvai_skill_assessment", "cvai_quizzes", "cvai_projects", "cvai_mentorship", "cvai_mock_interview", "career_coaching", "practice_ai_agents"].map((f) => (
+                {FEATURE_KEYS.map((f) => (
                   <label key={f} className="checkline" style={{ margin: 0 }}>
                     <input type="checkbox" checked={(editing._overrides || []).includes(f)}
                       onChange={() => {

@@ -122,7 +122,13 @@ def create_app(config_object: object | None = None):
 	with app.app_context():
 		@event.listens_for(db.engine, 'connect')
 		def register_pgvector(dbapi_connection, connection_record):
-			register_vector(dbapi_connection)
+			try:
+				register_vector(dbapi_connection)
+			except Exception as exc:
+				# The migrations container may connect before the vector
+				# extension exists. The migration chain creates it; later
+				# connections register normally. Non-vector queries still work.
+				app.logger.debug("pgvector adapter not registered: %s", exc)
 	# init JWT (raise if missing so we catch misconfiguration early)
 	# `jwt` is provided by the module-level import/fallback above so avoid
 	# package-relative imports here which break when the module is executed
@@ -139,6 +145,10 @@ def create_app(config_object: object | None = None):
 	socketio_queue = None
 	if app.config.get("REDIS_ENABLED", False):
 		socketio_queue = app.config.get("REDIS_URL", "redis://127.0.0.1:6379/0")
+	# Flask-SocketIO keeps server_options across init_app calls. Without this,
+	# a factory test that first configured Redis would keep a RedisManager even
+	# when the next app explicitly disables Redis.
+	socketio.server_options.pop("client_manager", None)
 	socketio.init_app(
 		app,
 		cors_allowed_origins=origins_list,
@@ -245,9 +255,13 @@ def create_app(config_object: object | None = None):
 	# discovery, and it can incur network calls during import.
 	if not app.config.get("TESTING"):
 		try:
-			ai_manager = get_ai_provider_manager()
-			ai_manager.initialize()
-			provider_info = ai_manager.get_provider_info()
+			# The resolver reads the active rows from PostgreSQL, so the
+			# factory must provide an application context. Without it the
+			# manager cached the env fallback until the next refresh.
+			with app.app_context():
+				ai_manager = get_ai_provider_manager()
+				ai_manager.initialize()
+				provider_info = ai_manager.get_provider_info()
 			print(f"AI Providers initialized - LLM: {provider_info['llm_provider']}, Embedding: {provider_info['embedding_provider']}, RAG: {provider_info['rag_enabled']}")
 		except Exception as e:
 			print(f"Warning: Could not initialize AI providers: {e}")
@@ -502,18 +516,12 @@ def create_app(config_object: object | None = None):
 	# Register practice AI agents blueprint separately to avoid circular imports
 	try:
 		from .api.practice_ai_agents import practice_ai_bp
-		from .api.guards import require_verified_email as _require_verified_email
-		# Same verified-email gate as api_bp: practice_ai_bp is separate only
-		# to dodge a circular import, not to skip auth hygiene.
-		practice_ai_bp.before_request(_require_verified_email)
+		# The blueprint attaches the verified-email guard at import time, so
+		# this factory stays safe to call more than once.
 		app.register_blueprint(practice_ai_bp, url_prefix="/api")
 	except ImportError:
 		try:
 			practice_ai_agents_module = importlib.import_module("backend.api.practice_ai_agents")
-			guards_module = importlib.import_module("backend.api.guards")
-			practice_ai_agents_module.practice_ai_bp.before_request(
-				guards_module.require_verified_email
-			)
 			app.register_blueprint(practice_ai_agents_module.practice_ai_bp, url_prefix="/api")
 		except ImportError as e:
 			print(f"Warning: Could not register practice AI agents blueprint: {e}")

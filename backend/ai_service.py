@@ -21,7 +21,24 @@ class AIService:
 
     def __init__(self):
         self.provider_manager = get_ai_provider_manager()
-        self.llm_provider = self.provider_manager.llm
+
+    @property
+    def llm_provider(self):
+        """Resolve the provider at call time so admin changes take effect.
+
+        A module-level AIService is imported before the app factory creates an
+        application context. Caching the provider here used to freeze the env
+        fallback and hide the DB-backed admin configuration indefinitely.
+        Tests may still override this attribute with a fake provider.
+        """
+        override = getattr(self, "_llm_provider_override", None)
+        if override is not None:
+            return override
+        return self.provider_manager.llm
+
+    @llm_provider.setter
+    def llm_provider(self, provider):
+        self._llm_provider_override = provider
 
     def generate_response(self, system_prompt: str, user_message: str, conversation_history: Optional[List[Dict]] = None,
                         user: Optional['User'] = None, operation_type: str = "ai_chat") -> str:
