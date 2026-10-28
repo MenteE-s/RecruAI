@@ -6,6 +6,9 @@ html {
   scroll-behavior: smooth;
   /* Slightly larger base so body copy reads comfortably on the landing page. */
   font-size: 17px;
+  /* Single-knob brand accent. Change this one number to re-theme every
+     blue-* utility in the app (24 = burnt orange). */
+  --brand-hue: 24;
 }
 
 body {

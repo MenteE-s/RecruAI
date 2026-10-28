@@ -10,18 +10,21 @@ module.exports = {
         // link, and indigo gradient resolves to the brand palette with no
         // per-file churn. 600 #171717 is the mentee primary (buttons, text);
         // 700 #000000 darkens on hover; light steps tint surfaces.
+        // Single-knob brand accent. Every blue-* utility resolves to an HSL
+        // value derived from --brand-hue, so changing that one CSS variable in
+        // src/index.css re-themes the whole app (24 = burnt orange).
         blue: {
-          50: '#f7f7f7',
-          100: '#e9e9e9',
-          200: '#d4d4d4',
-          300: '#b3b3b3',
-          400: '#8a8a8a',
-          500: '#6b6b6b',
-          600: '#171717',
-          700: '#000000',
-          800: '#000000',
-          900: '#171717',
-          950: '#000000',
+          50: 'hsl(var(--brand-hue) 90% 97% / <alpha-value>)',
+          100: 'hsl(var(--brand-hue) 90% 93% / <alpha-value>)',
+          200: 'hsl(var(--brand-hue) 88% 85% / <alpha-value>)',
+          300: 'hsl(var(--brand-hue) 86% 72% / <alpha-value>)',
+          400: 'hsl(var(--brand-hue) 84% 62% / <alpha-value>)',
+          500: 'hsl(var(--brand-hue) 82% 52% / <alpha-value>)',
+          600: 'hsl(var(--brand-hue) 80% 42% / <alpha-value>)',
+          700: 'hsl(var(--brand-hue) 78% 34% / <alpha-value>)',
+          800: 'hsl(var(--brand-hue) 76% 26% / <alpha-value>)',
+          900: 'hsl(var(--brand-hue) 74% 14% / <alpha-value>)',
+          950: 'hsl(var(--brand-hue) 72% 8% / <alpha-value>)',
         },
         indigo: {
           50: '#f7f7f7',
