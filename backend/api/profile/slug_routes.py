@@ -5,14 +5,16 @@ share and print. This serves the public view of a person and lets them claim
 or change their own handle.
 """
 
-from flask import request, jsonify, current_app
+from flask import request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from sqlalchemy import func, or_
+from sqlalchemy import func
+from sqlalchemy.orm import selectinload
 
 from .. import api_bp
 from ...extensions import db
 from ...models import User
 from ...utils.security import sanitize_input, log_security_event
+from ...utils.timezone_utils import utc_iso
 from ...utils.slug import (
     RESERVED, MIN_USER_SLUG_LEN, MAX_USER_SLUG_LEN,
     generate_unique_slug, is_valid_slug, slug_taken,
@@ -26,6 +28,61 @@ def _me():
         return None
 
 
+# Public profile collections are eager-loaded together so a single profile
+# view costs a constant number of queries instead of one per section. Built
+# lazily because backrefs are registered when the other model modules import.
+def _public_profile_loads():
+    return (
+        selectinload(User.experiences),
+        selectinload(User.educations),
+        selectinload(User.skills),
+        selectinload(User.projects),
+        selectinload(User.certifications),
+        selectinload(User.awards),
+        selectinload(User.publications),
+        selectinload(User.languages),
+        selectinload(User.volunteer_experiences),
+        selectinload(User.social_media_links),
+        selectinload(User.profile_sections),
+    )
+
+
+def _public_user_payload(user):
+    """Public fields only: no email, phone, plan, org ownership or referral."""
+    about = None
+    for section in user.profile_sections:
+        if section.section_type == "about":
+            about = section.to_dict().get("section_data") or {}
+            break
+
+    return {
+        "id": user.id,
+        "name": user.name,
+        "slug": user.profile_slug,
+        "headline": user.headline,
+        "current_position": user.current_position,
+        "current_company": user.current_company,
+        "location": user.location,
+        "profile_picture": user.profile_picture,
+        "banner": user.banner,
+        "employment_status": user.employment_status,
+        "website": user.website,
+        "linkedin": user.linkedin,
+        "created_at": utc_iso(user.created_at),
+        "about": about,
+        "experiences": [exp.to_dict() for exp in user.experiences],
+        "educations": [edu.to_dict() for edu in user.educations],
+        "skills": [skill.to_dict() for skill in user.skills],
+        "projects": [proj.to_dict() for proj in user.projects],
+        "certifications": [cert.to_dict() for cert in user.certifications],
+        "awards": [award.to_dict() for award in user.awards],
+        "publications": [pub.to_dict() for pub in user.publications],
+        "languages": [lang.to_dict() for lang in user.languages],
+        "volunteer_experiences": [vol.to_dict() for vol in user.volunteer_experiences],
+        "social_media_links": [link.to_dict() for link in user.social_media_links],
+    }
+
+
 @api_bp.route("/in/<slug>", methods=["GET"])
 def get_public_profile_by_slug(slug):
     """Public profile for a slug. Open, so a shared link works signed out."""
@@ -33,12 +90,20 @@ def get_public_profile_by_slug(slug):
     if not clean:
         return jsonify({"error": "Not found"}), 404
 
-    user = User.query.filter(func.lower(User.profile_slug) == clean).first()
+    user = (
+        User.query.options(*_public_profile_loads())
+        .filter(func.lower(User.profile_slug) == clean)
+        .first()
+    )
     # No slug match: a shared link may carry the numeric id instead,
     # the same fallback the org and job endpoints offer. Slugs are
     # generated from names, so a numeric segment can only be an id.
     if not user and clean.isdigit():
-        user = db.session.get(User, int(clean))
+        user = (
+            User.query.options(*_public_profile_loads())
+            .filter(User.id == int(clean))
+            .first()
+        )
     if not user:
         return jsonify({"error": "Not found"}), 404
 
@@ -55,20 +120,7 @@ def get_public_profile_by_slug(slug):
     # subscription state. is_discoverable governs search only; an explicit link
     # still resolves.
     return jsonify({
-        "user": {
-            "id": user.id,
-            "name": user.name,
-            "slug": user.profile_slug,
-            "headline": user.headline,
-            "current_position": user.current_position,
-            "current_company": user.current_company,
-            "location": user.location,
-            "profile_picture": user.profile_picture,
-            "banner": user.banner,
-            "employment_status": user.employment_status,
-            "website": user.website,
-            "linkedin": user.linkedin,
-        },
+        "user": _public_user_payload(user),
         "is_discoverable": bool(user.is_discoverable),
     }), 200
 
