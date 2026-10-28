@@ -188,6 +188,7 @@ class User(db.Model):
             "name": self.name,
             "role": self.role,
             "plan": self.plan,
+            "feature_overrides": self.feature_override_list(),
             "organization_id": self.organization_id,
             "organization": self.organization.name if self.organization else None,
             # Lets the client link to /org/<slug> without a second lookup.

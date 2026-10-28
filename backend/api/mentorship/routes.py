@@ -25,7 +25,7 @@ from ...utils import mentorship_suggestions as suggestions_utils
 from ...utils.mentorship_planner import VALID_STEP_STATUSES, clamp_int
 from ...utils.mentorship_progress import parse_iso
 from ...utils.skill_taxonomy import LEVELS, SKILLS
-from ...utils.subscription import CVAI_MENTORSHIP, require_subscription
+from ...utils.subscription import CAREER_COACHING, require_subscription
 from ...mentorship.generator import gaps_from_targets, propose_steps, propose_targets
 
 MAX_GOAL_LEN = 255
@@ -74,7 +74,7 @@ def _requirements_for(goal_post_id):
 
 @api_bp.route('/mentorship/plans', methods=['POST'])
 @jwt_required()
-@require_subscription(CVAI_MENTORSHIP)
+@require_subscription(CAREER_COACHING)
 def create_mentorship_plan():
     """Build a plan from the learner's evidence and their budgets.
 
@@ -213,7 +213,7 @@ def create_mentorship_plan():
 
 @api_bp.route('/mentorship/plans', methods=['GET'])
 @jwt_required()
-@require_subscription(CVAI_MENTORSHIP)
+@require_subscription(CAREER_COACHING)
 def list_mentorship_plans():
     """The learner's plans, newest first. Query ?include_steps=1 for full plans."""
     user = _me()
@@ -234,7 +234,7 @@ def list_mentorship_plans():
 
 @api_bp.route('/mentorship/plans/<int:plan_id>', methods=['GET'])
 @jwt_required()
-@require_subscription(CVAI_MENTORSHIP)
+@require_subscription(CAREER_COACHING)
 def get_mentorship_plan(plan_id):
     """One plan, plus whether it has gone stale against current evidence."""
     user = _me()
@@ -270,7 +270,7 @@ def get_mentorship_plan(plan_id):
 
 @api_bp.route('/mentorship/plans/<int:plan_id>/steps/<int:step_id>', methods=['PATCH'])
 @jwt_required()
-@require_subscription(CVAI_MENTORSHIP)
+@require_subscription(CAREER_COACHING)
 def update_mentorship_step(plan_id, step_id):
     """Mark a step done / in progress / skipped.
 
@@ -321,7 +321,7 @@ def update_mentorship_step(plan_id, step_id):
 
 @api_bp.route('/mentorship/plans/<int:plan_id>', methods=['PATCH'])
 @jwt_required()
-@require_subscription(CVAI_MENTORSHIP)
+@require_subscription(CAREER_COACHING)
 def update_mentorship_plan(plan_id):
     """Abandon or reopen a plan. Budgets are not editable after the fact —
     they shaped the steps, so changing one would make the totals a lie."""
@@ -343,7 +343,7 @@ def update_mentorship_plan(plan_id):
 
 @api_bp.route('/mentorship/plans/<int:plan_id>/regenerate', methods=['POST'])
 @jwt_required()
-@require_subscription(CVAI_MENTORSHIP)
+@require_subscription(CAREER_COACHING)
 def regenerate_mentorship_plan(plan_id):
     """Rebuild the steps against the learner's *current* evidence.
 
@@ -412,7 +412,7 @@ def regenerate_mentorship_plan(plan_id):
 
 @api_bp.route('/mentorship/plans/<int:plan_id>/progress', methods=['GET'])
 @jwt_required()
-@require_subscription(CVAI_MENTORSHIP)
+@require_subscription(CAREER_COACHING)
 def get_mentorship_progress(plan_id):
     """Plan versus actual for one plan.
 
@@ -451,7 +451,7 @@ def get_mentorship_progress(plan_id):
 
 @api_bp.route('/mentorship/progress', methods=['GET'])
 @jwt_required()
-@require_subscription(CVAI_MENTORSHIP)
+@require_subscription(CAREER_COACHING)
 def get_learner_progress():
     """Everything at once: plan pace plus skill-level trends over time.
 
@@ -486,7 +486,7 @@ def get_learner_progress():
 
 @api_bp.route('/mentorship/suggestions', methods=['GET'])
 @jwt_required()
-@require_subscription(CVAI_MENTORSHIP)
+@require_subscription(CAREER_COACHING)
 def get_mentorship_suggestions():
     """What to do next, ranked, each with the reason behind it.
 

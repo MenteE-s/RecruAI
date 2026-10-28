@@ -2,6 +2,9 @@ import React, { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import CvaiShell, { Panel, Stat, Badge, Loading, ErrorNote, LockedNote, EmptyNote, Meter } from "../cvai/CvaiShell";
 import { cvai, isLocked, messageOf, levelTone, percent } from "../../utils/cvai";
+import { canAccessFeature, denialReason } from "../../utils/entitlements";
+import PermissionDeniedModal from "../../components/ui/PermissionDeniedModal";
+import { getAuthHeaders, getBackendUrl } from "../../utils/auth";
 import { FiArrowRight, FiCheckCircle, FiCode, FiHelpCircle, FiTarget, FiCreditCard } from "react-icons/fi";
 
 /**
@@ -19,12 +22,33 @@ export default function CvaiOverview() {
   const [attempts, setAttempts] = useState([]);
   const [subscription, setSubscription] = useState(null);
   const [locked, setLocked] = useState(false);
+  const [permissionDenied, setPermissionDenied] = useState(false);
+  const [deniedReason, setDeniedReason] = useState("");
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [upgrading, setUpgrading] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
+    // Fetch the signed-in user first so per-account feature overrides (e.g.
+    // career_coaching granted by an admin) are honoured before any API call.
+    try {
+      const meRes = await fetch(`${getBackendUrl()}/api/auth/me`, { credentials: "include", headers: getAuthHeaders() });
+      if (meRes.ok) {
+        const me = await meRes.json();
+        const u = me?.user || null;
+        setUser(u);
+        if (u && !canAccessFeature(u, "career_coaching")) {
+          setPermissionDenied(true);
+          setDeniedReason(denialReason(u, "career_coaching"));
+          setLoading(false);
+          return;
+        }
+      }
+    } catch {
+      // Fall through to the normal load; the API will enforce access.
+    }
     // Projects are deliberately not fetched here. The overview links to them but
     // never renders them, and an unused request is one more way for this page to
     // fail and then show nothing at all.
@@ -106,7 +130,14 @@ export default function CvaiOverview() {
   }
 
   return (
-    <CvaiShell
+    <>
+      <PermissionDeniedModal
+        open={permissionDenied}
+        title="Career coaching is a premium feature"
+        message={deniedReason || "Career coaching is not included in your plan. Upgrade to unlock it."}
+        onClose={() => setPermissionDenied(false)}
+      />
+      <CvaiShell
       title="Skill growth"
       subtitle="Measure what you can do, prove it by doing, and follow a plan that fits your life."
     >
@@ -380,5 +411,6 @@ export default function CvaiOverview() {
         </div>
       )}
     </CvaiShell>
+    </>
   );
 }

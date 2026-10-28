@@ -100,6 +100,8 @@ class Organization(db.Model):
             "show_public_stats": bool(self.show_public_stats),
             "timezone": self.timezone or "UTC",
             "subscription_status": self.get_subscription_status(),
+            "plan": self.plan,
+            "feature_overrides": self.feature_override_list(),
             "created_at": utc_iso(self.created_at),
         }
 
