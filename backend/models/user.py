@@ -25,7 +25,11 @@ class User(db.Model):
     # the admin dashboard (by an existing superadmin, never self-granted).
     is_superadmin = db.Column(db.Boolean, nullable=False, default=False, server_default="0")
     # user plan: 'trial' or 'pro'
-    plan = db.Column(db.String(32), nullable=False, default="trial")
+    plan = db.Column(db.String(32), nullable=False, default="free", server_default="free")
+    # Per-account feature overrides (JSON list of feature keys). Admin may grant
+    # a single feature (e.g. career_coaching) to a free user without changing
+    # their plan. NULL means "no override".
+    feature_overrides = db.Column(db.Text, nullable=True)
     # Subscription fields
     subscription_status = db.Column(db.String(20), nullable=True, default="trial")  # 'trial', 'active', 'expired', 'cancelled'
     trial_start_date = db.Column(db.DateTime, nullable=True, default=datetime.utcnow)
@@ -279,23 +283,49 @@ class User(db.Model):
         """Check if user has active subscription"""
         return self.subscription_status == "active" and self.paid_plan
 
+    def feature_override_list(self):
+        import json
+
+        if not self.feature_overrides:
+            return []
+        try:
+            value = json.loads(self.feature_overrides)
+        except (ValueError, TypeError):
+            return []
+        return value if isinstance(value, list) else []
+
     def can_access_feature(self, feature: str) -> bool:
-        """Check if user can access a specific feature based on subscription.
+        """Check if a user can access a specific feature based on subscription.
 
         The order matters and encodes the product rule: paying unlocks
         everything, an unexpired trial unlocks everything (a trial exists to
         demonstrate the paid thing), and a lapsed account falls back to the
         basics. No CVAI key is in that basic list, which is what makes
         "subscribe to get CVAI" true rather than aspirational.
+
+        Admins may grant or revoke individual features per account through
+        ``feature_overrides`` without changing the plan or subscription.
         """
         from backend.utils.subscription import BASIC_INDIVIDUAL_FEATURES
 
+        if feature in self.feature_override_list():
+            return True
         if self.is_subscription_active():
             return True
-
         if self.is_trial_active():
             # During trial, allow access to all features
             return True
+
+        # Lapsed account: plan features (admin-managed) take precedence
+        # over the legacy hard-coded basic list.
+        try:
+            from .plan import Plan
+
+            plan = Plan.query.filter_by(slug=self.plan or "free", scope="individual", is_active=True).first()
+            if plan is not None:
+                return feature in plan.feature_list()
+        except Exception:
+            pass
 
         # Trial expired - restrict features
         return feature in BASIC_INDIVIDUAL_FEATURES

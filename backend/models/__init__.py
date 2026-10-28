@@ -59,6 +59,7 @@ from .scheduler_run import SchedulerRun
 from .account_deletion import AccountDeletion
 from .outbox_event import OutboxEvent
 from .ai_provider_config import AIProviderConfig
+from .plan import Plan
 
 __all__ = [
     "User",
@@ -123,4 +124,5 @@ __all__ = [
     "AccountDeletion",
     "OutboxEvent",
     "AIProviderConfig",
+    "Plan",
 ]

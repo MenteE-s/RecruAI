@@ -100,6 +100,8 @@ def _user_admin_dict(user):
         "paid_plan": bool(user.paid_plan),
         "token_allowance": user.token_allowance,
         "tokens_used": user.tokens_used,
+        "plan": user.plan,
+        "feature_overrides": user.feature_override_list(),
         "email_verified": bool(user.email_verified),
         "organization_id": user.organization_id,
         "created_at": user.created_at.isoformat() if user.created_at else None,
@@ -174,6 +176,23 @@ def admin_update_user(user_id):
             if others == 0:
                 return jsonify({"error": "cannot remove the last superadmin"}), 409
         user.is_superadmin = grant
+    if "plan" in payload:
+        from ...models.plan import Plan
+
+        plan_slug = (payload["plan"] or "").strip()
+        if plan_slug and Plan.query.filter_by(slug=plan_slug, scope="individual", is_active=True).first() is None:
+            return jsonify({"error": "unknown or inactive individual plan"}), 400
+        user.plan = plan_slug or user.plan
+    if "feature_overrides" in payload:
+        overrides = payload["feature_overrides"]
+        if overrides is None:
+            user.feature_overrides = None
+        elif isinstance(overrides, list) and all(isinstance(x, str) for x in overrides):
+            import json
+
+            user.feature_overrides = json.dumps(overrides)
+        else:
+            return jsonify({"error": "feature_overrides must be a list of strings or null"}), 400
 
     db.session.commit()
     log_security_event(
@@ -193,6 +212,8 @@ def _org_admin_dict(org):
         "is_public": bool(org.is_public),
         "subscription_status": org.subscription_status,
         "paid_plan": bool(org.paid_plan),
+        "plan": org.plan,
+        "feature_overrides": org.feature_override_list(),
         "created_at": org.created_at.isoformat() if org.created_at else None,
     }
 
@@ -232,6 +253,23 @@ def admin_update_organization(org_id):
         if error:
             return error
         org.paid_plan = paid
+    if "plan" in payload:
+        from ...models.plan import Plan
+
+        plan_slug = (payload["plan"] or "").strip()
+        if plan_slug and Plan.query.filter_by(slug=plan_slug, scope="organization", is_active=True).first() is None:
+            return jsonify({"error": "unknown or inactive organization plan"}), 400
+        org.plan = plan_slug or org.plan
+    if "feature_overrides" in payload:
+        overrides = payload["feature_overrides"]
+        if overrides is None:
+            org.feature_overrides = None
+        elif isinstance(overrides, list) and all(isinstance(x, str) for x in overrides):
+            import json
+
+            org.feature_overrides = json.dumps(overrides)
+        else:
+            return jsonify({"error": "feature_overrides must be a list of strings or null"}), 400
 
     db.session.commit()
     log_security_event(
@@ -524,3 +562,132 @@ def admin_plans():
             "paid_organizations": paid_orgs,
         },
     }), 200
+
+
+@api_bp.route("/admin/plans", methods=["POST"])
+@superadmin_required
+def admin_create_plan():
+    from flask_jwt_extended import get_jwt_identity
+
+    from ...models.plan import Plan
+
+    payload = request.get_json(silent=True) or {}
+    slug = (payload.get("slug") or "").strip()
+    name = (payload.get("name") or "").strip()
+    scope = (payload.get("scope") or "").strip()
+    if not slug or not name or scope not in ("individual", "organization"):
+        return jsonify({"error": "slug, name, and scope (individual/organization) are required"}), 400
+    if Plan.query.filter_by(slug=slug, scope=scope).first():
+        return jsonify({"error": "a plan with that slug and scope already exists"}), 409
+    try:
+        price_cents = int(payload.get("price_cents", 0))
+    except (TypeError, ValueError):
+        return jsonify({"error": "price_cents must be an integer"}), 400
+    if price_cents < 0:
+        return jsonify({"error": "price_cents cannot be negative"}), 400
+    features = payload.get("features")
+    if features is None:
+        features = []
+    if not isinstance(features, list) or not all(isinstance(x, str) for x in features):
+        return jsonify({"error": "features must be a list of strings"}), 400
+
+    import json
+
+    plan = Plan(
+        slug=slug,
+        name=name,
+        scope=scope,
+        price_cents=price_cents,
+        features=json.dumps(features),
+        is_default=bool(payload.get("is_default", False)),
+        is_active=bool(payload.get("is_active", True)),
+    )
+    if plan.is_default:
+        Plan.query.filter_by(scope=scope).update({"is_default": False})
+    db.session.add(plan)
+    db.session.commit()
+    log_security_event(
+        "admin_plan_created",
+        user_id=int(get_jwt_identity()),
+        ip_address=request.remote_addr,
+        details={"slug": slug, "scope": scope, "price_cents": price_cents},
+    )
+    return jsonify(plan.to_dict()), 201
+
+
+@api_bp.route("/admin/plans/<int:plan_id>", methods=["PATCH"])
+@superadmin_required
+def admin_update_plan(plan_id):
+    from flask_jwt_extended import get_jwt_identity
+
+    from ...models.plan import Plan
+
+    plan = db.session.get(Plan, plan_id)
+    if not plan:
+        return jsonify({"error": "plan not found"}), 404
+    payload = request.get_json(silent=True) or {}
+
+    if "name" in payload:
+        name = (payload["name"] or "").strip()
+        if not name:
+            return jsonify({"error": "name cannot be empty"}), 400
+        plan.name = name
+    if "price_cents" in payload:
+        try:
+            price = int(payload["price_cents"])
+        except (TypeError, ValueError):
+            return jsonify({"error": "price_cents must be an integer"}), 400
+        if price < 0:
+            return jsonify({"error": "price_cents cannot be negative"}), 400
+        plan.price_cents = price
+    if "features" in payload:
+        features = payload["features"]
+        if not isinstance(features, list) or not all(isinstance(x, str) for x in features):
+            return jsonify({"error": "features must be a list of strings"}), 400
+        import json
+
+        plan.features = json.dumps(features)
+    if "is_default" in payload:
+        is_default, error = _bool_param(payload["is_default"], "is_default")
+        if error:
+            return error
+        if is_default:
+            Plan.query.filter_by(scope=plan.scope).update({"is_default": False})
+        plan.is_default = is_default
+    if "is_active" in payload:
+        is_active, error = _bool_param(payload["is_active"], "is_active")
+        if error:
+            return error
+        plan.is_active = is_active
+
+    db.session.commit()
+    log_security_event(
+        "admin_plan_updated",
+        user_id=int(get_jwt_identity()),
+        ip_address=request.remote_addr,
+        details={"plan_id": plan.id, "changes": sorted(payload.keys())},
+    )
+    return jsonify(plan.to_dict()), 200
+
+
+@api_bp.route("/admin/plans/<int:plan_id>", methods=["DELETE"])
+@superadmin_required
+def admin_delete_plan(plan_id):
+    from flask_jwt_extended import get_jwt_identity
+
+    from ...models.plan import Plan
+
+    plan = db.session.get(Plan, plan_id)
+    if not plan:
+        return jsonify({"error": "plan not found"}), 404
+    if plan.is_default:
+        return jsonify({"error": "cannot delete the default plan"}), 409
+    db.session.delete(plan)
+    db.session.commit()
+    log_security_event(
+        "admin_plan_deleted",
+        user_id=int(get_jwt_identity()),
+        ip_address=request.remote_addr,
+        details={"plan_id": plan_id},
+    )
+    return jsonify({"message": "deleted"}), 200

@@ -33,6 +33,7 @@ CVAI_QUIZZES = "cvai_quizzes"
 CVAI_PROJECTS = "cvai_projects"
 CVAI_MOCK_INTERVIEW = "cvai_mock_interview"
 CVAI_MENTORSHIP = "cvai_mentorship"
+CAREER_COACHING = "career_coaching"
 
 CVAI_FEATURES = (
     CVAI_SKILL_ASSESSMENT,
@@ -40,6 +41,7 @@ CVAI_FEATURES = (
     CVAI_PROJECTS,
     CVAI_MENTORSHIP,
     CVAI_MOCK_INTERVIEW,
+    CAREER_COACHING,
 )
 
 # What a lapsed individual may still do. Deliberately does NOT include any CVAI
@@ -48,6 +50,25 @@ BASIC_INDIVIDUAL_FEATURES = (
     "profile_management",
     "job_search",
     "basic_matching",
+)
+
+# Organization capability sets. Free orgs keep the basics; premium unlocks the
+# AI hiring surfaces. Admin-managed plans may override these per tenant.
+BASIC_ORGANIZATION_FEATURES = (
+    "profile_management",
+    "job_posting",
+    "basic_matching",
+    "team_management",
+)
+PREMIUM_ORGANIZATION_FEATURES = (
+    "profile_management",
+    "job_posting",
+    "basic_matching",
+    "team_management",
+    "ai_screening",
+    "ai_interview_agents",
+    "analytics",
+    "reports",
 )
 
 

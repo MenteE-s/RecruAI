@@ -49,6 +49,8 @@ class Organization(db.Model):
         default=DEFAULT_AI_TOKEN_ALLOWANCE,
         server_default=str(DEFAULT_AI_TOKEN_ALLOWANCE),
     )
+    plan = db.Column(db.String(32), nullable=False, default="free", server_default="free")
+    feature_overrides = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     __table_args__ = (
@@ -140,14 +142,36 @@ class Organization(db.Model):
         # Trial expired - no more interviews
         return False
 
+    def feature_override_list(self):
+        import json
+
+        if not self.feature_overrides:
+            return []
+        try:
+            value = json.loads(self.feature_overrides)
+        except (ValueError, TypeError):
+            return []
+        return value if isinstance(value, list) else []
+
     def can_access_feature(self, feature: str) -> bool:
         """Check if organization can access a specific feature based on subscription"""
+        if feature in self.feature_override_list():
+            return True
         if self.is_subscription_active():
             return True
 
         if self.is_trial_active():
             # During trial, allow access to all features
             return True
+
+        try:
+            from .plan import Plan
+
+            plan = Plan.query.filter_by(slug=self.plan or "free", scope="organization", is_active=True).first()
+            if plan is not None:
+                return feature in plan.feature_list()
+        except Exception:
+            pass
 
         # Trial expired - restrict features
         basic_features = ["profile_management", "job_posting", "basic_matching"]

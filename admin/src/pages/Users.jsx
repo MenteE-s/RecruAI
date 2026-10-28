@@ -12,6 +12,7 @@ export default function Users() {
   const [pagination, setPagination] = useState(null);
   const [q, setQ] = useState("");
   const [plan, setPlan] = useState("");
+  const [plans, setPlans] = useState([]);
   const [error, setError] = useState("");
   const [editing, setEditing] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -33,6 +34,16 @@ export default function Users() {
 
   useEffect(() => { load(1, "", ""); }, [load]);
 
+  useEffect(() => {
+    let cancelled = false;
+    api("/api/admin/plans")
+      .then((body) => {
+        if (!cancelled) setPlans((body || []).filter((p) => p.scope === "individual"));
+      })
+      .catch(() => { /* non-fatal */ });
+    return () => { cancelled = true; };
+  }, []);
+
   function openEditor(user) {
     setEditing({
       ...user,
@@ -40,6 +51,8 @@ export default function Users() {
       _paid: !!user.paid_plan,
       _allowance: user.token_allowance ?? "",
       _superadmin: !!user.is_superadmin,
+      _plan: user.plan || "free",
+      _overrides: user.feature_overrides || [],
     });
   }
 
@@ -50,6 +63,8 @@ export default function Users() {
     const body = {
       subscription_status: editing._status,
       paid_plan: editing._paid,
+      plan: editing._plan,
+      feature_overrides: editing._overrides,
     };
     if (editing._allowance !== "" && editing._allowance !== null) {
       body.token_allowance = Number(editing._allowance);
@@ -144,6 +159,30 @@ export default function Users() {
                 onChange={(e) => setEditing({ ...editing, _paid: e.target.checked })} />
               Paid plan
             </label>
+            <div style={{ marginTop: 12 }}>
+              <label style={{ display: "block", fontSize: 12, color: "var(--muted)", marginBottom: 6 }}>Plan</label>
+              <select value={editing._plan} onChange={(e) => setEditing({ ...editing, _plan: e.target.value })}>
+                {plans.map((p) => <option key={p.id} value={p.slug}>{p.name} (${(p.price_cents / 100).toFixed(2)})</option>)}
+                {plans.length === 0 && <option value="free">free</option>}
+              </select>
+            </div>
+            <div style={{ marginTop: 12 }}>
+              <label style={{ display: "block", fontSize: 12, color: "var(--muted)", marginBottom: 6 }}>Per-user feature overrides (grant/revoke without changing plan)</label>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
+                {["profile_management", "job_search", "basic_matching", "cvai_skill_assessment", "cvai_quizzes", "cvai_projects", "cvai_mentorship", "cvai_mock_interview", "career_coaching", "practice_ai_agents"].map((f) => (
+                  <label key={f} className="checkline" style={{ margin: 0 }}>
+                    <input type="checkbox" checked={(editing._overrides || []).includes(f)}
+                      onChange={() => {
+                        const set = new Set(editing._overrides || []);
+                        if (set.has(f)) set.delete(f);
+                        else set.add(f);
+                        setEditing({ ...editing, _overrides: Array.from(set) });
+                      }} />
+                    {f}
+                  </label>
+                ))}
+              </div>
+            </div>
             <label className="checkline">
               <input type="checkbox" checked={editing._superadmin}
                 onChange={(e) => setEditing({ ...editing, _superadmin: e.target.checked })} />
