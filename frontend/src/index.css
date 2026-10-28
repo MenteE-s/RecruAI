@@ -4,6 +4,17 @@
 
 html {
   scroll-behavior: smooth;
+  /* Slightly larger base so body copy reads comfortably on the landing page. */
+  font-size: 17px;
+}
+
+body {
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 1rem;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 /* Notification bell animation */
