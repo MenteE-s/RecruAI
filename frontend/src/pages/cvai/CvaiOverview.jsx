@@ -24,7 +24,6 @@ export default function CvaiOverview() {
   const [locked, setLocked] = useState(false);
   const [permissionDenied, setPermissionDenied] = useState(false);
   const [deniedReason, setDeniedReason] = useState("");
-  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [upgrading, setUpgrading] = useState(false);
@@ -38,7 +37,6 @@ export default function CvaiOverview() {
       if (meRes.ok) {
         const me = await meRes.json();
         const u = me?.user || null;
-        setUser(u);
         if (u && !canAccessFeature(u, "career_coaching")) {
           setPermissionDenied(true);
           setDeniedReason(denialReason(u, "career_coaching"));
