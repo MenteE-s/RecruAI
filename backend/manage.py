@@ -1,4 +1,4 @@
-"""Convenience script to run Flask CLI when working inside the repository.
+r"""Convenience script to run Flask CLI when working inside the repository.
 
 Usage (PowerShell):
     python backend\manage.py run

@@ -7,7 +7,9 @@ read-only box and the only real search lived in per-domain endpoints.
 Privacy rules enforced here, not left to the client:
   * People    — only accounts with is_discoverable; never email or phone.
   * Companies — only pages with is_public, unless the caller administers it.
-  * Jobs      — only active posts whose page is itself public.
+  * Jobs      — only active posts whose page is itself public. Searching a
+                company name also returns that company's open posts, so the
+                company result has related content underneath it.
 The caller is excluded from their own people results.
 """
 
@@ -130,7 +132,18 @@ def _search_companies(term, managed_ids, limit, location=None, industry=None):
 
 
 def _search_jobs(term, limit, location=None, employment_type=None, posted_within_days=None, recent_first=False):
-    """Full-text over title/category/location/description, active only."""
+    """Full-text over title/category/location/description, active only.
+
+    The organization name is matched too: searching a company should surface
+    its open roles, not just a company card with no related posts underneath.
+    """
+    pattern = f"%{_escape_like(term)}%"
+    org_name_match = Organization.name.ilike(pattern, escape="\\")
+    org_name_exact = func.lower(Organization.name) == term.lower()
+    org_name_prefix = func.lower(Organization.name).like(
+        _escape_like(term.lower()) + "%", escape="\\"
+    )
+
     doc = (
         func.setweight(func.to_tsvector("english", func.coalesce(Post.title, "")), "A")
         .op("||")(
@@ -159,7 +172,8 @@ def _search_jobs(term, limit, location=None, employment_type=None, posted_within
     q = (
         Post.query.join(Organization, Post.organization_id == Organization.id)
         .filter(Post.status == "active", Post.organization_id.in_(public_org_ids))
-        .filter(func.ts_rank(doc, tsq) > 1e-6)
+        # A title/description hit or a hit on the company that owns the role.
+        .filter(or_(func.ts_rank(doc, tsq) > 1e-6, org_name_match))
     )
     if location:
         q = q.filter(Post.location.ilike(f"%{_escape_like(location)}%", escape="\\"))
@@ -172,7 +186,14 @@ def _search_jobs(term, limit, location=None, employment_type=None, posted_within
     if recent_first:
         q = q.order_by(Post.created_at.desc().nullslast(), Post.id.desc())
     else:
-        q = q.order_by(func.ts_rank(doc, tsq).desc(), Post.id.desc())
+        q = q.order_by(
+            # An exact company match is the strongest signal; then a company
+            # prefix, then normal full-text relevance inside the title/body.
+            org_name_exact.desc(),
+            org_name_prefix.desc(),
+            func.ts_rank(doc, tsq).desc(),
+            Post.id.desc(),
+        )
     q = q.limit(limit)
 
     return [

@@ -213,7 +213,7 @@
       <span>Routes <b>296 live</b></span>
       <span>Migration head <b>b1c2d3e4f5a6</b></span>
       <span>Frontend build <b>passes</b></span>
-      <span>Backend tests <b>94</b></span>
+      <span>Backend tests <b>98</b></span>
     </div>
     <div class="verdict">
       <div class="score-ring" style="--p:36"><span><b>36</b><small>/ 100</small></span></div>
@@ -268,7 +268,7 @@
     <div class="stat red"><b>1</b><span>P0 launch blocker</span></div>
     <div class="stat amber"><b>4</b><span>P1 open · 12 fixed in code</span></div>
     <div class="stat blue"><b>10</b><span>P2 hardening items (all fixed)</span></div>
-    <div class="stat green"><b>4/4</b><span>frontend suites pass (37 tests)</span></div>
+    <div class="stat green"><b>5/5</b><span>frontend suites pass (42 tests)</span></div>
   </div>
 
   <div class="callout red" style="margin-bottom:14px">
@@ -284,7 +284,7 @@
         <li><b>Billing is a facade.</b> <code>POST /api/subscription/upgrade</code> grants paid access for free, and an expired user can reset the trial indefinitely. The pricing page advertises $15/month and a 14-day trial; the app gives 30 days.</li>
         <li><b>No password reset.</b> Had no forgot-password route or UI; a forgotten password was a permanent support ticket. <span class="tag green">Fixed in code</span></li>
         <li><b>Org invites create unreachable accounts.</b> The API creates a user with a random password that is never sent, sends no email, and blocks that address from registering later. <span class="tag green">Fixed in code</span></li>
-        <li><b>Deploys now have a real test gate.</b> Backend pytest (94 tests against PostgreSQL + pgvector) and frontend Jest (37 tests) run in CI, the production dependency audit is clean, and deploy depends on validate. Staging Playwright E2E and GitHub required-check enforcement remain production checklist items.</li>
+        <li><b>Deploys now have a real test gate.</b> Backend pytest (98 tests against PostgreSQL + pgvector) and frontend Jest (42 tests) run in CI, the production dependency audit is clean, and deploy depends on validate. Staging Playwright E2E and GitHub required-check enforcement remain production checklist items.</li>
       </ul>
     </div>
     <div class="card pad">
@@ -596,7 +596,7 @@ backend/api/auth/registration.py:31  duplicate email → "email already register
         <span class="fid">P0-05</span>
         <span>
           <span class="ftitle">Nothing tests the backend, and every push to main deploys to production</span>
-          <span class="fsum">Was: zero backend tests, a broken App smoke test, and no test step. Now: 94 backend tests, 37 frontend tests, and a deploy-blocking CI gate.</span>
+          <span class="fsum">Was: zero backend tests, a broken App smoke test, and no test step. Now: 98 backend tests, 42 frontend tests, and a deploy-blocking CI gate.</span>
           <span class="badges"><span class="badge p0">P0</span><span class="badge partial">Partial</span><span class="badge area">Quality</span><span class="badge eff">2–3 days</span></span>
         </span>
       </summary>
@@ -619,7 +619,7 @@ frontend/src/App.test.js     CRA boilerplate "renders learn react link" — <spa
         </ul>
         <div class="callout green" style="margin:12px 0">
           <b>PARTIALLY FIXED — 23 Oct 2026 (local commit; not deployed)</b>
-          Added a backend pytest harness that runs against real PostgreSQL + pgvector in an isolated schema, with fixtures that exercise HTTP routes rather than mocking the database. <b>94 backend tests pass</b>: smoke/health, refresh rotation/replay/logout/password-change, password reset and session revocation, invitations (create/list/accept/resend/expire/revoke), JSON rate limits, admin plans/AI providers, and hot-path index contracts. Replaced the broken <code>App.test.js</code> with real auth-session tests; <b>37 frontend tests pass across 4 suites</b>. The validate job now installs dev dependencies, runs backend tests, runs frontend tests, gates production dependencies on <code>npm audit --omit=dev --audit-level=high</code>, and builds the frontend; <code>deploy</code> has <code>needs: validate</code>. Production dependency audit is <b>0 vulnerabilities</b>. The complete 50-revision migration chain was applied to a fresh empty database successfully on 28 Oct 2026; migration <code>883c10d41dbd</code> creates the pgvector extension before the first vector column, the app connection hook tolerates a not-yet-installed extension so the migrations container can create it, <code>f4a5b6c7d8e9</code> adds the auth/OTP/invitation hot-path indexes, <code>a7b8c9d0e1f2</code> adds deletion/scheduler/AI-allowance fields, <code>f2a3b4c5d6e7</code> adds the plan catalogue while tolerating the <code>users.plan</code> column the initial schema already owns, and <code>b1c2d3e4f5a6</code> keeps exactly one default plan per scope. The current head downgrades cleanly to <code>f2a3b4c5d6e7</code> and reapplies; the plan migration also round-trips to <code>e1f2a3b4c5d6</code> on a fresh database. Test files and dev requirements are excluded from the production Docker build context.
+          Added a backend pytest harness that runs against real PostgreSQL + pgvector in an isolated schema, with fixtures that exercise HTTP routes rather than mocking the database. <b>98 backend tests pass</b>: smoke/health, refresh rotation/replay/logout/password-change, password reset and session revocation, invitations (create/list/accept/resend/expire/revoke), JSON rate limits, universal search, admin plans/AI providers, and hot-path index contracts. Replaced the broken <code>App.test.js</code> with real auth-session tests; <b>42 frontend tests pass across 5 suites</b>. The page-profile fixture now sends the page-manager <code>access.permissions</code> block, so it exercises the form instead of the no-access state. The validate job now installs dev dependencies, runs backend tests, runs frontend tests, gates production dependencies on <code>npm audit --omit=dev --audit-level=high</code>, and builds the frontend; <code>deploy</code> has <code>needs: validate</code>. Production dependency audit is <b>0 vulnerabilities</b>. The complete 50-revision migration chain was applied to a fresh empty database successfully on 28 Oct 2026; migration <code>883c10d41dbd</code> creates the pgvector extension before the first vector column, the app connection hook tolerates a not-yet-installed extension so the migrations container can create it, <code>f4a5b6c7d8e9</code> adds the auth/OTP/invitation hot-path indexes, <code>a7b8c9d0e1f2</code> adds deletion/scheduler/AI-allowance fields, <code>f2a3b4c5d6e7</code> adds the plan catalogue while tolerating the <code>users.plan</code> column the initial schema already owns, and <code>b1c2d3e4f5a6</code> keeps exactly one default plan per scope. The current head downgrades cleanly to <code>f2a3b4c5d6e7</code> and reapplies; the plan migration also round-trips to <code>e1f2a3b4c5d6</code> on a fresh database. Test files and dev requirements are excluded from the production Docker build context.
           <br><br>
           <b>Still open:</b> Playwright journeys against a real staging environment, and GitHub branch protection/required-check enforcement. This finding should not be marked fully closed until those are done.
         </div>
@@ -695,7 +695,7 @@ backend/app.py:436                   Permissions-Policy tightening is commented 
         </ul>
         <div class="callout green" style="margin:12px 0">
           <b>FIXED — 23 Oct 2026 (working tree; not deployed)</b>
-          Access tokens are now 15-minute JWTs returned in JSON and held only in frontend memory; <code>localStorage</code> token reads/writes were removed. The refresh token is an opaque 384-bit value in an <code>HttpOnly; Secure; SameSite=Lax</code> cookie scoped to <code>/api/auth</code>, stored server-side only as a SHA-256 hash. <code>POST /api/auth/refresh</code> rotates it, enforces a 10-second concurrency grace window, and revokes the whole token family on replay outside that window. Logout revokes the family; password change/reset revoke every family in the same transaction as the password/version update; Socket.IO validates the token version and JTI blocklist. The frontend uses a single-flight refresh, retries one 401, refreshes inside the Socket.IO auth callback, and redirects on session expiry. CSP is enforced in <code>frontend/vercel.json</code> and <code>frontend/nginx-frontend.conf</code> with <code>script-src 'self'</code>, explicit API/WSS <code>connect-src</code>, and <code>media/worker-src blob:</code>; <code>Permissions-Policy</code> now allows camera/mic for self. Migration <code>f3a4b5c6d7e8</code> adds <code>refresh_tokens</code>; current head <code>f4a5b6c7d8e9</code> adds the auth hot-path indexes. Verified locally: login issues no access cookie, refresh rotates, old-token replay dies, logout/password-reset revoke, OTP verify and invite accept auto-login, and 4/4 frontend suites pass (37 tests) with a passing production build. <b>Production check:</b> confirm the cookie domain and CSP on the deployed preview; both are configuration values, no purchase.
+          Access tokens are now 15-minute JWTs returned in JSON and held only in frontend memory; <code>localStorage</code> token reads/writes were removed. The refresh token is an opaque 384-bit value in an <code>HttpOnly; Secure; SameSite=Lax</code> cookie scoped to <code>/api/auth</code>, stored server-side only as a SHA-256 hash. <code>POST /api/auth/refresh</code> rotates it, enforces a 10-second concurrency grace window, and revokes the whole token family on replay outside that window. Logout revokes the family; password change/reset revoke every family in the same transaction as the password/version update; Socket.IO validates the token version and JTI blocklist. The frontend uses a single-flight refresh, retries one 401, refreshes inside the Socket.IO auth callback, and redirects on session expiry. CSP is enforced in <code>frontend/vercel.json</code> and <code>frontend/nginx-frontend.conf</code> with <code>script-src 'self'</code>, explicit API/WSS <code>connect-src</code>, and <code>media/worker-src blob:</code>; <code>Permissions-Policy</code> now allows camera/mic for self. Migration <code>f3a4b5c6d7e8</code> adds <code>refresh_tokens</code>; current head <code>f4a5b6c7d8e9</code> adds the auth hot-path indexes. Verified locally: login issues no access cookie, refresh rotates, old-token replay dies, logout/password-reset revoke, OTP verify and invite accept auto-login, and 5/5 frontend suites pass (42 tests) with a passing production build. <b>Production check:</b> confirm the cookie domain and CSP on the deployed preview; both are configuration values, no purchase.
         </div>
         <div class="done"><b>Done when</b><br>The access token is not readable from <code>document.cookie</code> or localStorage; a session survives past 2 hours via refresh; CSP is enforced with no violations on the main journeys.</div>
       </div>
@@ -1352,7 +1352,7 @@ frontend/Dockerfile / Dockerfile.prod      two build paths</div>
         <tr><td><b>P0-02</b> Free/self-service billing</td><td><span class="tag amber">Code + prod</span> <span class="tag amber">Partial</span></td><td>Remove free upgrade and trial reset; server-side entitlements only; hide paid CTAs. If paid: checkout, webhook, portal, migration</td><td><b>Paid only:</b> Stripe business verification, bank, products/prices, webhook secret, tax/refund policy</td><td><b>Yes</b> — free beta with paid CTAs hidden and <code>BILLING_ENABLED=0</code></td></tr>
         <tr><td><b>P0-03</b> No password reset</td><td><span class="tag amber">Code + prod</span> <span class="tag green">Fixed in code</span></td><td>Forgot/reset endpoints, single-use OTP, signed-out pages, revoke-all sessions, throttle, tests</td><td>Resend domain verified (SPF/DKIM/DMARC); deliverability test; support runbook</td><td><b>Yes</b> — deploy only after Resend domain/DNS verification; do not ship a dead reset link</td></tr>
         <tr><td><b>P0-04</b> Broken org invites</td><td><span class="tag amber">Code + prod</span> <span class="tag green">Fixed in code</span></td><td>Invitation model/migration, hashed single-use token, create/list/revoke/accept, stop pre-creating users, accept page, tests</td><td>Run migration with snapshot; verified email; external-domain invite test</td><td><b>Yes</b> — migration is a normal deploy step; email is required for external invites</td></tr>
-        <tr><td><b>P0-05</b> No tests/CI gates</td><td><span class="tag green">Code</span> <span class="tag amber">Partial</span></td><td>94 backend tests on PostgreSQL/pgvector, 37 frontend tests, 2 Playwright smoke E2E journeys, deploy-blocking CI validation, production audit gate, 50-revision empty-schema migration check</td><td>GitHub branch protection/required checks (documented); staging env</td><td><b>Yes</b> — test gate is live; E2E is additional assurance</td></tr>
+        <tr><td><b>P0-05</b> No tests/CI gates</td><td><span class="tag green">Code</span> <span class="tag amber">Partial</span></td><td>98 backend tests on PostgreSQL/pgvector, 42 frontend tests, 2 Playwright smoke E2E journeys, deploy-blocking CI validation, production audit gate, 50-revision empty-schema migration check</td><td>GitHub branch protection/required checks (documented); staging env</td><td><b>Yes</b> — test gate is live; E2E is additional assurance</td></tr>
 
         <tr><td><b>P1-01</b> Rate limits</td><td><span class="tag green">Code</span> <span class="tag green">Fixed in code</span></td><td>Per-user/endpoint limits, JSON 429, <code>Retry-After</code>, frontend toast, tests</td><td>Wire the structured 429 log into the dashboard; Redis already exists</td><td><b>Yes</b></td></tr>
         <tr><td><b>P1-02</b> JWT/CSP</td><td><span class="tag green">Code</span> <span class="tag green">Fixed in code</span></td><td>Refresh-token rotation, HttpOnly cookies, short access TTL, CSP, update fetch/socket auth</td><td>Cookie domain/CORS values; verify CSP on the production preview</td><td><b>Yes</b> — config values only, no purchase</td></tr>
@@ -2410,7 +2410,7 @@ proxy_read_timeout 3600s;
     <div>
       <div class="eyebrow">10 · Verification log</div>
       <h2>What was actually run — and what it returned</h2>
-      <p>Static review is reproducible; runtime claims need staging confirmation. Commands below were run against this checkout on 22–23 Oct 2026.</p>
+      <p>Static review is reproducible; runtime claims need staging confirmation. Commands below were run against this checkout on 22–29 Oct 2026; the backend suite, frontend suite, and production build were re-run on 29 Oct.</p>
     </div>
   </div>
   <div class="table-wrap">
@@ -2418,16 +2418,16 @@ proxy_read_timeout 3600s;
       <thead><tr><th>Check</th><th>Command / method</th><th>Result</th></tr></thead>
       <tbody>
         <tr><td><b>Secret scan</b></td><td><code>git grep</code> for Groq/OpenRouter/OpenAI keys, AWS keys, private keys</td><td><span class="tag green">Pass</span> no live keys tracked; <code>backend/.env</code> is ignored and excluded from Docker. Local file still needs rotation.</td></tr>
-        <tr><td><b>Python syntax</b></td><td><code>py_compile</code> on 197 source files (excluding venv/migrations)</td><td><span class="tag green">Pass</span> 0 failures.</td></tr>
+        <tr><td><b>Python syntax</b></td><td><code>py_compile</code> on 221 source files (excluding venv/migrations/tests)</td><td><span class="tag green">Pass</span> 0 failures.</td></tr>
         <tr><td><b>App boot</b></td><td>Import <code>backend.app</code> with local services</td><td><span class="tag green">Pass</span> 296 URL rules registered; AI/Redis/Kafka initialize.</td></tr>
         <tr><td><b>Migrations</b></td><td>Parse revision graph; <code>flask db current</code> / <code>heads</code>; apply every revision to an empty database, downgrade the new revision, re-upgrade</td><td><span class="tag green">Pass</span> 50 files, single head <code>b1c2d3e4f5a6</code>; full empty-schema upgrade passed; <code>b1c2d3e4f5a6</code> downgraded to <code>f2a3b4c5d6e7</code> and reapplied; all new indexes present.</td></tr>
-        <tr><td><b>Frontend build</b></td><td><code>CI=true npm run build</code></td><td><span class="tag green">Pass</span> main bundle 519.71 kB gzip; compiled successfully; no ESLint warnings.</td></tr>
-        <tr><td><b>Frontend tests</b></td><td><code>CI=true npm test -- --watchAll=false --runInBand</code></td><td><span class="tag green">Pass</span> 4 suites / 37 tests, including auth-session memory-only token and safe-redirect tests.</td></tr>
-        <tr><td><b>Backend tests</b></td><td><code>python -m pytest backend/tests -q</code> against PostgreSQL + pgvector, isolated schema</td><td><span class="tag green">Pass</span> 94 tests; auth sessions, reset, invitations, rate limits, admin plans/AI providers, privacy export/deletion/purge, scheduler, AI budget, schema/index contracts.</td></tr>
+        <tr><td><b>Frontend build</b></td><td><code>CI=true npm run build</code></td><td><span class="tag green">Pass</span> main bundle 320.3 kB raw / 94.3 kB gzip; compiled successfully.</td></tr>
+        <tr><td><b>Frontend tests</b></td><td><code>CI=true npm test -- --watchAll=false --runInBand</code></td><td><span class="tag green">Pass</span> 5 suites / 42 tests, including auth-session memory-only token, safe-redirect, universal search ranking, and page-manager access fixture tests.</td></tr>
+        <tr><td><b>Backend tests</b></td><td><code>python -m pytest backend/tests -q</code> against PostgreSQL + pgvector, isolated schema</td><td><span class="tag green">Pass</span> 98 tests; auth sessions, reset, invitations, rate limits, universal search, admin plans/AI providers, privacy export/deletion/purge, scheduler, AI budget, schema/index contracts.</td></tr>
         <tr><td><b>Dependency audit</b></td><td><code>npm audit --omit=dev</code></td><td><span class="tag green">Pass</span> 0 production vulnerabilities (was 105: 3 critical, 81 high, 17 moderate, 4 low).</td></tr>
         <tr><td><b>Route inventory</b></td><td>Python AST over <code>backend/</code></td><td><span class="tag blue">Info</span> 308 decorators, 19 without decorator-level auth (login, register, refresh, OTP, public profiles/posts, health, uploads, issue report).</td></tr>
-        <tr><td><b>Code size</b></td><td>Line counts</td><td><span class="tag blue">Info</span> backend 25,194 lines / 197 files; frontend 35,490 lines / 160 files; 59 models.</td></tr>
-        <tr><td><b>Repo state</b></td><td><code>git status --short</code></td><td><span class="tag amber">Attention</span> Local <code>underdev</code> has four unpushed commits with profile, organization-loader, admin AI provider, plan, and fresh-migration fixes. Latest pushed commit: <code>6ee7076</code>.</td></tr>
+        <tr><td><b>Code size</b></td><td>Line counts</td><td><span class="tag blue">Info</span> backend 37,089 lines / 221 files (excluding venv/migrations/tests); frontend 40,274 lines / 173 files (including tests); 59 models.</td></tr>
+        <tr><td><b>Repo state</b></td><td><code>git status --short</code></td><td><span class="tag amber">Attention</span> Local <code>underdev</code> has five unpushed commits with profile, organization-loader, admin AI provider, plan, fresh-migration, and universal-search fixes. Latest pushed commit: <code>6ee7076</code>.</td></tr>
         <tr><td><b>P1-01 rate limits</b></td><td>Local Flask burst + config inspection</td><td><span class="tag green">Pass</span> 11th login attempt returns JSON 429 with <code>Retry-After: 60</code>; authenticated route keys by user id; defaults 3,000/hour, 30,000/day.</td></tr>
         <tr><td><b>P1-02 refresh flow</b></td><td>Ephemeral local Flask API flows</td><td><span class="tag green">Pass</span> login/OTP/invite issue refresh cookie + access token, refresh rotates, replay revokes family, logout and password reset revoke, no access cookie set.</td></tr>
         <tr><td><b>P0-04 invite flow</b></td><td>Ephemeral local Flask API flow with email mock</td><td><span class="tag green">Pass</span> invite creates no user, new/existing/legacy accept, registration still works, resend rotates token, revoke/expiry rejected.</td></tr>
@@ -2489,14 +2489,14 @@ proxy_read_timeout 3600s;
     <div class="card pad">
       <h3 style="margin:0 0 10px;font-size:15px">Surface area</h3>
       <dl class="kv">
-        <dt>Backend source</dt><dd>197 files · 25,194 lines</dd>
-        <dt>Frontend source</dt><dd>160 files · 35,490 lines</dd>
+        <dt>Backend source</dt><dd>221 files · 37,089 lines (excl. venv/migrations/tests)</dd>
+        <dt>Frontend source</dt><dd>173 files · 40,274 lines (incl. tests)</dd>
         <dt>Models</dt><dd>59</dd>
         <dt>Route decorators</dt><dd>308 (296 registered rules)</dd>
         <dt>Public routes</dt><dd>19 at decorator level</dd>
         <dt>Migrations</dt><dd>50 files · 1 head</dd>
-        <dt>Frontend tests</dt><dd>4 suites · 37 passing</dd>
-        <dt>Backend tests</dt><dd>94 passing</dd>
+        <dt>Frontend tests</dt><dd>5 suites · 42 passing</dd>
+        <dt>Backend tests</dt><dd>98 passing</dd>
       </dl>
     </div>
     <div class="card pad">
