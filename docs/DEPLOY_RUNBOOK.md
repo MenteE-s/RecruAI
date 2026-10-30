@@ -6,7 +6,8 @@
 PR -> validate (tests + build) -> manual approval -> deploy to EC2
 ```
 
-- `validate` job runs backend tests, frontend tests, production audit, and build.
+- `validate` job runs backend tests, frontend tests, production audit, frontend
+  build, admin lint/build, and Playwright smoke. Admin-only changes trigger it.
 - `deploy` job requires the `production` environment (manual approval), runs
   on `main` after `validate` passes.
 
@@ -40,13 +41,38 @@ PR -> validate (tests + build) -> manual approval -> deploy to EC2
 | `EC2_HOST` | Production EC2 public hostname |
 | `EC2_SSH_PRIVATE_KEY` | SSH private key for `ec2-user` |
 | `RDS_DATABASE_URL` | `postgresql://...` URL (psycopg2 driver auto-normalized) |
-| `SECRET_KEY` | Flask secret key |
+| `SECRET_KEY` | Flask secret key and AI-provider key obfuscation |
 | `JWT_SECRET_KEY` | JWT signing key |
 | `RESEND_API_KEY` | Transactional email |
-| `GROQ_API_KEY` | AI provider (optional) |
-| `OPENAI_API_KEY` | AI provider (optional) |
+| `ADMIN_ORIGIN` | Admin Vercel origin, appended to the credentialed CORS list |
+| `OPS_TOKEN` | Internal scheduler/readiness operations |
+| `GROQ_API_KEY` | AI fallback provider (optional) |
+| `OPENAI_API_KEY` | AI fallback provider (optional) |
+| `LIVEKIT_URL` | Server-side LiveKit URL; required when video is enabled |
+| `LIVEKIT_PUBLIC_URL` | Browser WSS URL; required when video is enabled |
+| `LIVEKIT_API_KEY` | LiveKit server key; required when video is enabled |
+| `LIVEKIT_API_SECRET` | LiveKit server secret; required when video is enabled |
+| `REFRESH_COOKIE_SAMESITE` | Optional: set `None` only for a cross-site admin host |
 | `BACKUP_BUCKET` | Optional: S3 bucket for pre-migration snapshot. Leave unset to skip. |
 | `BACKUP_PREFIX` | Optional: S3 prefix (default `recruai`) |
+
+Repository variable: `VIDEO_ENABLED=0` keeps LiveKit/Egress stopped; set `1`
+only after the media host and ports are ready. The render script fails closed
+if video is enabled without all four LiveKit secrets.
+
+## Admin dashboard
+
+The admin app is a separate Vercel project with Root Directory `admin`,
+`VITE_API_BASE_URL=https://api.recruai.menteeai.org`, and a custom domain such
+as `admin.recruai.menteeai.org`. Set `ADMIN_ORIGIN` to that same URL. The
+production build fails if the API URL is missing; `admin/vercel.json` provides
+the SPA rewrite and security headers. See `admin/README.md`.
+
+## Email DNS
+
+Before external password resets or invitations, verify the Resend domain and
+add the missing root SPF/DMARC records. Exact records and a deliverability test
+are in `docs/EMAIL_DNS.md`.
 
 ## Staging (not yet provisioned)
 
