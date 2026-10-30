@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import CvaiShell, { Panel, Stat, Badge, Loading, ErrorNote, LockedNote, EmptyNote, Meter } from "../cvai/CvaiShell";
 import { cvai, isLocked, messageOf, levelTone, percent } from "../../utils/cvai";
 import { canAccessFeature, denialReason } from "../../utils/entitlements";
+import { BILLING_BETA_MESSAGE, BILLING_ENABLED } from "../../utils/billing";
 import PermissionDeniedModal from "../../components/ui/PermissionDeniedModal";
 import { getAuthHeaders, getBackendUrl } from "../../utils/auth";
 import { FiArrowRight, FiCheckCircle, FiCode, FiHelpCircle, FiTarget, FiCreditCard } from "react-icons/fi";
@@ -185,11 +186,17 @@ export default function CvaiOverview() {
               </section>
 
               {!isSubscribed ? (
-                <Panel title="Subscribe to unlock CVAI" hint="Quizzes, guided projects, mock interviews and coaching are paid features.">
+                <Panel
+                  title={BILLING_ENABLED ? "Subscribe to unlock CVAI" : "Your trial has ended"}
+                  hint={BILLING_ENABLED
+                    ? "Quizzes, guided projects, mock interviews and coaching are paid features."
+                    : "Paid plans are closed while the controlled beta is running."}
+                >
                   <div className="space-y-4">
                     <p className="text-sm text-gray-600">
-                      You are on the basic plan. Upgrade to unlock quizzes,
-                      guided projects, mock interviews and mentorship.
+                      {BILLING_ENABLED
+                        ? "You are on the basic plan. Upgrade to unlock quizzes, guided projects, mock interviews and mentorship."
+                        : "Your account is on the free plan. Free previews and your existing transcripts remain available, but paid upgrades are not open during the beta."}
                     </p>
 
                     <div className="grid gap-2 md:grid-cols-2 mt-1">
@@ -202,7 +209,9 @@ export default function CvaiOverview() {
                         </ul>
                       </div>
                       <div className="rounded border border-blue-200 bg-blue-50 p-3 text-sm">
-                        <p className="font-medium text-blue-800 mb-1">🔒 Paid (free during trial)</p>
+                        <p className="font-medium text-blue-800 mb-1">
+                          {BILLING_ENABLED ? "🔒 Paid (free during trial)" : "🔒 Included during the 30-day trial"}
+                        </p>
                         <ul className="text-xs text-gray-600 space-y-0.5">
                           <li>• Skill assessments + results on profile</li>
                           <li>• All quizzes + projects</li>
@@ -212,21 +221,29 @@ export default function CvaiOverview() {
                       </div>
                     </div>
                     <div className="text-xs text-gray-500 mt-1">
-                      Every new account gets a <strong>30-day free trial</strong> of all paid features.
+                      {BILLING_ENABLED
+                        ? <>Every new account gets a <strong>30-day free trial</strong> of all paid features.</>
+                        : BILLING_BETA_MESSAGE}
                     </div>
-                    <button
-                      onClick={handleUpgrade}
-                      disabled={upgrading}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {upgrading ? (
-                        <span className="flex items-center gap-2 text-xs">Upgrading…</span>
-                      ) : (
-                        <span>
-                          <FiCreditCard className="h-4 w-4" /> Subscribe now
-                        </span>
-                      )}
-                    </button>
+                    {BILLING_ENABLED ? (
+                      <button
+                        onClick={handleUpgrade}
+                        disabled={upgrading}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {upgrading ? (
+                          <span className="flex items-center gap-2 text-xs">Upgrading…</span>
+                        ) : (
+                          <span>
+                            <FiCreditCard className="h-4 w-4" /> Subscribe now
+                          </span>
+                        )}
+                      </button>
+                    ) : (
+                      <div className="border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                        Paid plans are not available during the beta. Your trial stays active for its full 30 days.
+                      </div>
+                    )}
                     {subscription && !subscription.is_trial_active && !subscription.is_paid_active && (
                       <p className="text-xs text-gray-500">
                         Status: {subscription.status}{subscription.paid_plan ? " (paid)" : ""}
@@ -279,8 +296,14 @@ export default function CvaiOverview() {
                         <p className="text-xs text-gray-600">AI-generated learning plans with budgets and progress.</p>
                       </div>
                       <div className="rounded border border-blue-200 bg-blue-50 p-3 text-sm">
-                        <p className="font-medium text-blue-800">📦 Self-service</p>
-                        <p className="text-xs text-gray-600">Manage your plan anytime. Cancel anytime, no lock-in.</p>
+                        <p className="font-medium text-blue-800">
+                          {BILLING_ENABLED ? "📦 Self-service" : "🧪 Beta access"}
+                        </p>
+                        <p className="text-xs text-gray-600">
+                          {BILLING_ENABLED
+                            ? "Manage your plan anytime. Cancel anytime, no lock-in."
+                            : "Paid plans are closed while the controlled beta is running."}
+                        </p>
                       </div>
                     </div>
 
@@ -290,7 +313,9 @@ export default function CvaiOverview() {
                       </p>
                     ) : (
                       <p className="text-xs text-gray-500 mt-2 text-center">
-                        Trial started daily. Upgrade to keep your CVAI benefits after the trial ends.
+                        {BILLING_ENABLED
+                          ? "Your 30-day trial includes every CVAI feature. Upgrade to keep them after the trial ends."
+                          : "Your 30-day trial includes every CVAI feature. Paid plans are not available during the beta."}
                       </p>
                     )}
                   </div>

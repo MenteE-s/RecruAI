@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { BILLING_ENABLED } from "../utils/billing";
+import { VIDEO_ENABLED } from "../utils/video";
 
 const Pricing = () => {
   const [userType, setUserType] = useState("individual");
@@ -20,22 +22,24 @@ const Pricing = () => {
       cta: "Start Free",
     },
     {
-      name: "Individual Pro",
-      description: "For serious job seekers",
-      price: 15,
-      duration: "month",
+      name: BILLING_ENABLED ? "Individual Pro" : "Individual Beta",
+      description: BILLING_ENABLED
+        ? "For serious job seekers"
+        : "Every CVAI feature during the controlled beta",
+      price: BILLING_ENABLED ? 15 : "Free",
+      duration: BILLING_ENABLED ? "month" : "during beta",
       features: [
         "Unlimited mock interviews",
         "Advanced AI feedback",
         "Industry-specific questions",
         "Performance analytics",
-        "Video interview practice",
+        ...(VIDEO_ENABLED ? ["Video interview practice"] : []),
         "Resume optimization tips",
         "Earn $3 per successful referral",
         "Priority support",
       ],
       popular: true,
-      cta: "Start 14-Day Free Trial",
+      cta: BILLING_ENABLED ? "Start 30-Day Free Trial" : "Join the Beta",
     },
   ];
 
@@ -73,7 +77,9 @@ const Pricing = () => {
             <span className="text-blue-600">Success Plan</span>
           </h2>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Start free, scale as you grow. No hidden fees, cancel anytime.
+            {BILLING_ENABLED
+              ? "Start free, scale as you grow. No hidden fees, cancel anytime."
+              : "Start with a 30-day full-access trial. Paid plans are coming after the beta."}
           </p>
         </div>
 
@@ -186,16 +192,18 @@ const Pricing = () => {
         {/* Bottom */}
         <div className="mt-12 text-center">
           <p className="text-sm text-gray-600 mb-4">
-            Start with our forever free plan. Upgrade anytime for unlimited AI interviews.
+            {BILLING_ENABLED
+              ? "Start with our forever free plan. Upgrade anytime for unlimited AI interviews."
+              : "No credit card is required during the beta. Your 30-day trial includes every CVAI feature."}
           </p>
           <div className="flex items-center justify-center gap-6 text-sm text-gray-500">
             <span className="flex items-center gap-2">
               <span className="w-2 h-2 bg-green-500"></span>
-              Cancel anytime
+              {BILLING_ENABLED ? "Cancel anytime" : "No card required"}
             </span>
             <span className="flex items-center gap-2">
               <span className="w-2 h-2 bg-green-500"></span>
-              30-day money back
+              {BILLING_ENABLED ? "30-day money back" : "30-day full access"}
             </span>
             <span className="flex items-center gap-2">
               <span className="w-2 h-2 bg-green-500"></span>

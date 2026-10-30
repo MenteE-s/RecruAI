@@ -1,16 +1,15 @@
-"""Self-service subscription for individuals.
+"""Subscription status for individuals.
 
-There is no payment processor in the MVP, so this endpoint is the
-*substitute for billing*: an individual can upgrade their own account to
-paid/trial and thereby unlock CVAI (quizzes, guided projects, mock
-interviews, mentorship). Everything here is idempotent and auditable, so it
-can be replaced by a real checkout flow later without changing the contract.
+Paid self-service is intentionally closed during the controlled beta. The
+old endpoint acted as a free upgrade: it set ``paid_plan=True`` without a
+payment and let an expired account restart its trial by posting
+``{"plan": "trial"}``. It now returns 410 and never mutates the account.
 
-Routes live on api_bp so the email-verification guard applies.
+Admin grants still use the superadmin-only /api/admin users and
+organizations endpoints. A real Stripe checkout can replace this route later
+without changing the status contract below.
 """
-from datetime import datetime, timedelta
-
-from flask import request, jsonify
+from flask import jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from .. import api_bp
@@ -41,48 +40,18 @@ def subscription_status():
 @api_bp.route("/subscription/upgrade", methods=["POST"])
 @jwt_required()
 def subscription_upgrade():
-    """Upgrade the caller to an active paid subscription.
+    """Close paid self-service during the controlled beta.
 
-    Idempotent: an already-active subscription returns the current state.
-    Sets subscription_status="active", paid_plan=True, and backfills
-    trial_start_date so is_trial_active() stays consistent.
+    This endpoint deliberately does not touch the database. It is the only
+    public path that used to grant paid access for free and to reset an
+    expired trial; a real checkout/webhook flow must add its own verified
+    payment state before this can return 200 again.
     """
-    user_id = _current_user_id()
-    if not user_id:
-        return jsonify({"error": "Invalid user identity"}), 400
-    user = db.session.get(User, user_id)
-    if not user:
-        return jsonify({"error": "User not found"}), 404
-
-    if not user.email_verified:
-        return jsonify({
-            "error": "Verify your email before subscribing",
-        }), 403
-
-    data = request.get_json(silent=True) or {}
-    plan = (data.get("plan") or "paid").lower()
-    if plan not in ("paid", "trial"):
-        return jsonify({"error": "plan must be 'paid' or 'trial'"}), 400
-
-    if user.is_subscription_active():
-        return jsonify({
-            "message": "Subscription already active",
-            "subscription": user.get_subscription_status(),
-        }), 200
-
-    now = datetime.utcnow()
-    user.subscription_status = "active"
-    user.paid_plan = True
-    if plan == "trial":
-        user.trial_start_date = now
-    elif not user.trial_start_date:
-        user.trial_start_date = now
-    db.session.commit()
-
     return jsonify({
-        "message": f"Subscribed to {plan} plan",
-        "subscription": user.get_subscription_status(),
-    }), 200
+        "error": "Paid plans are not available during the beta.",
+        "code": "billing_disabled",
+        "billing_enabled": False,
+    }), 410
 
 
 @api_bp.route("/subscription/cancel", methods=["POST"])

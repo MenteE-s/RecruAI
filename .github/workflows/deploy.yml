@@ -95,6 +95,8 @@ jobs:
         env:
           REACT_APP_API_BASE_URL: https://api.recruai.menteeai.org
           REACT_APP_SOCKET_URL: https://api.recruai.menteeai.org
+          REACT_APP_BILLING_ENABLED: "false"
+          REACT_APP_VIDEO_ENABLED: ${{ vars.VIDEO_ENABLED || '0' }}
         run: npm run build
 
       - name: Build admin dashboard
@@ -201,7 +203,7 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           OPS_TOKEN: ${{ secrets.OPS_TOKEN }}
-          VIDEO_ENABLED: "0"
+          VIDEO_ENABLED: ${{ vars.VIDEO_ENABLED || '0' }}
           LIVEKIT_URL: ${{ secrets.LIVEKIT_URL }}
           LIVEKIT_PUBLIC_URL: ${{ secrets.LIVEKIT_PUBLIC_URL }}
           LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
@@ -284,6 +286,22 @@ jobs:
             docker compose -f ${{ env.DOCKER_COMPOSE_FILE }} up -d --build backend scheduler outbox-worker
           "
 
+      - name: Reconcile self-hosted video services
+        # VIDEO_ENABLED is a repository variable, not a secret. Keep it at 0
+        # until the media ports and resources are ready; the backend still
+        # validates the LiveKit URLs/keys and fails the deploy if they are absent.
+        run: |
+          ssh ${{ env.EC2_USER }}@${{ env.EC2_HOST }} "
+            cd ${{ env.DEPLOY_DIR }} && \
+            set -a && . ./backend/.env.production && set +a && \
+            export API_DOMAIN=${{ env.API_DOMAIN }} && \
+            if [ '${{ vars.VIDEO_ENABLED || '0' }}' = '1' ]; then
+              docker compose -f ${{ env.DOCKER_COMPOSE_FILE }} --profile video up -d --build livekit egress
+            else
+              docker compose -f ${{ env.DOCKER_COMPOSE_FILE }} --profile video stop livekit egress || true
+            fi
+          "
+
       - name: Issue TLS cert on first boot (standalone, nginx stopped)
         run: |
           ssh ${{ env.EC2_USER }}@${{ env.EC2_HOST }} "
@@ -325,7 +343,7 @@ jobs:
           done
           if [ "$STATUS" != "200" ]; then
             echo "Backend never became healthy — dumping logs"
-            ssh ${{ env.EC2_USER }}@${{ env.EC2_HOST }} "cd ${{ env.DEPLOY_DIR }} && docker compose -f ${{ env.DOCKER_COMPOSE_FILE }} logs --tail=100 backend nginx"
+            ssh ${{ env.EC2_USER }}@${{ env.EC2_HOST }} "cd ${{ env.DEPLOY_DIR }} && export API_DOMAIN=${{ env.API_DOMAIN }} && docker compose -f ${{ env.DOCKER_COMPOSE_FILE }} logs --tail=100 backend nginx"
             exit 1
           fi
 

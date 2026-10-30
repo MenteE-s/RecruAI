@@ -6,6 +6,7 @@ import {
   cvai, isLocked, isReviewerDown, messageOf, percent,
 } from "../../utils/cvai";
 import PaywallModal from "../../components/ui/PaywallModal";
+import { BILLING_BETA_MESSAGE, BILLING_ENABLED } from "../../utils/billing";
 import {
   FiMic, FiMessageSquare, FiPlayCircle, FiSend, FiSquare, FiCheckCircle, FiRefreshCw, FiCreditCard,
 } from "react-icons/fi";
@@ -256,21 +257,33 @@ export default function CvaiInterviews() {
             </div>
 
             {!isSubscribed ? (
-              <Panel title="Subscribe to start mock interviews" hint="Mock interviews are a paid feature. Your 1-month trial includes them — after that you need a subscription.">
+              <Panel
+                title={BILLING_ENABLED ? "Subscribe to start mock interviews" : "Mock interviews need an active trial"}
+                hint={BILLING_ENABLED
+                  ? "Mock interviews are a paid feature. Your 30-day trial includes them — after that you need a subscription."
+                  : "Paid plans are closed while the controlled beta is running."}
+              >
                 <div className="mt-3 text-sm text-gray-600">
-                  During your free trial you can run mock interviews. Once the
-                  trial ends, subscribe to keep practising.
+                  {BILLING_ENABLED
+                    ? "During your free trial you can run mock interviews. Once the trial ends, subscribe to keep practising."
+                    : "Your 30-day trial includes mock interviews. Paid plans are not available during the beta, so this stays closed after the trial ends."}
                 </div>
-                <Button
-                  onClick={() => setShowPaywall(true)}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700"
-                >
-                  {upgrading ? "Upgrading…" : (
-                    <>
-                      <FiCreditCard className="h-4 w-4" /> Subscribe now
-                    </>
-                  )}
-                </Button>
+                {BILLING_ENABLED ? (
+                  <Button
+                    onClick={() => setShowPaywall(true)}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700"
+                  >
+                    {upgrading ? "Upgrading…" : (
+                      <>
+                        <FiCreditCard className="h-4 w-4" /> Subscribe now
+                      </>
+                    )}
+                  </Button>
+                ) : (
+                  <div className="mt-3 border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                    {BILLING_BETA_MESSAGE}
+                  </div>
+                )}
               </Panel>
             ) : (
               <Panel

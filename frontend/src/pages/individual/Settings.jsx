@@ -4,6 +4,7 @@ import DashboardLayout from "../../components/layout/DashboardLayout";
 import { getBackendUrl, getAuthHeaders, getCurrentUser, clearLocalAuth } from "../../utils/auth";
 import TimezoneSelector from "../../components/ui/TimezoneSelector";
 import PaymentMethods from "../../components/ui/PaymentMethods";
+import { BILLING_BETA_MESSAGE, BILLING_ENABLED } from "../../utils/billing";
 import OtpVerify from "../../components/auth/OtpVerify";
 import { useToast } from "../../components/ui/ToastContext";
 import {
@@ -743,12 +744,14 @@ export default function Settings() {
                 <Row
                   icon={FiAward}
                   title="Current plan"
-                  desc={`${isPaid ? "Pro — full access" : isTrial ? "Trial — limited features" : "Free — basic tools"} · ${status?.tokens_used?.toLocaleString() || "0"} tokens used${isTrial && trialEnd ? ` · expires ${trialEnd}` : ""}`}
+                  desc={`${isPaid ? "Pro — full access" : isTrial ? "Trial — full access" : "Free — basic tools"} · ${status?.tokens_used?.toLocaleString() || "0"} tokens used${isTrial && trialEnd ? ` · expires ${trialEnd}` : ""}`}
                   right={
                     isPaid ? (
                       <span className="text-[10px] font-bold bg-green-100 text-green-700 px-1.5 py-0.5 rounded">ACTIVE</span>
-                    ) : (
+                    ) : isTrial ? (
                       <span className="text-[10px] font-bold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">TRIAL</span>
+                    ) : (
+                      <span className="text-[10px] font-bold bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">FREE</span>
                     )
                   }
                 />
@@ -773,16 +776,22 @@ export default function Settings() {
                         ? <span className="text-[10px] font-bold bg-green-600 text-white px-1.5 py-px rounded">Active</span>
                         : <span className="text-[10px] text-gray-400">Most popular</span>}
                     </div>
-                    <p className="text-lg font-bold text-gray-900 mt-1">$9.99<span className="text-xs font-normal text-gray-500">/mo</span></p>
+                    <p className="text-lg font-bold text-gray-900 mt-1">
+                      {BILLING_ENABLED ? <>$9.99<span className="text-xs font-normal text-gray-500">/mo</span></> : "Included during beta"}
+                    </p>
                     <ul className="mt-2 space-y-1 text-xs text-gray-600">
                       <li className="flex gap-1.5"><FiCheckCircle className="w-3.5 h-3.5 text-green-600 shrink-0 mt-px" /> Everything in Trial</li>
                       <li className="flex gap-1.5"><FiCheckCircle className="w-3.5 h-3.5 text-green-600 shrink-0 mt-px" /> Advanced analytics</li>
                       <li className="flex gap-1.5"><FiCheckCircle className="w-3.5 h-3.5 text-green-600 shrink-0 mt-px" /> Resume builder & job alerts</li>
                       <li className="flex gap-1.5"><FiCheckCircle className="w-3.5 h-3.5 text-green-600 shrink-0 mt-px" /> Coaching & unlimited interviews</li>
                     </ul>
-                    {isPaid
-                      ? <span className="inline-block mt-2.5 text-[11px] font-semibold bg-green-600 text-white px-2.5 py-1 rounded-full">Current plan</span>
-                      : <button className="mt-2.5 inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 rounded-full transition-colors">Upgrade <FiArrowRight className="w-3.5 h-3.5" /></button>}
+                    {isPaid ? (
+                      <span className="inline-block mt-2.5 text-[11px] font-semibold bg-green-600 text-white px-2.5 py-1 rounded-full">Current plan</span>
+                    ) : BILLING_ENABLED ? (
+                      <button className="mt-2.5 inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 rounded-full transition-colors">Upgrade <FiArrowRight className="w-3.5 h-3.5" /></button>
+                    ) : (
+                      <span className="inline-block mt-2.5 text-[11px] text-gray-500">Paid upgrades are closed during the beta.</span>
+                    )}
                   </div>
                 </div>
                 <div className="py-3 flex items-center gap-1.5 text-xs text-gray-500">
@@ -796,13 +805,21 @@ export default function Settings() {
               <div className="divide-y divide-gray-100">
                 <div className="py-3">
                   <p className="text-[13px] font-semibold text-gray-900 mb-2">Payment methods</p>
-                  <PaymentMethods storageKey="recruai_cards_individual" />
+                  {BILLING_ENABLED ? (
+                    <PaymentMethods storageKey="recruai_cards_individual" />
+                  ) : (
+                    <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 px-3 py-2">
+                      {BILLING_BETA_MESSAGE}
+                    </p>
+                  )}
                 </div>
                 <div className="py-3">
                   <p className="text-[13px] font-semibold text-gray-900">Billing history</p>
                   <div className="mt-2 text-center py-5 border border-dashed border-gray-200 rounded-lg">
                     <FiClock className="w-6 h-6 text-gray-300 mx-auto mb-1.5" />
-                    <p className="text-xs text-gray-500">No invoices yet</p>
+                    <p className="text-xs text-gray-500">
+                      {BILLING_ENABLED ? "No invoices yet" : "Billing is not active during the beta"}
+                    </p>
                   </div>
                 </div>
               </div>

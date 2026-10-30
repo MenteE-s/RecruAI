@@ -54,7 +54,7 @@ server {
     add_header X-Frame-Options DENY always;
     add_header X-Content-Type-Options nosniff always;
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
-    add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
+    add_header Permissions-Policy "camera=(self), microphone=(self), geolocation=()" always;
 
     proxy_http_version 1.1;
     proxy_set_header Upgrade $http_upgrade;
@@ -80,12 +80,14 @@ server {
     }
 
     # LiveKit signaling websocket (browsers connect wss://$host/livekit/).
+    # The trailing slash on proxy_pass strips /livekit/ before forwarding, so
+    # the client's /livekit/rtc request reaches LiveKit's /rtc endpoint.
     # Media (RTP/ICE) and TURN go direct to host UDP/TCP ports, not via nginx.
     location /livekit/ {
         set $livekit_upstream livekit:7880;
         limit_req zone=api burst=100 nodelay;
         limit_conn addr 20;
-        proxy_pass http://$livekit_upstream;
+        proxy_pass http://$livekit_upstream/;
         proxy_read_timeout 86400s;
     }
 

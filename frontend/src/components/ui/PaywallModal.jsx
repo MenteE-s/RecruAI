@@ -1,10 +1,11 @@
 import React from "react";
 import { FiLock, FiCreditCard, FiX, FiCheckCircle } from "react-icons/fi";
+import { BILLING_BETA_MESSAGE, BILLING_ENABLED } from "../../utils/billing";
 
 /**
  * A reusable paywall modal shown when an unsubscribed (lapsed) user tries to
- * access a paid CVAI feature. Provides a clear upgrade CTA instead of a silent
- * 403.
+ * access a paid CVAI feature. During the controlled beta it explains the
+ * trial and does not offer a purchase that cannot complete.
  */
 export default function PaywallModal({ open, feature, onClose, onUpgrade }) {
   if (!open) return null;
@@ -50,12 +51,22 @@ export default function PaywallModal({ open, feature, onClose, onUpgrade }) {
         </div>
 
         <h2 className="text-lg font-bold text-gray-900">
-          {label} is a paid feature
+          {BILLING_ENABLED ? `${label} is a paid feature` : `${label} is included in your trial`}
         </h2>
         <p className="mt-2 text-sm text-gray-600">
-          {label} is part of the CVAI paid tier. Every individual account gets a
-          <strong> 30-day free trial</strong> with full access. After that you
-          can subscribe to keep going after the trial ends.
+          {BILLING_ENABLED ? (
+            <>
+              {label} is part of the CVAI paid tier. Every individual account gets a
+              <strong> 30-day free trial</strong> with full access. After that you
+              can subscribe to keep going after the trial ends.
+            </>
+          ) : (
+            <>
+              {label} is part of CVAI. Every new account gets a
+              <strong> 30-day full-access trial</strong>, and paid plans are not
+              available while the beta is running.
+            </>
+          )}
         </p>
 
         <ul className="mt-4 space-y-2 text-sm text-gray-600">
@@ -65,7 +76,9 @@ export default function PaywallModal({ open, feature, onClose, onUpgrade }) {
           </li>
           <li className="flex items-center gap-2">
             <FiCheckCircle className="h-4 w-4 text-green-600" />
-            After trial: subscribe to keep using paid features
+            {BILLING_ENABLED
+              ? "After trial: subscribe to keep using paid features"
+              : "After trial: your account stays on the free plan"}
           </li>
           <li className="flex items-center gap-2">
             <FiLock className="h-4 w-4 text-gray-400" />
@@ -73,18 +86,26 @@ export default function PaywallModal({ open, feature, onClose, onUpgrade }) {
           </li>
         </ul>
 
+        {!BILLING_ENABLED && (
+          <p className="mt-4 border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
+            {BILLING_BETA_MESSAGE}
+          </p>
+        )}
+
         <div className="mt-6 flex flex-col gap-2">
-          <button
-            onClick={handleSubscribe}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700"
-          >
-            <FiCreditCard className="h-4 w-4" /> Subscribe now
-          </button>
+          {BILLING_ENABLED && (
+            <button
+              onClick={handleSubscribe}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700"
+            >
+              <FiCreditCard className="h-4 w-4" /> Subscribe now
+            </button>
+          )}
           <button
             onClick={onClose}
             className="w-full px-4 py-2 text-sm text-gray-600 hover:text-gray-900"
           >
-            Maybe later
+            {BILLING_ENABLED ? "Maybe later" : "Close"}
           </button>
         </div>
       </div>

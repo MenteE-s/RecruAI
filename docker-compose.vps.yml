@@ -163,6 +163,10 @@ services:
     env_file:
       - ./backend/.env.vps
     command: ["python", "-m", "backend.worker"]
+    volumes:
+      # Account purge must be able to remove uploads and interview recordings.
+      - backend_uploads:/app/backend/uploads
+      - recordings:/app/backend/uploads/recordings
     depends_on:
       migrate:
         condition: service_completed_successfully

@@ -3,6 +3,7 @@ import CvaiShell, { Panel, Stat, Badge, Button, Loading, ErrorNote, LockedNote, 
 import { cvai, isLocked, messageOf, grade } from "../../utils/cvai";
 import { FiCode, FiLock, FiSave, FiSend, FiCreditCard } from "react-icons/fi";
 import PaywallModal from "../../components/ui/PaywallModal";
+import { BILLING_BETA_MESSAGE, BILLING_ENABLED } from "../../utils/billing";
 
 /**
  * Guided projects: build something, then have it judged against criteria you
@@ -144,7 +145,12 @@ export default function CvaiProjects() {
               </div>
 
               {lockedProjects.length > 0 && (
-                <Panel title="Subscribe to unlock more projects" hint="These projects are part of the paid plan.">
+                <Panel
+                  title={BILLING_ENABLED ? "Subscribe to unlock more projects" : "More projects unlock with the trial"}
+                  hint={BILLING_ENABLED
+                    ? "These projects are part of the paid plan."
+                    : "Paid plans are closed while the controlled beta is running."}
+                >
                   <div className="space-y-3">
                     {lockedProjects.map((project) => (
                       <div key={project.id} className="flex items-center justify-between border border-gray-200 bg-gray-50 p-3 rounded-lg">
@@ -157,12 +163,18 @@ export default function CvaiProjects() {
                         </Badge>
                       </div>
                     ))}
-                    <Button
-                      onClick={() => setShowPaywall(true)}
-                      className="w-full mt-3 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700"
-                    >
-                      <FiCreditCard className="h-4 w-4" /> Subscribe now
-                    </Button>
+                    {BILLING_ENABLED ? (
+                      <Button
+                        onClick={() => setShowPaywall(true)}
+                        className="w-full mt-3 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700"
+                      >
+                        <FiCreditCard className="h-4 w-4" /> Subscribe now
+                      </Button>
+                    ) : (
+                      <div className="mt-3 border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                        {BILLING_BETA_MESSAGE}
+                      </div>
+                    )}
                   </div>
                 </Panel>
               )}

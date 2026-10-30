@@ -387,8 +387,24 @@ def validate_production_config(config=None) -> list:
         )
 
     if str(get("VIDEO_ENABLED") or "0") == "1":
-        for name in ("LIVEKIT_URL", "LIVEKIT_API_KEY", "LIVEKIT_API_SECRET"):
+        for name in (
+            "LIVEKIT_URL",
+            "LIVEKIT_PUBLIC_URL",
+            "LIVEKIT_API_KEY",
+            "LIVEKIT_API_SECRET",
+        ):
             required(name)
+        public_url = str(get("LIVEKIT_PUBLIC_URL") or "")
+        if not public_url.startswith(("ws://", "wss://")):
+            raise RuntimeError(
+                "Production config error: LIVEKIT_PUBLIC_URL must be a browser-"
+                "reachable ws:// or wss:// URL."
+            )
+        if public_url.startswith("ws://"):
+            warnings.append(
+                "LIVEKIT_PUBLIC_URL uses ws://; browsers require wss:// when the "
+                "app is served over HTTPS."
+            )
     elif not get("LIVEKIT_API_KEY"):
         warnings.append(
             "LIVEKIT_API_KEY is unset; video endpoints will report unconfigured "

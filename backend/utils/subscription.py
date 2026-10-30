@@ -119,26 +119,6 @@ class SubscriptionManager:
         return {}
 
     @staticmethod
-    def upgrade_to_paid(user: Optional[User] = None, org: Optional[Organization] = None) -> bool:
-        """Upgrade user or organization to paid plan"""
-        try:
-            if user:
-                user.subscription_status = "active"
-                user.paid_plan = True
-            elif org:
-                org.subscription_status = "active"
-                org.paid_plan = True
-            else:
-                return False
-
-            db.session.commit()
-            return True
-        except Exception as e:
-            current_app.logger.error(f"Failed to upgrade subscription: {e}")
-            db.session.rollback()
-            return False
-
-    @staticmethod
     def cancel_subscription(user: Optional[User] = None, org: Optional[Organization] = None) -> bool:
         """Cancel subscription for user or organization"""
         try:

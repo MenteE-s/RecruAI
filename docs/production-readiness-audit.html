@@ -33,7 +33,7 @@
   .meta{display:flex;flex-wrap:wrap;gap:10px 22px;margin-top:24px;font-size:13px;color:#93a5bd}
   .meta b{color:#e6edf7;font-weight:600}
   .verdict{display:flex;flex-wrap:wrap;gap:18px;align-items:center;margin-top:26px;padding:18px 20px;border:1px solid #ffffff1a;background:#ffffff0a;border-radius:var(--radius);backdrop-filter:blur(6px)}
-  .score-ring{--p:36;width:92px;height:92px;flex:0 0 auto;border-radius:50%;background:conic-gradient(#f59e0b calc(var(--p)*1%),#ffffff1a 0);display:grid;place-items:center;position:relative}
+  .score-ring{--p:58;width:92px;height:92px;flex:0 0 auto;border-radius:50%;background:conic-gradient(#f59e0b calc(var(--p)*1%),#ffffff1a 0);display:grid;place-items:center;position:relative}
   .score-ring:after{content:"";position:absolute;inset:8px;border-radius:50%;background:#0f172a}
   .score-ring span{position:relative;z-index:1;text-align:center;line-height:1.05}
   .score-ring b{display:block;font-size:25px;color:#fff}
@@ -205,28 +205,28 @@
 
 <header class="hero">
   <div class="wrap">
-    <div class="kicker">Independent audit · 22 Oct 2026</div>
+    <div class="kicker">Independent audit · 22 Oct 2026 — refreshed 30 Oct 2026</div>
     <h1>RecruAI — production readiness<br>audit &amp; 7-day launch plan</h1>
-    <p class="sub">A full-stack review of the Flask API, React frontend, background jobs, AI layer, billing, and AWS/VPS deployment. The verdict: <b style="color:#fff">not launchable as-is</b> — but a controlled paid launch is achievable in one focused week if scope is frozen and the remaining P0 blockers are fixed.</p>
+    <p class="sub">A full-stack review of the Flask API, React frontend, background jobs, AI layer, billing, and AWS/VPS deployment. The verdict: <b style="color:#fff">not launchable as a paid product</b> — but the free beta is viable once the remaining external setup is done. Video stays dark until self-hosted LiveKit is activated and verified.</p>
     <div class="meta">
-      <span>Codebase <b>60,684 lines</b></span>
+      <span>Codebase <b>77,503 lines</b></span>
       <span>Routes <b>296 live</b></span>
       <span>Migration head <b>b1c2d3e4f5a6</b></span>
-      <span>Frontend build <b>passes</b></span>
-      <span>Backend tests <b>98</b></span>
+      <span>Frontend build <b>320.3 kB / 94.3 kB gzip</b></span>
+      <span>Backend tests <b>100</b></span>
     </div>
     <div class="verdict">
-      <div class="score-ring" style="--p:36"><span><b>36</b><small>/ 100</small></span></div>
+      <div class="score-ring" style="--p:58"><span><b>58</b><small>/ 100</small></span></div>
       <div class="verdict-txt">
-        <h2>Production readiness: 36 / 100 — “controlled beta only”</h2>
-        <p>Strong modular code and real security work already exist. The blockers are not code quality — they are broken revenue controls, a dead video path, missing test gates, and the production dependencies behind the fixes already landed.</p>
+        <h2>Production readiness: 58 / 100 — “free beta after external gates”</h2>
+        <p>The dangerous code paths are closed: paid self-upgrade is gone, video is opt-in, entitlements are server-side, and the suite is green. What remains is operational proof — host capacity and media ports for LiveKit, email DNS, staging E2E, backups, and admin deployment.</p>
         <div class="pills">
-          <span class="pill red">1 P0 launch blocker</span> <span class="pill amber">1 partial</span>
-          <span class="pill green">P0-03 + P0-04 fixed in code</span>
+          <span class="pill green">0 open P0 code blockers</span>
+          <span class="pill green">P0-02 closed by free beta</span>
+          <span class="pill amber">P0-01 code complete · activation pending</span>
           <span class="pill amber">P0-05 test gate live · staging E2E pending</span>
-          <span class="pill green">P1-01 + P1-010 fixed in code</span>
-          <span class="pill amber">4 P1 open · 12 fixed</span>
-          <span class="pill">10 P2 hardening (all fixed)</span>
+          <span class="pill green">100 backend + 42 frontend tests</span>
+          <span class="pill amber">6 local commits unpushed</span>
           <span class="pill green">No committed secrets found</span>
         </div>
       </div>
@@ -259,50 +259,49 @@
   <div class="sec-head">
     <div>
       <div class="eyebrow">01 · Executive summary</div>
-      <h2>The product is real. The launch controls are not.</h2>
-      <p>This is a substantial application — 296 API routes, 59 models, 50 migrations, a working React build, and meaningful auth hardening. The risk is concentrated in the last mile: the paid path, the video path, and the absence of a staging/E2E layer between a green unit suite and production.</p>
+      <h2>The code is beta-ready. The operations are not yet.</h2>
+      <p>This is a substantial application — 296 API routes, 64 models, 50 migrations, a working React build, and meaningful auth hardening. The remaining risk is operational: activating self-hosted video, proving backup/restore, verifying email DNS, deploying the admin app, and adding a staging browser suite.</p>
     </div>
   </div>
 
   <div class="grid4" style="margin-bottom:16px">
-    <div class="stat red"><b>1</b><span>P0 launch blocker</span></div>
+    <div class="stat green"><b>0</b><span>open P0 code blockers</span></div>
     <div class="stat amber"><b>4</b><span>P1 open · 12 fixed in code</span></div>
-    <div class="stat blue"><b>10</b><span>P2 hardening items (all fixed)</span></div>
-    <div class="stat green"><b>5/5</b><span>frontend suites pass (42 tests)</span></div>
+    <div class="stat green"><b>100</b><span>backend tests pass</span></div>
+    <div class="stat green"><b>42</b><span>frontend tests pass (5 suites)</span></div>
   </div>
 
-  <div class="callout red" style="margin-bottom:14px">
+  <div class="callout amber" style="margin-bottom:14px">
     <b>Bottom line</b>
-    Do <u>not</u> open paid signups today. Two customer-facing promises are still false in the deployed topology: video interviews cannot access the camera, and “upgrade to Pro” is free and reversible without payment. Password reset, org invitations, rate limiting, and JWT/CSP hardening are fixed in code but not yet deployed; the remaining P0 blocker is the absence of a test gate before auto-deploy.
+    Launch the <b>free beta</b>, not a paid product. <code>POST /api/subscription/upgrade</code> now returns 410 and never mutates an account; paid CTAs are hidden; the 30-day trial remains. Video ships dark (<code>VIDEO_ENABLED=0</code>) until the self-hosted LiveKit host is resized, media ports are open, secrets are set, and a two-browser recording test passes. Do not open paid traffic until Stripe Checkout + signature-verified webhooks exist.
   </div>
 
   <div class="grid2">
     <div class="card pad">
-      <h3 style="margin:0 0 8px;font-size:16px">The P0 blockers — 2 fixed in code, 1 partial, 2 product decisions</h3>
+      <h3 style="margin:0 0 8px;font-size:16px">P0 status — code fixes landed, one external activation left</h3>
       <ul class="tight">
-        <li><b>Video is dead in production.</b> Both production frontend configs (Vercel and nginx) send <code>camera=(), microphone=()</code>; the AWS stack has no LiveKit service and the deploy job sets no LiveKit keys.</li>
-        <li><b>Billing is a facade.</b> <code>POST /api/subscription/upgrade</code> grants paid access for free, and an expired user can reset the trial indefinitely. The pricing page advertises $15/month and a 14-day trial; the app gives 30 days.</li>
-        <li><b>No password reset.</b> Had no forgot-password route or UI; a forgotten password was a permanent support ticket. <span class="tag green">Fixed in code</span></li>
-        <li><b>Org invites create unreachable accounts.</b> The API creates a user with a random password that is never sent, sends no email, and blocks that address from registering later. <span class="tag green">Fixed in code</span></li>
-        <li><b>Deploys now have a real test gate.</b> Backend pytest (98 tests against PostgreSQL + pgvector) and frontend Jest (42 tests) run in CI, the production dependency audit is clean, and deploy depends on validate. Staging Playwright E2E and GitHub required-check enforcement remain production checklist items.</li>
+        <li><b>Video is wired but not activated.</b> Camera/mic headers allow self, LiveKit + Egress are in the AWS compose behind the <code>video</code> profile, nginx proxies <code>/livekit/</code>, and the deploy passes keys/flag. Remaining: host capacity, security-group ports, LiveKit secrets, <code>VIDEO_ENABLED=1</code>, Vercel flag, and the two-browser test. <span class="tag green">Code complete</span> <span class="tag amber">Activation pending</span></li>
+        <li><b>Billing is closed for the beta.</b> The upgrade endpoint returns 410, paid CTAs are hidden behind <code>BILLING_ENABLED=0</code>, the trial cannot be reset, and regression tests cover both. <span class="tag green">Fixed in code</span></li>
+        <li><b>Password reset, org invitations, rate limits, JWT/CSP, privacy export/delete, and scheduler jobs</b> are implemented and covered by the suite. <span class="tag green">Fixed in code</span></li>
+        <li><b>The test gate is live.</b> Backend pytest (100 tests against PostgreSQL + pgvector) and frontend Jest (42 tests) run in CI; deploy depends on validate. Staging Playwright and required-check enforcement remain external items.</li>
       </ul>
     </div>
     <div class="card pad">
       <h3 style="margin:0 0 8px;font-size:16px">What is already strong</h3>
       <ul class="tight">
         <li>No live API keys are tracked in git; <code>.env</code> files are ignored and excluded from the Docker build context.</li>
-        <li>JWT revocation via Redis, verified-email blueprint guard, login lockout, OTP hashing, CORS allow-list, and tenant checks on the sensitive routes we re-tested.</li>
-        <li>Single Alembic head; local DB is at head; migrations run before the API starts.</li>
-        <li>Uploads are extension + magic-byte validated and served as non-executable images.</li>
-        <li>Clean module boundaries: 59 models, auth/org/ind/profile/interviews split, reusable guards and sanitizers.</li>
-        <li>AWS deployment is automated end-to-end with TLS, health checks, and encrypted secrets injection.</li>
+        <li>Server-side entitlements with overrides → subscription → trial → plan → legacy precedence; admin can grant one feature without changing the plan.</li>
+        <li>JWT revocation via Redis, verified-email guard, login lockout, OTP hashing, CORS allow-list, tenant checks, and public-profile privacy filtering.</li>
+        <li>AI provider/model selection is DB-backed with one active LLM and one active embedding config; env values are fallback only.</li>
+        <li>Single Alembic head; local DB is at head; migrations run before the API starts; uploads are magic-byte validated.</li>
+        <li>AWS deployment is automated end-to-end with TLS, health checks, feature flags, and encrypted secrets injection.</li>
       </ul>
     </div>
   </div>
 
   <div class="callout amber" style="margin-top:14px">
     <b>Is one week realistic?</b>
-    Yes for a <b>controlled launch</b> with a frozen scope, a staging environment, and the remaining P0s closed. No for “every advertised feature is complete and hardened.” If billing must be real money and video must ship, those two alone are 3–5 engineering days plus external account setup. The plan below sequences exactly that, and names what to cut if time slips.
+    Yes for a <b>free controlled beta</b> once the external checklist is done. No for a paid launch: Stripe, webhooks, invoices, tax, and refunds are intentionally out of scope. Video is the only feature that can remain dark without blocking the beta.
   </div>
 </section>
 
@@ -310,25 +309,25 @@
   <div class="sec-head">
     <div>
       <div class="eyebrow">02 · Readiness scorecard</div>
-      <h2>Where the 36/100 comes from</h2>
+      <h2>Where the 58/100 comes from</h2>
       <p>Weighted against what a paid, public launch needs: correctness and security first, then operability, then polish.</p>
     </div>
   </div>
   <div class="card pad">
-    <div class="score-row"><div class="lbl">Security &amp; auth</div><div class="bar"><i class="b-amber" style="width:55%"></i></div><div class="val">5.5</div></div>
-    <div class="score-row"><div class="lbl">Billing &amp; entitlements</div><div class="bar"><i class="b-red" style="width:12%"></i></div><div class="val">1.2</div></div>
-    <div class="score-row"><div class="lbl">Core product flows</div><div class="bar"><i class="b-red" style="width:40%"></i></div><div class="val">4.0</div></div>
-    <div class="score-row"><div class="lbl">Reliability &amp; operations</div><div class="bar"><i class="b-amber" style="width:42%"></i></div><div class="val">4.2</div></div>
-    <div class="score-row"><div class="lbl">Quality &amp; testing</div><div class="bar"><i class="b-red" style="width:18%"></i></div><div class="val">1.8</div></div>
-    <div class="score-row"><div class="lbl">Privacy &amp; compliance</div><div class="bar"><i class="b-red" style="width:30%"></i></div><div class="val">3.0</div></div>
-    <div class="score-row"><div class="lbl">Deployment &amp; config</div><div class="bar"><i class="b-amber" style="width:58%"></i></div><div class="val">5.8</div></div>
+    <div class="score-row"><div class="lbl">Security &amp; auth</div><div class="bar"><i class="b-amber" style="width:60%"></i></div><div class="val">6.0</div></div>
+    <div class="score-row"><div class="lbl">Billing &amp; entitlements</div><div class="bar"><i class="b-green" style="width:75%"></i></div><div class="val">7.5</div></div>
+    <div class="score-row"><div class="lbl">Core product flows</div><div class="bar"><i class="b-amber" style="width:50%"></i></div><div class="val">5.0</div></div>
+    <div class="score-row"><div class="lbl">Reliability &amp; operations</div><div class="bar"><i class="b-amber" style="width:50%"></i></div><div class="val">5.0</div></div>
+    <div class="score-row"><div class="lbl">Quality &amp; testing</div><div class="bar"><i class="b-amber" style="width:60%"></i></div><div class="val">6.0</div></div>
+    <div class="score-row"><div class="lbl">Privacy &amp; compliance</div><div class="bar"><i class="b-amber" style="width:60%"></i></div><div class="val">6.0</div></div>
+    <div class="score-row"><div class="lbl">Deployment &amp; config</div><div class="bar"><i class="b-amber" style="width:65%"></i></div><div class="val">6.5</div></div>
     <div class="score-row"><div class="lbl">Performance &amp; scale</div><div class="bar"><i class="b-amber" style="width:50%"></i></div><div class="val">5.0</div></div>
-    <div class="score-row"><div class="lbl">Observability</div><div class="bar"><i class="b-red" style="width:20%"></i></div><div class="val">2.0</div></div>
-    <div class="score-row"><div class="lbl">Documentation &amp; handover</div><div class="bar"><i class="b-amber" style="width:52%"></i></div><div class="val">5.2</div></div>
+    <div class="score-row"><div class="lbl">Observability</div><div class="bar"><i class="b-red" style="width:30%"></i></div><div class="val">3.0</div></div>
+    <div class="score-row"><div class="lbl">Documentation &amp; handover</div><div class="bar"><i class="b-amber" style="width:65%"></i></div><div class="val">6.5</div></div>
     <div class="divider"></div>
     <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
       <div class="small muted">Weighted: security 25%, core flows 20%, billing 15%, ops 15%, quality 10%, privacy 5%, deploy 5%, perf 5%.</div>
-      <div style="font-size:22px;font-weight:800;letter-spacing:-.02em">36<span style="font-size:13px;color:var(--muted)">/100</span></div>
+      <div style="font-size:22px;font-weight:800;letter-spacing:-.02em">58<span style="font-size:13px;color:var(--muted)">/100</span></div>
     </div>
   </div>
 
@@ -356,32 +355,32 @@
     <div>
       <div class="eyebrow">03 · System map</div>
       <h2>What actually ships</h2>
-      <p>Two deployment paths exist in the repo. GitHub Actions ships the AWS path; the VPS path is the only one with video infrastructure.</p>
+      <p>GitHub Actions ships the AWS path. The VPS compose remains as a single-box alternative. Both now carry the same self-hosted LiveKit + Egress services.</p>
     </div>
   </div>
   <div class="table-wrap">
     <table>
       <thead><tr><th>Layer</th><th>Components</th><th>Production reality</th></tr></thead>
       <tbody>
-        <tr><td><b>Frontend</b></td><td>React 18 + CRA 5, React Router 7, Tailwind, LiveKit React, Socket.IO client</td><td>Vercel static build. Sends a restrictive <code>Permissions-Policy</code>. API/socket URLs depend on Vercel env vars; fallback is wrong for this split-domain architecture.</td></tr>
-        <tr><td><b>API</b></td><td>Flask 3 app factory, 296 routes, short-lived JWT access tokens + rotating refresh sessions, Talisman, CORS, Flask-Limiter</td><td>Gunicorn, 1 worker / 4 threads on t3.small. Real-time uses Flask-SocketIO threading mode.</td></tr>
-        <tr><td><b>Data</b></td><td>PostgreSQL + pgvector (RDS in AWS), 50 migrations</td><td>Single head <code>b1c2d3e4f5a6</code>; migrations container runs before API. 7-day automated RDS backups (external setup).</td></tr>
-        <tr><td><b>Async</b></td><td>Redis (cache, rate limit, JWT blocklist), Kafka (events), APScheduler</td><td>Dedicated scheduler worker with PostgreSQL advisory locks and run records; Kafka is optional but enabled in the AWS compose.</td></tr>
-        <tr><td><b>AI</b></td><td>Groq LLM, OpenRouter/HF embeddings, RAG + recommendations, 50k-token allowance</td><td>Every provider call passes through <code>BudgetedLLMProvider</code>; reservations, actual usage, and organization attribution are enforced there.</td></tr>
-        <tr><td><b>Video</b></td><td>LiveKit SFU + TURN + Egress</td><td>Present in <code>docker-compose.vps.yml</code> and dev. <b>Absent from <code>docker-compose.aws.yml</code></b> (the CI deploy target).</td></tr>
-        <tr><td><b>Ops</b></td><td>GH Actions → EC2, nginx + certbot, Docker Compose</td><td>Auto-deploy on push to <code>main</code>; no staging, no tests, no automatic rollback.</td></tr>
+        <tr><td><b>Frontend</b></td><td>React 18 + CRA 5, React Router 7, Tailwind, LiveKit React, Socket.IO client</td><td>Vercel static build. Camera/mic allowed for self; paid CTAs and video are feature-flagged. Search returns the top match plus related people/companies/jobs.</td></tr>
+        <tr><td><b>API</b></td><td>Flask 3 app factory, 296 routes, short-lived JWT access tokens + rotating refresh sessions, Talisman, CORS, Flask-Limiter</td><td>Gunicorn, 1 worker / 4 threads on t3.small. Entitlements are server-side; admin routes re-read <code>is_superadmin</code> per request.</td></tr>
+        <tr><td><b>Data</b></td><td>PostgreSQL + pgvector (RDS in AWS), 64 models, 50 migrations</td><td>Single head <code>b1c2d3e4f5a6</code>; migrations container runs before API. 7-day automated RDS backups; restore drill still external.</td></tr>
+        <tr><td><b>Async</b></td><td>Redis (cache, rate limit, JWT blocklist), Kafka (events), scheduler worker, outbox worker</td><td>Dedicated scheduler with PostgreSQL advisory locks and run records; transactional outbox delivers email with retries. Kafka remains optional.</td></tr>
+        <tr><td><b>AI</b></td><td>DB-backed active LLM + embedding provider configs, RAG + recommendations, token allowance</td><td>Env provider values are fallback only. Every provider call passes through <code>BudgetedLLMProvider</code>; reservations, usage, and org attribution are enforced there.</td></tr>
+        <tr><td><b>Video</b></td><td>LiveKit SFU + TURN + Egress</td><td>Present in AWS + VPS compose behind the <code>video</code> profile and dark by default (<code>VIDEO_ENABLED=0</code>). Activation needs a larger host, media ports, secrets, and the two-browser test.</td></tr>
+        <tr><td><b>Ops</b></td><td>GH Actions → EC2, nginx + certbot, Docker Compose</td><td>Auto-deploy on push to <code>main</code> with a backend/frontend test gate. No staging host yet; Playwright journeys remain external.</td></tr>
       </tbody>
     </table>
   </div>
 
   <div class="grid2" style="margin-top:16px">
-    <div class="callout red">
-      <b>Deployment split-brain</b>
-      <code>docker-compose.aws.yml</code> (CI target) has Redis, Kafka, backend, nginx, certbot — no LiveKit, no Egress. <code>docker-compose.vps.yml</code> has LiveKit. The nginx template proxies <code>/livekit/</code> in both, so the AWS box will return 502 for a route the app advertises.
+    <div class="callout green">
+      <b>Video is opt-in, not accidentally broken</b>
+      <code>docker-compose.aws.yml</code> carries LiveKit + Egress behind <code>profiles: ["video"]</code>. The deploy starts them only when <code>VIDEO_ENABLED=1</code>; otherwise it stops them. The API and UI also gate on the same flags, so an unconfigured box serves a text-only beta instead of a 503.
     </div>
     <div class="callout amber">
-      <b>Two sources of truth for env</b>
-      <code>backend/.env.production</code> is a template, but the deploy job regenerates a subset of it from GitHub Secrets. Keys present in the template (LiveKit, embedding model, HF URL) silently disappear in production.
+      <b>One env path, with explicit validation</b>
+      <code>scripts/render-production-env.sh</code> writes <code>backend/.env.production</code> from GitHub Secrets and fails the deploy when <code>VIDEO_ENABLED=1</code> and a LiveKit URL/key/secret is missing. Compose keys interpolate with empty defaults so unrelated <code>docker compose</code> commands still parse while video is off.
     </div>
   </div>
 </section>
@@ -411,112 +410,82 @@
   </div>
 
   <div class="callout red" style="margin-bottom:8px">
-    <b>P0 — fix before any public signup</b>
-    These five either break a customer promise, give away the paid product, or make onboarding impossible. None is a refactor; each is a bounded fix.
+    <b>P0 — code blockers for a public signup</b>
+    These five were launch-gating. The code fixes have landed; what remains is external: activating self-hosted video and proving the deploy in staging.
   </div>
 
   <article class="finding" data-status="partial" data-severity="P0" data-area="Product">
-    <details open>
+    <details>
       <summary>
         <span class="fid">P0-01</span>
         <span>
-          <span class="ftitle">Video interviews cannot work in production — camera/mic blocked, and AWS has no LiveKit</span>
-          <span class="fsum">Two independent blockers, either of which is fatal to the advertised “video interview practice”.</span>
-          <span class="badges"><span class="badge p0">P0</span><span class="badge area">Product</span><span class="badge eff">1–2 days</span></span>
+          <span class="ftitle">Video is wired but ships dark until self-hosted LiveKit is activated</span>
+          <span class="fsum">Camera/mic headers, compose services, nginx signaling, deploy flags, and recordings are in place. Host capacity, media ports, secrets, and the two-browser test remain.</span>
+          <span class="badges"><span class="badge p0">P0</span><span class="badge fixed">Code complete</span><span class="badge area">Product</span><span class="badge eff">External activation</span></span>
         </span>
       </summary>
       <div class="fbody">
         <h4>Evidence</h4>
-        <div class="evidence">frontend/vercel.json:10          "Permissions-Policy" = "geolocation=(), microphone=(), camera=()"
-frontend/nginx-frontend.conf:13  same header
-nginx/nginx.vps.conf.template:47 same header on the API host
-docker-compose.aws.yml           services: redis, kafka, kafka-init, migrate,
-                                 cvai-seed, backend, nginx, certbot — <span class="c">no livekit, no egress</span>
-docker-compose.vps.yml:157–225  <span class="g">livekit + egress already defined for the VPS stack</span>
-backend/.env.vps.example:58–59  <span class="c">devkey/devsecret defaults</span>
-.github/workflows/deploy.yml:176–214  generated .env.production has <span class="c">no LIVEKIT_* keys</span>
-backend/utils/livekit_service.py:29   is_configured() requires URL + key + secret
-backend/api/interviews/video.py:25    returns 503 "Video calls are not configured"</div>
+        <div class="evidence">frontend/vercel.json:10                Permissions-Policy camera=(self), microphone=(self)
+frontend/nginx-frontend.conf:13        same policy on the frontend container
+nginx/nginx.vps.conf.template:57       same policy + /livekit/ proxy strips the prefix
+docker-compose.aws.yml                 livekit + egress behind profiles: ["video"];
+                                       recordings volume shared with backend/scheduler
+.github/workflows/deploy.yml:99,290    VIDEO_ENABLED drives UI build and profile start/stop
+scripts/render-production-env.sh       requires LIVEKIT_* when VIDEO_ENABLED=1
+backend/config.py:389                  production requires a browser-reachable wss:// URL
+frontend/src/utils/video.js            hides video entry points when the build flag is false</div>
         <h4>Why it matters</h4>
-        <p><code>camera=()</code> disables <code>getUserMedia</code> for the document, so browsers reject the LiveKit publish before signaling is even reached. Even if that header were relaxed, the CI deploy target has no SFU and no credentials, so <code>video-token</code> returns 503. Dev works because CRA’s dev server sends no such header and the dev compose includes LiveKit — a classic “works on my machine” failure.</p>
-        <p>The pricing page sells “Video interview practice”, so this is a paid promise that fails on first use.</p>
-
-        <h4>Docker / LiveKit reality check</h4>
-        <div class="table-wrap" style="margin:10px 0 14px">
-          <table>
-            <thead><tr><th>Piece</th><th>Exists today?</th><th>Where</th><th>Production gap</th></tr></thead>
-            <tbody>
-              <tr><td><b>Python LiveKit SDK</b></td><td><span class="tag green">Yes</span></td><td><code>backend/requirements.txt:27</code> (<code>livekit-api&gt;=1.2</code>)</td><td>None. The API only mints tokens and calls Egress; the LiveKit server does not belong in the backend image.</td></tr>
-              <tr><td><b>LiveKit server</b></td><td><span class="tag green">Yes — VPS/dev</span></td><td><code>docker-compose.vps.yml:157–199</code>; dev <code>docker-compose.yml:77–115</code></td><td><b><code>docker-compose.aws.yml</code> has no <code>livekit</code> service.</b></td></tr>
-              <tr><td><b>Egress / recording</b></td><td><span class="tag green">Yes — VPS</span></td><td><code>docker-compose.vps.yml:201–225</code></td><td><b>No <code>egress</code> service on AWS</b>, and no shared recordings volume in the AWS backend.</td></tr>
-              <tr><td><b>Nginx signaling proxy</b></td><td><span class="tag green">Yes</span></td><td><code>nginx/nginx.vps.conf.template:66–72</code></td><td>It proxies <code>/livekit/</code> to <code>livekit:7880</code>; that hostname does not resolve on AWS without the service.</td></tr>
-              <tr><td><b>Env keys</b></td><td><span class="tag amber">Example only</span></td><td><code>backend/.env.vps.example:56–59</code></td><td><code>devkey</code>/<code>devsecret</code> defaults; the AWS deploy workflow generates no <code>LIVEKIT_*</code> keys.</td></tr>
-              <tr><td><b>Media/TURN networking</b></td><td><span class="tag amber">Partial</span></td><td>VPS ports 7881, 7882, 3478, 50000–50050</td><td>AWS security group is not opened; VPS config has <code>turn.external_tls: false</code> and no 5349/TURNS listener.</td></tr>
-              <tr><td><b>Recording storage</b></td><td><span class="tag green">Yes — VPS</span></td><td><code>recordings</code> volume shared by <code>egress</code> and <code>backend</code></td><td>AWS backend only mounts <code>backend_uploads</code>; add the shared volume.</td></tr>
-            </tbody>
-          </table>
-        </div>
+        <p>The free beta is text-only and honest: the join screen refuses video when the build flag is off, and pricing no longer lists video while it is disabled. Enabling video is now a deliberate infrastructure action, not an accidental 503.</p>
+        <p>The current <code>t3.small</code> (2 GB) cannot run API + Kafka + Redis + LiveKit + Egress. The video profile caps LiveKit at 512 MB and Egress at 512 MB / 1 CPU, which is already too much headroom on that host.</p>
 
         <div class="callout amber" style="margin:0 0 12px">
-          <b>Capacity check before copying the VPS services</b>
-          LiveKit is capped at 1 GB, Egress at 1 GB and 1.5 CPUs, backend at 768 MB, Kafka at 512 MB, plus Redis, nginx, and the OS. That is well over 3.5 GB; the production box is a <b>t3.small with 2 GB</b>. Do not copy all of it onto the current host. Use a t3.medium with Kafka disabled, put LiveKit/Egress on a separate instance, or use LiveKit Cloud.
-        </div>
-
-        <div class="callout blue" style="margin:0 0 12px">
-          <b>Porting checklist if you keep self-hosting</b>
+          <b>Activation checklist (external)</b>
           <ol class="tight small" style="margin:6px 0 0 18px">
-            <li>Copy the <code>livekit</code> and <code>egress</code> blocks and the <code>recordings</code> volume from <code>docker-compose.vps.yml</code> into <code>docker-compose.aws.yml</code>.</li>
-            <li>Mount <code>recordings:/app/backend/uploads/recordings</code> in the AWS backend; Egress writes to <code>/recordings</code>.</li>
-            <li>Generate a real API key/secret; add <code>LIVEKIT_URL</code>, <code>LIVEKIT_PUBLIC_URL</code>, <code>LIVEKIT_API_KEY</code>, <code>LIVEKIT_API_SECRET</code> to production env/GitHub secrets.</li>
-            <li>Open TCP 7881, TCP/UDP 7882, TCP/UDP 3478, UDP 50000–50050, and 5349 if you enable TURN/TLS.</li>
-            <li>Keep <code>LIVEKIT_URL=ws://livekit:7880</code> for server calls and <code>LIVEKIT_PUBLIC_URL=wss://api.&lt;domain&gt;/livekit/</code> for browsers; confirm nginx WebSocket upgrade works.</li>
-            <li>Test two browsers plus recording; verify TURN fallback with UDP blocked.</li>
+            <li>Resize to at least <code>t3.medium</code> (4 GB) or move media to a separate host; keep Kafka off if staying small.</li>
+            <li>Open security-group ports: TCP 7881, TCP+UDP 7882, TCP+UDP 3478, UDP 50000-50050. TURN/TLS on 5349 is not configured (<code>external_tls: false</code>), so verify TURN over UDP/TCP first.</li>
+            <li>Generate one LiveKit key/secret pair; add <code>LIVEKIT_API_KEY</code>, <code>LIVEKIT_API_SECRET</code>, <code>LIVEKIT_URL=ws://livekit:7880</code>, and <code>LIVEKIT_PUBLIC_URL=wss://api.&lt;domain&gt;/livekit/</code> as GitHub secrets.</li>
+            <li>Set repository variable <code>VIDEO_ENABLED=1</code> and Vercel <code>REACT_APP_VIDEO_ENABLED=true</code>; redeploy both surfaces.</li>
+            <li>Two browsers on the production domain join, publish, subscribe, start/stop a recording, and the file appears in the recording status endpoint.</li>
+            <li>Rollback: set both flags false and run <code>docker compose --profile video stop livekit egress</code>.</li>
           </ol>
         </div>
 
-        <h4>Fix</h4>
-        <ul>
-          <li>Change the policy everywhere to <code>camera=(self), microphone=(self), geolocation=()</code>. Add a test that asserts the header.</li>
-          <li>Remove the <code>devkey</code>/<code>devsecret</code> defaults from <code>backend/.env.vps.example</code>; require generated LiveKit secrets.</li>
-          <li>Port the existing <code>livekit</code> + <code>egress</code> services from <code>docker-compose.vps.yml</code> into <code>docker-compose.aws.yml</code> (or route to LiveKit Cloud), open the required TCP/UDP ports, and pass <code>LIVEKIT_URL</code>, <code>LIVEKIT_PUBLIC_URL</code>, <code>LIVEKIT_API_KEY</code>, <code>LIVEKIT_API_SECRET</code> through the deploy job.</li>
-          <li>Verify the token endpoint returns a browser-reachable <code>wss://api.&lt;domain&gt;/livekit</code>, not the internal <code>ws://livekit:7880</code>.</li>
-          <li>If video cannot be finished by launch, hide video routes and remove the claim from pricing rather than shipping a 503.</li>
-        </ul>
-        <div class="done"><b>Done when</b><br>Two browsers on the production domain join the same interview room, exchange audio/video, start and stop a recording, and the file appears in the recording status endpoint. A signed-out user cannot mint a token.</div>
+        <div class="done"><b>Done when</b><br>Two signed-in accounts complete a production-domain call with audio/video, a room-composite recording is playable, and a signed-out user cannot mint a token. Until then the beta runs with video visibly disabled.</div>
       </div>
     </details>
   </article>
 
-  <article class="finding" data-status="partial" data-severity="P0" data-area="Billing">
+  <article class="finding" data-status="fixed" data-severity="P0" data-area="Billing">
     <details>
       <summary>
         <span class="fid">P0-02</span>
         <span>
-          <span class="ftitle">Paid access is free, infinite, and self-service — there is no payment processor</span>
-          <span class="fsum">Any signed-in user can grant themselves Pro, and an expired account can restart its trial forever.</span>
-          <span class="badges"><span class="badge p0">P0</span><span class="badge area">Billing</span><span class="badge eff">2–4 days (Stripe) or 2 hours (disable)</span></span>
+          <span class="ftitle">Free self-service Pro is closed by the controlled beta</span>
+          <span class="fsum">The upgrade endpoint returns 410 and never mutates an account; paid CTAs are hidden; the 30-day trial remains.</span>
+          <span class="badges"><span class="badge p0">P0</span><span class="badge fixed">Fixed in code</span><span class="badge area">Billing</span><span class="badge eff">Free beta</span></span>
         </span>
       </summary>
       <div class="fbody">
         <h4>Evidence</h4>
-        <div class="evidence">backend/api/subscription/routes.py:41–85  POST /subscription/upgrade
-  :67  only guard is is_subscription_active()
-  :74–79  status="active"; paid_plan=True; plan=="trial" resets trial_start_date  <span class="c"># resettable forever</span>
-backend/api/billing/routes.py             stores brand/last4/expiry only; no charge call
-frontend/src/components/Pricing.js:22–33  "$15 / month", "Start 14-Day Free Trial"
-backend/models/user.py:239               trial is actually 30 days</div>
+        <div class="evidence">backend/api/subscription/routes.py   POST /subscription/upgrade always returns 410 billing_disabled
+backend/utils/subscription.py        upgrade_to_paid() removed; trial cannot be reset
+backend/tests/test_subscription.py   covers 410 + expired-trial immutability
+frontend/src/utils/billing.js        BILLING_ENABLED gate and shared beta message
+frontend/src/components/Pricing.js   "Free during beta", no $15 charge, 30-day trial
+frontend/src/components/ui/PaywallModal.jsx   no purchase CTA during beta
+frontend/src/pages/cvai/*            paid CTAs hidden behind the same flag
+frontend/src/pages/organization/Billing.jsx   beta messaging + MenteeLoader</div>
         <h4>Why it matters</h4>
-        <p>The entitlement boundary is a client-chosen string. There is no Stripe customer, checkout session, webhook signature, invoice, tax, refund, dunning, or cancellation record. “Upgrade” is a free toggle, and the trial reset makes the paid tier permanent for anyone willing to click twice a month.</p>
-        <p>It also creates a legal/commercial mismatch: the site advertises $15/month and a 14-day trial, while the product grants 30 days and never charges. Launching paid traffic in this state means either no revenue or refund/chargeback exposure once billing is added.</p>
-        <h4>Fix</h4>
+        <p>The old code let any signed-in user grant themselves Pro and reset an expired trial indefinitely. That is now unreachable: the endpoint refuses the request and the account is unchanged. Entitlements remain server-side, with overrides → subscription → trial → plan → legacy precedence.</p>
+        <p>This is deliberately a <b>free beta</b>, not a paid launch. There is no Stripe customer, checkout, webhook, invoice, tax, or refund flow, so pretending to sell would create consumer-protection risk. Paid traffic stays closed until those exist.</p>
+        <h4>Future paid launch (not required now)</h4>
         <ul>
-          <li><b>Decision required:</b> launch as a free beta (remove pricing/upgrade CTAs) <i>or</i> integrate Stripe Checkout + webhooks before launch.</li>
-          <li>If Stripe: entitlements must be written only by a signature-verified webhook (<code>checkout.session.completed</code>, <code>customer.subscription.updated/deleted</code>). The client can request a session, never a plan.</li>
-          <li>Remove the <code>plan=trial</code> reset path; trial start is immutable after first assignment. One trial per verified identity.</li>
-          <li>Replace the card form with Stripe Elements/hosted checkout; delete client-side PAN/CVC collection.</li>
-          <li>Align <code>Pricing.js</code>, emails, and <code>User</code> defaults to one plan catalogue.</li>
+          <li>Stripe Checkout + signature-verified webhooks; the client may request a session, never a plan.</li>
+          <li>Idempotent event log, invoice/tax/refund policy, and cancel/downgrade/failed-payment tests.</li>
+          <li>Flip <code>BILLING_ENABLED=1</code> and restore paid CTAs only after the webhook path is proven in test mode.</li>
         </ul>
-        <div class="done"><b>Done when</b><br>No endpoint can change <code>paid_plan</code> or <code>subscription_status</code> without a verified provider event; an expired account cannot restart a trial; cancel/downgrade/failed-payment paths are tested in Stripe test mode; marketing copy matches the code.</div>
+        <div class="done"><b>Done when</b><br>For the beta: upgrade returns 410, no paid CTA is visible, an expired trial cannot restart, and the regression tests pass. All four are true today.</div>
       </div>
     </details>
   </article>
@@ -596,7 +565,7 @@ backend/api/auth/registration.py:31  duplicate email → "email already register
         <span class="fid">P0-05</span>
         <span>
           <span class="ftitle">Nothing tests the backend, and every push to main deploys to production</span>
-          <span class="fsum">Was: zero backend tests, a broken App smoke test, and no test step. Now: 98 backend tests, 42 frontend tests, and a deploy-blocking CI gate.</span>
+          <span class="fsum">Was: zero backend tests, a broken App smoke test, and no test step. Now: 100 backend tests, 42 frontend tests, and a deploy-blocking CI gate.</span>
           <span class="badges"><span class="badge p0">P0</span><span class="badge partial">Partial</span><span class="badge area">Quality</span><span class="badge eff">2–3 days</span></span>
         </span>
       </summary>
@@ -619,7 +588,7 @@ frontend/src/App.test.js     CRA boilerplate "renders learn react link" — <spa
         </ul>
         <div class="callout green" style="margin:12px 0">
           <b>PARTIALLY FIXED — 23 Oct 2026 (local commit; not deployed)</b>
-          Added a backend pytest harness that runs against real PostgreSQL + pgvector in an isolated schema, with fixtures that exercise HTTP routes rather than mocking the database. <b>98 backend tests pass</b>: smoke/health, refresh rotation/replay/logout/password-change, password reset and session revocation, invitations (create/list/accept/resend/expire/revoke), JSON rate limits, universal search, admin plans/AI providers, and hot-path index contracts. Replaced the broken <code>App.test.js</code> with real auth-session tests; <b>42 frontend tests pass across 5 suites</b>. The page-profile fixture now sends the page-manager <code>access.permissions</code> block, so it exercises the form instead of the no-access state. The validate job now installs dev dependencies, runs backend tests, runs frontend tests, gates production dependencies on <code>npm audit --omit=dev --audit-level=high</code>, and builds the frontend; <code>deploy</code> has <code>needs: validate</code>. Production dependency audit is <b>0 vulnerabilities</b>. The complete 50-revision migration chain was applied to a fresh empty database successfully on 28 Oct 2026; migration <code>883c10d41dbd</code> creates the pgvector extension before the first vector column, the app connection hook tolerates a not-yet-installed extension so the migrations container can create it, <code>f4a5b6c7d8e9</code> adds the auth/OTP/invitation hot-path indexes, <code>a7b8c9d0e1f2</code> adds deletion/scheduler/AI-allowance fields, <code>f2a3b4c5d6e7</code> adds the plan catalogue while tolerating the <code>users.plan</code> column the initial schema already owns, and <code>b1c2d3e4f5a6</code> keeps exactly one default plan per scope. The current head downgrades cleanly to <code>f2a3b4c5d6e7</code> and reapplies; the plan migration also round-trips to <code>e1f2a3b4c5d6</code> on a fresh database. Test files and dev requirements are excluded from the production Docker build context.
+          Added a backend pytest harness that runs against real PostgreSQL + pgvector in an isolated schema, with fixtures that exercise HTTP routes rather than mocking the database. <b>100 backend tests pass</b>: smoke/health, refresh rotation/replay/logout/password-change, password reset and session revocation, invitations (create/list/accept/resend/expire/revoke), JSON rate limits, universal search, admin plans/AI providers, free-beta upgrade refusal, LiveKit URL validation, and hot-path index contracts. Replaced the broken <code>App.test.js</code> with real auth-session tests; <b>42 frontend tests pass across 5 suites</b>. The page-profile fixture now sends the page-manager <code>access.permissions</code> block, so it exercises the form instead of the no-access state. The validate job now installs dev dependencies, runs backend tests, runs frontend tests, gates production dependencies on <code>npm audit --omit=dev --audit-level=high</code>, and builds the frontend; <code>deploy</code> has <code>needs: validate</code>. Production dependency audit is <b>0 vulnerabilities</b>. The complete 50-revision migration chain was applied to a fresh empty database successfully on 28 Oct 2026; migration <code>883c10d41dbd</code> creates the pgvector extension before the first vector column, the app connection hook tolerates a not-yet-installed extension so the migrations container can create it, <code>f4a5b6c7d8e9</code> adds the auth/OTP/invitation hot-path indexes, <code>a7b8c9d0e1f2</code> adds deletion/scheduler/AI-allowance fields, <code>f2a3b4c5d6e7</code> adds the plan catalogue while tolerating the <code>users.plan</code> column the initial schema already owns, and <code>b1c2d3e4f5a6</code> keeps exactly one default plan per scope. The current head downgrades cleanly to <code>f2a3b4c5d6e7</code> and reapplies; the plan migration also round-trips to <code>e1f2a3b4c5d6</code> on a fresh database. Test files and dev requirements are excluded from the production Docker build context.
           <br><br>
           <b>Still open:</b> Playwright journeys against a real staging environment, and GitHub branch protection/required-check enforcement. This finding should not be marked fully closed until those are done.
         </div>
@@ -932,28 +901,30 @@ docs/LIGHTSAIL.md:55–57         monthly cron documented, not provisioned by CI
       <summary>
         <span class="fid">P1-10</span>
         <span>
-          <span class="ftitle">Auto-deploy has no staging, no tests, no snapshot, and no rollback</span>
-          <span class="fsum">Every push to <code>main</code> rsyncs over the live host and migrates the production database.</span>
+          <span class="ftitle">Production deploy still has no staging host or required-check enforcement</span>
+          <span class="fsum">Tests, snapshot hooks, a rollback job, quoted env rendering, and a health-gated deploy exist. Promotion and mandatory checks do not.</span>
           <span class="badges"><span class="badge p1">P1</span><span class="badge area">Ops</span><span class="badge eff">1–2 days</span></span>
         </span>
       </summary>
       <div class="fbody">
         <h4>Evidence</h4>
         <div class="evidence">.github/workflows/deploy.yml:53–57   deploy on push to main
+  :37–48     validate runs backend tests, frontend tests, audit, build
   :128–140  rsync -avz --delete to /opt/recruai
-  :176–214  cat &gt; backend/.env.production &lt;&lt; EOF2  <span class="c"># unquoted heredoc</span>
-  :257–278  build, migrate, restart; rollback is manual
-backend/Dockerfile                     gunicorn 1 worker / 4 threads</div>
+  :257–278  build, migrate, restart; rollback image tag retained
+scripts/render-production-env.sh   printf-based env file; fails closed on missing video secrets
+deploy.yml                         no staging environment, no manual approval, no required-check setting
+backend/Dockerfile                 gunicorn 1 worker / 4 threads</div>
         <h4>Why it matters</h4>
-        <p>A bad commit reaches customers in minutes. There is no canary, no health-gated rollout, no pre-migration snapshot, and no tested rollback. The unquoted heredoc also expands <code>$</code> and backticks in secrets, so a database password containing those characters can corrupt <code>.env.production</code> at deploy time — a failure that only appears on the next restart.</p>
-        <h4>Fix</h4>
+        <p>A bad commit can still reach customers minutes after a green unit suite; tests are necessary but not sufficient for runtime and migration behavior. Branch protection and required checks are GitHub settings, not code, and the pre-migration S3 snapshot only runs when <code>BACKUP_BUCKET</code> is configured. The rollback job restores the previous image but does not reverse a destructive migration.</p>
+        <h4>Remaining work</h4>
         <ul>
-          <li>Add a staging environment with the same compose topology; deploy there first, run smoke/E2E, then promote the same image digest.</li>
-          <li>Snapshot RDS before migrate; make migrations backward-compatible for one release (expand/contract).</li>
-          <li>Quote the heredoc delimiter (<code>&lt;&lt;'EOF2'</code>) and pass secrets via a file/SSM rather than shell interpolation.</li>
-          <li>Add a rollback workflow (previous image tag + reverse migration policy) and rehearse it.</li>
+          <li>Create a staging host with the same compose topology, separate DB, separate Resend key, and noindex; deploy there first and promote the same image digest.</li>
+          <li>Enable GitHub branch protection and require <code>validate</code>; add a manual environment approval for production.</li>
+          <li>Make the pre-migration snapshot mandatory (fail closed if the bucket is absent) and rehearse a restore + rollback.</li>
+          <li>Keep migrations expand/contract for one release so an image rollback does not require a schema rollback.</li>
         </ul>
-        <div class="done"><b>Done when</b><br>A deliberately failing release is caught in staging; rollback to the previous image takes under 5 minutes; a password containing <code>$</code> and backticks survives deployment; migrations are snapshot-protected.</div>
+        <div class="done"><b>Done when</b><br>A deliberately failing release is caught in staging; production cannot deploy without required checks; rollback restores the previous image and health in under 5 minutes; a restore drill passes checksums.</div>
       </div>
     </details>
   </article>
@@ -1079,34 +1050,36 @@ backend                        no WAF, no bot challenge, no upload body cap at t
     </details>
   </article>
 
-  <article class="finding" data-severity="P1" data-area="Billing">
+  <article class="finding" data-status="fixed" data-severity="P1" data-area="Billing">
     <details>
       <summary>
         <span class="fid">P1-15</span>
         <span>
-          <span class="ftitle">Pricing copy contradicts the product: $15/month and 14-day trial vs. 30 days and no charge</span>
-          <span class="fsum">Commercial claims must match entitlement behavior before any paid traffic.</span>
-          <span class="badges"><span class="badge p1">P1</span><span class="badge area">Billing</span><span class="badge eff">0.25 day</span></span>
+          <span class="ftitle">Pricing copy now matches the free beta: no charge, 30-day trial, video hidden while disabled</span>
+          <span class="fsum">The $15/month and 14-day claims are gone; the paid plan is presented as free during the beta.</span>
+          <span class="badges"><span class="badge p1">P1</span><span class="badge fixed">Fixed in code</span><span class="badge area">Billing</span><span class="badge eff">0.25 day</span></span>
         </span>
       </summary>
       <div class="fbody">
         <h4>Evidence</h4>
-        <div class="evidence">frontend/src/components/Pricing.js:25  price: 15
-frontend/src/components/Pricing.js:38  "Start 14-Day Free Trial"
-backend/models/user.py:239           trial default = 30 days
-backend/api/subscription/routes.py   free upgrade, no processor</div>
+        <div class="evidence">frontend/src/components/Pricing.js   price "Free", duration "during beta", CTA "Join the Beta"
+frontend/src/utils/billing.js        BILLING_ENABLED=false; shared beta message
+frontend/src/utils/video.js          video feature and join screen hidden when disabled
+backend/constants.py                 TRIAL_PERIOD_DAYS = 30 (single source of truth)
+backend/tests/test_subscription.py   upgrade returns 410; expired trial stays expired</div>
         <h4>Why it matters</h4>
-        <p>Even as a free beta, advertising a price and trial length the product does not honor creates refund/consumer-protection risk and erodes trust. It also obscures the real decision: are you launching a paid product or a waitlist/beta?</p>
+        <p>Marketing claims and entitlement behavior now agree: there is no price, no charge, and no 14-day promise. The trial is 30 days everywhere, and video is not listed while the feature is disabled. This removes the consumer-protection and trust risk that existed when the page advertised a product the code did not sell.</p>
         <h4>Fix</h4>
         <ul>
-          <li>Pick one launch model (free beta vs paid) and make it a product decision, not a code default.</li>
-          <li>Derive plan name, price, trial length, and CTA from one catalogue used by both frontend and backend.</li>
-          <li>If beta: remove the $15 charge and “14-day trial” language; say “free during beta” explicitly.</li>
+          <li>Free beta is the launch model: paid CTAs hidden in pricing, paywall, CVAI, and billing screens.</li>
+          <li>Trial length derives from one backend constant and is displayed consistently.</li>
+          <li>Video feature copy is gated by the same build flag that hides the join screen.</li>
+          <li>Admin plan price/features remain editable for the future paid model.</li>
         </ul>
-        <div class="done"><b>Done when</b><br>A single plan catalogue is the source of truth; marketing pages, emails, and entitlements agree; legal review signs off on the launch offer.</div>
+        <div class="done"><b>Done when</b><br>No page advertises a charge or trial length the product does not honor; the beta offer is explicit; legal review signs off. Copy and flags now satisfy this for the free beta.</div>
         <div class="callout green" style="margin:12px 0">
           <b>Admin dashboard — 28 Oct 2026 (local commit; not pushed)</b><br>
-          A separate Vite app under <code>admin/</code> now manages users, organizations, plan price/features/defaults, AI token allowances, per-account feature grants, AI providers, content banks, and outbox health. Every admin route re-reads <code>is_superadmin</code> from the database per request; no admin endpoint can grant itself that flag. Deploy it as its own Vercel project (prefer <code>admin.recruai.menteeai.org</code>) with <code>VITE_API_BASE_URL</code> pointing at the API, and set the backend's <code>ADMIN_ORIGIN</code> secret to the same admin URL so CORS accepts its credentialed requests; the <code>SameSite=Lax</code> refresh cookie then stays same-site with the API. This closes the admin-management half of P1-15; landing-page copy, trial length, and the launch offer still need the product decision.
+          A separate Vite app under <code>admin/</code> manages users, organizations, plan price/features/defaults, AI token allowances, per-account feature grants, AI providers, content banks, and outbox health. Every admin route re-reads <code>is_superadmin</code> from the database per request; no admin endpoint can grant itself that flag. Deploy it as its own Vercel project (prefer <code>admin.recruai.menteeai.org</code>) with <code>VITE_API_BASE_URL</code> pointing at the API, and set the backend's <code>ADMIN_ORIGIN</code> secret to the same admin URL so CORS accepts its credentialed requests.
         </div>
       </div>
     </details>
@@ -1348,11 +1321,11 @@ frontend/Dockerfile / Dockerfile.prod      two build paths</div>
     <table>
       <thead><tr><th>Finding</th><th>Type</th><th>Code work you can finish now</th><th>Production checklist item</th><th>Safe to deploy before it?</th></tr></thead>
       <tbody>
-        <tr><td><b>P0-01</b> Video broken</td><td><span class="tag amber">Code + prod</span> <span class="tag amber">Partial</span></td><td>Allow camera/mic in all three header locations; public LiveKit URL config; token endpoint; hide/flag video route if unconfigured</td><td>LiveKit Cloud or self-hosted LiveKit + Egress; TCP/UDP/TURN ports; TLS/WSS; secrets; S3 bucket/credentials for recordings; two-browser + recording test</td><td><b>Yes</b> — ship with <code>VIDEO_ENABLED=0</code> and remove the pricing claim until ready</td></tr>
-        <tr><td><b>P0-02</b> Free/self-service billing</td><td><span class="tag amber">Code + prod</span> <span class="tag amber">Partial</span></td><td>Remove free upgrade and trial reset; server-side entitlements only; hide paid CTAs. If paid: checkout, webhook, portal, migration</td><td><b>Paid only:</b> Stripe business verification, bank, products/prices, webhook secret, tax/refund policy</td><td><b>Yes</b> — free beta with paid CTAs hidden and <code>BILLING_ENABLED=0</code></td></tr>
+        <tr><td><b>P0-01</b> Video dark</td><td><span class="tag green">Code complete</span> <span class="tag amber">Activation pending</span></td><td>Camera/mic headers allow self; LiveKit + Egress in AWS compose; recordings volume; nginx signaling; deploy flag and secret validation; UI hidden when disabled</td><td>Host resize or separate media host; TCP/UDP/TURN ports; LiveKit keys/secrets; <code>VIDEO_ENABLED=1</code>; Vercel flag; two-browser + recording test</td><td><b>Yes</b> — the beta runs text-only with video visibly disabled</td></tr>
+        <tr><td><b>P0-02</b> Free/self-service billing</td><td><span class="tag green">Code</span> <span class="tag green">Fixed in code</span></td><td>Upgrade returns 410 and never mutates; trial cannot restart; paid CTAs hidden; beta copy and tests</td><td><b>Paid launch only:</b> Stripe verification, Checkout, webhook, invoices, tax/refund policy</td><td><b>Yes</b> — free beta with <code>BILLING_ENABLED=0</code>; no paid traffic</td></tr>
         <tr><td><b>P0-03</b> No password reset</td><td><span class="tag amber">Code + prod</span> <span class="tag green">Fixed in code</span></td><td>Forgot/reset endpoints, single-use OTP, signed-out pages, revoke-all sessions, throttle, tests</td><td>Resend domain verified (SPF/DKIM/DMARC); deliverability test; support runbook</td><td><b>Yes</b> — deploy only after Resend domain/DNS verification; do not ship a dead reset link</td></tr>
         <tr><td><b>P0-04</b> Broken org invites</td><td><span class="tag amber">Code + prod</span> <span class="tag green">Fixed in code</span></td><td>Invitation model/migration, hashed single-use token, create/list/revoke/accept, stop pre-creating users, accept page, tests</td><td>Run migration with snapshot; verified email; external-domain invite test</td><td><b>Yes</b> — migration is a normal deploy step; email is required for external invites</td></tr>
-        <tr><td><b>P0-05</b> No tests/CI gates</td><td><span class="tag green">Code</span> <span class="tag amber">Partial</span></td><td>98 backend tests on PostgreSQL/pgvector, 42 frontend tests, 2 Playwright smoke E2E journeys, deploy-blocking CI validation, production audit gate, 50-revision empty-schema migration check</td><td>GitHub branch protection/required checks (documented); staging env</td><td><b>Yes</b> — test gate is live; E2E is additional assurance</td></tr>
+        <tr><td><b>P0-05</b> Test gate / staging E2E</td><td><span class="tag green">Code</span> <span class="tag amber">Partial</span></td><td>100 backend tests on PostgreSQL/pgvector, 42 frontend tests, deploy-blocking CI validation, production audit gate, 50-revision empty-schema migration check</td><td>GitHub branch protection/required checks (documented); staging host + Playwright journeys</td><td><b>Yes</b> — test gate is live; E2E is additional assurance</td></tr>
 
         <tr><td><b>P1-01</b> Rate limits</td><td><span class="tag green">Code</span> <span class="tag green">Fixed in code</span></td><td>Per-user/endpoint limits, JSON 429, <code>Retry-After</code>, frontend toast, tests</td><td>Wire the structured 429 log into the dashboard; Redis already exists</td><td><b>Yes</b></td></tr>
         <tr><td><b>P1-02</b> JWT/CSP</td><td><span class="tag green">Code</span> <span class="tag green">Fixed in code</span></td><td>Refresh-token rotation, HttpOnly cookies, short access TTL, CSP, update fetch/socket auth</td><td>Cookie domain/CORS values; verify CSP on the production preview</td><td><b>Yes</b> — config values only, no purchase</td></tr>
@@ -1385,12 +1358,12 @@ frontend/Dockerfile / Dockerfile.prod      two build paths</div>
   </div>
 
   <div class="callout amber" style="margin-bottom:16px">
-    <b>P0-01 in practice — what “fixed now” actually means</b>
+    <b>P0-01 in practice — what “code complete, activation pending” actually means</b>
     <ul class="tight small" style="margin:8px 0 0 18px">
-      <li><b>Code/config today (a few hours):</b> fix the three <code>Permissions-Policy</code> headers, remove the <code>devkey/devsecret</code> defaults, make <code>LIVEKIT_PUBLIC_URL</code> the browser-facing WSS URL, pass secrets through deploy, and add a flag that hides video when unconfigured.</li>
-      <li><b>Full video with LiveKit Cloud (same day):</b> create a project, put URL/key/secret in production, connect Egress to an S3 bucket for recordings, and run the two-browser + recording test. No server to operate; this is the fastest way to close the finding.</li>
-      <li><b>Self-host (1–2 days + ops):</b> you already have a working <code>livekit</code> + <code>egress</code> definition in <code>docker-compose.vps.yml</code>; port it to <code>docker-compose.aws.yml</code>, open TCP 7880/7881 and UDP 7882 (plus TURN 3478/5349), configure TLS/WSS, and give Egress CPU/RAM and recording storage. A t3.medium running backend + Redis + Kafka + Egress is tight; disable Kafka or use a separate instance.</li>
-      <li><b>If LiveKit is not ready by launch:</b> set <code>VIDEO_ENABLED=0</code>, hide the routes, and remove “video interview practice” from pricing. That unblocks a text-only beta, but P0-01 stays open until video actually works.</li>
+      <li><b>Done in code:</b> camera/mic headers allow self; LiveKit + Egress are in the AWS compose behind the <code>video</code> profile; the recordings volume is shared by backend/scheduler; nginx strips <code>/livekit/</code> before proxying; deploy reads <code>VIDEO_ENABLED</code> and validates LiveKit secrets; the UI hides video when disabled.</li>
+      <li><b>Self-hosted only:</b> the product decision is self-hosted LiveKit + Egress, not LiveKit Cloud. This avoids a vendor dependency and per-minute billing, at the cost of host capacity and media-port operations.</li>
+      <li><b>External activation (1–2 hours after access):</b> resize to at least <code>t3.medium</code> (or move media to its own box), open TCP 7881, TCP+UDP 7882, TCP+UDP 3478, UDP 50000-50050, generate keys, set GitHub secrets + repository variable, set the Vercel build flag, redeploy, and run the two-browser recording test.</li>
+      <li><b>Until then:</b> the free beta is text-only, the join screen refuses video, pricing hides the video feature, and <code>VIDEO_ENABLED=0</code> keeps the profile stopped.</li>
     </ul>
   </div>
 
@@ -1398,8 +1371,8 @@ frontend/Dockerfile / Dockerfile.prod      two build paths</div>
     <div class="card pad">
       <h3 style="margin:0 0 8px;font-size:15px">Production checklist — accounts/purchases</h3>
       <ul class="tight small">
-        <li><b>LiveKit</b> — Cloud project or self-hosted LiveKit + Egress (P0-01)</li>
-        <li><b>Stripe</b> — only if paid launch (P0-02)</li>
+        <li><b>LiveKit</b> — self-hosted LiveKit + Egress; no vendor purchase (P0-01)</li>
+        <li><b>Stripe</b> — deferred; free beta only (P0-02)</li>
         <li><b>Sentry</b> — free tier is enough to start (P1-07)</li>
         <li><b>S3</b> — backups and uploads (P1-08)</li>
         <li><b>Cloudflare WAF</b> — optional, after abuse appears (P1-14)</li>
@@ -1422,8 +1395,8 @@ frontend/Dockerfile / Dockerfile.prod      two build paths</div>
   </div>
 
   <div class="callout blue" style="margin-bottom:16px">
-    <b>Decisions to lock before those code items</b>
-    <b>1.</b> Video for launch, or hide it for the beta? <b>2.</b> Free beta, or paid with Stripe? <b>3.</b> Who can manage billing/members/org settings? <b>4.</b> What is the real price, trial length, and plan catalogue? These are small decisions, but they change the code path and the checklist.
+    <b>Decisions already locked</b>
+    <b>1.</b> Self-hosted LiveKit, dark until activated. <b>2.</b> Free beta; no Stripe checkout. <b>3.</b> Org billing/members/roles enforced server-side. <b>4.</b> 30-day trial; plan catalogue is editable in admin. What remains is execution, not product choice.
   </div>
 
   <div class="callout green">
@@ -1461,7 +1434,7 @@ frontend/Dockerfile / Dockerfile.prod      two build paths</div>
       <div><h3>Thursday · Decide, freeze, and make failures visible</h3><p>No code heroics. Establish the launch contract and the safety net.</p></div>
     </div>
     <div class="day-body">
-      <label class="task"><input type="checkbox" class="task-check" data-task="d0-1"><span class="txt"><b>Freeze scope and pick the launch offer</b><small>Paid (Stripe required) vs free beta (remove pricing/upgrade). Write it down; it changes the rest of the week.</small></span><span class="own">Product</span></label>
+      <label class="task"><input type="checkbox" class="task-check" data-task="d0-1"><span class="txt"><b>Freeze scope and confirm the free beta</b><small>No paid signups, no Stripe, 30-day trial, video dark until self-hosted LiveKit is activated. The code path already reflects this.</small></span><span class="own">Product</span></label>
       <label class="task"><input type="checkbox" class="task-check" data-task="d0-2"><span class="txt"><b>Rotate every secret that has ever sat in a local <code>.env</code></b><small>SECRET_KEY, JWT_SECRET_KEY, Groq, OpenRouter, Resend, DB, LiveKit. Move to GitHub Secrets / SSM. Verify no key exists in git history.</small></span><span class="own">Ops</span></label>
       <label class="task"><input type="checkbox" class="task-check" data-task="d0-3"><span class="txt"><b>Stand up staging</b><small>Same compose topology, separate DB, separate Resend key, noindex. Production deploys only after staging passes.</small></span><span class="own">Ops</span></label>
       <label class="task"><input type="checkbox" class="task-check" data-task="d0-4"><span class="txt"><b>Add Sentry (API + frontend) and an uptime check</b><small>Release tags, PII scrubbing, alert to email/Slack. This is the eyes you will need all week.</small></span><span class="own">Ops</span></label>
@@ -1477,11 +1450,11 @@ frontend/Dockerfile / Dockerfile.prod      two build paths</div>
       <div><h3>Friday · Close the money and recovery holes</h3><p>The two P0s with the highest customer/support impact.</p></div>
     </div>
     <div class="day-body">
-      <label class="task"><input type="checkbox" class="task-check" data-task="d1-1"><span class="txt"><b>Implement the chosen billing model</b><small>Free beta: remove upgrade CTAs and make <code>/subscription/upgrade</code> return 410. Paid: Stripe Checkout + signature-verified webhook; no client-chosen plan.</small></span><span class="own">Backend</span></label>
+      <label class="task"><input type="checkbox" class="task-check" data-task="d1-1"><span class="txt"><b>Verify the free-beta billing gate</b><small><code>/subscription/upgrade</code> returns 410, paid CTAs are hidden, and the account is unchanged. Stripe Checkout remains future work, not a beta blocker.</small></span><span class="own">Backend</span></label>
       <label class="task"><input type="checkbox" class="task-check" data-task="d1-2"><span class="txt"><b>Kill the trial-reset loop</b><small>Trial start is immutable; one trial per verified identity; tests for expired → upgrade → still expired.</small></span><span class="own">Backend</span></label>
       <label class="task"><input type="checkbox" class="task-check" data-task="d1-3"><span class="txt"><b>Ship password reset</b><small>Forgot + reset endpoints, OTP email, generic responses, rate limits, revoke all tokens, old-password invalidation.</small></span><span class="own">Full-stack</span></label>
       <label class="task"><input type="checkbox" class="task-check" data-task="d1-4"><span class="txt"><b>Add the “Forgot password?” UI and success/error states</b><small>Signed-out flow; no account enumeration; tested on mobile width.</small></span><span class="own">Frontend</span></label>
-      <label class="task"><input type="checkbox" class="task-check" data-task="d1-5"><span class="txt"><b>Align pricing copy with the chosen model</b><small>One plan catalogue; remove the $15/14-day mismatch; legal review of the offer.</small></span><span class="own">Product</span></label>
+      <label class="task"><input type="checkbox" class="task-check" data-task="d1-5"><span class="txt"><b>Confirm pricing copy matches the free beta</b><small>No $15 charge, 30-day trial everywhere, video hidden while disabled; legal review of the beta terms.</small></span><span class="own">Product</span></label>
     </div>
     <div class="exit"><b>Exit criteria</b> · No API path grants paid access without payment · trial cannot restart · reset works end-to-end in staging · pricing matches product.</div>
   </div>
@@ -1489,11 +1462,11 @@ frontend/Dockerfile / Dockerfile.prod      two build paths</div>
   <div class="day">
     <div class="day-h">
       <div class="day-n">D2</div>
-      <div><h3>Saturday · Make video and org onboarding real</h3><p>Both are advertised journeys; both currently dead-end.</p></div>
+      <div><h3>Saturday · Activate video and verify org onboarding</h3><p>Org invites and accept flows are implemented; video still needs host capacity, ports, keys, and the two-browser test.</p></div>
     </div>
     <div class="day-body">
-      <label class="task"><input type="checkbox" class="task-check" data-task="d2-1"><span class="txt"><b>Relax camera/mic policy to <code>camera=(self), microphone=(self)</code></b><small>Vercel, nginx-frontend, nginx template. Add a header assertion test.</small></span><span class="own">Frontend</span></label>
-      <label class="task"><input type="checkbox" class="task-check" data-task="d2-2"><span class="txt"><b>Provision LiveKit + Egress on the production path</b><small>Add services to AWS compose or use LiveKit Cloud; open ports; set URL/public URL/key/secret; confirm <code>wss://api…/livekit</code>.</small></span><span class="own">Ops</span></label>
+      <label class="task"><input type="checkbox" class="task-check" data-task="d2-1"><span class="txt"><b>Verify camera/mic headers in production</b><small>Vercel and both nginx configs now send <code>camera=(self), microphone=(self)</code>; confirm the deployed header with curl.</small></span><span class="own">Frontend</span></label>
+      <label class="task"><input type="checkbox" class="task-check" data-task="d2-2"><span class="txt"><b>Activate self-hosted LiveKit + Egress</b><small>Resize or separate the media host; open media ports; set LiveKit secrets and <code>VIDEO_ENABLED=1</code>; confirm <code>wss://api…/livekit</code>.</small></span><span class="own">Ops</span></label>
       <label class="task"><input type="checkbox" class="task-check" data-task="d2-3"><span class="txt"><b>Test a two-party call and a recording</b><small>Two browsers, two accounts, join, publish, subscribe, start/stop recording, verify status endpoint. Repeat on mobile Safari if in scope.</small></span><span class="own">QA</span></label>
       <label class="task"><input type="checkbox" class="task-check" data-task="d2-4"><span class="txt"><b>Replace invite-user creation with an Invitation token + email</b><small>Hashed single-use token, 7-day expiry, resend/revoke, accept page, existing-user join confirmation, no email squatting.</small></span><span class="own">Full-stack</span></label>
       <label class="task"><input type="checkbox" class="task-check" data-task="d2-5"><span class="txt"><b>Implement account deletion (or hide the button this week)</b><small>Re-auth, grace period, explicit cascade, uploads removal, token revocation, audit event. Do not ship the dead button.</small></span><span class="own">Full-stack</span></label>
@@ -1525,7 +1498,7 @@ frontend/Dockerfile / Dockerfile.prod      two build paths</div>
     <div class="day-body">
       <label class="task"><input type="checkbox" class="task-check" data-task="d4-1" checked><span class="txt"><b>Add pytest fixtures + auth/tenant/billing tests</b><small>App fixture, transactional DB, JWT factory. Cover login, lockout, reset, invite, entitlement, cross-tenant 403/404, upload validation.</small></span><span class="own">Backend</span></label>
       <label class="task"><input type="checkbox" class="task-check" data-task="d4-2"><span class="txt"><b>Replace the broken App smoke test</b><small>Mock the API; assert signed-out/signed-in shells and route guards render. Fix the <code>react-router-dom</code> Jest resolution.</small></span><span class="own">Frontend</span></label>
-      <label class="task"><input type="checkbox" class="task-check" data-task="d4-3"><span class="txt"><b>Add 6–10 Playwright journeys against staging</b><small>Register → OTP → login → profile → apply; reset; invite; upgrade/cancel; text interview; video token (skip media on CI).</small></span><span class="own">QA</span></label>
+      <label class="task"><input type="checkbox" class="task-check" data-task="d4-3"><span class="txt"><b>Add 6-10 Playwright journeys against staging</b><small>Register → OTP → login → profile → apply; reset; invite; text interview; verify paid CTAs are absent; video token only when the flag is enabled.</small></span><span class="own">QA</span></label>
       <label class="task"><input type="checkbox" class="task-check" data-task="d4-4" checked><span class="txt"><b>Make tests and lint required CI checks</b><small>Backend + frontend + build + migration check; deploy only from green main; block on critical npm audit.</small></span><span class="own">Ops</span></label>
       <label class="task"><input type="checkbox" class="task-check" data-task="d4-5" checked><span class="txt"><b>Lock Python dependencies with hashes</b><small>pip-compile/uv lock; clean-build reproducibility check; Dependabot/Renovate enabled.</small></span><span class="own">Backend</span></label>
     </div>
@@ -1583,7 +1556,7 @@ frontend/Dockerfile / Dockerfile.prod      two build paths</div>
     <div>
       <div class="eyebrow">06 · Infrastructure &amp; procurement</div>
       <h2>What to buy now, what to defer, and what it costs</h2>
-      <p>The stack already runs on AWS + Vercel. The launch gap is not “more servers” — it is a small set of missing services (video, payments, error tracking, backups) and one size upgrade. Estimates are USD list prices as of Oct 2026; confirm before purchase.</p>
+      <p>The stack already runs on AWS + Vercel. For the free beta the launch gap is not "more servers" - it is email DNS, error tracking, backups, and a staging environment. Video needs a size upgrade only when it is activated; payments are explicitly deferred. Estimates are USD list prices as of Oct 2026; confirm before purchase.</p>
     </div>
   </div>
 
@@ -1596,7 +1569,7 @@ frontend/Dockerfile / Dockerfile.prod      two build paths</div>
     <div class="stat blue"><b>~$85–180</b><span>new monthly spend to launch</span></div>
     <div class="stat amber"><b>~$150–450</b><span>all-in run rate incl. AI/AWS</span></div>
     <div class="stat green"><b>1–7 days</b><span>longest lead time (Stripe)</span></div>
-    <div class="stat"><b>$0</b><span>cost to defer video or paid launch</span></div>
+    <div class="stat"><b>$0</b><span>vendor cost for self-hosted video; host delta only</span></div>
   </div>
 
   <div class="table-wrap" style="margin-bottom:16px">
@@ -1607,11 +1580,11 @@ frontend/Dockerfile / Dockerfile.prod      two build paths</div>
         <tr><td><b>Database</b></td><td>RDS PostgreSQL + pgvector, single-AZ, 7-day backups</td><td>No PITR if retention is 7 days; migration risk; no restore drill</td><td>Keep single-AZ; raise retention to 14 days, enable deletion protection, snapshot before deploy</td></tr>
         <tr><td><b>Cache</b></td><td>Redis container, no password, 128 MB cap, same host</td><td>Shared fate with API; memory eviction can drop JWT blocklist/cache</td><td>Add password + AOF, keep on host for launch; move to ElastiCache when adding a second API instance</td></tr>
         <tr><td><b>Queue</b></td><td>Kafka container + init job</td><td>~1 GB RAM, operational overhead, not required for core journeys</td><td>Disable for launch unless a feature depends on it; revisit managed Kafka later</td></tr>
-        <tr><td><b>Frontend</b></td><td>Vercel (plan unclear), custom headers</td><td>Commercial use needs Pro; no CSP; camera/mic blocked by header</td><td>Vercel Pro, fix headers, set API/socket env, preview deployments for staging</td></tr>
-        <tr><td><b>Video</b></td><td>None on AWS path; self-hosted LiveKit only in VPS compose</td><td>Paid feature is dead; TURN/egress/ports are real ops work</td><td>LiveKit Cloud for launch (<code>$0–50</code>), or hide video; self-host only with ops capacity</td></tr>
-        <tr><td><b>Email</b></td><td>Resend API key configured</td><td>Domain verification/DNS unverified here; free tier volume limited</td><td>Verify SPF/DKIM/DMARC; Pro only if volume exceeds free tier</td></tr>
-        <tr><td><b>Payments</b></td><td>None — free self-upgrade endpoint</td><td>No revenue, no invoices, no tax, no refunds</td><td>Stripe Checkout + webhook if paid; otherwise remove paid CTAs for beta</td></tr>
-        <tr><td><b>AI</b></td><td>Groq + OpenRouter/HF Space, 50k-token allowance</td><td>Bypass paths; provider outage; spend visibility</td><td>Provider wrapper budget + spend alerts; set <code>$100</code> monthly cap at vendors</td></tr>
+        <tr><td><b>Frontend</b></td><td>Vercel (plan unclear), CSP + camera/mic headers, feature flags</td><td>Commercial use needs Pro; API/socket and flag values must be set per environment</td><td>Vercel Pro; set API/socket URLs, <code>REACT_APP_BILLING_ENABLED=false</code>, <code>REACT_APP_VIDEO_ENABLED=false</code></td></tr>
+        <tr><td><b>Video</b></td><td>LiveKit + Egress in the repo, behind <code>profiles: ["video"]</code>; dark by default</td><td>Current t3.small cannot host it; media ports and secrets are not configured</td><td>Resize to t3.medium or a separate media host; keep <code>VIDEO_ENABLED=0</code> until the two-browser test passes</td></tr>
+        <tr><td><b>Email</b></td><td>Resend API key configured; outbox worker delivers with retries</td><td>Domain verification/DNS unverified here; free tier volume limited</td><td>Verify SPF/DKIM/DMARC; Pro only if volume exceeds free tier</td></tr>
+        <tr><td><b>Payments</b></td><td>Closed for beta — upgrade returns 410; no self-service Pro</td><td>No revenue by design; no invoices/tax/refunds</td><td>Keep paid CTAs hidden; build Stripe Checkout + webhook before any paid launch</td></tr>
+        <tr><td><b>AI</b></td><td>DB-backed active provider configs; env fallback only; token allowance</td><td>Provider outage; spend visibility; key rotation</td><td>Provider wrapper budget + spend alerts; set vendor caps; rotate keys in admin</td></tr>
         <tr><td><b>Object storage</b></td><td>Uploads on EBS only</td><td>No off-host copy; volume loss = permanent file loss</td><td>S3 bucket for backups (and optionally uploads), versioned + lifecycle</td></tr>
         <tr><td><b>Monitoring</b></td><td>None (prints + Docker logs)</td><td>Users discover outages; no request tracing</td><td>Sentry + uptime probe + CloudWatch logs; alerts to email/Slack</td></tr>
         <tr><td><b>Edge</b></td><td>nginx + app-level limiter</td><td>No WAF/edge rate limit; API origin exposed</td><td>Cloudflare Free (DNS/proxy) + nginx limits; Pro WAF only if abuse appears</td></tr>
@@ -1632,13 +1605,13 @@ frontend/Dockerfile / Dockerfile.prod      two build paths</div>
                                                    ▼
                                             Flask / gunicorn (EC2)
                                               │        │        │
-                                              │        │        └──▶ LiveKit Cloud (video, egress)
+                                              │        │        └──▶ LiveKit self-hosted (video, egress)
                                               │        └───────────▶ Redis (cache, limits, JWT blocklist)
                                               └────────────────────▶ RDS PostgreSQL + pgvector
                                                      │
         ┌────────────────────────────────────────────┼───────────────────────────────┐
         ▼                    ▼                       ▼                               ▼
-   Groq / OpenRouter     Resend (email)        Stripe (checkout/webhook)      Sentry + uptime
+   Groq / OpenRouter     Resend (email)        Stripe (future paid)      Sentry + uptime
         │
         └── nightly ──▶ S3 (DB dump + uploads) ──▶ lifecycle/retention</div>
     <p class="small muted" style="margin:10px 0 0"><b>Target state:</b> Kafka is off the launch-critical path. This is a change: the current deploy sets <code>KAFKA_ENABLED=1</code> (<code>.github/workflows/deploy.yml:198</code>) and runs one broker with RF=1. If a feature truly needs Kafka, fix the broker topology; otherwise disable it and revisit managed Kafka after launch.</p>
@@ -2158,8 +2131,8 @@ proxy_read_timeout 3600s;
       <thead><tr><th>Buy now</th><th>Why it is launch-critical</th><th>Est. cost</th><th>Action</th><th>Lead time</th></tr></thead>
       <tbody>
         <tr><td><b>Vercel Pro</b></td><td>Commercial hosting, team seats, preview/staging deploys</td><td>$20/user/mo</td><td>Upgrade org; connect repo; set env per environment</td><td>Same day</td></tr>
-        <tr><td><b>LiveKit Cloud</b></td><td>Video + TURN + egress without operating an SFU</td><td>$0–50/mo at beta volume</td><td>Create project; set URL/key/secret in API env; test two-party call</td><td>Same day</td></tr>
-        <tr><td><b>Stripe</b> <span class="tag gray">if paid</span></td><td>Checkout, subscriptions, invoices, tax hooks, webhooks</td><td>2.9% + $0.30 per charge; no monthly</td><td>Business verification, bank account, products/prices, webhook endpoint</td><td><b>1–7 days</b></td></tr>
+        <tr><td><b>LiveKit self-hosted</b> <span class="tag gray">no purchase</span></td><td>SFU + TURN + Egress already in the repo; open-source license</td><td>$0 license; host resize +$15/mo</td><td>Resize/separate media host; generate keys; open ports; flip <code>VIDEO_ENABLED=1</code>; test two-party call</td><td>1–2 h after host access</td></tr>
+        <tr><td><b>Stripe</b> <span class="tag gray">deferred</span></td><td>Checkout, subscriptions, invoices, tax hooks, webhooks</td><td>2.9% + $0.30 per charge; no monthly</td><td>Not needed for the free beta; start business verification before a paid launch</td><td><b>1-7 days</b></td></tr>
         <tr><td><b>Sentry</b></td><td>Error tracking with release + request context</td><td>$0–26/mo</td><td>Two projects (API, web); DSNs; PII scrubbing; alert rules</td><td>Same day</td></tr>
         <tr><td><b>Uptime probe</b></td><td>External detection of API/web/TLS failures</td><td>$0–10/mo</td><td>Probe <code>/api/health</code>, landing, and a synthetic login</td><td>Same day</td></tr>
         <tr><td><b>S3 + lifecycle</b></td><td>Off-host DB dumps and uploads; versioning; retention</td><td>$1–5/mo</td><td>Private bucket, SSE, versioning, 30/90/365 lifecycle, IAM role</td><td>Same day</td></tr>
@@ -2177,7 +2150,7 @@ proxy_read_timeout 3600s;
         <tr><td>AWS EC2 + EBS + data transfer</td><td>$25</td><td>$60</td><td>Depends on t3.small vs medium, snapshots, egress</td></tr>
         <tr><td>RDS PostgreSQL + pgvector</td><td>$25</td><td>$60</td><td>Single-AZ micro/small + storage/backups; Multi-AZ later ~2×</td></tr>
         <tr><td>Vercel Pro</td><td>$20</td><td>$40</td><td>Per seat; one or two seats</td></tr>
-        <tr><td>LiveKit Cloud</td><td>$0</td><td>$50</td><td>Usage-based; beta volume; confirm current pricing</td></tr>
+        <tr><td>LiveKit self-hosted</td><td>$0</td><td>$15</td><td>Open-source; host delta only (t3.small → t3.medium or separate media box)</td></tr>
         <tr><td>Resend</td><td>$0</td><td>$20</td><td>Free tier may cover early beta</td></tr>
         <tr><td>Sentry</td><td>$0</td><td>$26</td><td>Free tier may be enough for launch</td></tr>
         <tr><td>Uptime + status</td><td>$0</td><td>$10</td><td>Free probe first; status page later</td></tr>
@@ -2192,7 +2165,7 @@ proxy_read_timeout 3600s;
   <div class="grid2">
     <div class="callout amber">
       <b>Do not buy yet</b>
-      Multi-AZ RDS, ElastiCache, managed Kafka/MSK, dedicated LiveKit SFU + Egress, Datadog/Grafana Cloud at scale, PagerDuty, Auth0/Clerk, Algolia, a second region, SOC 2 certification, or a $10k pen test. None of these unlock launch; several add operational burden.
+      Multi-AZ RDS, ElastiCache, managed Kafka/MSK, LiveKit Cloud, Datadog/Grafana Cloud at scale, PagerDuty, Auth0/Clerk, Algolia, a second region, SOC 2 certification, or a $10k pen test. None of these unlock the free beta; several add operational burden.
     </div>
     <div class="callout blue">
       <b>Lead-time warnings</b>
@@ -2204,7 +2177,7 @@ proxy_read_timeout 3600s;
     <p class="small muted" style="margin:0 0 10px">Tick these off in order; most are same-day, Stripe is not.</p>
     <div class="checks">
       <label class="check"><input type="checkbox" class="task-check" data-task="buy-vercel"><span>Vercel Pro: org, repo, production + staging environments, env vars, domains</span></label>
-      <label class="check"><input type="checkbox" class="task-check" data-task="buy-livekit"><span>LiveKit Cloud: project, keys, public WSS URL, webhook, egress enabled</span></label>
+      <label class="check"><input type="checkbox" class="task-check" data-task="buy-livekit"><span>LiveKit self-hosted: keys, public WSS URL, media ports, Egress recordings</span></label>
       <label class="check"><input type="checkbox" class="task-check" data-task="buy-stripe"><span>Stripe: business verification, bank account, products/prices, webhook secret</span></label>
       <label class="check"><input type="checkbox" class="task-check" data-task="buy-sentry"><span>Sentry: API + web projects, DSNs, release tags, PII scrubbing, alert rules</span></label>
       <label class="check"><input type="checkbox" class="task-check" data-task="buy-uptime"><span>Uptime probe on API health, landing page, and synthetic login</span></label>
@@ -2224,13 +2197,13 @@ proxy_read_timeout 3600s;
     <table>
       <thead><tr><th>Vendor / platform</th><th>Configuration that must be explicit</th><th>Failure if missed</th></tr></thead>
       <tbody>
-        <tr><td><b>Vercel</b></td><td><code>REACT_APP_API_BASE_URL</code>, <code>REACT_APP_SOCKET_URL</code>, <code>REACT_APP_SENTRY_DSN</code>; CSP; Permissions-Policy; production + preview domains</td><td>API/socket calls hit the frontend origin; camera blocked; XSS unmitigated</td></tr>
+        <tr><td><b>Vercel</b></td><td><code>REACT_APP_API_BASE_URL</code>, <code>REACT_APP_SOCKET_URL</code>, <code>REACT_APP_SENTRY_DSN</code>, <code>REACT_APP_BILLING_ENABLED=false</code>, <code>REACT_APP_VIDEO_ENABLED=false</code>; CSP; Permissions-Policy; production + preview domains</td><td>API/socket calls hit the frontend origin; wrong feature flags expose paid/video paths; XSS unmitigated</td></tr>
         <tr><td><b>Cloudflare</b></td><td>DNS records for <code>app</code> and <code>api</code>; proxy on; SSL Full (strict); no cache on <code>/api</code>; WAF/bot settings</td><td>TLS loops, stale API responses, origin exposed</td></tr>
         <tr><td><b>AWS / EC2</b></td><td>Security group: 80/443 only (plus LiveKit ports if self-hosting); SSH restricted; EBS alarms; t3.medium memory</td><td>OOM kills, exposed services, disk-full outage</td></tr>
         <tr><td><b>RDS</b></td><td>Deletion protection, 14-day retention, snapshot before deploy, pgvector extension, connection limits</td><td>Irreversible data loss or migration failure</td></tr>
         <tr><td><b>S3</b></td><td>Block public access, SSE, versioning, lifecycle, restore test, IAM role (no long-lived keys)</td><td>Backup leak or un-restorable backup</td></tr>
-        <tr><td><b>LiveKit</b></td><td>Public WSS URL, API key/secret, webhook URL, egress bucket, room limits, TURN if self-hosted</td><td>503 tokens, no recordings, failed calls behind NAT</td></tr>
-        <tr><td><b>Stripe</b></td><td>Webhook signing secret, events (<code>checkout.session.completed</code>, <code>customer.subscription.*</code>, <code>invoice.payment_failed</code>), customer portal, tax</td><td>Entitlements never granted or never revoked; revenue leakage</td></tr>
+        <tr><td><b>LiveKit (self-hosted)</b></td><td>Public WSS URL, API key/secret, media ports, Egress recordings volume, room limits, TURN</td><td>503 tokens, no recordings, failed calls behind NAT</td></tr>
+        <tr><td><b>Stripe (future paid)</b></td><td>Webhook signing secret, events (<code>checkout.session.completed</code>, <code>customer.subscription.*</code>, <code>invoice.payment_failed</code>), customer portal, tax</td><td>Entitlements never granted or never revoked; revenue leakage</td></tr>
         <tr><td><b>Resend</b></td><td>Verified domain, SPF/DKIM/DMARC, from address, bounce/complaint webhook, suppression list</td><td>OTP in spam; registration blocked</td></tr>
         <tr><td><b>Sentry</b></td><td>Environment tags, release SHA, PII scrubbing, alert thresholds, owner routing</td><td>Noise, missed regressions, PII in error reports</td></tr>
         <tr><td><b>GitHub</b></td><td>Environments for staging/prod, required checks, branch protection, secret scoping</td><td>Red deploy; secret exposure across environments</td></tr>
@@ -2316,10 +2289,10 @@ proxy_read_timeout 3600s;
     <table>
       <thead><tr><th>Epic</th><th>Concrete code changes</th><th>Data / API impact</th><th>Effort</th><th>Depends on</th></tr></thead>
       <tbody>
-        <tr><td><b>E1 · Billing &amp; entitlements</b><br><span class="tag red">P0</span></td><td>Edit <code>api/subscription/routes.py</code>, <code>api/billing/routes.py</code>; new <code>api/billing/webhooks.py</code>, <code>utils/stripe_service.py</code>, <code>models/billing_event.py</code>; replace card form in <code>components/Pricing.js</code> + billing pages</td><td>Migration: Stripe customer/subscription IDs, period end, cancel flag, idempotent event log. New <code>/billing/checkout</code>, <code>/billing/portal</code>, <code>/webhooks/stripe</code>. Remove free upgrade and trial reset.</td><td>4–5 d</td><td>Stripe account; product decision</td></tr>
+        <tr><td><b>E1 · Billing &amp; entitlements</b><br><span class="tag green">Beta done</span></td><td><code>api/subscription/routes.py</code> returns 410; <code>upgrade_to_paid()</code> removed; paid CTAs hidden; trial immutable; tests added</td><td><b>Free beta shipped.</b> Future paid launch: Stripe Checkout, signature-verified webhook, event log, invoice/tax/refund policy, portal.</td><td>0 d beta / 4-5 d paid</td><td>Stripe account only for paid</td></tr>
         <tr><td><b>E2 · Password reset</b><br><span class="tag red">P0</span></td><td>New <code>api/auth/password_reset.py</code>; reuse <code>utils/otp.py</code> + <code>utils/email_service.py</code>; new <code>pages/ForgotPassword.jsx</code>, <code>ResetPassword.jsx</code>; routes in <code>App.js</code>, link in <code>SignIn.js</code></td><td>No new table if OTP reuse; add audit event. <code>POST /auth/password/forgot</code>, <code>POST /auth/password/reset</code>. Revoke all tokens on success.</td><td>1 d</td><td>Resend domain; OTP utilities</td></tr>
         <tr><td><b>E3 · Invitations</b><br><span class="tag red">P0</span></td><td>New <code>models/invitation.py</code>, invitation service + email template; replace <code>invite_team_member</code> in <code>api/org/organizations.py</code>; new <code>pages/InviteAccept.jsx</code></td><td>Migration: hashed token, org, email, role, expires_at, accepted_at, invited_by. New create/list/revoke/resend/accept endpoints. Stop creating users at invite time.</td><td>2 d</td><td>Resend; E2 for existing users</td></tr>
-        <tr><td><b>E4 · Video path</b><br><span class="tag red">P0</span></td><td>Edit <code>frontend/vercel.json</code>, <code>frontend/nginx-frontend.conf</code>, <code>nginx/nginx.vps.conf.template</code>; <code>utils/livekit_service.py</code> public URL; <code>docker-compose.aws.yml</code> + <code>deploy.yml</code></td><td>Env keys <code>LIVEKIT_URL</code>, <code>LIVEKIT_PUBLIC_URL</code>, key/secret; token endpoint returns browser-reachable WSS; no schema change.</td><td>1–2 d</td><td>LiveKit Cloud/self-host; DNS/TLS</td></tr>
+        <tr><td><b>E4 · Video path</b><br><span class="tag green">Code complete</span> <span class="tag amber">External</span></td><td>Camera/mic headers; LiveKit + Egress in AWS compose; recordings volume; nginx <code>/livekit/</code> proxy; deploy flag + secret validation; UI hidden when disabled</td><td>Resize/separate host, open media ports, generate LiveKit keys, set <code>VIDEO_ENABLED=1</code> + Vercel flag, run two-browser recording test.</td><td>1-2 h after access</td><td>Host resize; security group; no vendor purchase</td></tr>
         <tr><td><b>E5 · Tests &amp; CI gates</b><br><span class="tag red">P0</span></td><td>New <code>backend/tests/</code> (conftest, auth, billing, tenancy, invites, uploads), <code>pytest.ini</code>; fix/replace <code>frontend/src/App.test.js</code>; new <code>e2e/</code> Playwright; edit both workflows</td><td>No product API change. Required checks: pytest, Jest, build, migrations, critical audit. Deploy only from green <code>main</code>.</td><td>2–3 d</td><td>Staging; test DB</td></tr>
         <tr><td><b>E6 · Sessions &amp; CSP</b><br><span class="tag amber">P1</span></td><td>New refresh-token model + <code>api/auth/session.py</code>; rewrite <code>frontend/src/utils/auth.js</code> + fetch/socket auth; CSP in <code>vercel.json</code>/nginx; Sentry-friendly error boundary</td><td>Migration: refresh token hash, family, expiry, revoked_at. New <code>/auth/refresh</code>, <code>/auth/logout-all</code>. Access TTL 10–15 min.</td><td>2 d</td><td>E1? no; cookie/CORS decision</td></tr>
         <tr><td><b>E7 · Deletion &amp; export</b><br><span class="tag amber">P1</span></td><td>Edit <code>models/user.py</code> (<code>deleted_at</code>), <code>api/users/routes.py</code>; new cascade service + <code>jobs/purge_deleted.py</code>; wire <code>Settings.jsx</code></td><td>Migration: soft-delete flag, deletion request timestamp. <code>DELETE /users/me</code>, <code>GET /users/me/export</code>; revoke tokens + purge uploads.</td><td>1–2 d</td><td>Legal policy; E2 for re-auth</td></tr>
@@ -2410,7 +2383,7 @@ proxy_read_timeout 3600s;
     <div>
       <div class="eyebrow">10 · Verification log</div>
       <h2>What was actually run — and what it returned</h2>
-      <p>Static review is reproducible; runtime claims need staging confirmation. Commands below were run against this checkout on 22–29 Oct 2026; the backend suite, frontend suite, and production build were re-run on 29 Oct.</p>
+      <p>Static review is reproducible; runtime claims need staging confirmation. Commands below were run against this checkout on 22–30 Oct 2026; the backend suite, frontend suite, compose validation, and production build were re-run on 30 Oct.</p>
     </div>
   </div>
   <div class="table-wrap">
@@ -2418,16 +2391,18 @@ proxy_read_timeout 3600s;
       <thead><tr><th>Check</th><th>Command / method</th><th>Result</th></tr></thead>
       <tbody>
         <tr><td><b>Secret scan</b></td><td><code>git grep</code> for Groq/OpenRouter/OpenAI keys, AWS keys, private keys</td><td><span class="tag green">Pass</span> no live keys tracked; <code>backend/.env</code> is ignored and excluded from Docker. Local file still needs rotation.</td></tr>
-        <tr><td><b>Python syntax</b></td><td><code>py_compile</code> on 221 source files (excluding venv/migrations/tests)</td><td><span class="tag green">Pass</span> 0 failures.</td></tr>
+        <tr><td><b>Python syntax</b></td><td><code>py_compile</code> on 221 source files (excluding venv/migrations/tests)</td><td><span class="tag green">Pass</span> 0 failures; 37,054 total lines.</td></tr>
         <tr><td><b>App boot</b></td><td>Import <code>backend.app</code> with local services</td><td><span class="tag green">Pass</span> 296 URL rules registered; AI/Redis/Kafka initialize.</td></tr>
         <tr><td><b>Migrations</b></td><td>Parse revision graph; <code>flask db current</code> / <code>heads</code>; apply every revision to an empty database, downgrade the new revision, re-upgrade</td><td><span class="tag green">Pass</span> 50 files, single head <code>b1c2d3e4f5a6</code>; full empty-schema upgrade passed; <code>b1c2d3e4f5a6</code> downgraded to <code>f2a3b4c5d6e7</code> and reapplied; all new indexes present.</td></tr>
         <tr><td><b>Frontend build</b></td><td><code>CI=true npm run build</code></td><td><span class="tag green">Pass</span> main bundle 320.3 kB raw / 94.3 kB gzip; compiled successfully.</td></tr>
         <tr><td><b>Frontend tests</b></td><td><code>CI=true npm test -- --watchAll=false --runInBand</code></td><td><span class="tag green">Pass</span> 5 suites / 42 tests, including auth-session memory-only token, safe-redirect, universal search ranking, and page-manager access fixture tests.</td></tr>
-        <tr><td><b>Backend tests</b></td><td><code>python -m pytest backend/tests -q</code> against PostgreSQL + pgvector, isolated schema</td><td><span class="tag green">Pass</span> 98 tests; auth sessions, reset, invitations, rate limits, universal search, admin plans/AI providers, privacy export/deletion/purge, scheduler, AI budget, schema/index contracts.</td></tr>
+        <tr><td><b>Backend tests</b></td><td><code>python -m pytest backend/tests -q</code> against PostgreSQL + pgvector, isolated schema</td><td><span class="tag green">Pass</span> 100 tests in 517 s; auth sessions, reset, invitations, rate limits, universal search, admin plans/AI providers, privacy export/deletion/purge, scheduler, AI budget, free-beta upgrade refusal, LiveKit URL validation, schema/index contracts.</td></tr>
+        <tr><td><b>Free-beta billing</b></td><td>pytest <code>test_subscription.py</code> + UI flag inspection</td><td><span class="tag green">Pass</span> upgrade returns 410 <code>billing_disabled</code>, expired trial remains expired, account unchanged; paid CTAs hidden in pricing/paywall/CVAI/billing.</td></tr>
+        <tr><td><b>Self-hosted video config</b></td><td><code>docker compose config --quiet</code> for AWS (plain + <code>--profile video</code>) and VPS (with env file)</td><td><span class="tag green">Pass</span> AWS parses with video off and no LiveKit keys; profile parses with dummy keys. Render script fails closed when <code>VIDEO_ENABLED=1</code> and a key/URL is missing.</td></tr>
         <tr><td><b>Dependency audit</b></td><td><code>npm audit --omit=dev</code></td><td><span class="tag green">Pass</span> 0 production vulnerabilities (was 105: 3 critical, 81 high, 17 moderate, 4 low).</td></tr>
         <tr><td><b>Route inventory</b></td><td>Python AST over <code>backend/</code></td><td><span class="tag blue">Info</span> 308 decorators, 19 without decorator-level auth (login, register, refresh, OTP, public profiles/posts, health, uploads, issue report).</td></tr>
-        <tr><td><b>Code size</b></td><td>Line counts</td><td><span class="tag blue">Info</span> backend 37,089 lines / 221 files (excluding venv/migrations/tests); frontend 40,274 lines / 173 files (including tests); 59 models.</td></tr>
-        <tr><td><b>Repo state</b></td><td><code>git status --short</code></td><td><span class="tag amber">Attention</span> Local <code>underdev</code> has five unpushed commits with profile, organization-loader, admin AI provider, plan, fresh-migration, and universal-search fixes. Latest pushed commit: <code>6ee7076</code>.</td></tr>
+        <tr><td><b>Code size</b></td><td>Line counts</td><td><span class="tag blue">Info</span> backend 37,054 lines / 221 files (excluding venv/migrations/tests); frontend 40,449 lines / 174 files (including tests); 64 models.</td></tr>
+        <tr><td><b>Repo state</b></td><td><code>git status --short</code></td><td><span class="tag amber">Attention</span> Local <code>underdev</code> has six unpushed commits with profile, organization-loader, admin AI provider, plan, fresh-migration, universal-search, free-beta, and self-hosted-video work. Latest pushed commit: <code>6ee7076</code>.</td></tr>
         <tr><td><b>P1-01 rate limits</b></td><td>Local Flask burst + config inspection</td><td><span class="tag green">Pass</span> 11th login attempt returns JSON 429 with <code>Retry-After: 60</code>; authenticated route keys by user id; defaults 3,000/hour, 30,000/day.</td></tr>
         <tr><td><b>P1-02 refresh flow</b></td><td>Ephemeral local Flask API flows</td><td><span class="tag green">Pass</span> login/OTP/invite issue refresh cookie + access token, refresh rotates, replay revokes family, logout and password reset revoke, no access cookie set.</td></tr>
         <tr><td><b>P0-04 invite flow</b></td><td>Ephemeral local Flask API flow with email mock</td><td><span class="tag green">Pass</span> invite creates no user, new/existing/legacy accept, registration still works, resend rotates token, revoke/expiry rejected.</td></tr>
@@ -2465,8 +2440,8 @@ proxy_read_timeout 3600s;
     <table>
       <thead><tr><th>Decision</th><th>Options</th><th>Recommendation</th><th>Owner / by</th></tr></thead>
       <tbody>
-        <tr><td><b>Launch model</b></td><td>Paid with Stripe vs free beta vs waitlist</td><td>Free beta if Stripe cannot be finished by Day 2; remove the $15/14-day claims. Paid only with a webhook-verified entitlement.</td><td>Product · D0</td></tr>
-        <tr><td><b>Video</b></td><td>Self-host LiveKit on AWS vs LiveKit Cloud vs hide video</td><td>LiveKit Cloud is the fastest reliable path; self-host only if ops has capacity for TURN/ports/egress. Hide if not working by D3.</td><td>Eng/Product · D0</td></tr>
+        <tr><td><b>Launch model</b></td><td>Paid with Stripe vs free beta vs waitlist</td><td><b>Decided: free beta.</b> Upgrade returns 410, paid CTAs are hidden, 30-day trial. Paid launch only after webhook-verified billing exists.</td><td>Product · D0</td></tr>
+        <tr><td><b>Video</b></td><td>Self-host LiveKit on AWS vs LiveKit Cloud vs hide video</td><td><b>Decided: self-hosted LiveKit + Egress.</b> Ship dark until the host, ports, keys, and two-browser recording test are done. No LiveKit Cloud purchase.</td><td>Eng/Product · D0</td></tr>
         <tr><td><b>Session model</b></td><td>HttpOnly cookies + refresh vs localStorage + strict CSP</td><td>Cookies + refresh; the split-domain setup supports it with CORS credentials. If deferred, strict CSP is mandatory.</td><td>Eng · D3</td></tr>
         <tr><td><b>Org roles</b></td><td>Cosmetic labels vs enforced matrix</td><td>Enforce a 4-role matrix; billing/role/deletion reserved for Admin. A Viewer that can delete members is a support incident waiting to happen.</td><td>Product/Eng · D3</td></tr>
         <tr><td><b>Deletion policy</b></td><td>Immediate hard delete vs 30-day soft delete</td><td>Soft delete + grace period, hard-delete job, documented retention; honor immediate deletion on request.</td><td>Legal/Product · D2</td></tr>
@@ -2489,14 +2464,14 @@ proxy_read_timeout 3600s;
     <div class="card pad">
       <h3 style="margin:0 0 10px;font-size:15px">Surface area</h3>
       <dl class="kv">
-        <dt>Backend source</dt><dd>221 files · 37,089 lines (excl. venv/migrations/tests)</dd>
-        <dt>Frontend source</dt><dd>173 files · 40,274 lines (incl. tests)</dd>
-        <dt>Models</dt><dd>59</dd>
+        <dt>Backend source</dt><dd>221 files · 37,054 lines (excl. venv/migrations/tests)</dd>
+        <dt>Frontend source</dt><dd>174 files · 40,449 lines (incl. tests)</dd>
+        <dt>Models</dt><dd>64</dd>
         <dt>Route decorators</dt><dd>308 (296 registered rules)</dd>
         <dt>Public routes</dt><dd>19 at decorator level</dd>
         <dt>Migrations</dt><dd>50 files · 1 head</dd>
         <dt>Frontend tests</dt><dd>5 suites · 42 passing</dd>
-        <dt>Backend tests</dt><dd>98 passing</dd>
+        <dt>Backend tests</dt><dd>100 passing</dd>
       </dl>
     </div>
     <div class="card pad">
@@ -2520,11 +2495,11 @@ proxy_read_timeout 3600s;
       <table>
         <thead><tr><th>ID</th><th>Finding</th><th>Severity</th><th>Area</th></tr></thead>
         <tbody>
-          <tr><td><b>P0-01</b></td><td>Video blocked + no LiveKit in AWS</td><td><span class="tag red">P0</span></td><td>Product</td></tr>
-          <tr><td><b>P0-02</b></td><td>Free/self-service paid access; trial resettable</td><td><span class="tag red">P0</span></td><td>Billing</td></tr>
+          <tr><td><b>P0-01</b></td><td>Self-hosted video wired; activation pending</td><td><span class="tag red">P0</span> <span class="tag green">Code complete</span></td><td>Product</td></tr>
+          <tr><td><b>P0-02</b></td><td>Free self-service Pro; trial resettable</td><td><span class="tag red">P0</span> <span class="tag green">Fixed</span></td><td>Billing</td></tr>
           <tr><td><b>P0-03</b></td><td>No password reset</td><td><span class="tag red">P0</span></td><td>Product</td></tr>
           <tr><td><b>P0-04</b></td><td>Invites create unreachable accounts / email squatting</td><td><span class="tag red">P0</span></td><td>Security</td></tr>
-          <tr><td><b>P0-05</b></td><td>No backend tests; deploy on every push</td><td><span class="tag red">P0</span> <span class="tag amber">Partial</span></td><td>Quality</td></tr>
+          <tr><td><b>P0-05</b></td><td>Tests + CI gate live; staging E2E pending</td><td><span class="tag red">P0</span> <span class="tag amber">Partial</span></td><td>Quality</td></tr>
           <tr><td><b>P1-01</b></td><td>Default 50/hour rate limits</td><td><span class="tag amber">P1</span> <span class="tag green">Fixed</span></td><td>Reliability</td></tr>
           <tr><td><b>P1-02</b></td><td>localStorage JWT, 2h expiry, no CSP</td><td><span class="tag amber">P1</span> <span class="tag green">Fixed</span></td><td>Security</td></tr>
           <tr><td><b>P1-03</b></td><td>Account deletion/export implemented with grace period and purge</td><td><span class="tag amber">P1</span> <span class="tag green">Fixed</span></td><td>Privacy</td></tr>
@@ -2534,12 +2509,12 @@ proxy_read_timeout 3600s;
           <tr><td><b>P1-07</b></td><td>No error tracking; fake readiness</td><td><span class="tag amber">P1</span> <span class="tag green">Fixed</span></td><td>Ops</td></tr>
           <tr><td><b>P1-08</b></td><td>Uploads not backed up; no restore drill</td><td><span class="tag amber">P1</span> <span class="tag green">Fixed</span></td><td>Ops</td></tr>
           <tr><td><b>P1-09</b></td><td>Cert renewal doesn’t reload nginx</td><td><span class="tag amber">P1</span> <span class="tag green">Fixed</span></td><td>Ops</td></tr>
-          <tr><td><b>P1-10</b></td><td>No staging/tests/snapshot/rollback on deploy</td><td><span class="tag amber">P1</span> <span class="tag amber">Partial</span></td><td>Ops</td></tr>
+          <tr><td><b>P1-10</b></td><td>Deploy has tests/rollback; no staging or required checks</td><td><span class="tag amber">P1</span> <span class="tag amber">Partial</span></td><td>Ops</td></tr>
           <tr><td><b>P1-11</b></td><td>Unpinned deps; 105 npm advisories; CRA EOL</td><td><span class="tag amber">P1</span> <span class="tag green">Fixed</span></td><td>Quality</td></tr>
           <tr><td><b>P1-12</b></td><td>Login enumeration; sessions survive password change</td><td><span class="tag amber">P1</span> <span class="tag green">Fixed</span></td><td>Security</td></tr>
           <tr><td><b>P1-13</b></td><td>Config drift / wrong API fallback / duplicate property</td><td><span class="tag amber">P1</span> <span class="tag green">Fixed</span></td><td>Config</td></tr>
           <tr><td><b>P1-14</b></td><td>No edge rate limiting or WAF</td><td><span class="tag amber">P1</span> <span class="tag green">Fixed</span></td><td>Security</td></tr>
-          <tr><td><b>P1-15</b></td><td>Pricing contradicts product</td><td><span class="tag amber">P1</span></td><td>Billing</td></tr>
+          <tr><td><b>P1-15</b></td><td>Pricing contradicts product</td><td><span class="tag amber">P1</span> <span class="tag green">Fixed</span></td><td>Billing</td></tr>
           <tr><td><b>P2-01</b></td><td>Redis KEYS invalidation</td><td><span class="tag blue">P2</span> <span class="tag green">Fixed</span></td><td>Performance</td></tr>
           <tr><td><b>P2-02</b></td><td>Profile serialization N+1</td><td><span class="tag blue">P2</span> <span class="tag green">Fixed</span></td><td>Performance</td></tr>
           <tr><td><b>P2-03</b></td><td>Public detailed health</td><td><span class="tag blue">P2</span> <span class="tag green">Fixed</span></td><td>Security</td></tr>

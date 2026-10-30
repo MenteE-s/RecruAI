@@ -6,6 +6,7 @@ import { parseUTC } from "../utils/timezone";
 import DualTime from "../components/ui/DualTime";
 import socketService from "../utils/socket";
 import { getCurrentUser } from "../utils/auth";
+import { VIDEO_ENABLED } from "../utils/video";
 // LiveKit is the heaviest vendor in the bundle: load it only when a video
 // interview actually renders, not on every dashboard visit. (Deliberately
 // not per-route splitting: that put a spinner on every first page visit.)
@@ -548,7 +549,7 @@ const InterviewRoom = () => {
 
       case "video":
       case "human_video":
-        if (process.env.REACT_APP_VIDEO_ENABLED !== "true") {
+        if (!VIDEO_ENABLED) {
           return (
             <div className="min-h-screen bg-gray-100 flex items-center justify-center">
               <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full text-center">

@@ -48,9 +48,10 @@ DB_PORT="$(printf '%s' "$URL" | sed -E 's|.*@[^:/]+:?([0-9]*)/.*|\1|')"
 DB_PORT="${DB_PORT:-5432}"
 DB_NAME="$(printf '%s' "$URL" | sed -E 's|.*/([^/?]+).*|\1|')"
 
-# Video is gated off for the controlled beta. LiveKit keys are required only
-# when VIDEO_ENABLED=1; fail the deploy otherwise instead of shipping a
-# backend that reports video "unconfigured" at request time.
+# Video is opt-in via the VIDEO_ENABLED repository variable. LiveKit URLs and
+# keys are required only when VIDEO_ENABLED=1; fail the deploy otherwise
+# instead of shipping a backend that reports video "unconfigured" at request
+# time.
 VIDEO_ENABLED="${VIDEO_ENABLED:-0}"
 if [ "$VIDEO_ENABLED" = "1" ]; then
   : "${LIVEKIT_URL:?LIVEKIT_URL is required when VIDEO_ENABLED=1}"

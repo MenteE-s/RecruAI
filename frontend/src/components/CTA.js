@@ -51,7 +51,7 @@ const CTA = () => {
           </span>
           <span className="flex items-center gap-2">
             <span className="w-2 h-2 bg-green-400"></span>
-            14-day premium trial
+            30-day premium trial
           </span>
           <span className="flex items-center gap-2">
             <span className="w-2 h-2 bg-green-400"></span>

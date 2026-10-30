@@ -11,6 +11,7 @@ import {
   getUploadUrl,
 } from "../../utils/auth";
 import { parseUTC } from "../../utils/timezone";
+import { VIDEO_ENABLED } from "../../utils/video";
 import DualTime from "../../components/ui/DualTime";
 
 // Modal Component
@@ -357,8 +358,12 @@ const ScheduleInterviewModal = ({
               className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
             >
               <option value="text">💬 Text Chat Interview</option>
-              <option value="ai_video">🤖 AI Video Interview</option>
-              <option value="human_video">👥 Human Video Interview</option>
+              {VIDEO_ENABLED && (
+                <>
+                  <option value="ai_video">🤖 AI Video Interview</option>
+                  <option value="human_video">👥 Human Video Interview</option>
+                </>
+              )}
             </select>
           </div>
 
@@ -943,9 +948,13 @@ const EditInterviewModal = ({ isOpen, onClose, onSave, saving, interview }) => {
               className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
             >
               <option value="text">💬 Text Chat Interview</option>
-              <option value="ai_video">🤖 AI Video Interview</option>
-              <option value="human_video">👥 Human Video Interview</option>
-              <option value="video">📹 Video Call Interview</option>
+              {VIDEO_ENABLED && (
+                <>
+                  <option value="ai_video">🤖 AI Video Interview</option>
+                  <option value="human_video">👥 Human Video Interview</option>
+                  <option value="video">📹 Video Call Interview</option>
+                </>
+              )}
               <option value="phone">📞 Phone Call Interview</option>
               <option value="in-person">🏢 In-Person Interview</option>
             </select>

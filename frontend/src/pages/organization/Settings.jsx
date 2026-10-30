@@ -3,6 +3,7 @@ import DashboardLayout from "../../components/layout/DashboardLayout";
 import { verifyTokenWithServer, getBackendUrl, getAuthHeaders } from "../../utils/auth";
 import TimezoneSelector from "../../components/ui/TimezoneSelector";
 import PaymentMethods from "../../components/ui/PaymentMethods";
+import { BILLING_BETA_MESSAGE, BILLING_ENABLED } from "../../utils/billing";
 import OtpVerify from "../../components/auth/OtpVerify";
 import {
   FiSettings,
@@ -272,7 +273,11 @@ export default function OrganizationSettings() {
   const isPaid = organization?.subscription_status?.is_paid_active;
   const isTrial = organization?.subscription_status?.is_trial_active;
   const status = organization?.subscription_status;
-  const trialEnd = status?.trial_start_date ? new Date(new Date(status.trial_start_date).getTime() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString() : null;
+  const trialEnd = status?.trial_end_date
+    ? new Date(status.trial_end_date).toLocaleDateString()
+    : status?.trial_start_date
+      ? new Date(new Date(status.trial_start_date).getTime() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString()
+      : null;
 
   const orgName = organization?.name || user?.organization_name || "Organization";
 
@@ -455,7 +460,16 @@ export default function OrganizationSettings() {
               <p className="text-sm text-gray-500 mt-1 flex items-center gap-1.5"><span className="inline-flex items-center gap-1 text-xs bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5">🪙 Tokens: {status?.tokens_used?.toLocaleString() || "0"}</span> {isPaid ? "Full access to advanced hiring tools" : isTrial ? `Trial — ${status?.features_accessible?.includes("all") ? "full features" : "limited features"}` : "Limited for small teams"}</p>
               {isTrial && trialEnd && <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 inline-flex items-center gap-1.5 px-2.5 py-1 mt-2"><FiClock className="w-3.5 h-3.5" /> Trial expires: {trialEnd}</p>}
             </div>
-            {!isPaid && <button className="px-6 py-3 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors">Upgrade to Pro <FiArrowRight className="w-4 h-4 inline ml-1" /></button>}
+            {!isPaid && BILLING_ENABLED && (
+              <button className="px-6 py-3 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors">
+                Upgrade to Pro <FiArrowRight className="w-4 h-4 inline ml-1" />
+              </button>
+            )}
+            {!isPaid && !BILLING_ENABLED && (
+              <span className="text-xs text-amber-700 bg-amber-50 border border-amber-200 px-3 py-2">
+                Paid upgrades are closed during the beta.
+              </span>
+            )}
           </div>
         </div>
 
@@ -471,9 +485,19 @@ export default function OrganizationSettings() {
             </div>
             <div className={`border p-5 ${isPaid ? "border-green-500 bg-green-50/50" : "border-gray-200 bg-white"}`}>
               <h4 className="text-sm font-semibold text-gray-900 flex items-center gap-2">Pro {isPaid && <span className="text-xs bg-green-600 text-white px-2 py-0.5">ACTIVE</span>}</h4>
-              <p className="text-2xl font-bold text-gray-900 mt-2">$29.99<span className="text-sm font-normal text-gray-500">/month</span></p>
+              <p className="text-2xl font-bold text-gray-900 mt-2">
+                {BILLING_ENABLED ? <>$29.99<span className="text-sm font-normal text-gray-500">/month</span></> : "Included during beta"}
+              </p>
               <ul className="mt-3 space-y-1.5 text-sm text-gray-600"><li className="flex gap-2"><FiCheckCircle className="w-4 h-4 text-green-600 shrink-0 mt-0.5" /> Unlimited team & AI matching</li><li className="flex gap-2"><FiCheckCircle className="w-4 h-4 text-green-600 shrink-0 mt-0.5" /> Advanced posting & full analytics</li><li className="flex gap-2"><FiCheckCircle className="w-4 h-4 text-green-600 shrink-0 mt-0.5" /> Integrations & API</li></ul>
-              {isPaid ? <span className="inline-flex mt-3 text-xs bg-green-600 text-white px-3 py-1.5 font-medium">Current plan</span> : <button className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700">Upgrade now <FiArrowRight className="w-4 h-4" /></button>}
+              {isPaid ? (
+                <span className="inline-flex mt-3 text-xs bg-green-600 text-white px-3 py-1.5 font-medium">Current plan</span>
+              ) : BILLING_ENABLED ? (
+                <button className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700">
+                  Upgrade now <FiArrowRight className="w-4 h-4" />
+                </button>
+              ) : (
+                <span className="mt-3 inline-flex text-xs text-gray-500">Paid upgrades are closed during the beta.</span>
+              )}
             </div>
           </div>
         </div>
@@ -597,7 +621,15 @@ export default function OrganizationSettings() {
         {/* Payment */}
         <div className="bg-white border border-gray-200 p-6">
           <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2"><FiCreditCard className="w-4 h-4 text-gray-500" /> Payment methods</h3>
-          <div className="mt-4"><PaymentMethods storageKey={organization?.id ? `recruai_cards_org_${organization.id}` : "recruai_cards_org"} /></div>
+          <div className="mt-4">
+            {BILLING_ENABLED ? (
+              <PaymentMethods storageKey={organization?.id ? `recruai_cards_org_${organization.id}` : "recruai_cards_org"} />
+            ) : (
+              <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 px-3 py-2">
+                {BILLING_BETA_MESSAGE}
+              </p>
+            )}
+          </div>
         </div>
 
         {/* Billing */}
@@ -605,8 +637,8 @@ export default function OrganizationSettings() {
           <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2"><FiClock className="w-4 h-4 text-gray-500" /> Billing history</h3>
           <div className="mt-4 text-center py-6 border border-dashed border-gray-200 rounded-lg">
             <FiClock className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-            <p className="text-sm text-gray-500">No invoices yet</p>
-            <p className="text-xs text-gray-400 mt-1">Your billing history will appear here</p>
+            <p className="text-sm text-gray-500">{BILLING_ENABLED ? "No invoices yet" : "Billing is not active during the beta"}</p>
+            <p className="text-xs text-gray-400 mt-1">{BILLING_ENABLED ? "Your billing history will appear here" : BILLING_BETA_MESSAGE}</p>
           </div>
         </div>
 

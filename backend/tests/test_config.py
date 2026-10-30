@@ -66,10 +66,22 @@ def test_production_validation_requires_livekit_only_when_video_enabled():
     ok = _prod_env(
         VIDEO_ENABLED="1",
         LIVEKIT_URL="ws://livekit:7880",
+        LIVEKIT_PUBLIC_URL="wss://api.recruai.menteeai.org/livekit/",
         LIVEKIT_API_KEY="key",
         LIVEKIT_API_SECRET="secret",
     )
     assert validate_production_config(ok) == []
+
+    with pytest.raises(RuntimeError, match="LIVEKIT_PUBLIC_URL"):
+        validate_production_config(
+            _prod_env(
+                VIDEO_ENABLED="1",
+                LIVEKIT_URL="ws://livekit:7880",
+                LIVEKIT_PUBLIC_URL="",
+                LIVEKIT_API_KEY="key",
+                LIVEKIT_API_SECRET="secret",
+            )
+        )
 
 
 def test_production_boot_fails_closed_without_redis():

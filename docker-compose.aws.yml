@@ -121,6 +121,8 @@ services:
     volumes:
       # Persist user/org uploads outside the container filesystem
       - backend_uploads:/app/backend/uploads
+      # Egress writes finished MP4s here; the backend serves them.
+      - recordings:/app/backend/uploads/recordings
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -154,8 +156,9 @@ services:
       IS_PRODUCTION: "1"
     command: ["python", "-m", "backend.worker"]
     volumes:
-      # The purge job removes this user's files; it must see the same volume.
+      # The purge job removes this user's files; it must see the same volumes.
       - backend_uploads:/app/backend/uploads
+      - recordings:/app/backend/uploads/recordings
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -195,6 +198,91 @@ services:
         condition: service_healthy
     mem_limit: 192m
 
+  # Self-hosted video (LiveKit SFU + TURN + recording egress). This is opt-in
+  # because the API box is a 2GB t3.small: start the `video` profile only after
+  # resizing to at least t3.medium or moving Kafka/Redis off the box.
+  # Signaling reaches browsers as wss://<API_DOMAIN>/livekit/ via nginx.
+  # Security group: TCP 7881, TCP+UDP 7882, TCP+UDP 3478, UDP 50000-50050.
+  #
+  # LiveKit keys interpolate with empty defaults so plain `docker compose`
+  # commands still parse while the video profile is off. The render step
+  # (scripts/render-production-env.sh) refuses to write .env.production when
+  # VIDEO_ENABLED=1 and any LiveKit value is missing.
+  livekit:
+    profiles: ["video"]
+    image: livekit/livekit-server:v1.8.4@sha256:621fd87bd64a0c83e1f2418ee0323eb920d00acdd73e5f79b303c64f6cc532af
+    container_name: recruai_livekit
+    restart: unless-stopped
+    mem_limit: 512m
+    ports:
+      - "7881:7881/tcp" # ICE/TCP fallback
+      - "7882:7882/tcp" # ICE/TCP multiplex
+      - "7882:7882/udp" # ICE/UDP multiplex
+      - "3478:3478/tcp" # TURN/TCP
+      - "3478:3478/udp" # TURN/UDP
+      - "50000-50050:50000-50050/udp" # WebRTC media
+    environment:
+      LIVEKIT_CONFIG: |
+        port: 7880
+        bind_addresses:
+          - "0.0.0.0"
+        rtc:
+          tcp_port: 7881
+          udp_port: 7882
+          port_range_start: 50000
+          port_range_end: 50050
+          use_external_ip: true
+        keys:
+          ${LIVEKIT_API_KEY:-}: ${LIVEKIT_API_SECRET:-}
+        # Egress state + multi-node coordination live here.
+        redis:
+          address: redis:6379
+        room:
+          empty_timeout: 300
+          departure_timeout: 20
+          max_participants: 4
+        turn:
+          enabled: true
+          udp_port: 3478
+          external_tls: false
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:7880 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # Recording worker: room-composite MP4 -> /recordings. The recordings volume
+  # is shared with the backend/scheduler so playback and account purge work.
+  egress:
+    profiles: ["video"]
+    image: livekit/egress:v1.8.4@sha256:b66a3b1efb18a68e85d1cf1b6fc818018beb47475acbe8c282be353e2ab37f75
+    container_name: recruai_egress
+    restart: unless-stopped
+    mem_limit: 512m
+    cpus: 1.0
+    environment:
+      EGRESS_CONFIG_BODY: |
+        api_key: ${LIVEKIT_API_KEY:-}
+        api_secret: ${LIVEKIT_API_SECRET:-}
+        ws_url: ws://livekit:7880
+        redis:
+          address: redis:6379
+        cpu_cost:
+          room_composite_cpu_cost: 1
+          track_composite_cpu_cost: 1
+          track_cpu_cost: 0.5
+        log_level: info
+    volumes:
+      - recordings:/recordings
+    depends_on:
+      livekit:
+        condition: service_started
+      redis:
+        condition: service_healthy
+
   nginx:
     image: nginx:1.28-alpine@sha256:a8b39bd9cf0f83869a2162827a0caf6137ddf759d50a171451b335cecc87d236
     container_name: recruai_nginx
@@ -233,5 +321,6 @@ volumes:
   redisdata:
   kafkadata:
   backend_uploads:
+  recordings:
   certbot_www:
   letsencrypt:
