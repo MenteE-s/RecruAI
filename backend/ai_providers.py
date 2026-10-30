@@ -244,6 +244,12 @@ class OpenRouterLLMProvider(LLMProvider):
             "max_tokens": config.AI_MAX_TOKENS,
             "temperature": config.AI_TEMPERATURE,
         }
+        # Reasoning models can spend the entire completion budget on hidden
+        # reasoning and return content=null with finish_reason=length. RecruAI
+        # asks these models for strict JSON, so default to non-reasoning output.
+        # Set OPENROUTER_ALLOW_REASONING=1 for a model that genuinely needs it.
+        if os.getenv("OPENROUTER_ALLOW_REASONING", "0") != "1":
+            self.default_params["reasoning"] = {"enabled": False}
 
     def _headers(self) -> Dict[str, str]:
         return {
@@ -282,9 +288,20 @@ class OpenRouterLLMProvider(LLMProvider):
             choices = payload.get("choices") or []
             if not choices:
                 raise ValueError("OpenRouter returned no choices")
-            content = (choices[0].get("message") or {}).get("content")
+            choice = choices[0]
+            content = (choice.get("message") or {}).get("content")
             if not isinstance(content, str):
-                raise ValueError("OpenRouter returned no message content")
+                finish_reason = choice.get("finish_reason")
+                if finish_reason == "length":
+                    raise ValueError(
+                        f"OpenRouter model {self.model} exhausted max_tokens "
+                        "before producing content; choose a non-reasoning model "
+                        "or raise the completion budget"
+                    )
+                raise ValueError(
+                    f"OpenRouter returned no message content "
+                    f"(finish_reason={finish_reason})"
+                )
             self.last_token_usage = (payload.get("usage") or {}).get("total_tokens", 0)
             return content.strip()
         except Exception as e:

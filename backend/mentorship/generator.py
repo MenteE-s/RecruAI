@@ -18,6 +18,9 @@ from ..utils.ai_budget import AIBudgetError
 from ..utils import mentorship_planner as planner
 from ..utils.skill_taxonomy import LEVELS, resolve
 
+MAX_TARGET_SKILLS = 10
+STEP_BATCH_SIZE = 5
+
 PLAN_SYSTEM_PROMPT = """You are a pragmatic career mentor. You produce learning plans.
 
 Rules you must follow:
@@ -112,7 +115,8 @@ def propose_targets(goal: str, catalogue_slugs: List[str], user) -> Tuple[List[s
     prompt = (
         f"Role or goal: {goal}\n\n"
         f"Available skill slugs (choose from these only): {listing}\n\n"
-        "Which of these skills does this role actually require?"
+        f"Choose at most {MAX_TARGET_SKILLS} of the most important skills this "
+        "role actually requires. Prioritise the core skills over nice-to-haves."
     )
     try:
         response = AIService().generate_response(
@@ -125,7 +129,10 @@ def propose_targets(goal: str, catalogue_slugs: List[str], user) -> Tuple[List[s
     payload = extract_json(response)
     if not payload:
         return [], False
-    return planner.select_targets_from_text(json.dumps(payload.get("skills", [])), catalogue_slugs), True
+    selected = planner.select_targets_from_text(
+        json.dumps(payload.get("skills", [])), catalogue_slugs
+    )
+    return selected[:MAX_TARGET_SKILLS], True
 
 
 def propose_steps(gaps: List[Dict], goal: str, user,
@@ -143,26 +150,39 @@ def propose_steps(gaps: List[Dict], goal: str, user,
     ]
     if not readable:
         return []
-    prompt = (
-        f"Goal: {goal}\n"
-        f"Learner can give about {weekly_hours} hours a week.\n"
-        f"Money available for paid resources: {budget_amount} USD. Free is strongly preferred.\n\n"
-        f"Gaps to close (one step each, no others):\n{json.dumps(readable, indent=2)}\n"
-    )
-    try:
-        response = AIService().generate_response(
-            PLAN_SYSTEM_PROMPT, prompt, user=user, operation_type="cvai_plan"
+
+    # Small batches keep each JSON response inside the model's completion cap.
+    # A single call for 20+ gaps was routinely truncated mid-JSON, which looked
+    # like "the model returned nothing" even when it had done most of the work.
+    steps: List[Dict] = []
+    for start in range(0, len(readable), STEP_BATCH_SIZE):
+        batch = readable[start:start + STEP_BATCH_SIZE]
+        prompt = (
+            f"Goal: {goal}\n"
+            f"Learner can give about {weekly_hours} hours a week.\n"
+            f"Money available for paid resources: {budget_amount} USD. Free is strongly preferred.\n\n"
+            f"Gaps to close (one step each, no others):\n{json.dumps(batch, indent=2)}\n"
         )
-    except AIBudgetError:
-        # The route/global handler turns this into a 402. Returning [] here
-        # would misreport a budget stop as a malformed model suggestion.
-        raise
-    except Exception:
-        return []
-    payload = extract_json(response)
-    if not payload:
-        return []
-    return planner.validate_proposed_steps(payload.get("steps", []), readable)
+        try:
+            response = AIService().generate_response(
+                PLAN_SYSTEM_PROMPT, prompt, user=user, operation_type="cvai_plan"
+            )
+        except AIBudgetError:
+            # The route/global handler turns this into a 402. Returning [] here
+            # would misreport a budget stop as a malformed model suggestion.
+            raise
+        except Exception:
+            return []
+        payload = extract_json(response)
+        if not payload:
+            return []
+        batch_steps = planner.validate_proposed_steps(payload.get("steps", []), batch)
+        if not batch_steps:
+            return []
+        steps.extend(batch_steps)
+        if len(steps) >= planner.MAX_STEPS:
+            break
+    return steps[:planner.MAX_STEPS]
 
 
 def gaps_from_targets(targets: List[Dict]) -> List[Dict]:

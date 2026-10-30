@@ -88,9 +88,13 @@ class AIService:
                 actor=user,
                 operation_type=operation_type,
             )
+            provider_name = getattr(
+                self.llm_provider, "provider_name",
+                self.provider_manager.config.AI_PROVIDER,
+            )
             logger.info(
                 "ai response provider=%s operation=%s chars=%s",
-                self.provider_manager.config.AI_PROVIDER,
+                provider_name,
                 operation_type,
                 len(response or ""),
             )
@@ -102,9 +106,14 @@ class AIService:
             # stop as a malformed model response.
             raise
         except Exception:
+            active_provider = getattr(self.provider_manager, "_llm_provider", None)
+            provider_name = getattr(
+                active_provider, "provider_name",
+                self.provider_manager.config.AI_PROVIDER,
+            )
             logger.exception(
                 "AI service error provider=%s operation=%s",
-                self.provider_manager.config.AI_PROVIDER,
+                provider_name,
                 operation_type,
             )
             return "I apologize, but I'm having trouble processing your response right now. Could you please try again?"

@@ -104,6 +104,7 @@ def test_openrouter_chat_parses_openai_compatible_response(monkeypatch):
     assert seen["url"] == provider.API_URL
     assert seen["json"]["model"] == "test-model"
     assert seen["json"]["messages"] == [{"role": "user", "content": "hi"}]
+    assert seen["json"]["reasoning"] == {"enabled": False}
     assert seen["headers"]["Authorization"] == "Bearer test-key"
     assert seen["timeout"] == 7
     assert provider.get_last_token_usage() == 42

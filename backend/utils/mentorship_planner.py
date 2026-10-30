@@ -148,7 +148,13 @@ def validate_proposed_steps(proposed, gaps: List[Dict]) -> List[Dict]:
     idea, not the learner's, and letting it through inflates the totals with work
     nobody requested.
     """
-    in_scope = {g["slug"]: g for g in gaps if g.get("slug")}
+    # propose_steps sends "skill_slug" while gaps_from_targets uses "slug".
+    # Accept both; otherwise every model step is discarded as out of scope.
+    in_scope = {}
+    for gap in gaps:
+        slug = gap.get("slug") or gap.get("skill_slug")
+        if slug:
+            in_scope[slug] = gap
     if not in_scope:
         return []
 
