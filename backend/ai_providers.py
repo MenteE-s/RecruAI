@@ -223,6 +223,87 @@ class GroqLLMProvider(LLMProvider):
             return False
 
 
+class OpenRouterLLMProvider(LLMProvider):
+    """OpenRouter chat provider (OpenAI-compatible chat completions API)."""
+
+    API_URL = "https://openrouter.ai/api/v1/chat/completions"
+    MODELS_URL = "https://openrouter.ai/api/v1/models"
+
+    def __init__(self, api_key: str, model: Optional[str] = None, timeout: int = 30):
+        if not api_key:
+            raise ValueError("OpenRouter API key required")
+        if not model:
+            raise ValueError("A generation model is required for OpenRouter")
+
+        self.api_key = api_key
+        self.model = model
+        self.timeout = timeout
+        self.last_token_usage = 0
+        config = Config()
+        self.default_params = {
+            "max_tokens": config.AI_MAX_TOKENS,
+            "temperature": config.AI_TEMPERATURE,
+        }
+
+    def _headers(self) -> Dict[str, str]:
+        return {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": os.getenv("OPENROUTER_REFERER", "https://recruai.local"),
+            "X-Title": os.getenv("OPENROUTER_TITLE", "RecruAI"),
+        }
+
+    def generate(self, prompt: str, context: Optional[str] = None,
+                 params: Optional[Dict[str, Any]] = None) -> str:
+        messages = [{"role": "system", "content": prompt}]
+        if context:
+            messages.append({"role": "user", "content": context})
+        else:
+            messages = [
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": prompt},
+            ]
+        return self.chat(messages, params)
+
+    def chat(self, messages: List[Dict[str, str]],
+             params: Optional[Dict[str, Any]] = None) -> str:
+        try:
+            request_params = {**self.default_params}
+            if params:
+                request_params.update(params)
+            response = requests.post(
+                self.API_URL,
+                json={"model": self.model, "messages": messages, **request_params},
+                headers=self._headers(),
+                timeout=self.timeout,
+            )
+            response.raise_for_status()
+            payload = response.json()
+            choices = payload.get("choices") or []
+            if not choices:
+                raise ValueError("OpenRouter returned no choices")
+            content = (choices[0].get("message") or {}).get("content")
+            if not isinstance(content, str):
+                raise ValueError("OpenRouter returned no message content")
+            self.last_token_usage = (payload.get("usage") or {}).get("total_tokens", 0)
+            return content.strip()
+        except Exception as e:
+            logger.error(f"OpenRouter API error: {str(e)}")
+            raise
+
+    def get_last_token_usage(self) -> int:
+        return self.last_token_usage
+
+    def healthcheck(self) -> bool:
+        try:
+            response = requests.get(
+                self.MODELS_URL, headers=self._headers(), timeout=self.timeout
+            )
+            return response.ok
+        except Exception:
+            return False
+
+
 class LocalLLMProvider(LLMProvider):
     """Local LLM provider (placeholder for future implementation)"""
 
@@ -642,6 +723,20 @@ class AIProviderManager:
                 api_key=self.config.GROQ_API_KEY,
                 model=model,
                 timeout=self.config.AI_TIMEOUT
+            )
+
+        elif provider == "openrouter":
+            if not self.config.OPENROUTER_API_KEY:
+                raise ValueError("OPENROUTER_API_KEY required for OpenRouter")
+            model = self.config.OPENROUTER_MODEL
+            if not model:
+                raise ValueError(
+                    "OPENROUTER_MODEL (or AI_GENERATION_MODEL/AI_MODEL) is required"
+                )
+            return OpenRouterLLMProvider(
+                api_key=self.config.OPENROUTER_API_KEY,
+                model=model,
+                timeout=self.config.AI_TIMEOUT,
             )
 
         elif provider == "local":

@@ -153,6 +153,10 @@ def propose_steps(gaps: List[Dict], goal: str, user,
         response = AIService().generate_response(
             PLAN_SYSTEM_PROMPT, prompt, user=user, operation_type="cvai_plan"
         )
+    except AIBudgetError:
+        # The route/global handler turns this into a 402. Returning [] here
+        # would misreport a budget stop as a malformed model suggestion.
+        raise
     except Exception:
         return []
     payload = extract_json(response)

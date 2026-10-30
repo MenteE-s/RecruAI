@@ -195,6 +195,10 @@ class Config:
         return os.getenv("OPENAI_MODEL") or self.AI_GENERATION_MODEL
 
     @property
+    def OPENROUTER_MODEL(self):
+        return os.getenv("OPENROUTER_MODEL") or self.AI_GENERATION_MODEL
+
+    @property
     def AI_EMBEDDING_MODEL(self):
         return (os.getenv("AI_EMBEDDING_MODEL")
                 or os.getenv("EMBEDDING_MODEL"))

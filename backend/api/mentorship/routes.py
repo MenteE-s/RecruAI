@@ -141,6 +141,17 @@ def create_mentorship_plan():
                              'needed_level': 'Intermediate', 'state': 'missing'})
         targets = kept
 
+    # A failed provider call must not masquerade as "you already have every
+    # skill". That made a broken DB-backed LLM look like a completed profile
+    # and hid the real exception in the server log.
+    if not targets and not ai_ok:
+        return jsonify({
+            'error': 'Could not identify the skills for this goal',
+            'detail': ('The AI provider did not return a usable skill list. '
+                       'Check the active AI provider and try again.'),
+            'ai_available': False,
+        }), 502
+
     gaps = gaps_from_targets(targets)
     if not gaps:
         return jsonify({
