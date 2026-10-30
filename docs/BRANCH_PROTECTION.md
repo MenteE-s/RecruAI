@@ -4,10 +4,16 @@ Recommended settings for `main` (configure via GitHub UI or `gh` CLI).
 
 ## Required status checks
 
-- `validate` (backend tests, frontend tests, audit, build)
-- `validate / Run backend tests`
-- `validate / Run frontend tests`
-- `validate / Build frontend`
+- `validate` — backend pytest, frontend Jest, production dependency audit,
+  frontend build, admin lint/build, and Playwright smoke.
+
+Do not list individual step names (`validate / Run backend tests`, etc.) as
+required checks; GitHub reports the job check, not its steps.
+
+`check-migrations` is path-filtered to backend changes. Requiring it would
+leave frontend/admin-only PRs waiting for a check that never starts, so either
+keep it advisory or make its workflow run on every PR before marking it
+required.
 
 ## Settings
 
