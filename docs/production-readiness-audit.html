@@ -226,7 +226,8 @@
           <span class="pill amber">P0-01 code complete · activation pending</span>
           <span class="pill amber">P0-05 test gate live · staging E2E pending</span>
           <span class="pill green">100 backend + 42 frontend tests</span>
-          <span class="pill amber">6 local commits unpushed</span>
+          <span class="pill green">underdev pushed 30 Oct</span>
+          <span class="pill amber">production deploy pending</span>
           <span class="pill green">No committed secrets found</span>
         </div>
       </div>
@@ -770,7 +771,7 @@ backend/ai_service.py:90           print(f"DEBUG: AI response length: ...")</div
           <b>FIXED — 23 Oct 2026 (working tree; not deployed)</b>
           Budget enforcement moved into the provider itself. <code>AIProviderManager.llm</code> now returns a <code>BudgetedLLMProvider</code>, so a direct <code>chat</code>/<code>generate</code> call cannot bypass accounting. Every call resolves an actor (explicit user, organization, or the current JWT request), charges an organization member to that organization, and fails closed with <code>ai_unattributed</code> when enforcement is on and no account can be named. <code>reserve_budget</code> is one conditional PostgreSQL <code>UPDATE ... RETURNING</code>, so concurrent requests cannot both spend the same last tokens; after the provider reports usage, the reservation is reconciled to actual tokens and a <code>token_usage</code> row is written with user, organization, provider, model, operation, and timestamp. Reservation is released if the provider throws before reporting usage, and crossing 80% logs a structured warning. <code>AIBudgetError</code> is re-raised through <code>AIService</code> and tool layers; the app error handler returns JSON 402, while project and mock-interview reviews mark the attempt <code>unavailable</code> before returning it. Recommendations, RAG, mentorship, mock interviews, interview analysis/chat, project review, and org agent test/chat paths pass explicit actors and operation types. Candidate-content debug prints were removed; handlers log lengths/metadata only. <b>Local escape hatch:</b> <code>AI_BUDGET_ENABLED=0</code> is for development only; keep enforcement enabled in production. Verified by eight budget tests covering atomic reservation, actual-vs-estimate reconciliation, organization attribution, refusal before the provider call, fail-closed unattribution, release, service propagation, and the stable 402 body. <b>Optional production check:</b> set vendor spend caps as a second line of defence.
           <br><br>
-          <b>ADMIN-MANAGED PROVIDERS — 28 Oct 2026 (local commit; not pushed)</b>
+          <b>ADMIN-MANAGED PROVIDERS — 28 Oct 2026 (pushed 30 Oct; production activation pending)</b>
           The active LLM and embedding provider now live in <code>ai_provider_configs</code>. The separate admin app at <code>admin/</code> lists, creates, edits, activates, deletes, and tests both kinds, and one active row per kind wins over environment variables. Changing a row invalidates the manager in the request worker; a 60-second TTL re-read reaches the other gunicorn workers, and <code>AIService</code>/RAG/recommendation tools resolve the provider at call time instead of caching the boot-time fallback. API keys are XOR-obfuscated with the deployment <code>SECRET_KEY</code> and returned masked only; create/update responses never echo the plaintext secret. If no active DB row exists, the previous environment configuration remains the fallback, so first boot and local development still work. <b>Production check:</b> add and test the active providers in the admin UI before sending traffic.
         </div>
         <div class="done"><b>Done when</b><br>Every LLM call is attributable to a user/org and decrements a counter; a synthetic over-budget test is refused before the provider call; logs contain no message bodies.</div>
@@ -1078,8 +1079,8 @@ backend/tests/test_subscription.py   upgrade returns 410; expired trial stays ex
         </ul>
         <div class="done"><b>Done when</b><br>No page advertises a charge or trial length the product does not honor; the beta offer is explicit; legal review signs off. Copy and flags now satisfy this for the free beta.</div>
         <div class="callout green" style="margin:12px 0">
-          <b>Admin dashboard — 28 Oct 2026 (local commit; not pushed)</b><br>
-          A separate Vite app under <code>admin/</code> manages users, organizations, plan price/features/defaults, AI token allowances, per-account feature grants, AI providers, content banks, and outbox health. Every admin route re-reads <code>is_superadmin</code> from the database per request; no admin endpoint can grant itself that flag. Deploy it as its own Vercel project (prefer <code>admin.recruai.menteeai.org</code>) with <code>VITE_API_BASE_URL</code> pointing at the API, and set the backend's <code>ADMIN_ORIGIN</code> secret to the same admin URL so CORS accepts its credentialed requests.
+          <b>Admin dashboard — 28 Oct 2026, deployment config hardened 30 Oct (pushed; Vercel project pending)</b><br>
+          A separate Vite app under <code>admin/</code> manages users, organizations, plan price/features/defaults, AI token allowances, per-account feature grants, AI providers, content banks, and outbox health. Every admin route re-reads <code>is_superadmin</code> from the database per request; no admin endpoint can grant itself that flag. Deploy it as its own Vercel project (prefer <code>admin.recruai.menteeai.org</code>) with <code>VITE_API_BASE_URL</code> pointing at the API, and set the backend's <code>ADMIN_ORIGIN</code> secret to the same admin URL so CORS accepts its credentialed requests. <code>admin/vercel.json</code> now supplies the SPA rewrite needed for deep links, baseline security headers, and a CSP restricted to the production API; <code>admin/scripts/check-env.js</code> fails the build if the API origin is unset. The validate job now also runs on <code>admin/**</code> changes, lints the admin app, and builds it with the production API URL.
         </div>
       </div>
     </details>
@@ -1387,6 +1388,7 @@ frontend/Dockerfile / Dockerfile.prod      two build paths</div>
         <li><b>LiveKit networking</b> — TCP/UDP/TURN, TLS/WSS, public URL (P0-01)</li>
         <li><b>DB migration</b> — snapshot + run upgrade + verify (P0-04 and others)</li>
         <li><b>TLS timer</b> — reload nginx + expiry alert (P1-09)</li>
+        <li><b>Admin Vercel project</b> — root <code>admin</code>, <code>VITE_API_BASE_URL</code>, custom domain, backend <code>ADMIN_ORIGIN</code> (P0-05/P1-10)</li>
         <li><b>GitHub settings</b> — branch protection, required checks, staging secrets (P0-05/P1-10)</li>
         <li><b>S3 lifecycle + restore drill</b> — prove the backup restores (P1-08)</li>
         <li><b>Cookie/CORS + LB</b> — cookie domain, sticky sessions, WebSocket timeouts (P1-02/P2-09)</li>
@@ -2402,7 +2404,8 @@ proxy_read_timeout 3600s;
         <tr><td><b>Dependency audit</b></td><td><code>npm audit --omit=dev</code></td><td><span class="tag green">Pass</span> 0 production vulnerabilities (was 105: 3 critical, 81 high, 17 moderate, 4 low).</td></tr>
         <tr><td><b>Route inventory</b></td><td>Python AST over <code>backend/</code></td><td><span class="tag blue">Info</span> 308 decorators, 19 without decorator-level auth (login, register, refresh, OTP, public profiles/posts, health, uploads, issue report).</td></tr>
         <tr><td><b>Code size</b></td><td>Line counts</td><td><span class="tag blue">Info</span> backend 37,054 lines / 221 files (excluding venv/migrations/tests); frontend 40,449 lines / 174 files (including tests); 64 models.</td></tr>
-        <tr><td><b>Repo state</b></td><td><code>git status --short</code></td><td><span class="tag amber">Attention</span> Local <code>underdev</code> has six unpushed commits with profile, organization-loader, admin AI provider, plan, fresh-migration, universal-search, free-beta, and self-hosted-video work. Latest pushed commit: <code>6ee7076</code>.</td></tr>
+        <tr><td><b>Admin production config</b></td><td><code>VITE_API_BASE_URL=... npm run build</code>; unset-env check; JSON parse of <code>admin/vercel.json</code></td><td><span class="tag green">Pass</span> build succeeds at 296.95 kB raw / 90.51 kB gzip; missing API origin fails the prebuild; SPA rewrite and security headers validated.</td></tr>
+        <tr><td><b>Repo state</b></td><td><code>git status --short</code></td><td><span class="tag green">Pushed</span> <code>underdev</code> is pushed through at least <code>9085afe</code>, including the admin deployment hardening. Production deployment is still pending; no <code>main</code> push has been made.</td></tr>
         <tr><td><b>P1-01 rate limits</b></td><td>Local Flask burst + config inspection</td><td><span class="tag green">Pass</span> 11th login attempt returns JSON 429 with <code>Retry-After: 60</code>; authenticated route keys by user id; defaults 3,000/hour, 30,000/day.</td></tr>
         <tr><td><b>P1-02 refresh flow</b></td><td>Ephemeral local Flask API flows</td><td><span class="tag green">Pass</span> login/OTP/invite issue refresh cookie + access token, refresh rotates, replay revokes family, logout and password reset revoke, no access cookie set.</td></tr>
         <tr><td><b>P0-04 invite flow</b></td><td>Ephemeral local Flask API flow with email mock</td><td><span class="tag green">Pass</span> invite creates no user, new/existing/legacy accept, registration still works, resend rotates token, revoke/expiry rejected.</td></tr>
@@ -2411,7 +2414,7 @@ proxy_read_timeout 3600s;
         <tr><td><b>P1-03 privacy flow</b></td><td>Backend privacy tests against PostgreSQL</td><td><span class="tag green">Pass</span> re-auth required; secrets excluded; last-admin returns 409; deletion bumps token version and revokes refresh sessions; hard purge removes owned rows and keeps a non-PII audit; only due accounts purge.</td></tr>
         <tr><td><b>P1-04 scheduler</b></td><td>Scheduler tests and isolated migration</td><td><span class="tag green">Pass</span> 30-day boundary expires only old users/orgs; timed interview completion; advisory lock excludes a second worker; run/error rows persist; stale health returns false; due-account purge.</td></tr>
         <tr><td><b>P1-05 AI budget</b></td><td>Fake-provider tests, no vendor calls</td><td><span class="tag green">Pass</span> atomic reservation; actual usage ledger; org attribution; refusal before provider; fail-closed unattribution; release; AIBudgetError propagation; 402 JSON.</td></tr>
-        <tr><td><b>CI gate</b></td><td>Parse <code>deploy.yml</code>; inspect job graph</td><td><span class="tag green">Pass</span> <code>validate</code> runs backend tests, frontend tests, production audit, and build; <code>deploy</code> has <code>needs: validate</code>.</td></tr>
+        <tr><td><b>CI gate</b></td><td>Parse <code>deploy.yml</code>; inspect job graph</td><td><span class="tag green">Pass</span> <code>validate</code> runs backend tests, frontend tests, production audit, frontend build, admin lint/build, and Playwright smoke; <code>admin/**</code> changes trigger it; <code>deploy</code> has <code>needs: validate</code>.</td></tr>
       </tbody>
     </table>
   </div>
@@ -2419,7 +2422,7 @@ proxy_read_timeout 3600s;
   <div class="grid2" style="margin-top:16px">
     <div class="callout amber">
       <b>Not verified here</b>
-      Live Vercel env vars, production LiveKit keys, Resend domain verification, RDS backup retention, DNS/TLS, real payment state, and production logs. Each is a Day 0–2 checklist item.
+      Live Vercel env vars (including the admin project), production LiveKit keys, Resend domain verification, RDS backup retention, DNS/TLS, real payment state, and production logs. Each is a Day 0–2 checklist item.
     </div>
     <div class="callout blue">
       <b>Reproduce</b>

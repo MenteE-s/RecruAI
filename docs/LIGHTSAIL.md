@@ -76,6 +76,9 @@ Admin dashboard — separate Vercel project, Root Directory `admin`:
 - `VITE_API_BASE_URL=https://api.recruai.menteeai.org`
 - Prefer the custom domain `admin.recruai.menteeai.org` (same-site with the
   API, so the `Lax` refresh cookie keeps working).
+- `admin/vercel.json` supplies the SPA rewrite, security headers, and a CSP
+  limited to the production API. The build fails fast when
+  `VITE_API_BASE_URL` is missing.
 - Backend wiring: set GitHub secrets `ADMIN_ORIGIN` (the admin URL, appended
   to CORS origins on next deploy) and only-if-cross-site `REFRESH_COOKIE_SAMESITE=None`.
   See `admin/README.md`.
