@@ -30,6 +30,13 @@ Create a **separate Vercel project** pointing at this repo:
 - Output Directory: `dist`
 - Environment variable: `VITE_API_BASE_URL=https://api.recruai.menteeai.org`
 
+The production build fails with a named error when `VITE_API_BASE_URL` is
+unset (`admin/scripts/check-env.js`, run as `prebuild`) instead of silently
+calling the admin host for API traffic. `admin/vercel.json` adds the required
+SPA rewrite so deep links such as `/users` load the React app, plus baseline
+security headers and a CSP that allows API calls only to the production API
+origin. Update the CSP if the API host changes.
+
 Then wire the backend to accept it:
 
 1. Add a GitHub secret `ADMIN_ORIGIN` with the admin's public URL
