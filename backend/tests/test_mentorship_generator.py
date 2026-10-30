@@ -6,7 +6,7 @@ import pytest
 
 from backend.mentorship import generator
 from backend.utils.ai_budget import AIBudgetError
-from backend.utils.mentorship_planner import validate_proposed_steps
+from backend.utils.mentorship_planner import enforce_budget, validate_proposed_steps
 from backend.utils.skill_taxonomy import SKILLS
 
 
@@ -116,3 +116,23 @@ def test_propose_steps_batches_large_gap_lists(monkeypatch):
 
     assert FakeService.calls == len(chunks)
     assert [step["skill_slug"] for step in steps] == slugs
+
+
+def test_enforce_budget_moves_later_steps_to_full_path():
+    steps = [{
+        "skill_slug": f"skill-{i}",
+        "title": f"Step {i}",
+        "hours_estimate": 20,
+        "cost": 0,
+        "optional": False,
+    } for i in range(1, 5)]
+
+    kept, budget = enforce_budget(steps, 0, 5, target_weeks=12)
+
+    assert [step["title"] for step in kept] == ["Step 1", "Step 2", "Step 3"]
+    assert budget["total_hours"] == 60
+    assert budget["weeks_needed"] == 12
+    assert budget["dropped_count"] == 1
+    assert budget["deferred_count"] == 1
+    assert budget["dropped_steps"][0]["title"] == "Step 4"
+    assert budget["within_time"] is True

@@ -110,8 +110,14 @@ def create_mentorship_plan():
     # older clients and stored plans keep working.
     budget_amount = 0
     budget_currency = 'USD'
-    target_weeks = data.get('target_weeks')
-    target_weeks = clamp_int(target_weeks, 1, 520, None) if target_weeks else None
+    # New plans default to a 12-week starter horizon. An explicit null/empty
+    # value means "no deadline" and keeps the old full-path behavior for
+    # clients that opt out.
+    raw_target_weeks = data.get('target_weeks', 12)
+    if raw_target_weeks in (None, '', 0, '0'):
+        target_weeks = None
+    else:
+        target_weeks = clamp_int(raw_target_weeks, 1, 520, 12)
 
     existing = MentorshipPlan.query.filter_by(user_id=user.id, status='active').count()
     if existing >= MAX_PLANS_PER_USER:
@@ -181,6 +187,7 @@ def create_mentorship_plan():
         goal=goal,
         goal_post_id=post.id if post else None,
         weekly_hours=weekly_hours,
+        target_weeks=target_weeks,
         budget_amount=budget_amount,
         budget_currency=budget_currency,
         total_hours=budget['total_hours'],
@@ -191,6 +198,7 @@ def create_mentorship_plan():
     )
     plan.set_target_skills([t['slug'] for t in targets])
     plan.set_baseline_skills(analysis['current'])
+    plan.set_deferred_steps(budget.get('dropped_steps') or [])
     db.session.add(plan)
     db.session.flush()
 
@@ -217,7 +225,8 @@ def create_mentorship_plan():
         'unclassified_requirements': analysis['unclassified_requirements'],
         'gaps_addressed': [{'slug': g['slug'], 'name': g['name'], 'state': g['state']}
                            for g in gaps],
-        'dropped_optional_steps': budget['dropped_count'],
+        'dropped_optional_steps': budget.get('dropped_optional_count', 0),
+        'deferred_step_count': budget.get('deferred_count', 0),
         'within_time': budget['within_time'],
     }), 201
 
@@ -391,7 +400,9 @@ def regenerate_mentorship_plan(plan_id):
         }), 409
 
     steps = propose_steps(gaps, plan.goal, user, plan.budget_amount, plan.weekly_hours)
-    steps, budget = planner.enforce_budget(steps, plan.budget_amount, plan.weekly_hours)
+    steps, budget = planner.enforce_budget(
+        steps, plan.budget_amount, plan.weekly_hours, plan.target_weeks
+    )
     steps = planner.assign_target_dates(steps, plan.weekly_hours)
     if not steps:
         return jsonify({'error': 'Could not rebuild steps for this plan'}), 502
@@ -404,6 +415,7 @@ def regenerate_mentorship_plan(plan_id):
     plan.trim_reason = budget['trim_reason']
     plan.set_target_skills([t['slug'] for t in targets])
     plan.set_baseline_skills(analysis['current'])
+    plan.set_deferred_steps(budget.get('dropped_steps') or [])
     plan.status = 'active'
     plan.completed_at = None
     db.session.flush()
@@ -551,6 +563,7 @@ def mentorship_options():
         'levels': list(LEVELS),
         'weekly_hours_range': {'min': 1, 'max': 40, 'default': 5},
         'target_weeks_range': {'min': 1, 'max': 520},
+        'default_target_weeks': 12,
         'budget_enabled': False,
         'max_active_plans': MAX_PLANS_PER_USER,
     }), 200
