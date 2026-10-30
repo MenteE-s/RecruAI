@@ -221,9 +221,10 @@
         <h2>Production readiness: 58 / 100 — “free beta after external gates”</h2>
         <p>The dangerous code paths are closed: paid self-upgrade is gone, video is opt-in, entitlements are server-side, and the suite is green. What remains is operational proof — host capacity and media ports for LiveKit, email DNS, staging E2E, backups, and admin deployment.</p>
         <div class="pills">
-          <span class="pill green">0 open P0 code blockers</span>
+          <span class="pill green">0 P0 blockers for video-off beta</span>
+          <span class="pill amber">1 video-activation blocker (FR-01)</span>
           <span class="pill green">P0-02 closed by free beta</span>
-          <span class="pill amber">P0-01 code complete · activation pending</span>
+          <span class="pill amber">P0-01 wired · recording auth open</span>
           <span class="pill amber">P0-05 test gate live · staging E2E pending</span>
           <span class="pill green">100 backend + 42 frontend tests</span>
           <span class="pill green">underdev pushed 30 Oct</span>
@@ -250,6 +251,7 @@
     <a href="#gates">Launch gates</a>
     <a href="#risks">Risk register</a>
     <a href="#verify">Verification log</a>
+    <a href="SECURITY_PERFORMANCE_REVIEW.md">Focused review</a>
     <a href="#decisions">Decisions</a>
     <a href="#appendix">Appendix</a>
   </div>
@@ -266,10 +268,23 @@
   </div>
 
   <div class="grid4" style="margin-bottom:16px">
-    <div class="stat green"><b>0</b><span>open P0 code blockers</span></div>
-    <div class="stat amber"><b>4</b><span>P1 open · 12 fixed in code</span></div>
+    <div class="stat green"><b>0</b><span>P0 blockers for video-off beta</span></div>
+    <div class="stat amber"><b>1</b><span>P1 partial · 14 fixed in code</span></div>
     <div class="stat green"><b>100</b><span>backend tests pass</span></div>
     <div class="stat green"><b>42</b><span>frontend tests pass (5 suites)</span></div>
+  </div>
+
+  <div class="callout red" style="margin-bottom:14px">
+    <b>Focused security/performance review — 30 Oct 2026</b>
+    A source review found four issues not captured in the P1 table and two scale risks.
+    <b>FR-01</b> is a video-activation blocker: the public <code>/uploads</code> route serves
+    deterministic interview recording paths without auth. <b>FR-02</b> exposes organization
+    plan/subscription fields in public job payloads. <b>FR-03</b> leaves private-org job posts
+    reachable through the public posts API. <b>FR-04</b> lets the legacy shareable-profile route
+    expose organization ownership. Performance: <b>FR-06</b> has no trigram/full-text index
+    strategy for 1M-row search, and <b>FR-07</b> has N+1 query paths in search and mentorship lists.
+    Full evidence, severity, and smallest fixes: <a href="SECURITY_PERFORMANCE_REVIEW.md">SECURITY_PERFORMANCE_REVIEW.md</a>.
+    The free beta remains viable with video off; do not enable video until FR-01 is closed.
   </div>
 
   <div class="callout amber" style="margin-bottom:14px">
@@ -279,9 +294,9 @@
 
   <div class="grid2">
     <div class="card pad">
-      <h3 style="margin:0 0 8px;font-size:16px">P0 status — code fixes landed, one external activation left</h3>
+      <h3 style="margin:0 0 8px;font-size:16px">P0 status — beta fixes landed; video activation still gated</h3>
       <ul class="tight">
-        <li><b>Video is wired but not activated.</b> Camera/mic headers allow self, LiveKit + Egress are in the AWS compose behind the <code>video</code> profile, nginx proxies <code>/livekit/</code>, and the deploy passes keys/flag. Remaining: host capacity, security-group ports, LiveKit secrets, <code>VIDEO_ENABLED=1</code>, Vercel flag, and the two-browser test. <span class="tag green">Code complete</span> <span class="tag amber">Activation pending</span></li>
+        <li><b>Video is wired but not activated.</b> Camera/mic headers allow self, LiveKit + Egress are in the AWS compose behind the <code>video</code> profile, nginx proxies <code>/livekit/</code>, and the deploy passes keys/flag. Remaining: protect recordings (FR-01), host capacity, security-group ports, LiveKit secrets, <code>VIDEO_ENABLED=1</code>, Vercel flag, and the two-browser test. <span class="tag amber">Code complete except FR-01</span> <span class="tag amber">Activation pending</span></li>
         <li><b>Billing is closed for the beta.</b> The upgrade endpoint returns 410, paid CTAs are hidden behind <code>BILLING_ENABLED=0</code>, the trial cannot be reset, and regression tests cover both. <span class="tag green">Fixed in code</span></li>
         <li><b>Password reset, org invitations, rate limits, JWT/CSP, privacy export/delete, and scheduler jobs</b> are implemented and covered by the suite. <span class="tag green">Fixed in code</span></li>
         <li><b>The test gate is live.</b> Backend pytest (100 tests against PostgreSQL + pgvector) and frontend Jest (42 tests) run in CI; deploy depends on validate. Staging Playwright and required-check enforcement remain external items.</li>
@@ -292,7 +307,7 @@
       <ul class="tight">
         <li>No live API keys are tracked in git; <code>.env</code> files are ignored and excluded from the Docker build context.</li>
         <li>Server-side entitlements with overrides → subscription → trial → plan → legacy precedence; admin can grant one feature without changing the plan.</li>
-        <li>JWT revocation via Redis, verified-email guard, login lockout, OTP hashing, CORS allow-list, tenant checks, and public-profile privacy filtering.</li>
+        <li>JWT revocation via Redis, verified-email guard, login lockout, OTP hashing, CORS allow-list, tenant checks, and explicit privacy filtering on the new <code>/in/:slug</code> profile route.</li>
         <li>AI provider/model selection is DB-backed with one active LLM and one active embedding config; env values are fallback only.</li>
         <li>Single Alembic head; local DB is at head; migrations run before the API starts; uploads are magic-byte validated.</li>
         <li>AWS deployment is automated end-to-end with TLS, health checks, feature flags, and encrypted secrets injection.</li>
@@ -446,6 +461,7 @@ frontend/src/utils/video.js            hides video entry points when the build f
             <li>Resize to at least <code>t3.medium</code> (4 GB) or move media to a separate host; keep Kafka off if staying small.</li>
             <li>Open security-group ports: TCP 7881, TCP+UDP 7882, TCP+UDP 3478, UDP 50000-50050. TURN/TLS on 5349 is not configured (<code>external_tls: false</code>), so verify TURN over UDP/TCP first.</li>
             <li>Generate one LiveKit key/secret pair; add <code>LIVEKIT_API_KEY</code>, <code>LIVEKIT_API_SECRET</code>, <code>LIVEKIT_URL=ws://livekit:7880</code>, and <code>LIVEKIT_PUBLIC_URL=wss://api.&lt;domain&gt;/livekit/</code> as GitHub secrets.</li>
+            <li><b>Close FR-01 first:</b> the public <code>/uploads</code> route must not serve <code>/recordings</code>. Add authenticated playback and test anonymous → 401/404, unrelated user → 403, participant/manager → 200/206. See <a href="SECURITY_PERFORMANCE_REVIEW.md">SECURITY_PERFORMANCE_REVIEW.md</a>.</li>
             <li>Set repository variable <code>VIDEO_ENABLED=1</code> and Vercel <code>REACT_APP_VIDEO_ENABLED=true</code>; redeploy both surfaces.</li>
             <li>Two browsers on the production domain join, publish, subscribe, start/stop a recording, and the file appears in the recording status endpoint.</li>
             <li>Rollback: set both flags false and run <code>docker compose --profile video stop livekit egress</code>.</li>
@@ -1322,7 +1338,7 @@ frontend/Dockerfile / Dockerfile.prod      two build paths</div>
     <table>
       <thead><tr><th>Finding</th><th>Type</th><th>Code work you can finish now</th><th>Production checklist item</th><th>Safe to deploy before it?</th></tr></thead>
       <tbody>
-        <tr><td><b>P0-01</b> Video dark</td><td><span class="tag green">Code complete</span> <span class="tag amber">Activation pending</span></td><td>Camera/mic headers allow self; LiveKit + Egress in AWS compose; recordings volume; nginx signaling; deploy flag and secret validation; UI hidden when disabled</td><td>Host resize or separate media host; TCP/UDP/TURN ports; LiveKit keys/secrets; <code>VIDEO_ENABLED=1</code>; Vercel flag; two-browser + recording test</td><td><b>Yes</b> — the beta runs text-only with video visibly disabled</td></tr>
+        <tr><td><b>P0-01</b> Video dark</td><td><span class="tag amber">Code complete except FR-01</span> <span class="tag amber">Activation pending</span></td><td>Camera/mic headers allow self; LiveKit + Egress in AWS compose; recordings volume; nginx signaling; deploy flag and secret validation; UI hidden when disabled</td><td>Protect recordings (FR-01); host resize or separate media host; TCP/UDP/TURN ports; LiveKit keys/secrets; <code>VIDEO_ENABLED=1</code>; Vercel flag; two-browser + recording test</td><td><b>Yes</b> - the beta runs text-only with video visibly disabled</td></tr>
         <tr><td><b>P0-02</b> Free/self-service billing</td><td><span class="tag green">Code</span> <span class="tag green">Fixed in code</span></td><td>Upgrade returns 410 and never mutates; trial cannot restart; paid CTAs hidden; beta copy and tests</td><td><b>Paid launch only:</b> Stripe verification, Checkout, webhook, invoices, tax/refund policy</td><td><b>Yes</b> — free beta with <code>BILLING_ENABLED=0</code>; no paid traffic</td></tr>
         <tr><td><b>P0-03</b> No password reset</td><td><span class="tag amber">Code + prod</span> <span class="tag green">Fixed in code</span></td><td>Forgot/reset endpoints, single-use OTP, signed-out pages, revoke-all sessions, throttle, tests</td><td>Resend domain verified (SPF/DKIM/DMARC); deliverability test; support runbook</td><td><b>Yes</b> — deploy only after Resend domain/DNS verification; do not ship a dead reset link</td></tr>
         <tr><td><b>P0-04</b> Broken org invites</td><td><span class="tag amber">Code + prod</span> <span class="tag green">Fixed in code</span></td><td>Invitation model/migration, hashed single-use token, create/list/revoke/accept, stop pre-creating users, accept page, tests</td><td>Run migration with snapshot; verified email; external-domain invite test</td><td><b>Yes</b> — migration is a normal deploy step; email is required for external invites</td></tr>
@@ -1359,7 +1375,7 @@ frontend/Dockerfile / Dockerfile.prod      two build paths</div>
   </div>
 
   <div class="callout amber" style="margin-bottom:16px">
-    <b>P0-01 in practice — what “code complete, activation pending” actually means</b>
+    <b>P0-01 in practice - what "wired, recording auth open" actually means</b>
     <ul class="tight small" style="margin:8px 0 0 18px">
       <li><b>Done in code:</b> camera/mic headers allow self; LiveKit + Egress are in the AWS compose behind the <code>video</code> profile; the recordings volume is shared by backend/scheduler; nginx strips <code>/livekit/</code> before proxying; deploy reads <code>VIDEO_ENABLED</code> and validates LiveKit secrets; the UI hides video when disabled.</li>
       <li><b>Self-hosted only:</b> the product decision is self-hosted LiveKit + Egress, not LiveKit Cloud. This avoids a vendor dependency and per-minute billing, at the cost of host capacity and media-port operations.</li>
@@ -2501,7 +2517,7 @@ proxy_read_timeout 3600s;
       <table>
         <thead><tr><th>ID</th><th>Finding</th><th>Severity</th><th>Area</th></tr></thead>
         <tbody>
-          <tr><td><b>P0-01</b></td><td>Self-hosted video wired; activation pending</td><td><span class="tag red">P0</span> <span class="tag green">Code complete</span></td><td>Product</td></tr>
+          <tr><td><b>P0-01</b></td><td>Self-hosted video wired; recording auth and activation pending</td><td><span class="tag red">P0</span> <span class="tag amber">Recording auth open</span></td><td>Product</td></tr>
           <tr><td><b>P0-02</b></td><td>Free self-service Pro; trial resettable</td><td><span class="tag red">P0</span> <span class="tag green">Fixed</span></td><td>Billing</td></tr>
           <tr><td><b>P0-03</b></td><td>No password reset</td><td><span class="tag red">P0</span></td><td>Product</td></tr>
           <tr><td><b>P0-04</b></td><td>Invites create unreachable accounts / email squatting</td><td><span class="tag red">P0</span></td><td>Security</td></tr>
