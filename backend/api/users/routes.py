@@ -10,6 +10,7 @@ from ...models import (
     ProfessionalMembership, Patent, CourseTraining, SocialMediaLink, KeyAchievement,
     Favorite, Application, Post, Interview, TeamMember
 )
+from ...utils.org_permissions import HIRING_VIEW, TEAM_MANAGE, get_permitted_org_ids, has_org_permission
 from ...utils.timezone_utils import get_timezone_list, is_valid_timezone, get_current_time_info, utc_iso, utc_now_iso
 from ...utils.security import log_security_event, sanitize_input, validate_email, validate_request_size
 from ...utils.pagination import Pagination, get_pagination_params, paginated_response, apply_filters_and_sorting, get_request_filters, get_sorting_params
@@ -41,7 +42,7 @@ def update_user_timezone(user_id):
     denied = _own_id_or_403(user_id)
     if denied:
         return denied
-    user = User.query.get_or_404(user_id)
+    user = db.get_or_404(User, user_id)
 
     try:
         payload = request.get_json()
@@ -92,7 +93,7 @@ def update_user_timezone(user_id):
 @jwt_required()
 def get_user_current_time(user_id):
     """Get current time information in user's timezone (auth required to prevent ID enumeration)."""
-    user = User.query.get_or_404(user_id)
+    user = db.get_or_404(User, user_id)
     tz = user.timezone or "UTC"
     return jsonify(get_current_time_info(tz)), 200
 
@@ -106,15 +107,12 @@ def list_users():
     team members may browse candidates.
     """
     try:
-        me = User.query.get(int(get_jwt_identity()))
+        me = db.session.get(User, int(get_jwt_identity()))
     except (TypeError, ValueError):
         return jsonify({"error": "Invalid user identity"}), 400
     if not me:
         return jsonify({"error": "user not found"}), 404
-    manages_any = bool(me.organization_id) or (
-        TeamMember.query.filter_by(user_id=me.id).first() is not None
-    )
-    if me.role != "organization" and not manages_any:
+    if not get_permitted_org_ids(me, HIRING_VIEW) and me.role != "organization":
         return jsonify({"error": "Forbidden: organization account required"}), 403
     # Get pagination parameters (capped at 100 by Pagination)
     page, per_page = get_pagination_params()
@@ -223,7 +221,7 @@ def create_user():
     if requested_org is not None and requested_org != "":
         try:
             from flask_jwt_extended import get_jwt_identity as _gj
-            caller = User.query.get(int(_gj()))
+            caller = db.session.get(User, int(_gj()))
         except (TypeError, ValueError):
             caller = None
         try:
@@ -232,11 +230,9 @@ def create_user():
             return jsonify({"error": "Invalid organization_id"}), 400
         if not requested_org:
             return jsonify({"error": "Invalid organization_id"}), 400
-        # Caller must administer the target page.
-        from ...models import TeamMember as _TM
-        allowed = caller is not None and (
-            (caller.organization_id == requested_org)
-            or _TM.query.filter_by(organization_id=requested_org, user_id=caller.id).first() is not None
+        # Caller must be an Admin of the target page.
+        allowed = caller is not None and has_org_permission(
+            caller, requested_org, TEAM_MANAGE
         )
         if not allowed:
             return jsonify({"error": "Forbidden for this organization"}), 403
@@ -274,13 +270,9 @@ def get_user_full_profile(user_id):
         me_id = int(get_jwt_identity())
     except (TypeError, ValueError):
         return jsonify({"error": "Invalid user identity"}), 400
-    me = User.query.get_or_404(me_id)
+    me = db.get_or_404(User, me_id)
     if me.id != int(user_id):
-        managed_ids = set()
-        if me.organization_id:
-            managed_ids.add(me.organization_id)
-        for tm in TeamMember.query.filter_by(user_id=me.id).all():
-            managed_ids.add(tm.organization_id)
+        managed_ids = get_permitted_org_ids(me, HIRING_VIEW)
         related = False
         if managed_ids:
             related = (
@@ -300,7 +292,7 @@ def get_user_full_profile(user_id):
             )
         if not related:
             return jsonify({"error": "Forbidden"}), 403
-    user = User.query.get_or_404(user_id)
+    user = db.get_or_404(User, user_id)
 
     # Get all profile data
     profile_data = {
@@ -363,8 +355,8 @@ def toggle_favorite(user_id, target_user_id):
     else:
         # If favorite doesn't exist, create it (favorite)
         # Check if both users exist
-        user = User.query.get_or_404(user_id)
-        target_user = User.query.get_or_404(target_user_id)
+        user = db.get_or_404(User, user_id)
+        target_user = db.get_or_404(User, target_user_id)
         
         favorite = Favorite(
             user_id=user_id,
@@ -410,7 +402,7 @@ def get_favorites(user_id):
     denied = _own_id_or_403(user_id)
     if denied:
         return denied
-    user = User.query.get_or_404(user_id)
+    user = db.get_or_404(User, user_id)
     
     # Get pagination parameters
     page, per_page = get_pagination_params()
@@ -457,7 +449,7 @@ def join_position(user_id):
     denied = _own_id_or_403(user_id)
     if denied:
         return denied
-    user = User.query.get_or_404(user_id)
+    user = db.get_or_404(User, user_id)
 
     # Check if user is hired
     if user.employment_status != 'hired':
@@ -501,7 +493,7 @@ def join_position(user_id):
 def get_my_referrals():
     """List users who were referred by the current user."""
     user_id = int(get_jwt_identity())
-    me = User.query.get_or_404(user_id)
+    me = db.get_or_404(User, user_id)
 
     referrals = User.query.filter_by(referred_by_user_id=user_id).order_by(User.created_at.desc()).all()
 

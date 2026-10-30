@@ -11,11 +11,6 @@ const RecruAINavbar = () => {
     let mounted = true;
     async function verify() {
       try {
-        const token = localStorage.getItem("access_token");
-        if (!token) {
-          if (mounted) setSignedIn(false);
-          return;
-        }
         const { verifyTokenWithServer } = await import("../../utils/auth");
         const user = await verifyTokenWithServer();
         if (!mounted) return;
@@ -39,13 +34,13 @@ const RecruAINavbar = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2">
+          <Link to="/" className="flex items-center gap-2 shrink-0">
             <img src="/mentee-logo.png" alt="MenteE" className="h-8 w-8" />
             <span className="text-xl font-bold text-gray-900">RecruAI</span>
           </Link>
 
           {/* Desktop Nav Links */}
-          <div className="hidden md:flex items-center gap-8">
+          <div className="hidden lg:flex items-center gap-6 xl:gap-8 whitespace-nowrap">
             <a href="#features" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors">
               Features
             </a>
@@ -61,19 +56,19 @@ const RecruAINavbar = () => {
           </div>
 
           {/* Desktop Auth Buttons */}
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden lg:flex items-center gap-3 shrink-0">
             {!signedIn ? (
               <>
-                <Link to="/signin" className="text-sm font-medium text-gray-700 hover:text-gray-900 px-4 py-2 transition-colors">
+                <Link to="/signin" className="text-sm font-medium text-gray-700 hover:text-gray-900 px-4 py-2 transition-colors whitespace-nowrap">
                   Sign In
                 </Link>
-                <Link to="/register" className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded text-sm font-medium transition-colors">
+                <Link to="/register" className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded text-sm font-medium transition-colors whitespace-nowrap">
                   Get Started
                 </Link>
               </>
             ) : (
               <>
-                <Link to="/feed" className="text-sm font-medium text-gray-700 hover:text-gray-900 px-4 py-2 transition-colors">
+                <Link to="/feed" className="text-sm font-medium text-gray-700 hover:text-gray-900 px-4 py-2 transition-colors whitespace-nowrap">
                   Dashboard
                 </Link>
                 <SignOutButton variant="solid" onSignedOut={() => setSignedIn(false)} />
@@ -82,7 +77,13 @@ const RecruAINavbar = () => {
           </div>
 
           {/* Mobile Menu Button */}
-          <button onClick={() => setIsOpen(!isOpen)} className="md:hidden p-2 text-gray-600 hover:text-gray-900">
+          <button
+            type="button"
+            onClick={() => setIsOpen(!isOpen)}
+            aria-label={isOpen ? "Close navigation menu" : "Open navigation menu"}
+            aria-expanded={isOpen}
+            className="lg:hidden p-2 text-gray-600 hover:text-gray-900"
+          >
             <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               {isOpen ? (
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -96,7 +97,7 @@ const RecruAINavbar = () => {
 
       {/* Mobile Menu */}
       {isOpen && (
-        <div className="md:hidden bg-white border-t border-gray-100 shadow-lg">
+        <div className="lg:hidden bg-white border-t border-gray-100 shadow-lg">
           <div className="px-4 py-3 space-y-1">
             <a href="#features" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded">
               Features

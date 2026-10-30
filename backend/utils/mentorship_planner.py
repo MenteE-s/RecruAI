@@ -148,7 +148,13 @@ def validate_proposed_steps(proposed, gaps: List[Dict]) -> List[Dict]:
     idea, not the learner's, and letting it through inflates the totals with work
     nobody requested.
     """
-    in_scope = {g["slug"]: g for g in gaps if g.get("slug")}
+    # propose_steps sends "skill_slug" while gaps_from_targets uses "slug".
+    # Accept both; otherwise every model step is discarded as out of scope.
+    in_scope = {}
+    for gap in gaps:
+        slug = gap.get("slug") or gap.get("skill_slug")
+        if slug:
+            in_scope[slug] = gap
     if not in_scope:
         return []
 
@@ -206,23 +212,27 @@ def enforce_budget(steps: List[Dict], budget_amount: int, weekly_hours: int,
     cost real machinery to maintain. What subscribers get is the whole
     curriculum; gating is the subscription's job, not a number in a form.
 
-    Time is the one constraint left, and it is not enforced destructively.
-    Over-running the hours is reported so the UI can say "this is 9 weeks at
-    5h/week" rather than quietly dropping work the learner needs. Steps are
-    only dropped when they are optional AND the schedule is impossible.
+    Time is the one constraint left. A named horizon produces a starter plan
+    that fits it, while later steps move to the full path instead of being
+    silently deleted. Optional steps go first; then the latest steps are
+    deferred in order until the starter fits. The full path is returned so the
+    UI can show what was left out.
 
     `budget_amount` is still accepted so old callers and stored plans keep
     working; it is deliberately ignored.
     """
     kept = [dict(s) for s in steps]
-    dropped = []
+    optional_dropped = []
+    deferred = []
     per_week = max(1, int(weekly_hours or 1))
 
-    # Only cut when the learner named a deadline AND the plan cannot fit it.
-    # Optional steps go, dearest-first, and only as far as needed.
-    total_hours = sum(s["hours_estimate"] for s in kept)
-    weeks_needed = -(-total_hours // per_week)
+    def _totals(items):
+        hours = sum(s["hours_estimate"] for s in items)
+        return hours, (-(-hours // per_week) if hours else 0)
 
+    total_hours, weeks_needed = _totals(kept)
+
+    # Optional steps go first, dearest-first, and only as far as needed.
     if target_weeks and weeks_needed > target_weeks:
         optional = sorted(
             [s for s in kept if s["optional"]],
@@ -231,16 +241,30 @@ def enforce_budget(steps: List[Dict], budget_amount: int, weekly_hours: int,
         for step in optional:
             if weeks_needed <= target_weeks:
                 break
-            dropped.append(step)
+            optional_dropped.append(step)
             kept.remove(step)
-            total_hours = sum(s["hours_estimate"] for s in kept)
-            weeks_needed = -(-total_hours // per_week)
+            total_hours, weeks_needed = _totals(kept)
 
+    # Then defer the latest remaining steps. Keep at least one step: an empty
+    # plan is not a useful response even when one step alone exceeds the
+    # horizon.
+    if target_weeks and weeks_needed > target_weeks:
+        while weeks_needed > target_weeks and len(kept) > 1:
+            deferred.append(kept.pop())
+            total_hours, weeks_needed = _totals(kept)
+        deferred.reverse()
+
+    dropped = optional_dropped + deferred
     reasons = []
-    if dropped:
+    if optional_dropped:
         reasons.append(
-            f"{len(dropped)} optional step(s) removed to fit the "
+            f"{len(optional_dropped)} optional step(s) removed to fit the "
             f"{target_weeks}-week target at {per_week}h/week"
+        )
+    if deferred:
+        reasons.append(
+            f"{len(deferred)} later step(s) moved to the full path to fit the "
+            f"{target_weeks}-week starter plan at {per_week}h/week"
         )
     if target_weeks and weeks_needed > target_weeks:
         reasons.append(
@@ -256,6 +280,9 @@ def enforce_budget(steps: List[Dict], budget_amount: int, weekly_hours: int,
         "trimmed": bool(dropped),
         "trim_reason": "; ".join(reasons) or None,
         "dropped_count": len(dropped),
+        "dropped_optional_count": len(optional_dropped),
+        "deferred_count": len(deferred),
+        "dropped_steps": dropped,
         "total_hours": total_hours,
         "total_cost": total_cost,
         "weeks_needed": weeks_needed,

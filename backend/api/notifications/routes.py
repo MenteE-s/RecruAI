@@ -22,7 +22,7 @@ def get_notifications():
         # Get current user
         uid = get_jwt_identity()
         user_id = int(uid)
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         if not user:
             return jsonify({"error": "user not found"}), 404
         # Get pagination parameters
@@ -80,7 +80,7 @@ def mark_notification_read(notification_id):
         # Get current user
         uid = get_jwt_identity()
         user_id = int(uid)
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         if not user:
             return jsonify({"error": "user not found"}), 404
 
@@ -121,7 +121,7 @@ def archive_notification(notification_id):
         # Get current user
         uid = get_jwt_identity()
         user_id = int(uid)
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         if not user:
             return jsonify({"error": "user not found"}), 404
 
@@ -150,7 +150,7 @@ def unarchive_notification(notification_id):
     try:
         uid = get_jwt_identity()
         user_id = int(uid)
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         if not user:
             return jsonify({"error": "user not found"}), 404
 
@@ -180,7 +180,7 @@ def favorite_notification(notification_id):
         # Get current user
         uid = get_jwt_identity()
         user_id = int(uid)
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         if not user:
             return jsonify({"error": "user not found"}), 404
 
@@ -210,7 +210,7 @@ def delete_notification(notification_id):
         # Get current user
         uid = get_jwt_identity()
         user_id = int(uid)
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         if not user:
             return jsonify({"error": "user not found"}), 404
 
@@ -250,7 +250,7 @@ def bulk_mark_read():
         # Get current user
         uid = get_jwt_identity()
         user_id = int(uid)
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         if not user:
             return jsonify({"error": "user not found"}), 404
 
@@ -289,7 +289,7 @@ def get_notification_stats():
         # Get current user
         uid = get_jwt_identity()
         user_id = int(uid)
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         if not user:
             return jsonify({"error": "user not found"}), 404
 
@@ -349,12 +349,15 @@ def create_interview_notification(interview_id, notification_type, user_id, titl
         **kwargs
     )
     db.session.add(notification)
-    db.session.commit()
-
-    # Emit Kafka event for notification created
+    # Flush so notification.id exists for the fan-out payload; the outbox row
+    # and the notification row commit together.
+    db.session.flush()
+    # The notification row and its fan-out event commit together; the outbox
+    # worker publishes to Kafka with retries.
     try:
-        kafka = KafkaService()
-        kafka.emit_event('notification_created', {
+        from ...utils.outbox import enqueue_kafka_event
+
+        enqueue_kafka_event('notification_created', {
             'notification_id': notification.id,
             'user_id': user_id,
             'type': notification_type,
@@ -362,7 +365,8 @@ def create_interview_notification(interview_id, notification_type, user_id, titl
             'related_interview_id': interview_id
         })
     except Exception as ke:
-        print(f"Failed to emit Kafka message for notification creation: {ke}")
+        print(f"Failed to queue Kafka message for notification creation: {ke}")
+    db.session.commit()
 
     return notification
 
@@ -378,12 +382,16 @@ def create_profile_notification(user_id, notification_type, title, message, rela
         related_organization_id=related_org_id
     )
     db.session.add(notification)
-    db.session.commit()
 
-    # Emit Kafka event for notification created
+    # Flush so notification.id exists for the fan-out payload; the outbox row
+    # and the notification row commit together.
+    db.session.flush()
+    # The notification row and its fan-out event commit together; the outbox
+    # worker publishes to Kafka with retries.
     try:
-        kafka = KafkaService()
-        kafka.emit_event('notification_created', {
+        from ...utils.outbox import enqueue_kafka_event
+
+        enqueue_kafka_event('notification_created', {
             'notification_id': notification.id,
             'user_id': user_id,
             'type': notification_type,
@@ -392,6 +400,7 @@ def create_profile_notification(user_id, notification_type, title, message, rela
             'related_organization_id': related_org_id
         })
     except Exception as ke:
-        print(f"Failed to emit Kafka message for notification creation: {ke}")
+        print(f"Failed to queue Kafka message for notification creation: {ke}")
+    db.session.commit()
 
     return notification

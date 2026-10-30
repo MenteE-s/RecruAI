@@ -16,7 +16,6 @@ from .retriever import RecommendationRetriever
 from .generator import RecommendationGenerator
 from ...models import ProfileEmbedding, JobEmbedding, AgentEmbedding
 from ...utils.cache import cache_get, cache_set
-from ...utils.subscription import SubscriptionManager
 
 
 logger = logging.getLogger(__name__)
@@ -96,7 +95,8 @@ class RecommendationSupervisor:
         job_id: str,
         organization_id: Optional[str] = None,
         top_k: Optional[int] = None,
-        include_explanations: bool = True
+        include_explanations: bool = True,
+        actor=None,
     ) -> List[Dict[str, Any]]:
         """
         Recommend candidates for a job posting
@@ -130,7 +130,7 @@ class RecommendationSupervisor:
                         'profile_content': profile['profile_content'],
                     }
                     explanation = self.generator.generate_profile_explanation_sync(
-                        profile_data, job_data, profile['similarity']
+                        profile_data, job_data, profile['similarity'], actor=actor
                     )
                     profile['explanation'] = explanation
 
@@ -144,7 +144,8 @@ class RecommendationSupervisor:
         user_id: str,
         organization_id: Optional[str] = None,
         top_k: Optional[int] = None,
-        include_explanations: bool = True
+        include_explanations: bool = True,
+        actor=None,
     ) -> List[Dict[str, Any]]:
         """
         Recommend jobs for a user profile using Postgres full-text search (no ML).
@@ -239,6 +240,7 @@ class RecommendationSupervisor:
                         {"job_content": f"Job Title: {post.title}\nRequirements: {', '.join(req_list[:10])}"},
                         profile_data,
                         score,
+                        actor=actor,
                     )
                 results.append(item)
 
@@ -253,7 +255,8 @@ class RecommendationSupervisor:
         job_id: str,
         organization_id: Optional[str] = None,
         top_k: Optional[int] = None,
-        include_explanations: bool = True
+        include_explanations: bool = True,
+        actor=None,
     ) -> List[Dict[str, Any]]:
         """
         Recommend AI agents for interviewing candidates for a job
@@ -288,7 +291,7 @@ class RecommendationSupervisor:
                         'agent_content': '',  # We don't store full content in results for brevity
                     }
                     explanation = self.generator.generate_agent_explanation_sync(
-                        agent_data, job_data, agent['similarity']
+                        agent_data, job_data, agent['similarity'], actor=actor
                     )
                     agent['explanation'] = explanation
 
@@ -464,6 +467,7 @@ class RecommendationSupervisor:
         min_exp: Optional[float] = None,
         max_exp: Optional[float] = None,
         company_id: Optional[int] = None,
+        actor=None,
     ) -> Dict[str, Any]:
         """
         Search profiles using Postgres full-text search (tsvector).
@@ -765,24 +769,11 @@ class RecommendationSupervisor:
                         skills_count=result['skills_count'],
                         experience_years=result['experience_years'],
                         education_level=result['education_level'],
+                        actor=actor,
                     )
                     result['explanation'] = ai_result['explanation']
                     result['match_level'] = ai_result['match_level']
                     result['matching_skills'] = ai_result['matching_skills']
-                    # Track token usage for search explanation
-                    if user_id and 'tokens_used' in ai_result and ai_result['tokens_used']:
-                        tokens_used = ai_result['tokens_used']
-                        from ...models import User, Organization
-                        user = session.query(User).filter_by(id=int(user_id)).first()
-                        org = session.query(Organization).filter_by(id=organization_id).first() if organization_id else None
-                        SubscriptionManager.track_token_usage(
-                            user=user,
-                            org=org,
-                            provider=self.generator.provider_manager.config.AI_PROVIDER,
-                            model=self.generator.provider_manager.config.AI_MODEL,
-                            tokens=tokens_used,
-                            operation_type="search_explanation"
-                        )
 
             return {
                 'results': page_results,
@@ -800,6 +791,7 @@ class RecommendationSupervisor:
         user_id: str,
         query: str,
         organization_id: Optional[str] = None,
+        actor=None,
     ) -> Optional[Dict[str, Any]]:
         """Generate AI explanation for a single candidate.
         Called on-demand when user expands a row."""
@@ -833,20 +825,8 @@ class RecommendationSupervisor:
                 skills_count=len(skill_names),
                 experience_years=exp_years,
                 education_level=profile.education_level,
+                actor=actor,
             )
-            # Track token usage for on-demand explanation
-            if 'tokens_used' in ai_result and ai_result['tokens_used']:
-                tokens_used = ai_result['tokens_used']
-                user_obj = session.query(User).filter_by(id=user_id).first()
-                org = session.query(Organization).filter_by(id=organization_id).first() if organization_id else None
-                SubscriptionManager.track_token_usage(
-                    user=user_obj,
-                    org=org,
-                    provider=self.generator.provider_manager.config.AI_PROVIDER,
-                    model=self.generator.provider_manager.config.AI_MODEL,
-                    tokens=tokens_used,
-                    operation_type="on_demand_explanation"
-                )
             return ai_result
         finally:
             session.close()
@@ -859,7 +839,6 @@ class RecommendationSupervisor:
                 User, Skill, Experience, ProfileEmbedding,
                 Project, Certification, Language, Education as Edu
             )
-            from ...utils.subscription import SubscriptionManager
             from datetime import date
 
             user = session.query(User).filter_by(id=user_id).first()

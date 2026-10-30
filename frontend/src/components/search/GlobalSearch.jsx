@@ -1,7 +1,7 @@
 // Global omnibox search.
 //
 // Replaces the old decorative read-only search field. One query fans out to
-// people, companies and jobs; results are grouped in the dropdown with
+// people, companies and job posts; results are grouped in the dropdown with
 // keyboard navigation, and "see all" hands off to the full results page.
 //
 // Debounced and abortable on purpose: without both, every keystroke fires a
@@ -28,7 +28,7 @@ function buildRows(data) {
     data.companies.forEach((c) => rows.push({ kind: "company", item: c }));
   }
   if (data.jobs?.length) {
-    rows.push({ kind: "header", label: "Jobs" });
+    rows.push({ kind: "header", label: "Job posts" });
     data.jobs.forEach((j) => rows.push({ kind: "job", item: j }));
   }
   return rows;

@@ -1,5 +1,6 @@
 from flask import request, jsonify
 from sqlalchemy import or_
+from sqlalchemy.orm import selectinload
 from .. import api_bp
 from ...utils.timezone_utils import utc_now_iso, utc_iso, format_datetime, get_user_timezone, get_organization_timezone
 from ...extensions import db
@@ -10,23 +11,25 @@ from datetime import datetime, timezone, timedelta
 from ...utils.security import log_security_event, sanitize_input, validate_request_size
 from ...utils.pagination import Pagination, get_pagination_params, paginated_response, apply_filters_and_sorting, get_request_filters, get_sorting_params
 from ...utils.subscription import require_interview_access
+from ...utils.org_permissions import (
+    HIRING_VIEW,
+    INTERVIEWS_MANAGE,
+    INTERVIEWS_VIEW,
+    get_permitted_org_ids,
+    has_org_permission,
+)
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from ...api.notifications.routes import create_interview_notification
 
 def _me():
     try:
-        return User.query.get(int(get_jwt_identity()))
+        return db.session.get(User, int(get_jwt_identity()))
     except (TypeError, ValueError):
         return None
 
 
-def _managed_org_ids(user):
-    ids = set()
-    if user.organization_id:
-        ids.add(user.organization_id)
-    for tm in TeamMember.query.filter_by(user_id=user.id).all():
-        ids.add(tm.organization_id)
-    return ids
+def _managed_org_ids(user, permission=HIRING_VIEW):
+    return get_permitted_org_ids(user, permission=permission)
 
 
 def _can_see_interview(user, interview):
@@ -34,14 +37,25 @@ def _can_see_interview(user, interview):
         return False
     if interview.user_id == user.id:
         return True
-    return (interview.organization_id is not None
-            and interview.organization_id in _managed_org_ids(user))
+    return (
+        interview.organization_id is not None
+        and has_org_permission(user, interview.organization_id, INTERVIEWS_VIEW)
+    )
 
 
 def _manages_interview(user, interview):
     if not user or not interview or not interview.organization_id:
         return False
-    return interview.organization_id in _managed_org_ids(user)
+    return has_org_permission(user, interview.organization_id, INTERVIEWS_MANAGE)
+
+
+def _can_act_on_interview(user, interview):
+    """Candidate participant or an org interviewer/manager."""
+    if not user or not interview:
+        return False
+    if interview.user_id == user.id:
+        return True
+    return _manages_interview(user, interview)
 
 
 def update_pipeline_stage_for_interview(interview):
@@ -91,11 +105,20 @@ def get_interviews():
     # Get sorting parameters
     sort_by, sort_order = get_sorting_params(default_sort='scheduled_at')
 
-    # Build base query scoped to caller
+    # Build base query scoped to caller.
+    # Eager-load everything to_dict() touches (candidate, org, post, agents,
+    # decision history) so a page stays at a constant query count.
     query = Interview.query.filter(or_(
         Interview.user_id == user.id,
-        Interview.organization_id.in_(_managed_org_ids(user) or [-1]),
-    ))
+        Interview.organization_id.in_(_managed_org_ids(user, INTERVIEWS_VIEW) or [-1]),
+    )).options(
+        selectinload(Interview.user),
+        selectinload(Interview.organization),
+        selectinload(Interview.post),
+        selectinload(Interview.ai_agent),
+        selectinload(Interview.practice_ai_agent),
+        selectinload(Interview.decision_history),
+    )
 
     # Apply filters and sorting
     query = apply_filters_and_sorting(query, Interview, filters, sort_by, sort_order)
@@ -119,7 +142,7 @@ def get_interviews():
 @jwt_required()
 def get_interview(interview_id):
     """Get a specific interview (participant or managing org)."""
-    interview = Interview.query.get_or_404(interview_id)
+    interview = db.get_or_404(Interview, interview_id)
     if not _can_see_interview(_me(), interview):
         return jsonify({"error": "Forbidden"}), 403
     try:
@@ -138,7 +161,7 @@ def create_interview():
     # Get authenticated user
     user_id = get_jwt_identity()
     user_id = int(user_id)  # Convert to int for database comparison
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     if not user:
         return jsonify({'error': 'User not found'}), 404
 
@@ -200,17 +223,18 @@ def create_interview():
         post_id = int(data['post_id']) if data.get('post_id') and str(data['post_id']).isdigit() else None
         
         # Validate that the candidate exists
-        candidate = User.query.get(candidate_id)
+        candidate = db.session.get(User, candidate_id)
         if not candidate:
             return jsonify({'error': f'Candidate with ID {candidate_id} not found.'}), 404
             
         # Validate that the organization exists
-        org = Organization.query.get(org_id)
+        org = db.session.get(Organization, org_id)
         if not org:
             return jsonify({'error': f'Organization with ID {org_id} not found.'}), 404
 
-        # Security: only managers of this org may schedule interviews as it.
-        if org_id not in _managed_org_ids(user):
+        # Security: only staff with interview-management rights may schedule
+        # interviews as this organization.
+        if not has_org_permission(user, org_id, INTERVIEWS_MANAGE):
             log_security_event("interview_create_forbidden_org", request.remote_addr, user_id, details={"organization_id": org_id})
             return jsonify({'error': 'Forbidden for this organization'}), 403
 
@@ -298,7 +322,7 @@ def update_interview(interview_id):
     their own interview (status -> cancelled); ratings, feedback and
     interviewer assignment are org-only.
     """
-    interview = Interview.query.get_or_404(interview_id)
+    interview = db.get_or_404(Interview, interview_id)
     me = _me()
     if not _can_see_interview(me, interview):
         return jsonify({"error": "Forbidden"}), 403
@@ -422,7 +446,7 @@ def update_interview(interview_id):
 @jwt_required()
 def delete_interview(interview_id):
     """Delete an interview (managing org, or owner of a personal practice record)."""
-    interview = Interview.query.get_or_404(interview_id)
+    interview = db.get_or_404(Interview, interview_id)
     me = _me()
     is_manager = _manages_interview(me, interview)
     is_own_practice = (
@@ -478,8 +502,15 @@ def get_upcoming_interviews():
         Interview.status.in_(['scheduled', 'in_progress']),
         or_(
             Interview.user_id == user.id,
-            Interview.organization_id.in_(_managed_org_ids(user) or [-1]),
+            Interview.organization_id.in_(_managed_org_ids(user, INTERVIEWS_VIEW) or [-1]),
         )
+    ).options(
+        selectinload(Interview.user),
+        selectinload(Interview.organization),
+        selectinload(Interview.post),
+        selectinload(Interview.ai_agent),
+        selectinload(Interview.practice_ai_agent),
+        selectinload(Interview.decision_history),
     ).order_by(Interview.scheduled_at.asc()).all()
     try:
         from ...utils.interview_utils import complete_overdue_interviews
@@ -531,8 +562,8 @@ def get_interview_history():
 @jwt_required()
 def complete_interview(interview_id):
     """Mark interview as completed (participant or managing org)."""
-    interview = Interview.query.get_or_404(interview_id)
-    if not _can_see_interview(_me(), interview):
+    interview = db.get_or_404(Interview, interview_id)
+    if not _can_act_on_interview(_me(), interview):
         return jsonify({"error": "Forbidden"}), 403
 
     # Update status to completed
@@ -560,7 +591,7 @@ def update_interview_decision(interview_id):
     """Update interview decision (managing org only)."""
     from ...utils.interview_utils import update_interview_decision as update_decision_util
 
-    interview = Interview.query.get_or_404(interview_id)
+    interview = db.get_or_404(Interview, interview_id)
     if not _manages_interview(_me(), interview):
         return jsonify({"error": "Forbidden for this organization"}), 403
     payload = request.get_json(silent=True) or {}
@@ -584,7 +615,7 @@ def update_interview_decision(interview_id):
         return jsonify({"error": message}), 400
 
     # Refresh interview data
-    interview = Interview.query.get_or_404(interview_id)
+    interview = db.get_or_404(Interview, interview_id)
     
     # If candidate passed the final interview, update the application status
     if decision == 'passed' and interview.post_id:
@@ -609,12 +640,19 @@ def update_interview_decision(interview_id):
 def get_organization_interviews(org_id):
     """Get all interviews for an organization (members only)."""
     user = _me()
-    if not user or org_id not in _managed_org_ids(user):
+    if not user or org_id not in _managed_org_ids(user, INTERVIEWS_VIEW):
         return jsonify({"error": "Forbidden for this organization"}), 403
     status_filter = request.args.get('status')
     decision_filter = request.args.get('decision')
 
-    query = Interview.query.filter_by(organization_id=org_id)
+    query = Interview.query.filter_by(organization_id=org_id).options(
+        selectinload(Interview.user),
+        selectinload(Interview.organization),
+        selectinload(Interview.post),
+        selectinload(Interview.ai_agent),
+        selectinload(Interview.practice_ai_agent),
+        selectinload(Interview.decision_history),
+    )
 
     if status_filter:
         query = query.filter_by(status=status_filter)
@@ -632,7 +670,7 @@ def update_organization_interview_decision(org_id, interview_id):
     from ...utils.interview_utils import update_interview_decision as update_decision_util
 
     user = _me()
-    if not user or org_id not in _managed_org_ids(user):
+    if not user or org_id not in _managed_org_ids(user, INTERVIEWS_MANAGE):
         return jsonify({"error": "Forbidden for this organization"}), 403
     interview = Interview.query.filter_by(id=interview_id, organization_id=org_id).first_or_404()
     payload = request.get_json(silent=True)
@@ -661,7 +699,7 @@ def update_organization_interview_decision(org_id, interview_id):
         return jsonify({"error": message}), 400
 
     # Refresh interview data
-    interview = Interview.query.get_or_404(interview_id)
+    interview = db.get_or_404(Interview, interview_id)
 
     return jsonify({
         "message": message,
@@ -676,12 +714,12 @@ def get_interview_conversation(interview_id):
     user_id = get_jwt_identity()
     user_id = int(user_id)  # Convert to int for database comparison
     print(f"JWT identity: {user_id}, type: {type(user_id)}")
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     if not user:
         print(f"User not found for id: {user_id}")
         return jsonify({'error': 'User not found'}), 404
 
-    interview = Interview.query.get(interview_id)
+    interview = db.session.get(Interview, interview_id)
     if not interview:
         print(f"Interview not found for id: {interview_id}")
         return jsonify({'error': 'Interview not found'}), 404
@@ -704,8 +742,10 @@ def get_interview_conversation(interview_id):
         # User is the candidate
         print("User is the candidate - granting access")
         has_access = True
-    elif interview.organization_id is not None and interview.organization_id in _managed_org_ids(user):
-        # User manages the organization that owns the interview
+    elif interview.organization_id is not None and has_org_permission(
+        user, interview.organization_id, INTERVIEWS_VIEW
+    ):
+        # User can read interviews for the organization that owns this one.
         print("User is organization member - granting access")
         has_access = True
     else:
@@ -746,7 +786,7 @@ def get_interview_conversation(interview_id):
 def get_organization_interview_status_summary(org_id):
     """Get interview status summary for an organization (members only)."""
     user = _me()
-    if not user or org_id not in _managed_org_ids(user):
+    if not user or org_id not in _managed_org_ids(user, INTERVIEWS_VIEW):
         return jsonify({"error": "Forbidden for this organization"}), 403
     from ...utils.interview_utils import get_interview_status_summary
 

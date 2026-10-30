@@ -2,11 +2,21 @@ from flask import request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from .. import api_bp
 from ...extensions import db
-from ...models import Interview, InterviewAnalysis, Message, ConversationMessage, User, TeamMember
+from ...models import Interview, InterviewAnalysis, Message, ConversationMessage, User
 from ...ai_service import get_ai_service
+from ...utils.ai_budget import AIBudgetError
+from ...utils.org_permissions import (
+    ANALYTICS_VIEW,
+    INTERVIEWS_MANAGE,
+    INTERVIEWS_VIEW,
+    has_org_permission,
+)
 from ...utils.kafka_service import KafkaService
 import json
+import logging
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 
 def _can_access_interview_id(interview_id):
@@ -15,18 +25,16 @@ def _can_access_interview_id(interview_id):
         uid = int(get_jwt_identity())
     except (TypeError, ValueError):
         return False
-    user = User.query.get(uid)
-    interview = Interview.query.get(interview_id)
+    user = db.session.get(User, uid)
+    interview = db.session.get(Interview, interview_id)
     if not user or not interview:
         return False
     if interview.user_id == user.id:
         return True
-    org_ids = set()
-    if user.organization_id:
-        org_ids.add(user.organization_id)
-    for tm in TeamMember.query.filter_by(user_id=user.id).all():
-        org_ids.add(tm.organization_id)
-    return interview.organization_id in org_ids
+    return (
+        interview.organization_id is not None
+        and has_org_permission(user, interview.organization_id, INTERVIEWS_VIEW)
+    )
 
 
 def _manages_org_id(org_id):
@@ -34,15 +42,17 @@ def _manages_org_id(org_id):
         uid = int(get_jwt_identity())
     except (TypeError, ValueError):
         return False
-    user = User.query.get(uid)
+    user = db.session.get(User, uid)
     if not user:
         return False
-    if user.role == "organization" and user.organization_id == org_id:
-        return True
-    return TeamMember.query.filter_by(organization_id=org_id, user_id=user.id).first() is not None
+    return has_org_permission(user, org_id, ANALYTICS_VIEW)
 
-def generate_ai_analysis(interview, messages):
-    """Generate real AI analysis of interview conversation"""
+def generate_ai_analysis(interview, messages, user=None):
+    """Generate real AI analysis of interview conversation.
+
+    `user` is required so the AI allowance is enforced and token usage is
+    tracked; without it a failed analysis would be free and unmetered.
+    """
     try:
         ai_service = get_ai_service()
 
@@ -148,8 +158,9 @@ Conversation:
 
 Provide a detailed analysis with accurate scores based on the actual content and quality of responses."""
 
-        # Get AI analysis
-        ai_response = ai_service.generate_response(system_prompt, user_prompt)
+        # Get AI analysis. A refusal/budget message is not valid JSON and will
+        # fall through to the unavailable path below.
+        ai_response = ai_service.generate_response(system_prompt, user_prompt, user=user, operation_type="interview_analysis")
 
         # Parse AI response as JSON
         try:
@@ -171,11 +182,10 @@ Provide a detailed analysis with accurate scores based on the actual content and
                 else:
                     raise
         except (json.JSONDecodeError, ValueError) as e:
-            print(f"Failed to parse AI response as JSON: {e}")
-            print(f"AI Response: {ai_response}")
+            logger.warning("interview analysis returned invalid JSON: %s", e)
 
             retry_prompt = system_prompt + "\n\nFINAL WARNING: Output must be valid JSON. No extra keys."
-            retry_response = ai_service.generate_response(retry_prompt, user_prompt)
+            retry_response = ai_service.generate_response(retry_prompt, user_prompt, user=user, operation_type="interview_analysis")
             retry_text = retry_response.strip()
             if retry_text.startswith('```json'):
                 retry_text = retry_text[7:]
@@ -219,23 +229,25 @@ Provide a detailed analysis with accurate scores based on the actual content and
 
         return analysis_result
 
+    except AIBudgetError:
+        raise
     except Exception as e:
-        print(f"Error generating AI analysis: {e}")
+        logger.exception("interview analysis failed")
         return {
-            "overall_score": 0,
-            "communication_score": 0,
-            "technical_score": 0,
-            "problem_solving_score": 0,
-            "cultural_fit_score": 0,
-            "detailed_feedback": "AI analysis failed. Please try again.",
-            "ai_analysis_summary": "AI analysis failed.",
+            "overall_score": None,
+            "communication_score": None,
+            "technical_score": None,
+            "problem_solving_score": None,
+            "cultural_fit_score": None,
+            "detailed_feedback": "AI analysis is unavailable right now. Nothing was scored.",
+            "ai_analysis_summary": "AI analysis unavailable.",
             "strengths": [],
             "improvements": [],
             "actual_duration_minutes": interview.duration_minutes,
             "average_response_time_seconds": None,
             "question_count": len(messages) // 2,
-            "analyzed_by": "AI Analysis System (Failed)",
-            "analysis_method": "ai"
+            "analyzed_by": "AI Analysis System (Unavailable)",
+            "analysis_method": "unavailable"
         }
 
 @api_bp.route('/interviews/<int:interview_id>/analyze', methods=['POST'])
@@ -244,7 +256,7 @@ def generate_interview_analysis(interview_id):
     """Generate AI analysis for completed interview (participant/org only)."""
     if not _can_access_interview_id(interview_id):
         return jsonify({"error": "Forbidden"}), 403
-    interview = Interview.query.get_or_404(interview_id)
+    interview = db.get_or_404(Interview, interview_id)
 
     if interview.status != 'completed':
         return jsonify({"error": "Interview must be completed before analysis"}), 400
@@ -278,12 +290,34 @@ def generate_interview_analysis(interview_id):
             "interview": interview.to_dict()
         }), 200
 
-    if existing_analysis and force:
-        db.session.delete(existing_analysis)
-        db.session.commit()
+    try:
+        user_id = int(get_jwt_identity())
+    except (TypeError, ValueError):
+        return jsonify({"error": "Invalid user"}), 401
+    user = db.session.get(User, user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    if (
+        interview.user_id != user.id
+        and interview.organization_id is not None
+        and not has_org_permission(user, interview.organization_id, "interviews.manage")
+    ):
+        return jsonify({"error": "Forbidden for this organization"}), 403
 
-    # Generate real AI analysis
-    analysis_data = generate_ai_analysis(interview, messages)
+    replace_existing = existing_analysis if force else None
+
+    # Generate real AI analysis. A refused/unmetered call must never persist a
+    # fabricated zero score, and must not delete an existing real analysis.
+    analysis_data = generate_ai_analysis(interview, messages, user=user)
+    if analysis_data.get("analysis_method") == "unavailable":
+        return jsonify({
+            "error": "AI analysis unavailable",
+            "message": "The AI reviewer could not be reached. Nothing was scored and your existing analysis is unchanged.",
+            "interview": interview.to_dict()
+        }), 503
+
+    if replace_existing is not None:
+        db.session.delete(replace_existing)
 
     # Save analysis to database
     analysis = InterviewAnalysis(

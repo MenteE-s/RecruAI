@@ -10,7 +10,7 @@ import {
   FiUsers,
 } from "react-icons/fi";
 import { useToast } from "../components/ui/ToastContext";
-import { getBackendUrl } from "../utils/auth";
+import { getBackendUrl, getSafeNextPath, setAuthSession } from "../utils/auth";
 import OtpVerify from "../components/auth/OtpVerify";
 
 const HIGHLIGHTS = [
@@ -28,6 +28,7 @@ export default function SignIn() {
   const [otpEmail, setOtpEmail] = useState(null);
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const nextPath = getSafeNextPath();
 
   // Verify stored token with the server on mount. If valid, redirect to dashboard.
   useEffect(() => {
@@ -38,7 +39,7 @@ export default function SignIn() {
         if (!mounted) return;
         const user = await verifyTokenWithServer();
         if (user) {
-          navigate("/feed", { replace: true });
+          navigate(nextPath || "/feed", { replace: true });
         }
       } catch (e) {
         // ignore
@@ -48,7 +49,19 @@ export default function SignIn() {
     return () => {
       mounted = false;
     };
-  }, [navigate]);
+  }, [navigate, nextPath]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("reset") === "success") {
+      showToast({
+        message: "Password reset — sign in with your new password",
+        type: "success",
+        position: "side",
+        duration: 4000,
+      });
+    }
+  }, [showToast]);
 
   async function submit(e) {
     e.preventDefault();
@@ -90,17 +103,8 @@ export default function SignIn() {
         setLoading(false);
         return;
       }
-      // store token, mark authenticated and redirect to dashboard
-      // Store the access token for header-based auth
-      if (data.access_token) {
-        localStorage.setItem("access_token", data.access_token);
-      }
-      // mark auth for frontend-only checks (will be refreshed by /api/auth/me)
-      localStorage.setItem("isAuthenticated", "true");
-      // use server-verified role from response — the client never chooses it
-      if (data.user && data.user.role) {
-        localStorage.setItem("authRole", data.user.role);
-      }
+      // Keep the access token in memory only; the refresh cookie is HttpOnly.
+      setAuthSession(data.access_token, data.user);
       // show success toast
       showToast({
         message: "Signed in",
@@ -109,7 +113,7 @@ export default function SignIn() {
         duration: 2200,
       });
       // prefer SPA navigation but fall back to full reload if SPA route doesn't take
-      navigate("/feed", { replace: true });
+      navigate(nextPath || "/feed", { replace: true });
       if (typeof window !== "undefined") {
         // small delay: if SPA navigation didn't change the path (protected route may redirect),
         // force a hard navigation to help surface errors in the network tab.
@@ -119,7 +123,7 @@ export default function SignIn() {
             console.warn(
               "SPA navigation to /dashboard didn't take effect — forcing full reload"
             );
-            window.location.assign("/feed");
+            window.location.assign(nextPath || "/feed");
           }
         }, 600);
       }
@@ -131,15 +135,9 @@ export default function SignIn() {
   }
 
   function handleVerified(data) {
-    if (data.access_token) {
-      localStorage.setItem("access_token", data.access_token);
-    }
-    localStorage.setItem("isAuthenticated", "true");
-    if (data.user && data.user.role) {
-      localStorage.setItem("authRole", data.user.role);
-    }
+    setAuthSession(data.access_token, data.user);
     showToast({ message: "Email verified — signed in", type: "success", position: "side", duration: 2400 });
-    navigate("/feed", { replace: true });
+    navigate(nextPath || "/feed", { replace: true });
   }
 
   return (
@@ -237,6 +235,14 @@ export default function SignIn() {
                         <FiEye className="w-5 h-5" />
                       )}
                     </button>
+                  </div>
+                  <div className="mt-1.5 text-right">
+                    <Link
+                      to="/forgot-password"
+                      className="text-xs font-semibold text-neutral-500 underline underline-offset-4 transition-colors hover:text-neutral-900"
+                    >
+                      Forgot password?
+                    </Link>
                   </div>
                 </div>
                 <button

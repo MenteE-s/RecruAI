@@ -12,7 +12,7 @@
 
 services:
   redis:
-    image: redis:7-alpine
+    image: redis:7-alpine@sha256:6ba19c50b56777f5c11c58eff8ddb69d0d5f27ba131cffb63f180ccfd43c66af
     container_name: recruai_redis
     restart: unless-stopped
     command: ["redis-server", "--appendonly", "yes", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru"]
@@ -26,7 +26,7 @@ services:
     mem_limit: 192m
 
   kafka:
-    image: confluentinc/cp-kafka:7.6.0
+    image: confluentinc/cp-kafka:7.6.0@sha256:24cdd3a7fa89d2bed150560ebea81ff1943badfa61e51d66bb541a6b0d7fb047
     container_name: recruai_kafka
     restart: unless-stopped
     environment:
@@ -54,7 +54,7 @@ services:
     mem_limit: 512m
 
   kafka-init:
-    image: confluentinc/cp-kafka:7.6.0
+    image: confluentinc/cp-kafka:7.6.0@sha256:24cdd3a7fa89d2bed150560ebea81ff1943badfa61e51d66bb541a6b0d7fb047
     container_name: recruai_kafka_init
     depends_on:
       kafka:
@@ -99,7 +99,7 @@ services:
     command:
       - sh
       - -c
-      - "python scripts/seed_skill_questions.py && python scripts/seed_quizzes.py && python scripts/seed_guided_projects.py"
+      - "python scripts/seed_skill_questions.py && python scripts/seed_quizzes.py && python scripts/seed_guided_projects.py && python scripts/seed_mock_interview_questions.py"
 
   backend:
     build:
@@ -121,6 +121,8 @@ services:
     volumes:
       # Persist user/org uploads outside the container filesystem
       - backend_uploads:/app/backend/uploads
+      # Egress writes finished MP4s here; the backend serves them.
+      - recordings:/app/backend/uploads/recordings
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -136,8 +138,153 @@ services:
       retries: 3
     mem_limit: 768m
 
+  # Exactly one scheduler process. The API must never start APScheduler: with
+  # multiple web workers every job would run once per process. This container
+  # owns trial expiry, interview completion, deletion purges, AI reports, and
+  # mentorship nudges, and every run is recorded in scheduler_runs for health.
+  scheduler:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    image: recruai_backend:latest
+    container_name: recruai_scheduler
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env.production
+    environment:
+      FLASK_ENV: production
+      IS_PRODUCTION: "1"
+    command: ["python", "-m", "backend.worker"]
+    volumes:
+      # The purge job removes this user's files; it must see the same volumes.
+      - backend_uploads:/app/backend/uploads
+      - recordings:/app/backend/uploads/recordings
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    mem_limit: 192m
+
+  # Outbox worker: delivers queued email/Kafka/notifications with retries.
+  # Two parallel claim loops per process (OUTBOX_WORKERS=2); scale on bigger
+  # hosts with `docker compose up -d --scale outbox-worker=2` after removing
+  # container_name, or raise OUTBOX_WORKERS. The claim is atomic per row, so
+  # threads and replicas never double-process.
+  outbox-worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    image: recruai_backend:latest
+    container_name: recruai_outbox_worker
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env.production
+    environment:
+      FLASK_ENV: production
+      IS_PRODUCTION: "1"
+      OUTBOX_WORKERS: "2"
+      OUTBOX_BATCH_SIZE: "25"
+      OUTBOX_POLL_INTERVAL: "2"
+    command: ["python", "-m", "backend.outbox_worker"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    mem_limit: 192m
+
+  # Self-hosted video (LiveKit SFU + TURN + recording egress). This is opt-in
+  # because the API box is a 2GB t3.small: start the `video` profile only after
+  # resizing to at least t3.medium or moving Kafka/Redis off the box.
+  # Signaling reaches browsers as wss://<API_DOMAIN>/livekit/ via nginx.
+  # Security group: TCP 7881, TCP+UDP 7882, TCP+UDP 3478, UDP 50000-50050.
+  #
+  # LiveKit keys interpolate with empty defaults so plain `docker compose`
+  # commands still parse while the video profile is off. The render step
+  # (scripts/render-production-env.sh) refuses to write .env.production when
+  # VIDEO_ENABLED=1 and any LiveKit value is missing.
+  livekit:
+    profiles: ["video"]
+    image: livekit/livekit-server:v1.8.4@sha256:621fd87bd64a0c83e1f2418ee0323eb920d00acdd73e5f79b303c64f6cc532af
+    container_name: recruai_livekit
+    restart: unless-stopped
+    mem_limit: 512m
+    ports:
+      - "7881:7881/tcp" # ICE/TCP fallback
+      - "7882:7882/tcp" # ICE/TCP multiplex
+      - "7882:7882/udp" # ICE/UDP multiplex
+      - "3478:3478/tcp" # TURN/TCP
+      - "3478:3478/udp" # TURN/UDP
+      - "50000-50050:50000-50050/udp" # WebRTC media
+    environment:
+      LIVEKIT_CONFIG: |
+        port: 7880
+        bind_addresses:
+          - "0.0.0.0"
+        rtc:
+          tcp_port: 7881
+          udp_port: 7882
+          port_range_start: 50000
+          port_range_end: 50050
+          use_external_ip: true
+        keys:
+          ${LIVEKIT_API_KEY:-}: ${LIVEKIT_API_SECRET:-}
+        # Egress state + multi-node coordination live here.
+        redis:
+          address: redis:6379
+        room:
+          empty_timeout: 300
+          departure_timeout: 20
+          max_participants: 4
+        turn:
+          enabled: true
+          udp_port: 3478
+          external_tls: false
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:7880 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # Recording worker: room-composite MP4 -> /recordings. The recordings volume
+  # is shared with the backend/scheduler so playback and account purge work.
+  egress:
+    profiles: ["video"]
+    image: livekit/egress:v1.8.4@sha256:b66a3b1efb18a68e85d1cf1b6fc818018beb47475acbe8c282be353e2ab37f75
+    container_name: recruai_egress
+    restart: unless-stopped
+    mem_limit: 512m
+    cpus: 1.0
+    environment:
+      EGRESS_CONFIG_BODY: |
+        api_key: ${LIVEKIT_API_KEY:-}
+        api_secret: ${LIVEKIT_API_SECRET:-}
+        ws_url: ws://livekit:7880
+        redis:
+          address: redis:6379
+        cpu_cost:
+          room_composite_cpu_cost: 1
+          track_composite_cpu_cost: 1
+          track_cpu_cost: 0.5
+        log_level: info
+    volumes:
+      - recordings:/recordings
+    depends_on:
+      livekit:
+        condition: service_started
+      redis:
+        condition: service_healthy
+
   nginx:
-    image: nginx:1.25-alpine
+    image: nginx:1.28-alpine@sha256:a8b39bd9cf0f83869a2162827a0caf6137ddf759d50a171451b335cecc87d236
     container_name: recruai_nginx
     restart: unless-stopped
     ports:
@@ -155,7 +302,7 @@ services:
         condition: service_healthy
 
   certbot:
-    image: certbot/certbot:latest
+    image: certbot/certbot:v4.2.0@sha256:9626d72120577cf72da4fc7948806e9993598981720a4cbe04340a502468d67b
     container_name: recruai_certbot
     restart: unless-stopped
     volumes:
@@ -174,5 +321,6 @@ volumes:
   redisdata:
   kafkadata:
   backend_uploads:
+  recordings:
   certbot_www:
   letsencrypt:

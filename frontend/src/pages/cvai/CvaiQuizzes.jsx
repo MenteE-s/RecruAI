@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useState } from "react";
 import CvaiShell, { Panel, Stat, Badge, Button, Loading, ErrorNote, LockedNote, EmptyNote } from "../cvai/CvaiShell";
 import { cvai, isLocked, messageOf, levelTone, grade } from "../../utils/cvai";
-import { FiLock, FiPlayCircle, FiUnlock } from "react-icons/fi";
+import { FiPlayCircle, FiUnlock, FiLock, FiCreditCard } from "react-icons/fi";
+import PaywallModal from "../../components/ui/PaywallModal";
+import { BILLING_BETA_MESSAGE, BILLING_ENABLED } from "../../utils/billing";
 
 /**
  * Quizzes: subscriber content built on the same question bank as assessments.
@@ -20,6 +22,7 @@ export default function CvaiQuizzes() {
   const [running, setRunning] = useState(null);   // { quiz, attemptId, questions, answers }
   const [outcome, setOutcome] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -65,16 +68,32 @@ export default function CvaiQuizzes() {
   }
 
   const quizzes = list?.quizzes || [];
+  const unlockedQuizzes = quizzes.filter((q) => !q.locked);
+  const lockedQuizzes = quizzes.filter((q) => q.locked);
   const done = attempts.filter((a) => a.status === "completed");
   const best = done.reduce((m, a) => Math.max(m, Number(a.score_percent) || 0), 0);
   const passed = done.filter((a) => a.passed).length;
 
+  async function handleUpgrade() {
+    try {
+      const res = await cvai.subscriptionUpgrade("paid");
+      if (!res.ok) {
+        setError(messageOf(res, "Could not upgrade subscription."));
+        return;
+      }
+      await load();
+    } catch (err) {
+      setError(err.message || "Could not upgrade subscription.");
+    }
+  }
+
   return (
-    <CvaiShell
-      title="Quizzes"
-      subtitle="Timeless question sets. The first one is free, so you can try this before deciding to subscribe."
-    >
-      {locked ? (
+    <>
+      <CvaiShell
+        title="Quizzes"
+        subtitle="Timeless question sets. The first one is free, so you can try this before deciding to subscribe."
+      >
+        {locked ? (
         <LockedNote what="Quizzes" />
       ) : (
         <div className="space-y-5">
@@ -90,64 +109,90 @@ export default function CvaiQuizzes() {
                 <Stat value={`${passed}/${done.length}`} label="Passed" tone="text-green-700" />
               </div>
 
+              {lockedQuizzes.length > 0 && (
+                <Panel
+                  title={BILLING_ENABLED ? "Subscribe to unlock more quizzes" : "More quizzes unlock with the trial"}
+                  hint={BILLING_ENABLED
+                    ? "These quizzes are part of the paid plan."
+                    : "Paid plans are closed while the controlled beta is running."}
+                >
+                  <div className="space-y-3">
+                    {lockedQuizzes.map((quiz) => (
+                      <div key={quiz.id} className="flex items-center justify-between border border-gray-200 bg-gray-50 p-3 rounded-lg">
+                        <div>
+                          <h4 className="text-sm font-medium text-gray-900">{quiz.title}</h4>
+                          <p className="text-xs text-gray-500">{quiz.description}</p>
+                        </div>
+                        <Badge className="border-gray-200 bg-gray-50 text-gray-600">
+                          <FiLock className="h-3 w-3" /> Locked
+                        </Badge>
+                      </div>
+                    ))}
+                    {BILLING_ENABLED ? (
+                      <Button
+                        onClick={() => setShowPaywall(true)}
+                        className="w-full mt-3 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700"
+                      >
+                        <FiCreditCard className="h-4 w-4" /> Subscribe now
+                      </Button>
+                    ) : (
+                      <div className="mt-3 border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                        {BILLING_BETA_MESSAGE}
+                      </div>
+                    )}
+                  </div>
+                </Panel>
+              )}
+
               <div className="grid gap-4 md:grid-cols-2">
-                {quizzes.map((quiz) => {
-                  const isLocked = quiz.locked === true;
-                  return (
-                    <article key={quiz.id} className="flex flex-col border border-gray-200 bg-white">
-                      <div className="flex-1 p-5">
-                        <div className="flex items-start justify-between gap-3">
-                          <h3 className="text-base font-semibold text-gray-900">{quiz.title}</h3>
-                          {isLocked ? (
-                            <Badge className="border-gray-200 bg-gray-50 text-gray-600">
-                              <FiLock className="h-3 w-3" /> Locked
-                            </Badge>
-                          ) : quiz.is_free_preview ? (
-                            <Badge className="border-green-200 bg-green-50 text-green-700">
-                              <FiUnlock className="h-3 w-3" /> Free
-                            </Badge>
-                          ) : null}
-                        </div>
-
-                        <p className="mt-2 text-sm text-gray-600">{quiz.description}</p>
-
-                        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-gray-500">
-                          {quiz.difficulty ? (
-                            <Badge className="capitalize">{quiz.difficulty}</Badge>
-                          ) : null}
-                          {quiz.question_count ? <span>{quiz.question_count} questions</span> : null}
-                          <span>pass at {quiz.pass_percent}%</span>
-                        </div>
-
-                        {quiz.skills?.length ? (
-                          <div className="mt-3 flex flex-wrap gap-1.5">
-                            {quiz.skills.map((slug) => (
-                              <span
-                                key={slug}
-                                className="border border-gray-200 px-2 py-0.5 text-[11px] capitalize text-gray-600"
-                              >
-                                {slug.replace(/-/g, " ")}
-                              </span>
-                            ))}
-                          </div>
+                {unlockedQuizzes.map((quiz) => (
+                  <article key={quiz.id} className="flex flex-col border border-gray-200 bg-white">
+                    <div className="flex-1 p-5">
+                      <div className="flex items-start justify-between gap-3">
+                        <h3 className="text-base font-semibold text-gray-900">{quiz.title}</h3>
+                        {quiz.is_free_preview ? (
+                          <Badge className="border-green-200 bg-green-50 text-green-700">
+                            <FiUnlock className="h-3 w-3" /> Free
+                          </Badge>
                         ) : null}
                       </div>
 
-                      <div className="border-t border-gray-100 p-4">
-                        {isLocked ? (
-                          <p className="text-xs text-gray-500">
-                            Subscribe to take this. Locked quizzes show what they cover, never their
-                            contents.
-                          </p>
-                        ) : (
-                          <Button onClick={() => open(quiz)}>
-                            <FiPlayCircle className="h-4 w-4" /> Start quiz
-                          </Button>
-                        )}
+                      <p className="mt-2 text-sm text-gray-600">{quiz.description}</p>
+
+                      <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                        {quiz.difficulty ? (
+                          <Badge className="capitalize">{quiz.difficulty}</Badge>
+                        ) : null}
+                        {quiz.question_count ? <span>{quiz.question_count} questions</span> : null}
+                        <span>pass at {quiz.pass_percent}%</span>
                       </div>
-                    </article>
-                  );
-                })}
+
+                      {quiz.skills?.length ? (
+                        <div className="mt-3 flex flex-wrap gap-1.5">
+                          {quiz.skills.map((slug) => (
+                            <span
+                              key={slug}
+                              className="border border-gray-200 px-2 py-0.5 text-[11px] capitalize text-gray-600"
+                            >
+                              {slug.replace(/-/g, " ")}
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+
+                    <div className="border-t border-gray-100 p-4">
+                      <Button onClick={() => open(quiz)}>
+                        <FiPlayCircle className="h-4 w-4" /> Start quiz
+                      </Button>
+                    </div>
+                  </article>
+                ))}
+                {unlockedQuizzes.length === 0 && (
+                  <EmptyNote>
+                    No quizzes available yet. Subscribe to unlock the quiz library.
+                  </EmptyNote>
+                )}
               </div>
 
               {running ? (
@@ -257,6 +302,13 @@ export default function CvaiQuizzes() {
         </div>
       )}
     </CvaiShell>
+    <PaywallModal
+      open={showPaywall}
+      feature="quizzes"
+      onClose={() => setShowPaywall(false)}
+      onUpgrade={handleUpgrade}
+    />
+    </>
   );
 }
 

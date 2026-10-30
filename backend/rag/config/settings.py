@@ -13,25 +13,25 @@ class RAGConfig:
     """Configuration class for RAG system settings"""
 
     # Use main config values
-    OPENAI_API_KEY: Optional[str] = Config.OPENAI_API_KEY
-    GROQ_API_KEY: Optional[str] = Config.GROQ_API_KEY
+    OPENAI_API_KEY: Optional[str] = Config().OPENAI_API_KEY
+    GROQ_API_KEY: Optional[str] = Config().GROQ_API_KEY
 
     # Provider settings from main config
-    AI_PROVIDER: str = Config.AI_PROVIDER
-    EMBEDDING_PROVIDER: str = Config.EMBEDDING_PROVIDER
-    RAG_ENABLED: bool = Config.RAG_ENABLED
+    AI_PROVIDER: str = Config().AI_PROVIDER
+    EMBEDDING_PROVIDER: str = Config().EMBEDDING_PROVIDER
+    RAG_ENABLED: bool = Config().RAG_ENABLED
 
     # Model settings
-    AI_MODEL: Optional[str] = Config.AI_MODEL
-    EMBEDDING_MODEL: Optional[str] = Config.EMBEDDING_MODEL
-    EMBEDDING_DIMENSIONS: int = Config.EMBEDDING_DIMENSIONS
+    AI_MODEL: Optional[str] = Config().AI_GENERATION_MODEL
+    EMBEDDING_MODEL: Optional[str] = Config().EMBEDDING_MODEL
+    EMBEDDING_DIMENSIONS: int = Config().EMBEDDING_DIMENSIONS
 
-    # Legacy OpenAI defaults (for backward compatibility)
-    OPENAI_EMBEDDING_MODEL: str = EMBEDDING_MODEL or "text-embedding-ada-002"
+    # OpenAI-compatible names (driven by env; no hardcoded model fallback)
+    OPENAI_EMBEDDING_MODEL: str = EMBEDDING_MODEL or ""
     OPENAI_EMBEDDING_DIMENSIONS: int = EMBEDDING_DIMENSIONS
-    OPENAI_COMPLETION_MODEL: str = AI_MODEL or "gpt-4"
-    OPENAI_MAX_TOKENS: int = Config.AI_MAX_TOKENS
-    OPENAI_TEMPERATURE: float = Config.AI_TEMPERATURE
+    OPENAI_COMPLETION_MODEL: str = AI_MODEL or ""
+    OPENAI_MAX_TOKENS: int = Config().AI_MAX_TOKENS
+    OPENAI_TEMPERATURE: float = Config().AI_TEMPERATURE
 
     # Vector Database Configuration (from main config)
     VECTOR_DB_HOST: str = os.getenv("VECTOR_DB_HOST", "localhost")
@@ -41,18 +41,18 @@ class RAGConfig:
     VECTOR_DB_PASSWORD: str = os.getenv("VECTOR_DB_PASSWORD", "")
 
     # Chunking Configuration
-    CHUNK_SIZE: int = Config.RAG_CHUNK_SIZE
-    CHUNK_OVERLAP: int = Config.RAG_CHUNK_OVERLAP
+    CHUNK_SIZE: int = Config().RAG_CHUNK_SIZE
+    CHUNK_OVERLAP: int = Config().RAG_CHUNK_OVERLAP
     MAX_CHUNKS_PER_DOCUMENT: int = 100
 
     # Retrieval Configuration
-    TOP_K_RESULTS: int = Config.RAG_TOP_K
-    SIMILARITY_THRESHOLD: float = Config.RAG_SIMILARITY_THRESHOLD
-    MAX_CONTEXT_LENGTH: int = Config.RAG_MAX_CONTEXT_LENGTH
+    TOP_K_RESULTS: int = Config().RAG_TOP_K
+    SIMILARITY_THRESHOLD: float = Config().RAG_SIMILARITY_THRESHOLD
+    MAX_CONTEXT_LENGTH: int = Config().RAG_MAX_CONTEXT_LENGTH
 
     # Rate Limiting
-    MAX_REQUESTS_PER_MINUTE: int = Config.EMBEDDING_REQUESTS_PER_MINUTE
-    MAX_REQUESTS_PER_HOUR: int = Config.EMBEDDING_REQUESTS_PER_HOUR
+    MAX_REQUESTS_PER_MINUTE: int = Config().EMBEDDING_REQUESTS_PER_MINUTE
+    MAX_REQUESTS_PER_HOUR: int = Config().EMBEDDING_REQUESTS_PER_HOUR
 
     # File Processing
     MAX_FILE_SIZE_MB: int = 10

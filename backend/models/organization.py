@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 
+from backend.constants import DEFAULT_AI_TOKEN_ALLOWANCE, TRIAL_PERIOD_DAYS
 from backend.extensions import db
 from backend.utils.timezone_utils import utc_iso
 
@@ -42,11 +43,28 @@ class Organization(db.Model):
     paid_plan = db.Column(db.Boolean, nullable=True, default=False)
     interviews_used = db.Column(db.Integer, nullable=True, default=0)
     tokens_used = db.Column(db.Integer, nullable=True, default=0)
+    token_allowance = db.Column(
+        db.Integer,
+        nullable=False,
+        default=DEFAULT_AI_TOKEN_ALLOWANCE,
+        server_default=str(DEFAULT_AI_TOKEN_ALLOWANCE),
+    )
+    plan = db.Column(db.String(32), nullable=False, default="free", server_default="free")
+    feature_overrides = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        db.Index(
+            "ix_organizations_subscription_trial_start",
+            "subscription_status",
+            "trial_start_date",
+        ),
+    )
 
     users = db.relationship("User", back_populates="organization", foreign_keys="User.organization_id")
     posts = db.relationship("Post", back_populates="organization", cascade="all, delete-orphan")
     team_members = db.relationship("TeamMember", back_populates="organization", cascade="all, delete-orphan")
+    invitations = db.relationship("OrganizationInvitation", back_populates="organization", cascade="all, delete-orphan")
 
     def to_dict(self):
         import json
@@ -82,6 +100,8 @@ class Organization(db.Model):
             "show_public_stats": bool(self.show_public_stats),
             "timezone": self.timezone or "UTC",
             "subscription_status": self.get_subscription_status(),
+            "plan": self.plan,
+            "feature_overrides": self.feature_override_list(),
             "created_at": utc_iso(self.created_at),
         }
 
@@ -98,14 +118,14 @@ class Organization(db.Model):
 
     # Subscription methods
     def is_trial_active(self) -> bool:
-        """Check if organization is still in trial period (7 days)"""
+        """Check if organization is still in its 30-day trial period."""
         if self.subscription_status != "trial":
             return False
 
         if not self.trial_start_date:
             return False
 
-        trial_end = self.trial_start_date + timedelta(days=7)
+        trial_end = self.trial_start_date + timedelta(days=TRIAL_PERIOD_DAYS)
         return datetime.utcnow() < trial_end
 
     def is_subscription_active(self) -> bool:
@@ -124,14 +144,36 @@ class Organization(db.Model):
         # Trial expired - no more interviews
         return False
 
+    def feature_override_list(self):
+        import json
+
+        if not self.feature_overrides:
+            return []
+        try:
+            value = json.loads(self.feature_overrides)
+        except (ValueError, TypeError):
+            return []
+        return value if isinstance(value, list) else []
+
     def can_access_feature(self, feature: str) -> bool:
         """Check if organization can access a specific feature based on subscription"""
+        if feature in self.feature_override_list():
+            return True
         if self.is_subscription_active():
             return True
 
         if self.is_trial_active():
             # During trial, allow access to all features
             return True
+
+        try:
+            from .plan import Plan
+
+            plan = Plan.query.filter_by(slug=self.plan or "free", scope="organization", is_active=True).first()
+            if plan is not None:
+                return feature in plan.feature_list()
+        except Exception:
+            pass
 
         # Trial expired - restrict features
         basic_features = ["profile_management", "job_posting", "basic_matching"]
@@ -169,11 +211,16 @@ class Organization(db.Model):
 
     def get_subscription_status(self) -> dict:
         """Get comprehensive subscription status"""
+        trial_end = (
+            self.trial_start_date + timedelta(days=TRIAL_PERIOD_DAYS)
+            if self.trial_start_date else None
+        )
         return {
             "status": self.subscription_status,
             "is_trial_active": self.is_trial_active(),
             "is_paid_active": self.is_subscription_active(),
             "trial_start_date": utc_iso(self.trial_start_date),
+            "trial_end_date": utc_iso(trial_end),
             "paid_plan": self.paid_plan,
             "tokens_used": self.tokens_used or 0,
             "interviews_used": self.interviews_used or 0,

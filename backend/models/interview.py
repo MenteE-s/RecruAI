@@ -67,6 +67,15 @@ class Interview(db.Model):
     organization = db.relationship("Organization", backref="interviews")
     post = db.relationship("Post", backref="interviews")
 
+    __table_args__ = (
+        # The expiry worker filters status and orders by scheduled_at.
+        db.Index(
+            "ix_interviews_status_scheduled_at",
+            "status",
+            "scheduled_at",
+        ),
+    )
+
     def __repr__(self):
         return f"<Interview {self.title}>"
 

@@ -25,7 +25,7 @@ from ...utils import mentorship_suggestions as suggestions_utils
 from ...utils.mentorship_planner import VALID_STEP_STATUSES, clamp_int
 from ...utils.mentorship_progress import parse_iso
 from ...utils.skill_taxonomy import LEVELS, SKILLS
-from ...utils.subscription import CVAI_MENTORSHIP, require_subscription
+from ...utils.subscription import CAREER_COACHING, require_subscription
 from ...mentorship.generator import gaps_from_targets, propose_steps, propose_targets
 
 MAX_GOAL_LEN = 255
@@ -74,7 +74,7 @@ def _requirements_for(goal_post_id):
 
 @api_bp.route('/mentorship/plans', methods=['POST'])
 @jwt_required()
-@require_subscription(CVAI_MENTORSHIP)
+@require_subscription(CAREER_COACHING)
 def create_mentorship_plan():
     """Build a plan from the learner's evidence and their budgets.
 
@@ -110,8 +110,14 @@ def create_mentorship_plan():
     # older clients and stored plans keep working.
     budget_amount = 0
     budget_currency = 'USD'
-    target_weeks = data.get('target_weeks')
-    target_weeks = clamp_int(target_weeks, 1, 520, None) if target_weeks else None
+    # New plans default to a 12-week starter horizon. An explicit null/empty
+    # value means "no deadline" and keeps the old full-path behavior for
+    # clients that opt out.
+    raw_target_weeks = data.get('target_weeks', 12)
+    if raw_target_weeks in (None, '', 0, '0'):
+        target_weeks = None
+    else:
+        target_weeks = clamp_int(raw_target_weeks, 1, 520, 12)
 
     existing = MentorshipPlan.query.filter_by(user_id=user.id, status='active').count()
     if existing >= MAX_PLANS_PER_USER:
@@ -140,6 +146,17 @@ def create_mentorship_plan():
                 kept.append({'slug': slug, 'name': name,
                              'needed_level': 'Intermediate', 'state': 'missing'})
         targets = kept
+
+    # A failed provider call must not masquerade as "you already have every
+    # skill". That made a broken DB-backed LLM look like a completed profile
+    # and hid the real exception in the server log.
+    if not targets and not ai_ok:
+        return jsonify({
+            'error': 'Could not identify the skills for this goal',
+            'detail': ('The AI provider did not return a usable skill list. '
+                       'Check the active AI provider and try again.'),
+            'ai_available': False,
+        }), 502
 
     gaps = gaps_from_targets(targets)
     if not gaps:
@@ -170,6 +187,7 @@ def create_mentorship_plan():
         goal=goal,
         goal_post_id=post.id if post else None,
         weekly_hours=weekly_hours,
+        target_weeks=target_weeks,
         budget_amount=budget_amount,
         budget_currency=budget_currency,
         total_hours=budget['total_hours'],
@@ -180,6 +198,7 @@ def create_mentorship_plan():
     )
     plan.set_target_skills([t['slug'] for t in targets])
     plan.set_baseline_skills(analysis['current'])
+    plan.set_deferred_steps(budget.get('dropped_steps') or [])
     db.session.add(plan)
     db.session.flush()
 
@@ -206,14 +225,15 @@ def create_mentorship_plan():
         'unclassified_requirements': analysis['unclassified_requirements'],
         'gaps_addressed': [{'slug': g['slug'], 'name': g['name'], 'state': g['state']}
                            for g in gaps],
-        'dropped_optional_steps': budget['dropped_count'],
+        'dropped_optional_steps': budget.get('dropped_optional_count', 0),
+        'deferred_step_count': budget.get('deferred_count', 0),
         'within_time': budget['within_time'],
     }), 201
 
 
 @api_bp.route('/mentorship/plans', methods=['GET'])
 @jwt_required()
-@require_subscription(CVAI_MENTORSHIP)
+@require_subscription(CAREER_COACHING)
 def list_mentorship_plans():
     """The learner's plans, newest first. Query ?include_steps=1 for full plans."""
     user = _me()
@@ -234,7 +254,7 @@ def list_mentorship_plans():
 
 @api_bp.route('/mentorship/plans/<int:plan_id>', methods=['GET'])
 @jwt_required()
-@require_subscription(CVAI_MENTORSHIP)
+@require_subscription(CAREER_COACHING)
 def get_mentorship_plan(plan_id):
     """One plan, plus whether it has gone stale against current evidence."""
     user = _me()
@@ -270,7 +290,7 @@ def get_mentorship_plan(plan_id):
 
 @api_bp.route('/mentorship/plans/<int:plan_id>/steps/<int:step_id>', methods=['PATCH'])
 @jwt_required()
-@require_subscription(CVAI_MENTORSHIP)
+@require_subscription(CAREER_COACHING)
 def update_mentorship_step(plan_id, step_id):
     """Mark a step done / in progress / skipped.
 
@@ -297,6 +317,10 @@ def update_mentorship_step(plan_id, step_id):
 
     step.status = status
     step.completed_at = datetime.utcnow() if status == 'done' else None
+    # The nudge worker filters plans by last update. Step-only changes must
+    # touch the parent row or a learner who completed a step yesterday would
+    # still look idle to the query.
+    plan.updated_at = datetime.utcnow()
     db.session.commit()
 
     active = [s for s in plan.steps if s.status != 'skipped']
@@ -317,7 +341,7 @@ def update_mentorship_step(plan_id, step_id):
 
 @api_bp.route('/mentorship/plans/<int:plan_id>', methods=['PATCH'])
 @jwt_required()
-@require_subscription(CVAI_MENTORSHIP)
+@require_subscription(CAREER_COACHING)
 def update_mentorship_plan(plan_id):
     """Abandon or reopen a plan. Budgets are not editable after the fact —
     they shaped the steps, so changing one would make the totals a lie."""
@@ -339,7 +363,7 @@ def update_mentorship_plan(plan_id):
 
 @api_bp.route('/mentorship/plans/<int:plan_id>/regenerate', methods=['POST'])
 @jwt_required()
-@require_subscription(CVAI_MENTORSHIP)
+@require_subscription(CAREER_COACHING)
 def regenerate_mentorship_plan(plan_id):
     """Rebuild the steps against the learner's *current* evidence.
 
@@ -376,7 +400,9 @@ def regenerate_mentorship_plan(plan_id):
         }), 409
 
     steps = propose_steps(gaps, plan.goal, user, plan.budget_amount, plan.weekly_hours)
-    steps, budget = planner.enforce_budget(steps, plan.budget_amount, plan.weekly_hours)
+    steps, budget = planner.enforce_budget(
+        steps, plan.budget_amount, plan.weekly_hours, plan.target_weeks
+    )
     steps = planner.assign_target_dates(steps, plan.weekly_hours)
     if not steps:
         return jsonify({'error': 'Could not rebuild steps for this plan'}), 502
@@ -389,6 +415,7 @@ def regenerate_mentorship_plan(plan_id):
     plan.trim_reason = budget['trim_reason']
     plan.set_target_skills([t['slug'] for t in targets])
     plan.set_baseline_skills(analysis['current'])
+    plan.set_deferred_steps(budget.get('dropped_steps') or [])
     plan.status = 'active'
     plan.completed_at = None
     db.session.flush()
@@ -408,7 +435,7 @@ def regenerate_mentorship_plan(plan_id):
 
 @api_bp.route('/mentorship/plans/<int:plan_id>/progress', methods=['GET'])
 @jwt_required()
-@require_subscription(CVAI_MENTORSHIP)
+@require_subscription(CAREER_COACHING)
 def get_mentorship_progress(plan_id):
     """Plan versus actual for one plan.
 
@@ -447,7 +474,7 @@ def get_mentorship_progress(plan_id):
 
 @api_bp.route('/mentorship/progress', methods=['GET'])
 @jwt_required()
-@require_subscription(CVAI_MENTORSHIP)
+@require_subscription(CAREER_COACHING)
 def get_learner_progress():
     """Everything at once: plan pace plus skill-level trends over time.
 
@@ -482,7 +509,7 @@ def get_learner_progress():
 
 @api_bp.route('/mentorship/suggestions', methods=['GET'])
 @jwt_required()
-@require_subscription(CVAI_MENTORSHIP)
+@require_subscription(CAREER_COACHING)
 def get_mentorship_suggestions():
     """What to do next, ranked, each with the reason behind it.
 
@@ -536,6 +563,7 @@ def mentorship_options():
         'levels': list(LEVELS),
         'weekly_hours_range': {'min': 1, 'max': 40, 'default': 5},
         'target_weeks_range': {'min': 1, 'max': 520},
+        'default_target_weeks': 12,
         'budget_enabled': False,
         'max_active_plans': MAX_PLANS_PER_USER,
     }), 200

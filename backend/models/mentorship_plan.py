@@ -35,6 +35,9 @@ class MentorshipPlan(db.Model):
     status = db.Column(db.String(20), nullable=False, default="active")
 
     weekly_hours = db.Column(db.Integer, nullable=False, default=5)
+    # Optional planning horizon. The stored steps are the starter plan that
+    # fits this many weeks; later steps are kept in deferred_steps below.
+    target_weeks = db.Column(db.Integer, nullable=True)
     budget_amount = db.Column(db.Integer, nullable=False, default=0)
     budget_currency = db.Column(db.String(8), nullable=False, default="USD")
 
@@ -51,6 +54,10 @@ class MentorshipPlan(db.Model):
     # Snapshot of what the learner held when the plan was made, so staleness can
     # be detected instead of guessed.
     baseline_skills = db.Column(db.Text, nullable=True)
+    # JSON list of steps that did not fit the starter horizon. They are shown
+    # as the full path, not counted in progress until the learner extends or
+    # regenerates the plan.
+    deferred_steps = db.Column(db.Text, nullable=True)
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -89,8 +96,28 @@ class MentorshipPlan(db.Model):
         import json
         self.baseline_skills = json.dumps(mapping or {})
 
+    def get_deferred_steps(self):
+        import json
+        if not self.deferred_steps:
+            return []
+        try:
+            parsed = json.loads(self.deferred_steps)
+            return parsed if isinstance(parsed, list) else []
+        except (json.JSONDecodeError, TypeError):
+            return []
+
+    def set_deferred_steps(self, steps):
+        import json
+        self.deferred_steps = json.dumps(list(steps or []))
+
     def to_dict(self, include_steps=True):
         completed = sum(1 for s in self.steps if s.status == "done")
+        deferred = self.get_deferred_steps()
+        starter_hours = sum(int(s.hours_estimate or 0) for s in self.steps)
+        deferred_hours = sum(int(s.get("hours_estimate") or 0) for s in deferred)
+        full_hours = starter_hours + deferred_hours
+        per_week = max(1, int(self.weekly_hours or 1))
+        full_weeks = -(-full_hours // per_week) if full_hours else 0
         data = {
             "id": self.id,
             "user_id": self.user_id,
@@ -98,15 +125,19 @@ class MentorshipPlan(db.Model):
             "goal_post_id": self.goal_post_id,
             "status": self.status,
             "weekly_hours": self.weekly_hours,
+            "target_weeks": self.target_weeks,
             "budget_amount": self.budget_amount,
             "budget_currency": self.budget_currency,
             "total_hours": self.total_hours,
             "total_cost": self.total_cost,
             "weeks": self.weeks,
+            "full_total_hours": full_hours,
+            "full_weeks": full_weeks,
             "trimmed": bool(self.trimmed),
             "trim_reason": self.trim_reason,
             "target_skills": self.get_target_skills(),
             "step_count": len(self.steps),
+            "deferred_step_count": len(deferred),
             "completed_step_count": completed,
             "created_at": utc_iso(self.created_at),
             "updated_at": utc_iso(self.updated_at),
@@ -114,4 +145,5 @@ class MentorshipPlan(db.Model):
         }
         if include_steps:
             data["steps"] = [s.to_dict() for s in sorted(self.steps, key=lambda s: s.order_index)]
+            data["deferred_steps"] = deferred
         return data

@@ -10,6 +10,19 @@ from ...utils.timezone_utils import utc_now_iso, utc_iso
 practice_ai_bp = Blueprint("practice_ai", __name__)
 
 
+@practice_ai_bp.before_request
+def _require_verified_email():
+    """Apply the same verified-email gate as the main API blueprint.
+
+    Registering this in the app factory breaks a second ``create_app`` call
+    (Flask forbids blueprint setup after registration). Importing the guard
+    lazily keeps the circular-import workaround intact.
+    """
+    from ..guards import require_verified_email
+
+    return require_verified_email()
+
+
 def _build_default_system_prompt(name: str, industry: str) -> str:
     agent_name = name or "Practice AI Interviewer"
     industry_label = industry or "your industry"
@@ -30,7 +43,7 @@ def list_practice_ai_agents():
     from ...utils.subscription import SubscriptionManager
 
     user_id = get_jwt_identity()
-    user = User.query.get_or_404(user_id)
+    user = db.get_or_404(User, user_id)
 
     # Check if user can access this feature (free during trial)
     if not user.can_access_feature("practice_ai_agents"):
@@ -54,7 +67,7 @@ def create_practice_ai_agent():
     from ...utils.subscription import SubscriptionManager
 
     user_id = get_jwt_identity()
-    user = User.query.get_or_404(user_id)
+    user = db.get_or_404(User, user_id)
 
     # Check if user can access this feature (free during trial)
     if not user.can_access_feature("practice_ai_agents"):
@@ -180,12 +193,13 @@ def schedule_practice_interview(agent_id):
     from ...models import PracticeAIAgent, Interview, User
 
     user_id = get_jwt_identity()
-    user = User.query.get_or_404(user_id)
+    user = db.get_or_404(User, user_id)
     agent = PracticeAIAgent.query.filter_by(id=agent_id, user_id=user_id).first_or_404()
 
-    # Check if user can schedule interviews (free during trial)
-    if not user.can_schedule_interview():
-        return jsonify({"error": "Interview scheduling requires an active subscription or trial"}), 403
+    # Same entitlement as creating/listing agents: practice features are
+    # CVAI-gated, not org-interview-quota-gated.
+    if not user.can_access_feature("practice_ai_agents"):
+        return jsonify({"error": "Practice AI agents require an active subscription or trial"}), 403
 
     payload = request.get_json(silent=True) or {}
 
@@ -202,7 +216,7 @@ def schedule_practice_interview(agent_id):
     )
     db.session.add(interview)
     db.session.commit()
-    
+
     # Emit Kafka event for practice interview scheduling
     kafka.emit_event('practice_interview_scheduled', {
         'interview_id': interview.id,
@@ -212,8 +226,8 @@ def schedule_practice_interview(agent_id):
         'scheduled_at': utc_iso(interview.scheduled_at),
         'timestamp': utc_now_iso()
     })
-    
-    return {
+
+    return jsonify({
         'id': interview.id,
         'message': 'Practice interview scheduled successfully'
-    }, 201
+    }), 201

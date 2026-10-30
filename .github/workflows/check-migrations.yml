@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: pgvector/pgvector:0.7.0-pg15
+        image: pgvector/pgvector:0.7.0-pg15@sha256:222c299a9f011679695414546c7f92ba0b0ba5aa4c8b7e3e33a4209c9b337832
         env:
           POSTGRES_USER: recruai
           POSTGRES_PASSWORD: recruai_pass

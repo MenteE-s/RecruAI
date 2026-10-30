@@ -138,7 +138,7 @@ def update_system_issue(issue_id):
         me_id = _me_id()
         if not me_id:
             return jsonify({'success': False, 'error': 'Invalid user identity'}), 400
-        issue = SystemIssue.query.get_or_404(issue_id)
+        issue = db.get_or_404(SystemIssue, issue_id)
         if issue.user_id != me_id:
             return jsonify({'success': False, 'error': 'Forbidden'}), 403
         data = request.get_json()

@@ -52,16 +52,36 @@ docker compose -f docker-compose.vps.yml exec backend flask db upgrade --directo
 curl -f https://api.menteeai.org/api/health
 ```
 
-Renewal cron (monthly is plenty; certbot renews <30d):
+Renewal (daily; reloads nginx only when a certificate changes):
 ```cron
-0 3 1 * * docker stop recruai_nginx; docker run --rm -p 80:80 -v recruai_letsencrypt:/etc/letsencrypt certbot/certbot renew -q; docker start recruai_nginx
+0 3 * * * API_DOMAIN=api.menteeai.org /opt/recruai/scripts/renew-tls.sh >> /var/log/recruai-tls.log 2>&1
 ```
+The script checks expiry, runs the webroot renewal, and reloads nginx only when
+the certificate hash changes. Alert if `/var/log/recruai-tls.log` contains
+`WARNING: certificate expires`.
 
 ## 4. Vercel (frontend rebuild — vars are baked at build time)
 
-Set in the Vercel project → redeploy:
-- `REACT_APP_API_BASE_URL=https://api.menteeai.org`
-- `REACT_APP_SOCKET_URL=https://api.menteeai.org`
+Set in the Vercel project → redeploy (all three, both environments):
+- `REACT_APP_API_BASE_URL=https://api.recruai.menteeai.org`
+- `REACT_APP_SOCKET_URL=https://api.recruai.menteeai.org`
+- `REACT_APP_VIDEO_ENABLED=0` (beta; set `1` only after LiveKit is live)
+
+The production build fails with a named error when the first two are unset
+(`frontend/scripts/check-env.js`, run as `prebuild`), and the app throws at
+startup instead of silently calling its own origin. Preview deployments must
+point at the staging API, never production.
+
+Admin dashboard — separate Vercel project, Root Directory `admin`:
+- `VITE_API_BASE_URL=https://api.recruai.menteeai.org`
+- Prefer the custom domain `admin.recruai.menteeai.org` (same-site with the
+  API, so the `Lax` refresh cookie keeps working).
+- `admin/vercel.json` supplies the SPA rewrite, security headers, and a CSP
+  limited to the production API. The build fails fast when
+  `VITE_API_BASE_URL` is missing.
+- Backend wiring: set GitHub secrets `ADMIN_ORIGIN` (the admin URL, appended
+  to CORS origins on next deploy) and only-if-cross-site `REFRESH_COOKIE_SAMESITE=None`.
+  See `admin/README.md`.
 
 ## 5. Kafka toggle (no code changes)
 

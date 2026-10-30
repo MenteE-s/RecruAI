@@ -1,7 +1,7 @@
-// src/App.js — eager imports: one bundle, instant client-side navigation.
-// (Route-level code-splitting was tried and reverted: per-route chunks put a
-// loading spinner on every first page visit, which felt much slower.)
-import React, { useEffect, useRef, useState } from "react";
+// src/App.js — route-level code splitting with a shared branded fallback.
+// (A bare spinner per route was tried and reverted for feeling slow; the
+// Suspense fallback below reuses the standard MenteeLoader instead.)
+import React, { Suspense, useEffect, useRef, useState } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -12,88 +12,91 @@ import {
   useParams,
 } from "react-router-dom";
 import "./App.css";
-import { ToastProvider } from "./components/ui/ToastContext";
+import { ToastProvider, useToast } from "./components/ui/ToastContext";
 import ProtectedRoute from "./components/ProtectedRoute";
+import PageManagerLayout from "./components/page/PageManagerLayout";
+import { verifyTokenWithServer } from "./utils/auth";
+import { getBackendUrl, getAuthHeaders, getSafeNextPath } from "./utils/auth";
+import MenteeLoader from "./components/ui/MenteeLoader";
+import socketService from "./utils/socket";
 
 // Public Pages
-import RecruAILanding from "./pages/RecruAILanding";
-import Register from "./pages/Register";
-import SignIn from "./pages/SignIn";
-import ContactUs from "./pages/ContactUs";
-import TermsAndConditions from "./pages/TermsAndConditions";
-import PrivacyPolicy from "./pages/PrivacyPolicy";
-import Blog from "./pages/Blog";
-import Careers from "./pages/Careers";
-import SystemStatus from "./pages/SystemStatus";
-import Community from "./pages/Community";
-import CookiesPolicy from "./pages/CookiesPolicy";
-import NotFound from "./pages/NotFound";
-import PublicProfile from "./pages/PublicProfile";
-import SearchResults from "./pages/SearchResults";
-import PublicProfileBySlug from "./pages/PublicProfileBySlug";
+const RecruAILanding = React.lazy(() => import("./pages/RecruAILanding"));
+const Register = React.lazy(() => import("./pages/Register"));
+const SignIn = React.lazy(() => import("./pages/SignIn"));
+const ForgotPassword = React.lazy(() => import("./pages/ForgotPassword"));
+const ResetPassword = React.lazy(() => import("./pages/ResetPassword"));
+const AcceptInvite = React.lazy(() => import("./pages/AcceptInvite"));
+const ContactUs = React.lazy(() => import("./pages/ContactUs"));
+const TermsAndConditions = React.lazy(() => import("./pages/TermsAndConditions"));
+const PrivacyPolicy = React.lazy(() => import("./pages/PrivacyPolicy"));
+const Blog = React.lazy(() => import("./pages/Blog"));
+const Careers = React.lazy(() => import("./pages/Careers"));
+const SystemStatus = React.lazy(() => import("./pages/SystemStatus"));
+const Community = React.lazy(() => import("./pages/Community"));
+const CookiesPolicy = React.lazy(() => import("./pages/CookiesPolicy"));
+const NotFound = React.lazy(() => import("./pages/NotFound"));
+const PublicProfile = React.lazy(() => import("./pages/PublicProfile"));
+const SearchResults = React.lazy(() => import("./pages/SearchResults"));
+const PublicProfileBySlug = React.lazy(() => import("./pages/PublicProfileBySlug"));
 // Dashboard Pages
-import DashboardSwitcher from "./pages/DashboardSwitcher";
-import SettingsSwitcher from "./pages/SettingsSwitcher";
-import Profile from "./pages/individual/Profile";
-import UpcomingInterviews from "./pages/individual/UpcomingInterviews";
-import InterviewHistory from "./pages/individual/InterviewHistory";
-import Jobs from "./pages/individual/Jobs";
-import Analytics from "./pages/individual/Analytics";
-import ResumeBuilder from "./pages/individual/ResumeBuilder";
-import JobAlerts from "./pages/individual/JobAlerts";
-// CareerCoaching.jsx was the old hardcoded coaching mockup (a fictional coach,
-// fabricated session counts). Its route now serves the real product; the file is
-// kept only until the sidebar removal decides nothing still wants it.
-import CvaiOverview from "./pages/cvai/CvaiOverview";
-import CvaiSkills from "./pages/cvai/CvaiSkills";
-import CvaiQuizzes from "./pages/cvai/CvaiQuizzes";
-import CvaiProjects from "./pages/cvai/CvaiProjects";
-import CvaiPlan from "./pages/cvai/CvaiPlan";
-import CvaiInterviews from "./pages/cvai/CvaiInterviews";
-import JobDetails from "./pages/individual/JobDetails";
-import MyNetwork from "./pages/individual/MyNetwork";
-import Interviews from "./pages/individual/Interviews";
-import PracticeDashboard from "./pages/individual/PracticeDashboard";
-import PracticeRoom from "./pages/individual/PracticeRoom";
-import IndividualAIAgents from "./pages/individual/AIAgents";
-import ShareableProfiles from "./pages/individual/ShareableProfiles";
+const DashboardSwitcher = React.lazy(() => import("./pages/DashboardSwitcher"));
+const SettingsSwitcher = React.lazy(() => import("./pages/SettingsSwitcher"));
+const Profile = React.lazy(() => import("./pages/individual/Profile"));
+const UpcomingInterviews = React.lazy(() => import("./pages/individual/UpcomingInterviews"));
+const InterviewHistory = React.lazy(() => import("./pages/individual/InterviewHistory"));
+const Jobs = React.lazy(() => import("./pages/individual/Jobs"));
+const Analytics = React.lazy(() => import("./pages/individual/Analytics"));
+const ResumeBuilder = React.lazy(() => import("./pages/individual/ResumeBuilder"));
+const JobAlerts = React.lazy(() => import("./pages/individual/JobAlerts"));
+// Career coaching lives at /in/coaching/* (Cvai* pages above), backed by the
+// mentorship/quiz/project/interview APIs — not a separate mockup page.
+const CvaiOverview = React.lazy(() => import("./pages/cvai/CvaiOverview"));
+const CvaiSkills = React.lazy(() => import("./pages/cvai/CvaiSkills"));
+const CvaiQuizzes = React.lazy(() => import("./pages/cvai/CvaiQuizzes"));
+const CvaiProjects = React.lazy(() => import("./pages/cvai/CvaiProjects"));
+const CvaiPlan = React.lazy(() => import("./pages/cvai/CvaiPlan"));
+const CvaiInterviews = React.lazy(() => import("./pages/cvai/CvaiInterviews"));
+const CvaiAuthoring = React.lazy(() => import("./pages/cvai/CvaiAuthoring"));
+const JobDetails = React.lazy(() => import("./pages/individual/JobDetails"));
+const MyNetwork = React.lazy(() => import("./pages/individual/MyNetwork"));
+const Interviews = React.lazy(() => import("./pages/individual/Interviews"));
+const PracticeDashboard = React.lazy(() => import("./pages/individual/PracticeDashboard"));
+const PracticeRoom = React.lazy(() => import("./pages/individual/PracticeRoom"));
+const IndividualAIAgents = React.lazy(() => import("./pages/individual/AIAgents"));
+const ShareableProfiles = React.lazy(() => import("./pages/individual/ShareableProfiles"));
 // Organization Pages
-import OrganizationProfile from "./pages/organization/Profile";
-import Billing from "./pages/organization/Billing";
-import BrowseOrganizations from "./pages/organization/BrowseOrganizations";
-import HirePeople from "./pages/organization/HirePeople";
-import TeamMembers from "./pages/organization/TeamMembers";
-import UserProfile from "./pages/organization/UserProfile";
-import JobPosts from "./pages/organization/JobPosts";
-import JobPostDetails from "./pages/organization/JobPostDetails";
-import Candidates from "./pages/organization/Candidates";
-import InterviewManagement from "./pages/organization/InterviewManagement";
-import InterviewAnalysis from "./pages/InterviewAnalysis";
-import Pipeline from "./pages/organization/Pipeline";
-import OrganizationAnalytics from "./pages/organization/OrganizationAnalytics";
-import Reports from "./pages/organization/Reports";
-import Integrations from "./pages/organization/Integrations";
-import Insights from "./pages/organization/Insights";
-import AIAgents from "./pages/organization/AIAgents";
-import CandidateAnalysis from "./pages/organization/CandidateAnalysis";
-import InterviewRoom from "./pages/InterviewRoom";
-import Notifications from "./pages/Notifications";
-import InterviewDetail from "./pages/individual/InterviewDetail";
+const OrganizationProfile = React.lazy(() => import("./pages/organization/Profile"));
+const Billing = React.lazy(() => import("./pages/organization/Billing"));
+const BrowseOrganizations = React.lazy(() => import("./pages/organization/BrowseOrganizations"));
+const HirePeople = React.lazy(() => import("./pages/organization/HirePeople"));
+const TeamMembers = React.lazy(() => import("./pages/organization/TeamMembers"));
+const UserProfile = React.lazy(() => import("./pages/organization/UserProfile"));
+const JobPosts = React.lazy(() => import("./pages/organization/JobPosts"));
+const JobPostDetails = React.lazy(() => import("./pages/organization/JobPostDetails"));
+const Candidates = React.lazy(() => import("./pages/organization/Candidates"));
+const InterviewManagement = React.lazy(() => import("./pages/organization/InterviewManagement"));
+const InterviewAnalysis = React.lazy(() => import("./pages/InterviewAnalysis"));
+const Pipeline = React.lazy(() => import("./pages/organization/Pipeline"));
+const OrganizationAnalytics = React.lazy(() => import("./pages/organization/OrganizationAnalytics"));
+const Reports = React.lazy(() => import("./pages/organization/Reports"));
+const Integrations = React.lazy(() => import("./pages/organization/Integrations"));
+const Insights = React.lazy(() => import("./pages/organization/Insights"));
+const AIAgents = React.lazy(() => import("./pages/organization/AIAgents"));
+const CandidateAnalysis = React.lazy(() => import("./pages/organization/CandidateAnalysis"));
+const InterviewRoom = React.lazy(() => import("./pages/InterviewRoom"));
+const Notifications = React.lazy(() => import("./pages/Notifications"));
+const InterviewDetail = React.lazy(() => import("./pages/individual/InterviewDetail"));
 
 // Page Manager — the company-side back office for an individual account.
 // PageManagerLayout owns the chrome + sidebar; the existing /organization/*
 // pages render bare inside it (see DashboardLayout).
-import PageManagerLayout from "./components/page/PageManagerLayout";
-import CreatePage from "./pages/page/CreatePage";
-import PageOverview from "./pages/page/Overview";
-import PageProfileEditor from "./pages/page/PageProfile";
-import PageVisibility from "./pages/page/Visibility";
-import PageSettings from "./pages/page/Settings";
+const CreatePage = React.lazy(() => import("./pages/page/CreatePage"));
+const PageOverview = React.lazy(() => import("./pages/page/Overview"));
+const PageProfileEditor = React.lazy(() => import("./pages/page/PageProfile"));
+const PageVisibility = React.lazy(() => import("./pages/page/Visibility"));
+const PageSettings = React.lazy(() => import("./pages/page/Settings"));
 
-import { verifyTokenWithServer } from "./utils/auth";
-import { getBackendUrl, getAuthHeaders } from "./utils/auth";
-import MenteeLoader from "./components/ui/MenteeLoader";
-import socketService from "./utils/socket";
 
 function InterviewAnalysisRedirect() {
   const { interviewId } = useParams();
@@ -104,7 +107,7 @@ function ScrollToTop() {
   const { pathname } = useLocation();
   useEffect(() => {
     window.scrollTo(0, 0);
-    document.querySelectorAll("main").forEach((el) => el.scrollTo(0, 0));
+    document.querySelectorAll("main").forEach((el) => el.scrollTo(0, 0))
   }, [pathname]);
   return null;
 }
@@ -162,7 +165,7 @@ function LegacyOrgIdRedirect() {
         if (d?.slug) setSlug(d.slug);
         else setFailed(true);
       })
-      .catch(() => !cancelled && setFailed(true));
+      .catch(() => !cancelled && setFailed(true))
     return () => { cancelled = true; };
   }, [orgId]);
 
@@ -191,10 +194,10 @@ function LegacyOwnOrgRedirect() {
     verifyTokenWithServer({ forceRefresh: true })
       .then((user) => {
         if (cancelled) return;
-        if (user?.organization_id) setSlug(String(user.organization_id));
+        if (user?.organization_id) setSlug(String(user.organization_id))
         else setFailed(true);
       })
-      .catch(() => !cancelled && setFailed(true));
+      .catch(() => !cancelled && setFailed(true))
     return () => { cancelled = true; };
   }, []);
 
@@ -236,11 +239,8 @@ function AuthVerifier() {
       try {
         const user = await verifyTokenWithServer();
         if (!mounted || !user) return;
-        const token = localStorage.getItem("access_token");
-        if (token) {
-          socketService.connect(token);
-          if (user.organization_id) socketService.joinOrg(user.organization_id);
-        }
+        socketService.connect();
+        if (user.organization_id) socketService.joinOrg(user.organization_id);
       } catch {
         // ignore — pages handle their own auth via ProtectedRoute
       }
@@ -257,10 +257,46 @@ function AuthVerifier() {
       (location.pathname === "/signin" || location.pathname === "/register") &&
       localStorage.getItem("isAuthenticated") === "true"
     ) {
-      navigate("/feed", { replace: true });
+      navigate(getSafeNextPath(location.search) || "/feed", { replace: true });
     }
-  }, [navigate, location.pathname]);
+  }, [navigate, location.pathname, location.search]);
 
+  return null;
+}
+
+function RateLimitNotifier() {
+  const { showToast } = useToast();
+  useEffect(() => {
+    const handler = (event) => {
+      const seconds = Number(event.detail?.retryAfter) || 60;
+      const wait = seconds < 60 ? `${seconds}s` : `${Math.ceil(seconds / 60)} min`;
+      showToast({
+        message: `Too many requests. Please wait ${wait} and try again.`,
+        type: "error",
+        position: "side",
+        duration: 5000,
+      });
+    };
+    window.addEventListener("recruai:rate-limited", handler);
+    return () => window.removeEventListener("recruai:rate-limited", handler);
+  }, [showToast]);
+  return null;
+}
+
+function AuthExpiryRedirect() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  useEffect(() => {
+    const handler = () => {
+      const path = `${location.pathname}${location.search}`;
+      if (["/signin", "/register", "/accept-invite", "/"].includes(location.pathname)) {
+        return;
+      }
+      navigate(`/signin?next=${encodeURIComponent(path)}`, { replace: true });
+    };
+    window.addEventListener("recruai:auth-expired", handler);
+    return () => window.removeEventListener("recruai:auth-expired", handler);
+  }, [navigate, location.pathname, location.search]);
   return null;
 }
 
@@ -269,12 +305,24 @@ function App() {
     <Router>
       <ToastProvider>
         <AuthVerifier />
+        <AuthExpiryRedirect />
+        <RateLimitNotifier />
         <ScrollToTop />
+        <Suspense
+          fallback={
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+              <MenteeLoader size={48} />
+            </div>
+          }
+        >
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<RecruAILanding />} />
           <Route path="/register" element={<Register />} />
           <Route path="/signin" element={<SignIn />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/accept-invite" element={<AcceptInvite />} />
           <Route
             path="/search"
             element={
@@ -443,6 +491,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <CvaiInterviews />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/in/coaching/authoring"
+            element={
+              <ProtectedRoute>
+                <CvaiAuthoring />
               </ProtectedRoute>
             }
           />
@@ -849,6 +905,7 @@ function App() {
           {/* 404 Route - must be last */}
           <Route path="*" element={<NotFound />} />
         </Routes>
+        </Suspense>
       </ToastProvider>
     </Router>
   );

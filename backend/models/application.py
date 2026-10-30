@@ -20,7 +20,13 @@ class Application(db.Model):
     user = db.relationship("User", backref="applications")
     post = db.relationship("Post", backref="applications")
 
-    def to_dict(self):
+    def to_dict(self, post_counts=None):
+        post_dict = None
+        if self.post:
+            # Batch the nested post's application count when the caller has it
+            # (list endpoints); single-object callers fall back to one COUNT.
+            count = post_counts.get(self.post_id) if post_counts else None
+            post_dict = self.post.to_dict(application_count=count)
         return {
             "id": self.id,
             "user_id": self.user_id,
@@ -40,5 +46,5 @@ class Application(db.Model):
                 "headline": self.user.headline if self.user else None,
                 "employment_status": self.user.employment_status if self.user else None,
             } if self.user else None,
-            "post": self.post.to_dict() if self.post else None,
+            "post": post_dict,
         }

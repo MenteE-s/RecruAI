@@ -43,7 +43,7 @@ from backend.models import (
 )
 from backend.migrations.versions import __name__ as _unused  # noqa: F401  (import guard)
 
-EXPECTED_HEAD = "a2b3c4d5e6f7"
+EXPECTED_HEAD = "b3c4d5e6f7a8"
 PROBE_EMAIL = "cvai-smoke-probe@example.invalid"
 
 GREEN, RED, YELLOW, DIM, BOLD, RESET = (
@@ -174,7 +174,9 @@ def main():
         return response[0] if isinstance(response, tuple) else response.status_code
 
     def body_of(response):
-        return response[1] if isinstance(response, tuple) else response.get_json(silent=True)
+        if isinstance(response, tuple):
+            return response
+        return response.status_code, (response.get_json(silent=True) or {})
 
     print(f"{DIM}Mode    {mode}{RESET}")
 
@@ -182,12 +184,12 @@ def main():
     step("Taxonomy")
     status, data = body_of(call("GET", "/api/skills/taxonomy"))
     categories = (data or {}).get("categories") or []
-    total = sum(len(c.get("skills", [])) for c in categories)
+    total = (data or {}).get("total") or len((data or {}).get("skills") or [])
     ok("GET /api/skills/taxonomy", status == 200 and total > 0,
        f"{len(categories)} categories, {total} skills")
 
     status, data = body_of(call("POST", "/api/skills/resolve", {"name": "Postgres"}))
-    entry = (data or {}).get("skill") or data or {}
+    entry = (((data or {}).get("resolved") or [None])[0]) or ((data or {}).get("skill") or data or {})
     ok('"Postgres" resolves to a catalogued slug',
        status == 200 and entry.get("slug") == "postgresql", entry.get("slug"))
 
@@ -206,7 +208,7 @@ def main():
     step("Skill assessment")
     status, data = body_of(call("POST", "/api/skills/assessments",
                                 {"skill_slug": "postgresql"}))
-    assessment = (data or {}).get("assessment") or {}
+    assessment = data or {}
     served = assessment.get("questions") or []
     ok("start an assessment", status in (200, 201) and bool(served),
        f"{len(served)} questions")
@@ -216,13 +218,13 @@ def main():
     if served:
         with app.app_context():
             answer_key = {
-                q["question_id"]: db.session.get(SkillQuestion, q["question_id"]).correct_index
+                q["id"]: db.session.get(SkillQuestion, q["id"]).correct_index
                 for q in served
             }
-        perfect = [{"question_id": q["question_id"], "selected": answer_key[q["question_id"]]}
+        perfect = [{"question_id": q["id"], "selected": answer_key[q["id"]]}
                    for q in served]
         status, data = body_of(call(
-            "POST", f"/api/skills/assessments/{assessment.get('id')}/submit",
+            "POST", f"/api/skills/assessments/{assessment.get('assessment_id')}/submit",
             {"answers": perfect}))
         result = (data or {}).get("assessment") or {}
         ok("submit and get graded", status == 200,

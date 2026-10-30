@@ -40,6 +40,11 @@ backend/venv
 **/dist
 **/*.egg-info
 
+# Test-only code and tooling must not ship in the production image.
+backend/tests
+backend/pytest.ini
+backend/requirements-dev.txt
+
 # Editor and OS noise.
 **/.git
 **/.gitignore

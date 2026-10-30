@@ -49,6 +49,18 @@ const ORG = {
   accepting_applications: true,
   subscription_status: null,
   timezone: "UTC",
+  // The page manager layout gates its children on the caller's permissions.
+  // A manager response from GET /api/organizations/<id> carries this block;
+  // without it the test renders the "no access" state instead of the form.
+  access: {
+    role: "Admin",
+    permissions: [
+      "org.view", "org.edit", "team.view", "team.manage",
+      "hiring.view", "hiring.manage", "interviews.view", "interviews.manage",
+      "ai_agents.view", "ai_agents.manage", "analytics.view",
+      "billing.view", "billing.manage",
+    ],
+  },
 };
 
 const USER = {
@@ -77,7 +89,8 @@ describe("PageProfile", () => {
   beforeEach(() => {
     mockFetch();
     localStorage.clear();
-    localStorage.setItem("access_token", "test-token");
+    // Access tokens live in memory now; this flag is what marks a session.
+    localStorage.setItem("isAuthenticated", "true");
   });
 
   afterEach(() => {

@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from sqlalchemy.orm import selectinload
 from .. import api_bp
 from ...models import ShareableProfile, ProfileAnalytics, User, ProfileSection
 from ...extensions import db
@@ -196,8 +197,22 @@ def get_public_profile(slug):
     db.session.add(analytics)
     profile.increment_views()
 
-    # Get user data with visibility settings
-    user = profile.user
+    # Get user data with visibility settings. Eager-load every collection
+    # to_public_dict() serializes so one profile view stays constant-query.
+    user = (
+        User.query.options(
+            selectinload(User.organization),
+            selectinload(User.experiences),
+            selectinload(User.educations),
+            selectinload(User.skills),
+            selectinload(User.projects),
+            selectinload(User.certifications),
+            selectinload(User.publications),
+            selectinload(User.awards),
+        ).filter_by(id=profile.user_id).first()
+    )
+    if user is None:
+        return jsonify({'success': False, 'message': 'Profile not found or expired'}), 404
     user_data = user.to_public_dict()
 
     # Apply visibility filters

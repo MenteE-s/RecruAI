@@ -152,6 +152,193 @@ def otp_email_text(name: str, code: str, minutes: int = 10, context: str = "regi
     )
 
 
+def password_reset_email_html(name: str, code: str, minutes: int = 10, email: str = "") -> str:
+    import html as _html
+    from urllib.parse import quote
+
+    first = _html.escape((name or "there").split(" ")[0], quote=True)
+    digits = "".join(
+        f'<td align="center" style="width:48px;height:56px;background-color:{LIGHT_BG};border:1px solid {BORDER};border-radius:10px;font-size:26px;font-weight:800;color:{CHARCOAL};">{d}</td><td style="width:8px;"></td>'
+        for d in code
+    )
+    reset_url = f"{SITE_RECRUAI}/reset-password?email={quote(email or '', safe='')}"
+    body = f"""
+<tr><td align="center" style="padding:36px 36px 8px 36px;text-align:center;">
+  <p style="margin:0;font-size:24px;font-weight:800;letter-spacing:-0.4px;color:{CHARCOAL};text-align:center;">Reset your password</p>
+  <p style="margin:10px 0 0 0;font-size:14px;line-height:1.7;color:#525252;text-align:center;">Hi {first}, use this code to choose a new password for your {BRAND_NAME} account. It expires in {minutes} minutes.</p>
+</td></tr>
+<tr><td style="padding:20px 36px 8px 36px;" align="center">
+  <table role="presentation" cellpadding="0" cellspacing="0"><tr>{digits}</tr></table>
+  <p style="margin:16px 0 0 0;font-size:12px;color:{MUTED};text-align:center;">Never share this code</p>
+</td></tr>
+<tr><td align="center" style="padding:14px 36px 8px 36px;text-align:center;">
+  <a href="{reset_url}" style="display:inline-block;background-color:{CHARCOAL};color:#ffffff;font-size:14px;font-weight:700;text-decoration:none;padding:13px 34px;border-radius:9px;">Enter reset code</a>
+</td></tr>
+<tr><td align="center" style="padding:16px 36px 28px 36px;text-align:center;">
+  <p style="margin:0;font-size:12px;line-height:1.7;color:{MUTED};text-align:center;">Didn&apos;t request this? You can safely ignore this email — your password will not change.</p>
+</td></tr>
+"""
+    return _shell_html(f"Your {BRAND_NAME} password reset code is {code}", body)
+
+
+def password_reset_email_text(name: str, code: str, minutes: int = 10, email: str = "") -> str:
+    from urllib.parse import quote
+
+    first = (name or "there").split(" ")[0]
+    reset_url = f"{SITE_RECRUAI}/reset-password?email={quote(email or '', safe='')}"
+    return (
+        f"Hi {first},\n\n"
+        f"Use this code to reset your {BRAND_NAME} password:\n\n  {code}\n\n"
+        f"It expires in {minutes} minutes. Never share this code.\n\n"
+        f"Enter it here: {reset_url}\n\n"
+        f"Didn't request this? Ignore this email — your password will not change.\n\n"
+        f"— {BRAND_NAME} {BRAND_BYLINE} ({SITE_RECRUAI})"
+    )
+
+
+def password_changed_email_html(name: str) -> str:
+    import html as _html
+
+    first = _html.escape((name or "there").split(" ")[0], quote=True)
+    body = f"""
+<tr><td align="center" style="padding:36px 36px 8px 36px;text-align:center;">
+  <div style="display:inline-block;width:52px;height:52px;border-radius:50%;background-color:{EMERALD};color:#ffffff;font-size:26px;font-weight:800;line-height:52px;">✓</div>
+  <p style="margin:18px 0 0 0;font-size:24px;font-weight:800;letter-spacing:-0.4px;color:{CHARCOAL};text-align:center;">Your password was changed</p>
+  <p style="margin:10px 0 0 0;font-size:14px;line-height:1.7;color:#525252;text-align:center;">Hi {first}, the password for your {BRAND_NAME} account was just changed. All older sign-in sessions have been signed out.</p>
+</td></tr>
+<tr><td align="center" style="padding:14px 36px 28px 36px;text-align:center;">
+  <p style="margin:0;font-size:12px;line-height:1.7;color:{MUTED};text-align:center;">If you did not make this change, reset your password immediately or contact <a href="mailto:{CONTACT_EMAIL}" style="color:{MUTED};text-decoration:underline;">{CONTACT_EMAIL}</a>.</p>
+</td></tr>
+"""
+    return _shell_html(f"Your {BRAND_NAME} password was changed", body)
+
+
+def password_changed_email_text(name: str) -> str:
+    first = (name or "there").split(" ")[0]
+    return (
+        f"Hi {first},\n\n"
+        f"The password for your {BRAND_NAME} account was just changed. "
+        f"All older sign-in sessions have been signed out.\n\n"
+        f"If you did not make this change, reset your password immediately or contact {CONTACT_EMAIL}.\n\n"
+        f"— {BRAND_NAME} {BRAND_BYLINE} ({SITE_RECRUAI})"
+    )
+
+
+def send_password_reset_email(to_email: str, name: str, code: str) -> Tuple[bool, Optional[str]]:
+    sender = _config("RESEND_FROM_EMAIL", f"{BRAND_NAME} <no-reply@menteeai.org>")
+    return _send(
+        to_email,
+        f"Reset your {BRAND_NAME} password",
+        password_reset_email_html(name, code, email=to_email),
+        password_reset_email_text(name, code, email=to_email),
+        sender,
+    )
+
+
+def send_password_changed_email(to_email: str, name: str) -> Tuple[bool, Optional[str]]:
+    sender = _config("RESEND_FROM_EMAIL", f"{BRAND_NAME} <no-reply@menteeai.org>")
+    return _send(
+        to_email,
+        f"Your {BRAND_NAME} password was changed",
+        password_changed_email_html(name),
+        password_changed_email_text(name),
+        sender,
+    )
+
+
+def send_email_change_notice(to_email: str, name: str, new_email: str) -> Tuple[bool, Optional[str]]:
+    """Notify the old address that its account email was changed."""
+    sender = _config("RESEND_FROM_EMAIL", f"{BRAND_NAME} <no-reply@menteeai.org>")
+    first = (name or "there").split(" ")[0]
+    html = _shell_html(
+        f"Your {BRAND_NAME} email address was changed",
+        f"""
+<tr><td align="center" style="padding:36px 36px 8px 36px;text-align:center;">
+  <p style="margin:0;font-size:24px;font-weight:800;letter-spacing:-0.4px;color:{CHARCOAL};text-align:center;">Email address changed</p>
+  <p style="margin:10px 0 0 0;font-size:14px;line-height:1.7;color:#525252;text-align:center;">Hi {first}, the sign-in email for your {BRAND_NAME} account was changed to <b>{new_email}</b>.</p>
+  <p style="margin:10px 0 0 0;font-size:14px;line-height:1.7;color:#525252;text-align:center;">If you did not make this change, contact support immediately and change your password.</p>
+</td></tr>
+""",
+    )
+    text = (
+        f"Hi {first}, the sign-in email for your {BRAND_NAME} account was changed to {new_email}. "
+        "If you did not make this change, contact support immediately and change your password."
+    )
+    return _send(to_email, f"Your {BRAND_NAME} email address was changed", html, text, sender)
+
+
+def organization_invitation_email_html(
+    organization_name: str,
+    inviter_name: str,
+    role: str,
+    accept_url: str,
+    expires_days: int = 7,
+) -> str:
+    import html as _html
+
+    org = _html.escape(organization_name or "the team", quote=True)
+    inviter = _html.escape(inviter_name or "A team admin", quote=True)
+    role_text = _html.escape(role or "Member", quote=True)
+    url = _html.escape(accept_url, quote=True)
+    body = f"""
+<tr><td align="center" style="padding:36px 36px 8px 36px;text-align:center;">
+  <p style="margin:0;font-size:24px;font-weight:800;letter-spacing:-0.4px;color:{CHARCOAL};text-align:center;">Join {org} on {BRAND_NAME}</p>
+  <p style="margin:10px 0 0 0;font-size:14px;line-height:1.7;color:#525252;text-align:center;">{inviter} invited you to join the team as <b>{role_text}</b>. Accept the invitation to see the team and start collaborating.</p>
+</td></tr>
+<tr><td align="center" style="padding:14px 36px 8px 36px;text-align:center;">
+  <a href="{url}" style="display:inline-block;background-color:{CHARCOAL};color:#ffffff;font-size:14px;font-weight:700;text-decoration:none;padding:13px 34px;border-radius:9px;">Accept invitation</a>
+</td></tr>
+<tr><td align="center" style="padding:16px 36px 28px 36px;text-align:center;">
+  <p style="margin:0;font-size:12px;line-height:1.7;color:{MUTED};text-align:center;">This link expires in {expires_days} days and can only be used once. If you already have a {BRAND_NAME} account, sign in with this email address to join.</p>
+  <p style="margin:8px 0 0 0;font-size:11px;line-height:1.7;color:{MUTED};text-align:center;word-break:break-all;">{url}</p>
+</td></tr>
+"""
+    return _shell_html(f"{inviter} invited you to join {org} on {BRAND_NAME}", body)
+
+
+def organization_invitation_email_text(
+    organization_name: str,
+    inviter_name: str,
+    role: str,
+    accept_url: str,
+    expires_days: int = 7,
+) -> str:
+    return (
+        f"{inviter_name or 'A team admin'} invited you to join the {organization_name or 'team'} "
+        f"team on {BRAND_NAME} as {role or 'Member'}.\n\n"
+        f"Accept the invitation: {accept_url}\n\n"
+        f"This link expires in {expires_days} days and can only be used once. "
+        f"If you already have a {BRAND_NAME} account, sign in with this email address to join.\n\n"
+        f"— {BRAND_NAME} {BRAND_BYLINE} ({SITE_RECRUAI})"
+    )
+
+
+def send_organization_invitation_email(
+    to_email: str,
+    organization_name: str,
+    inviter_name: str,
+    role: str,
+    token: str,
+    expires_days: int = 7,
+) -> Tuple[bool, Optional[str]]:
+    from urllib.parse import quote
+
+    sender = _config("RESEND_FROM_EMAIL", f"{BRAND_NAME} <no-reply@menteeai.org>")
+    accept_url = f"{SITE_RECRUAI}/accept-invite?token={quote(token, safe='')}"
+    return _send(
+        to_email,
+        f"Join {organization_name or 'the team'} on {BRAND_NAME}",
+        organization_invitation_email_html(
+            organization_name, inviter_name, role, accept_url, expires_days
+        ),
+        organization_invitation_email_text(
+            organization_name, inviter_name, role, accept_url, expires_days
+        ),
+        sender,
+        reply_to=CONTACT_EMAIL,
+    )
+
+
 def welcome_email_html(name: str, role: str = "individual") -> str:
     import html as _html
     first = _html.escape((name or "there").split(" ")[0], quote=True)

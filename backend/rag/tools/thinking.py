@@ -3,6 +3,7 @@ import json
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 from ...ai_providers import get_ai_provider_manager
+from ...utils.ai_budget import AIBudgetError
 from ...utils.timezone_utils import utc_now_iso
 
 logger = logging.getLogger(__name__)
@@ -15,7 +16,11 @@ class ThinkingModule:
 
     def __init__(self):
         self.provider_manager = get_ai_provider_manager()
-        self.llm_provider = self.provider_manager.llm
+
+    @property
+    def llm_provider(self):
+        """Resolve at call time so admin provider changes reach this module."""
+        return self.provider_manager.llm
 
     def _extract_json(self, text: str) -> Dict[str, Any]:
         """Extract and parse JSON from LLM response with formatting resilience"""
@@ -48,7 +53,7 @@ class ThinkingModule:
             
             raise
 
-    def analyze_context(self, query: str, context_chunks: List[Dict[str, Any]], system_context: Optional[str] = None) -> Dict[str, Any]:
+    def analyze_context(self, query: str, context_chunks: List[Dict[str, Any]], system_context: Optional[str] = None, actor=None) -> Dict[str, Any]:
         """
         Analyze retrieved context to determine relevance and identify gaps.
 
@@ -88,7 +93,7 @@ class ThinkingModule:
             response = self.llm_provider.chat([
                 {"role": "system", "content": "You are an expert at analyzing information relevance and completeness."},
                 {"role": "user", "content": analysis_prompt}
-            ], {"temperature": 0.1})
+            ], {"temperature": 0.1}, actor=actor, operation_type="rag_context_analysis")
 
             # Parse JSON response
             analysis = self._extract_json(response)
@@ -99,6 +104,8 @@ class ThinkingModule:
 
             return analysis
 
+        except AIBudgetError:
+            raise
         except Exception as e:
             logger.error(f"Error in context analysis: {e}")
             return {
@@ -111,7 +118,8 @@ class ThinkingModule:
             }
 
     def generate_reasoning(self, query: str, context_chunks: List[Dict[str, Any]],
-                          analysis: Dict[str, Any], system_context: Optional[str] = None) -> Dict[str, Any]:
+                          analysis: Dict[str, Any], system_context: Optional[str] = None,
+                          actor=None) -> Dict[str, Any]:
         """
         Generate internal reasoning for how to respond to the query.
 
@@ -156,7 +164,7 @@ class ThinkingModule:
             response = self.llm_provider.chat([
                 {"role": "system", "content": "You are an expert at reasoning and planning responses. Think step by step and be thorough."},
                 {"role": "user", "content": reasoning_prompt}
-            ], {"temperature": 0.2})
+            ], {"temperature": 0.2}, actor=actor, operation_type="rag_reasoning")
 
             # Parse JSON response
             reasoning = self._extract_json(response)
@@ -167,6 +175,8 @@ class ThinkingModule:
 
             return reasoning
 
+        except AIBudgetError:
+            raise
         except Exception as e:
             logger.error(f"Error in reasoning generation: {e}")
             return {
@@ -180,7 +190,7 @@ class ThinkingModule:
                 "error": str(e)
             }
 
-    def validate_reasoning(self, reasoning: Dict[str, Any]) -> Dict[str, Any]:
+    def validate_reasoning(self, reasoning: Dict[str, Any], actor=None) -> Dict[str, Any]:
         """
         Validate the quality and coherence of generated reasoning.
 
@@ -214,7 +224,7 @@ class ThinkingModule:
             response = self.llm_provider.chat([
                 {"role": "system", "content": "You are an expert at evaluating AI reasoning quality. Be thorough and fair."},
                 {"role": "user", "content": validation_prompt}
-            ], {"temperature": 0.1})
+            ], {"temperature": 0.1}, actor=actor, operation_type="rag_validation")
 
             # Parse JSON response
             validation = self._extract_json(response)
@@ -231,6 +241,8 @@ class ThinkingModule:
 
             return validation
 
+        except AIBudgetError:
+            raise
         except Exception as e:
             logger.error(f"Error in reasoning validation: {e}")
             return {

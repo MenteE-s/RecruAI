@@ -1,13 +1,13 @@
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy import func
 
+from backend.constants import DEFAULT_AI_TOKEN_ALLOWANCE, TRIAL_PERIOD_DAYS
 from backend.extensions import db
 from backend.utils.timezone_utils import utc_iso
 
-# Every account gets this much AI spend while there is no billing. Lives here
-# rather than in ai_budget.py because the column default needs it at class
-# definition time, and ai_budget imports from this module.
-DEFAULT_TOKEN_ALLOWANCE = 50_000
+# Backwards-compatible alias for callers that imported the old name from here.
+DEFAULT_TOKEN_ALLOWANCE = DEFAULT_AI_TOKEN_ALLOWANCE
 
 
 class User(db.Model):
@@ -20,8 +20,16 @@ class User(db.Model):
     password_hash = db.Column(db.Text, nullable=True)
     # user role: 'individual' or 'organization'
     role = db.Column(db.String(32), nullable=False, default="individual")
+    # Platform superadmin: bypasses org scoping and may use /api/admin/*.
+    # Orthogonal to team roles; set only via scripts/grant_superadmin.py or
+    # the admin dashboard (by an existing superadmin, never self-granted).
+    is_superadmin = db.Column(db.Boolean, nullable=False, default=False, server_default="0")
     # user plan: 'trial' or 'pro'
-    plan = db.Column(db.String(32), nullable=False, default="trial")
+    plan = db.Column(db.String(32), nullable=False, default="free", server_default="free")
+    # Per-account feature overrides (JSON list of feature keys). Admin may grant
+    # a single feature (e.g. career_coaching) to a free user without changing
+    # their plan. NULL means "no override".
+    feature_overrides = db.Column(db.Text, nullable=True)
     # Subscription fields
     subscription_status = db.Column(db.String(20), nullable=True, default="trial")  # 'trial', 'active', 'expired', 'cancelled'
     trial_start_date = db.Column(db.DateTime, nullable=True, default=datetime.utcnow)
@@ -65,6 +73,10 @@ class User(db.Model):
     locked_until = db.Column(db.DateTime, nullable=True)
     last_login_at = db.Column(db.DateTime, nullable=True)
     password_changed_at = db.Column(db.DateTime, default=datetime.utcnow)
+    # Bumped whenever the password is reset/changed. JWTs carry this value so
+    # every token issued before the change can be rejected without tracking
+    # individual JTIs.
+    token_version = db.Column(db.Integer, nullable=False, default=0, server_default="0")
 
     # Email verification (OTP). Accounts created before verification existed
     # are grandfathered as verified by the migration.
@@ -76,12 +88,36 @@ class User(db.Model):
     # discoverable. Companies have the equivalent organizations.is_public.
     is_discoverable = db.Column(db.Boolean, nullable=False, default=True)
 
+    # Account deletion (P1-03). A deletion request revokes sessions immediately
+    # and starts a grace period; a worker hard-deletes the row and all owned
+    # records once deletion_scheduled_for passes. Keeping the row during the
+    # grace period lets support reverse an accidental deletion.
+    deleted_at = db.Column(db.DateTime, nullable=True)
+    deletion_requested_at = db.Column(db.DateTime, nullable=True)
+    deletion_scheduled_for = db.Column(db.DateTime, nullable=True, index=True)
+    deletion_reason = db.Column(db.String(255), nullable=True)
+
     # Public profile handle: /in/<slug>. Nullable only so a signup insert can
     # never race the unique index; assigned immediately after and backfilled
     # for pre-existing rows by migration c9e1f2a3b4d8.
     profile_slug = db.Column(db.String(30), nullable=True, unique=True, index=True)
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # find_user_by_email() uses lower(email) to be case-insensitive. The
+    # unique constraint on email is case-sensitive and cannot serve that
+    # lookup; this expression index keeps invitation/account lookups O(log n)
+    # at a million users.
+    __table_args__ = (
+        db.Index("ix_users_email_lower", func.lower(email)),
+        # Trial expiry runs hourly with a cutoff on trial_start_date. Without
+        # this, a million-user table turns each worker pass into a full scan.
+        db.Index(
+            "ix_users_subscription_trial_start",
+            "subscription_status",
+            "trial_start_date",
+        ),
+    )
 
     interviews = db.relationship("Interview", back_populates="user", cascade="all, delete-orphan")
 
@@ -141,6 +177,10 @@ class User(db.Model):
         """Check if account is currently locked"""
         return self.locked_until and self.locked_until > datetime.utcnow()
 
+    def is_deleted(self) -> bool:
+        """True once deletion has been requested (even during the grace period)."""
+        return self.deleted_at is not None
+
     def to_dict(self):
         return {
             "id": self.id,
@@ -148,6 +188,7 @@ class User(db.Model):
             "name": self.name,
             "role": self.role,
             "plan": self.plan,
+            "feature_overrides": self.feature_override_list(),
             "organization_id": self.organization_id,
             "organization": self.organization.name if self.organization else None,
             # Lets the client link to /org/<slug> without a second lookup.
@@ -223,37 +264,69 @@ class User(db.Model):
 
     # Subscription methods
     def is_trial_active(self) -> bool:
-        """Check if user is still in trial period (7 days for individuals)"""
+        """Check if user is still in trial period (1 month / 30 days for individuals).
+
+        Every new individual account starts in trial and gets full access to all
+        CVAI features (assessments, quizzes, guided projects, mock interviews,
+        mentorship) for 30 days. After the trial ends the account lapses to the
+        basic plan and must subscribe to keep using paid features.
+        """
         if self.subscription_status != "trial":
             return False
 
         if not self.trial_start_date:
             return False
 
-        trial_end = self.trial_start_date + timedelta(days=7)
+        trial_end = self.trial_start_date + timedelta(days=TRIAL_PERIOD_DAYS)
         return datetime.utcnow() < trial_end
 
     def is_subscription_active(self) -> bool:
         """Check if user has active subscription"""
         return self.subscription_status == "active" and self.paid_plan
 
+    def feature_override_list(self):
+        import json
+
+        if not self.feature_overrides:
+            return []
+        try:
+            value = json.loads(self.feature_overrides)
+        except (ValueError, TypeError):
+            return []
+        return value if isinstance(value, list) else []
+
     def can_access_feature(self, feature: str) -> bool:
-        """Check if user can access a specific feature based on subscription.
+        """Check if a user can access a specific feature based on subscription.
 
         The order matters and encodes the product rule: paying unlocks
         everything, an unexpired trial unlocks everything (a trial exists to
         demonstrate the paid thing), and a lapsed account falls back to the
         basics. No CVAI key is in that basic list, which is what makes
         "subscribe to get CVAI" true rather than aspirational.
+
+        Admins may grant individual features per account through
+        ``feature_overrides`` without changing the plan or subscription.
         """
         from backend.utils.subscription import BASIC_INDIVIDUAL_FEATURES
 
+        if feature in self.feature_override_list():
+            return True
         if self.is_subscription_active():
             return True
-
         if self.is_trial_active():
             # During trial, allow access to all features
             return True
+
+        # Lapsed account: plan features (admin-managed) take precedence
+        # over the legacy hard-coded basic list.
+        try:
+            from .plan import Plan
+
+            plan = Plan.query.filter_by(slug=self.plan or "free", scope="individual", is_active=True).first()
+            if plan is not None:
+                return feature in plan.feature_list()
+        except Exception:
+            pass
 
         # Trial expired - restrict features
         return feature in BASIC_INDIVIDUAL_FEATURES
@@ -296,11 +369,16 @@ class User(db.Model):
 
     def get_subscription_status(self) -> dict:
         """Get comprehensive subscription status"""
+        trial_end = (
+            self.trial_start_date + timedelta(days=TRIAL_PERIOD_DAYS)
+            if self.trial_start_date else None
+        )
         return {
             "status": self.subscription_status,
             "is_trial_active": self.is_trial_active(),
             "is_paid_active": self.is_subscription_active(),
             "trial_start_date": utc_iso(self.trial_start_date),
+            "trial_end_date": utc_iso(trial_end),
             "paid_plan": self.paid_plan,
             "tokens_used": self.tokens_used or 0,
             "interviews_count": self.interviews_count or 0,

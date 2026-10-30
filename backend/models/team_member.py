@@ -6,6 +6,16 @@ from backend.utils.timezone_utils import utc_iso
 
 class TeamMember(db.Model):
     __tablename__ = "team_members"
+    __table_args__ = (
+        db.UniqueConstraint(
+            "organization_id", "user_id", name="uq_team_members_organization_user"
+        ),
+        db.Index("ix_team_members_user_id", "user_id"),
+        db.CheckConstraint(
+            "role IN ('Admin', 'HR', 'Manager', 'Interviewer', 'Viewer', 'Employee')",
+            name="ck_team_members_role",
+        ),
+    )
 
     id = db.Column(db.Integer, primary_key=True)
     organization_id = db.Column(db.Integer, db.ForeignKey("organizations.id"), nullable=False)
@@ -20,6 +30,11 @@ class TeamMember(db.Model):
 
     def to_dict(self):
         import json
+
+        # Local import keeps the model importable without a cycle: the
+        # permission module imports TeamMember for lookups.
+        from backend.utils.org_permissions import normalize_stored_role, role_permissions
+
         permissions = []
         if self.permissions:
             try:
@@ -28,11 +43,13 @@ class TeamMember(db.Model):
                     permissions = []
             except (json.JSONDecodeError, TypeError):
                 permissions = []
+        role = normalize_stored_role(self.role)
         return {
             "id": self.id,
             "organization_id": self.organization_id,
             "user_id": self.user_id,
-            "role": self.role,
+            "role": role,
+            "role_permissions": sorted(role_permissions(role)),
             "permissions": permissions,
             "join_date": self.join_date.isoformat() if self.join_date else None,
             "created_at": utc_iso(self.created_at),

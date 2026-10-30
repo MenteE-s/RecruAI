@@ -4,7 +4,15 @@ from .. import api_bp
 from ...utils.timezone_utils import utc_now_iso, utc_iso
 from ...extensions import db
 from ...models import Application, Post, Interview, TeamMember, User
+from ...utils.org_permissions import (
+    HIRING_MANAGE,
+    HIRING_VIEW,
+    get_permitted_org_ids,
+    has_org_permission,
+    invalidate_membership_caches,
+)
 from sqlalchemy import func
+from sqlalchemy.orm import selectinload
 from ...utils.pagination import Pagination, get_pagination_params, paginated_response, apply_filters_and_sorting, get_request_filters, get_sorting_params
 from ...utils.kafka_service import kafka_service as kafka
 from ...utils.cache import (
@@ -20,25 +28,26 @@ from datetime import datetime
 
 def _current_user():
     try:
-        return User.query.get(int(get_jwt_identity()))
+        return db.session.get(User, int(get_jwt_identity()))
     except (TypeError, ValueError):
         return None
 
 
-def _managed_org_ids(user):
-    """Org ids the user may manage applications for (own org + team memberships)."""
-    ids = set()
-    if user.organization_id:
-        ids.add(user.organization_id)
-    for tm in TeamMember.query.filter_by(user_id=user.id).all():
-        ids.add(tm.organization_id)
-    return ids
+def _managed_org_ids(user, permission=HIRING_VIEW):
+    """Org ids where the user has the requested hiring permission."""
+    return get_permitted_org_ids(user, permission=permission)
 
 
 def _can_manage_post(user, post):
     if not user or not post:
         return False
-    return post.organization_id in _managed_org_ids(user)
+    return has_org_permission(user, post.organization_id, HIRING_MANAGE)
+
+
+def _can_view_post(user, post):
+    if not user or not post:
+        return False
+    return has_org_permission(user, post.organization_id, HIRING_VIEW)
 
 
 def _notify_candidate(application, title, message):
@@ -57,9 +66,11 @@ def _notify_candidate(application, title, message):
             related_organization_id=post.organization_id if post else None,
         )
         db.session.add(notification)
-        db.session.commit()
+        db.session.flush()
         try:
-            kafka.emit_event('notification_created', {
+            from ...utils.outbox import enqueue_kafka_event
+
+            enqueue_kafka_event('notification_created', {
                 'notification_id': notification.id,
                 'user_id': application.user_id,
                 'type': 'application_status',
@@ -67,7 +78,8 @@ def _notify_candidate(application, title, message):
                 'related_application_id': application.id,
             })
         except Exception as ke:
-            print(f"Failed to emit Kafka message for application notification: {ke}")
+            print(f"Failed to queue Kafka message for application notification: {ke}")
+        db.session.commit()
     except Exception as e:
         print(f"Failed to create application status notification: {e}")
 
@@ -117,14 +129,29 @@ def get_applications():
         filters['user_id'] = user.id
         query = Application.query
 
+    # Eager-load everything to_dict() touches (candidate, post, org), so a
+    # page of N applications stays at a constant query count.
+    query = query.options(
+        selectinload(Application.user),
+        selectinload(Application.post).selectinload(Post.organization),
+    )
+
     # Apply filters and sorting
     query = apply_filters_and_sorting(query, Application, filters, sort_by, sort_order)
 
     # Apply pagination
     pagination_result = Pagination(query, page=page, per_page=per_page).paginate()
 
-    # Return paginated response
-    return jsonify(paginated_response(pagination_result['items'], pagination_result['pagination'])), 200
+    # Return paginated response (counts batched: one GROUP BY, not N COUNTs)
+    from ...models.post import application_counts as _application_counts
+
+    _items = pagination_result['items']
+    _counts = _application_counts([a.post_id for a in _items])
+    return jsonify(paginated_response(
+        _items,
+        pagination_result['pagination'],
+        item_serializer=lambda a: a.to_dict(post_counts=_counts),
+    )), 200
 
 @api_bp.route("/applications", methods=["POST"])
 @jwt_required()
@@ -138,8 +165,13 @@ def create_application():
     post_id = payload.get("post_id")
     if not post_id:
         return jsonify({"error": "post_id required"}), 400
-    if not Post.query.get(post_id):
+    post = db.session.get(Post, post_id)
+    if not post:
         return jsonify({"error": "Job post not found"}), 404
+
+    # Only open postings accept applications.
+    if getattr(post, "status", None) not in (None, "active", "open"):
+        return jsonify({"error": "That job is not accepting applications"}), 400
 
     # Check if user already applied
     existing = Application.query.filter_by(user_id=user_id, post_id=post_id).first()
@@ -209,8 +241,11 @@ def list_user_applications(user_id):
     # Get sorting parameters
     sort_by, sort_order = get_sorting_params(default_sort='applied_at')
 
-    # Build base query
-    query = Application.query
+    # Build base query (eager-load candidate + post + org for to_dict)
+    query = Application.query.options(
+        selectinload(Application.user),
+        selectinload(Application.post).selectinload(Post.organization),
+    )
 
     # Apply filters and sorting
     query = apply_filters_and_sorting(query, Application, filters, sort_by, sort_order)
@@ -231,8 +266,8 @@ def list_user_applications(user_id):
 @jwt_required()
 def list_post_applications(post_id):
     """Get applications for a specific post (managing org only)."""
-    post = Post.query.get_or_404(post_id)
-    if not _can_manage_post(_current_user(), post):
+    post = db.get_or_404(Post, post_id)
+    if not _can_view_post(_current_user(), post):
         return jsonify({"error": "Forbidden for this organization"}), 403
     # Get pagination parameters
     page, per_page = get_pagination_params()
@@ -244,8 +279,11 @@ def list_post_applications(post_id):
     # Get sorting parameters
     sort_by, sort_order = get_sorting_params(default_sort='applied_at')
 
-    # Build base query
-    query = Application.query
+    # Build base query (eager-load candidate + post + org for to_dict)
+    query = Application.query.options(
+        selectinload(Application.user),
+        selectinload(Application.post).selectinload(Post.organization),
+    )
 
     # Apply filters and sorting
     query = apply_filters_and_sorting(query, Application, filters, sort_by, sort_order)
@@ -253,13 +291,19 @@ def list_post_applications(post_id):
     # Apply pagination
     pagination_result = Pagination(query, page=page, per_page=per_page).paginate()
 
-    # Return paginated response
-    return jsonify(paginated_response(pagination_result['items'], pagination_result['pagination'])), 200
+    # Return paginated response (counts batched: one GROUP BY, not N COUNTs)
+    _items = pagination_result['items']
+    _counts = _application_counts([a.post_id for a in _items])
+    return jsonify(paginated_response(
+        _items,
+        pagination_result['pagination'],
+        item_serializer=lambda a: a.to_dict(post_counts=_counts),
+    )), 200
 
 @api_bp.route("/applications/<int:app_id>", methods=["PUT"])
 @jwt_required()
 def update_application_status(app_id):
-    application = Application.query.get_or_404(app_id)
+    application = db.get_or_404(Application, app_id)
     if not _can_manage_post(_current_user(), application.post):
         return jsonify({"error": "Forbidden for this organization"}), 403
     payload = request.get_json(silent=True) or {}
@@ -299,7 +343,7 @@ def update_application_status(app_id):
 def mark_application_onboarded(app_id):
     """Mark an application as onboarded"""
     from datetime import datetime
-    application = Application.query.get_or_404(app_id)
+    application = db.get_or_404(Application, app_id)
     if not _can_manage_post(_current_user(), application.post):
         return jsonify({"error": "Forbidden for this organization"}), 403
     application.onboarded = True
@@ -322,6 +366,8 @@ def mark_application_onboarded(app_id):
         db.session.add(team_member)
     
     db.session.commit()
+    if not existing_team_member:
+        invalidate_membership_caches(application.user_id, application.post.organization_id)
     return jsonify({"message": "Application marked as onboarded", "application": application.to_dict()}), 200
 
 
@@ -329,7 +375,7 @@ def mark_application_onboarded(app_id):
 @jwt_required()
 def mark_application_offboarded(app_id):
     """Mark an application as not onboarded"""
-    application = Application.query.get_or_404(app_id)
+    application = db.get_or_404(Application, app_id)
     if not _can_manage_post(_current_user(), application.post):
         return jsonify({"error": "Forbidden for this organization"}), 403
     application.onboarded = False
@@ -344,15 +390,49 @@ def get_pipeline_data(org_id):
     user = _current_user()
     if not user or org_id not in _managed_org_ids(user):
         return jsonify({"error": "Forbidden for this organization"}), 403
-    # Get all posts for this organization
-    posts = Post.query.filter_by(organization_id=org_id).all()
+    # Get all posts for this organization (org eager-loaded for to_dict)
+    posts = (
+        Post.query.filter_by(organization_id=org_id)
+        .options(selectinload(Post.organization))
+        .all()
+    )
+    post_ids = [post.id for post in posts]
+
+    # One query for every application (+ candidate + post + org), one for
+    # every interview, instead of per-post/per-application round trips.
+    applications = (
+        Application.query.filter(Application.post_id.in_(post_ids))
+        .options(
+            selectinload(Application.user),
+            selectinload(Application.post).selectinload(Post.organization),
+        )
+        .all()
+        if post_ids
+        else []
+    )
+    interviews = (
+        Interview.query.filter(Interview.post_id.in_(post_ids))
+        .options(
+            selectinload(Interview.user),
+            selectinload(Interview.organization),
+            selectinload(Interview.post),
+        )
+        .all()
+        if post_ids
+        else []
+    )
+    apps_by_post = {}
+    for app in applications:
+        apps_by_post.setdefault(app.post_id, []).append(app)
+    interviews_by_post_user = {}
+    for interview in interviews:
+        # Match the old `.first()` semantics: keep the first row per pair.
+        interviews_by_post_user.setdefault((interview.post_id, interview.user_id), interview)
 
     pipeline_data = []
+    counts = _application_counts(post_ids)
 
     for post in posts:
-        # Get applications for this post
-        applications = Application.query.filter_by(post_id=post.id).all()
-
         # Group applications by pipeline stage
         stages = {
             "applied": [],
@@ -365,18 +445,18 @@ def get_pipeline_data(org_id):
             "rejected": []
         }
 
-        for app in applications:
+        for app in apps_by_post.get(post.id, []):
             stage = app.pipeline_stage or "applied"
             if stage in stages:
                 # Check if there's an associated interview
-                interview = Interview.query.filter_by(post_id=post.id, user_id=app.user_id).first()
+                interview = interviews_by_post_user.get((post.id, app.user_id))
                 stages[stage].append({
-                    "application": app.to_dict(),
+                    "application": app.to_dict(post_counts=counts),
                     "interview": interview.to_dict() if interview else None
                 })
 
         pipeline_data.append({
-            "post": post.to_dict(),
+            "post": post.to_dict(application_count=counts.get(post.id, 0)),
             "stages": stages,
             "total_candidates": len(applications)
         })
@@ -387,7 +467,7 @@ def get_pipeline_data(org_id):
 @jwt_required()
 def update_pipeline_stage(app_id):
     """Update pipeline stage for an application"""
-    application = Application.query.get_or_404(app_id)
+    application = db.get_or_404(Application, app_id)
     if not _can_manage_post(_current_user(), application.post):
         return jsonify({"error": "Forbidden for this organization"}), 403
     payload = request.get_json(silent=True) or {}

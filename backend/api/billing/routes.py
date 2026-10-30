@@ -6,8 +6,13 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from .. import api_bp
 from ...extensions import db
-from ...models import PaymentMethod, User, TeamMember
-from ...utils.security import sanitize_input
+from ...models import Organization, PaymentMethod, User
+from ...utils.org_permissions import (
+    BILLING_MANAGE,
+    BILLING_VIEW,
+    has_org_permission,
+)
+from ...utils.security import log_security_event, sanitize_input
 
 
 ALLOWED_BRANDS = {"Visa", "Mastercard", "Amex", "Discover", "Card"}
@@ -21,20 +26,24 @@ def _current_user_id():
         return None
 
 
-def _manages_org(user, org_id):
-    """Caller may manage this org's billing: org account or team member."""
-    if not user or not org_id:
-        return False
+def _org_scope(user, value, permission):
+    """Validate an org id and the caller's billing permission for it."""
     try:
-        org_id = int(org_id)
+        org_id = int(value)
     except (TypeError, ValueError):
-        return False
-    if user.role == "organization" and user.organization_id == org_id:
-        return True
-    return (
-        TeamMember.query.filter_by(organization_id=org_id, user_id=user.id).first()
-        is not None
-    )
+        return None, (jsonify({"error": "Invalid organization_id"}), 400)
+    if org_id <= 0 or db.session.get(Organization, org_id) is None:
+        return None, (jsonify({"error": "Organization not found"}), 404)
+    if not has_org_permission(user, org_id, permission):
+        return None, (
+            jsonify({
+                "error": "You do not have permission to manage this organization's billing.",
+                "code": "org_permission_denied",
+                "permission": permission,
+            }),
+            403,
+        )
+    return org_id, None
 
 
 def _scope_filter(user_id, organization_id):
@@ -91,16 +100,17 @@ def list_payment_methods():
     user_id = _current_user_id()
     if not user_id:
         return jsonify({"error": "Invalid user identity"}), 400
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     if not user:
         return jsonify({"error": "user not found"}), 404
 
     org_param = request.args.get("organization_id")
     if org_param:
-        if not _manages_org(user, org_param):
-            return jsonify({"error": "Forbidden for this organization"}), 403
+        org_id, denied = _org_scope(user, org_param, BILLING_VIEW)
+        if denied:
+            return denied
         cards = (
-            _scope_filter(user_id, int(org_param))
+            _scope_filter(user_id, org_id)
             .order_by(PaymentMethod.is_default.desc(), PaymentMethod.created_at.asc())
             .all()
         )
@@ -120,7 +130,7 @@ def create_payment_method():
     user_id = _current_user_id()
     if not user_id:
         return jsonify({"error": "Invalid user identity"}), 400
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     if not user:
         return jsonify({"error": "user not found"}), 404
 
@@ -133,12 +143,9 @@ def create_payment_method():
 
     org_id = payload.get("organization_id")
     if org_id is not None:
-        if not _manages_org(user, org_id):
-            return jsonify({"error": "Forbidden for this organization"}), 403
-        try:
-            org_id = int(org_id)
-        except (TypeError, ValueError):
-            return jsonify({"error": "Invalid organization_id"}), 400
+        org_id, denied = _org_scope(user, org_id, BILLING_MANAGE)
+        if denied:
+            return denied
 
     fields, error = _validate_payload(payload)
     if error:
@@ -153,6 +160,18 @@ def create_payment_method():
     )
     db.session.add(card)
     db.session.commit()
+    if card.organization_id is not None:
+        log_security_event(
+            "org_payment_method_added",
+            user_id=user_id,
+            ip_address=request.remote_addr,
+            details={
+                "org_id": card.organization_id,
+                "card_id": card.id,
+                "brand": card.brand,
+                "last4": card.last4,
+            },
+        )
     return jsonify(card.to_dict()), 201
 
 
@@ -163,17 +182,28 @@ def set_default_payment_method(card_id):
     user_id = _current_user_id()
     if not user_id:
         return jsonify({"error": "Invalid user identity"}), 400
-    card = PaymentMethod.query.get_or_404(card_id)
+    card = db.get_or_404(PaymentMethod, card_id)
     if card.user_id != user_id:
         return jsonify({"error": "Forbidden"}), 403
     if card.organization_id is not None:
-        user = User.query.get(user_id)
-        if not _manages_org(user, card.organization_id):
-            return jsonify({"error": "Forbidden for this organization"}), 403
+        user = db.session.get(User, user_id)
+        if not has_org_permission(user, card.organization_id, BILLING_MANAGE):
+            return jsonify({
+                "error": "You do not have permission to manage this organization's billing.",
+                "code": "org_permission_denied",
+                "permission": BILLING_MANAGE,
+            }), 403
 
     for sibling in _scope_filter(user_id, card.organization_id).all():
         sibling.is_default = sibling.id == card.id
     db.session.commit()
+    if card.organization_id is not None:
+        log_security_event(
+            "org_payment_method_default_changed",
+            user_id=user_id,
+            ip_address=request.remote_addr,
+            details={"org_id": card.organization_id, "card_id": card.id},
+        )
     return jsonify(card.to_dict()), 200
 
 
@@ -184,13 +214,17 @@ def delete_payment_method(card_id):
     user_id = _current_user_id()
     if not user_id:
         return jsonify({"error": "Invalid user identity"}), 400
-    card = PaymentMethod.query.get_or_404(card_id)
+    card = db.get_or_404(PaymentMethod, card_id)
     if card.user_id != user_id:
         return jsonify({"error": "Forbidden"}), 403
     if card.organization_id is not None:
-        user = User.query.get(user_id)
-        if not _manages_org(user, card.organization_id):
-            return jsonify({"error": "Forbidden for this organization"}), 403
+        user = db.session.get(User, user_id)
+        if not has_org_permission(user, card.organization_id, BILLING_MANAGE):
+            return jsonify({
+                "error": "You do not have permission to manage this organization's billing.",
+                "code": "org_permission_denied",
+                "permission": BILLING_MANAGE,
+            }), 403
 
     was_default = card.is_default
     scope_org = card.organization_id
@@ -206,5 +240,13 @@ def delete_payment_method(card_id):
         if oldest:
             oldest.is_default = True
             db.session.commit()
+
+    if scope_org is not None:
+        log_security_event(
+            "org_payment_method_removed",
+            user_id=user_id,
+            ip_address=request.remote_addr,
+            details={"org_id": scope_org, "card_id": card_id},
+        )
 
     return jsonify({"message": "payment method deleted"}), 200

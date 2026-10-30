@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useState } from "react";
 import CvaiShell, { Panel, Stat, Badge, Button, Loading, ErrorNote, LockedNote, EmptyNote } from "../cvai/CvaiShell";
 import { cvai, isLocked, messageOf, grade } from "../../utils/cvai";
-import { FiCode, FiLock, FiSave, FiSend } from "react-icons/fi";
+import { FiCode, FiLock, FiSave, FiSend, FiCreditCard } from "react-icons/fi";
+import PaywallModal from "../../components/ui/PaywallModal";
+import { BILLING_BETA_MESSAGE, BILLING_ENABLED } from "../../utils/billing";
 
 /**
  * Guided projects: build something, then have it judged against criteria you
@@ -20,6 +22,7 @@ export default function CvaiProjects() {
   const [open, setOpen] = useState(null);         // the project brief + workspace
   const [review, setReview] = useState(null);     // the returned review
   const [busy, setBusy] = useState("");
+  const [showPaywall, setShowPaywall] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -34,6 +37,19 @@ export default function CvaiProjects() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  async function handleUpgrade() {
+    try {
+      const res = await cvai.subscriptionUpgrade("paid");
+      if (!res.ok) {
+        setError(messageOf(res, "Could not upgrade subscription."));
+        return;
+      }
+      await load();
+    } catch (err) {
+      setError(err.message || "Could not upgrade subscription.");
+    }
+  }
 
   async function begin(project) {
     setError("");
@@ -103,8 +119,11 @@ export default function CvaiProjects() {
   const projects = list?.projects || [];
   const graded = attempts.filter((a) => a.score_percent !== null && a.score_percent !== undefined);
   const best = graded.reduce((m, a) => Math.max(m, Number(a.score_percent) || 0), 0);
+  const unlockedProjects = projects.filter((p) => !p.locked);
+  const lockedProjects = projects.filter((p) => p.locked);
 
   return (
+    <>
     <CvaiShell
       title="Guided projects"
       subtitle="Build something real, then have it reviewed against criteria you can read before you start."
@@ -120,47 +139,76 @@ export default function CvaiProjects() {
           ) : (
             <>
               <div className="grid grid-cols-3 gap-3">
-                <Stat value={projects.length} label="Projects" />
+                <Stat value={unlockedProjects.length} label="Projects" />
                 <Stat value={attempts.filter((a) => a.status === "reviewed").length} label="Reviewed" />
                 <Stat value={`${grade(best)}`} label="Best grade" hint={`best score ${best}%`} />
               </div>
 
+              {lockedProjects.length > 0 && (
+                <Panel
+                  title={BILLING_ENABLED ? "Subscribe to unlock more projects" : "More projects unlock with the trial"}
+                  hint={BILLING_ENABLED
+                    ? "These projects are part of the paid plan."
+                    : "Paid plans are closed while the controlled beta is running."}
+                >
+                  <div className="space-y-3">
+                    {lockedProjects.map((project) => (
+                      <div key={project.id} className="flex items-center justify-between border border-gray-200 bg-gray-50 p-3 rounded-lg">
+                        <div>
+                          <h4 className="text-sm font-medium text-gray-900">{project.title}</h4>
+                          <p className="text-xs text-gray-500">{project.summary}</p>
+                        </div>
+                        <Badge className="border-gray-200 bg-gray-50 text-gray-600">
+                          <FiLock className="h-3 w-3" /> Locked
+                        </Badge>
+                      </div>
+                    ))}
+                    {BILLING_ENABLED ? (
+                      <Button
+                        onClick={() => setShowPaywall(true)}
+                        className="w-full mt-3 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700"
+                      >
+                        <FiCreditCard className="h-4 w-4" /> Subscribe now
+                      </Button>
+                    ) : (
+                      <div className="mt-3 border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                        {BILLING_BETA_MESSAGE}
+                      </div>
+                    )}
+                  </div>
+                </Panel>
+              )}
+
               <div className="grid gap-4 md:grid-cols-2">
-                {projects.map((project) => {
-                  const isLocked = project.locked === true;
-                  return (
-                    <article key={project.id} className="flex flex-col border border-gray-200 bg-white">
-                      <div className="flex-1 p-5">
-                        <div className="flex items-start justify-between gap-3">
-                          <h3 className="text-base font-semibold text-gray-900">{project.title}</h3>
-                          {isLocked ? (
-                            <Badge className="border-gray-200 bg-gray-50 text-gray-600">
-                              <FiLock className="h-3 w-3" /> Locked
-                            </Badge>
-                          ) : project.is_free_preview ? (
-                            <Badge className="border-green-200 bg-green-50 text-green-700">Free</Badge>
-                          ) : null}
-                        </div>
-                        <p className="mt-2 text-sm text-gray-600">{project.summary}</p>
-                        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-gray-500">
-                          {project.difficulty ? <Badge className="capitalize">{project.difficulty}</Badge> : null}
-                          <span>{project.step_count} steps</span>
-                          {project.estimated_hours ? <span>~{project.estimated_hours}h</span> : null}
-                          <span>pass at {project.pass_percent}%</span>
-                        </div>
+                {unlockedProjects.map((project) => (
+                  <article key={project.id} className="flex flex-col border border-gray-200 bg-white">
+                    <div className="flex-1 p-5">
+                      <div className="flex items-start justify-between gap-3">
+                        <h3 className="text-base font-semibold text-gray-900">{project.title}</h3>
+                        {project.is_free_preview ? (
+                          <Badge className="border-green-200 bg-green-50 text-green-700">Free</Badge>
+                        ) : null}
                       </div>
-                      <div className="border-t border-gray-100 p-4">
-                        {isLocked ? (
-                          <p className="text-xs text-gray-500">Subscribe to see the full brief.</p>
-                        ) : (
-                          <Button onClick={() => begin(project)}>
-                            <FiCode className="h-4 w-4" /> {project.is_free_preview ? "Try it" : "Start project"}
-                          </Button>
-                        )}
+                      <p className="mt-2 text-sm text-gray-600">{project.summary}</p>
+                      <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                        {project.difficulty ? <Badge className="capitalize">{project.difficulty}</Badge> : null}
+                        <span>{project.step_count} steps</span>
+                        {project.estimated_hours ? <span>~{project.estimated_hours}h</span> : null}
+                        <span>pass at {project.pass_percent}%</span>
                       </div>
-                    </article>
-                  );
-                })}
+                    </div>
+                    <div className="border-t border-gray-100 p-4">
+                      <Button onClick={() => begin(project)}>
+                        <FiCode className="h-4 w-4" /> {project.is_free_preview ? "Try it" : "Start project"}
+                      </Button>
+                    </div>
+                  </article>
+                ))}
+                {unlockedProjects.length === 0 && (
+                  <EmptyNote>
+                    No projects available yet. Subscribe to unlock the project library.
+                  </EmptyNote>
+                )}
               </div>
 
               {open ? (
@@ -227,6 +275,8 @@ export default function CvaiProjects() {
         </div>
       )}
     </CvaiShell>
+    <PaywallModal open={showPaywall} feature="projects" onClose={() => setShowPaywall(false)} onUpgrade={handleUpgrade} />
+    </>
   );
 }
 

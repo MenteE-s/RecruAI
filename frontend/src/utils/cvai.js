@@ -37,6 +37,7 @@ const patch = (path, body) => request("PATCH", path, body ?? {});
 export const cvai = {
   // --- skills ------------------------------------------------------------
   levels: () => get("/api/skills/levels"),
+  createSkillQuestion: (body) => post("/api/skills/questions", body),
   taxonomy: (q = "") => get(`/api/skills/taxonomy${q ? `?q=${encodeURIComponent(q)}` : ""}`),
   startAssessment: (skillSlug) => post("/api/skills/assessments", { skill_slug: skillSlug }),
   submitAssessment: (id, answers) => post(`/api/skills/assessments/${id}/submit`, { answers }),
@@ -69,6 +70,11 @@ export const cvai = {
   answerInterview: (id, answer) => post(`/api/mock-interviews/${id}/answer`, { answer }),
   interviewFeedback: (id) => post(`/api/mock-interviews/${id}/feedback`),
   abandonInterview: (id) => post(`/api/mock-interviews/${id}/abandon`),
+
+  // --- subscription ------------------------------------------------------
+  subscriptionStatus: () => get("/api/subscription/status"),
+  subscriptionUpgrade: (plan = "paid") => post("/api/subscription/upgrade", { plan }),
+  subscriptionCancel: () => post("/api/subscription/cancel", {}),
 
   // --- mentorship --------------------------------------------------------
   planOptions: () => get("/api/mentorship/plans/options"),

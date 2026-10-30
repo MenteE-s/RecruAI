@@ -6,6 +6,7 @@ Provider-agnostic interfaces for LLM and embedding services
 import os
 import abc
 import logging
+import time
 from typing import List, Dict, Any, Optional, Union
 from datetime import datetime
 import requests
@@ -91,11 +92,13 @@ class EmbeddingProvider(abc.ABC):
 class OpenAILLMProvider(LLMProvider):
     """OpenAI LLM provider implementation"""
 
-    def __init__(self, api_key: str, model: str = "gpt-4", timeout: int = 30):
+    def __init__(self, api_key: str, model: Optional[str] = None, timeout: int = 30):
         if not OPENAI_AVAILABLE:
             raise ImportError("OpenAI package not installed")
         if not api_key:
             raise ValueError("OpenAI API key required")
+        if not model:
+            raise ValueError("A generation model is required for OpenAI")
 
         self.client = OpenAI(api_key=api_key)
         self.model = model
@@ -156,11 +159,13 @@ class OpenAILLMProvider(LLMProvider):
 class GroqLLMProvider(LLMProvider):
     """Groq LLM provider implementation"""
 
-    def __init__(self, api_key: str, model: str = "qwen/qwen3.8-27b", timeout: int = 30):
+    def __init__(self, api_key: str, model: Optional[str] = None, timeout: int = 30):
         if not GROQ_AVAILABLE:
             raise ImportError("Groq package not installed")
         if not api_key:
             raise ValueError("Groq API key required")
+        if not model:
+            raise ValueError("A generation model is required for Groq")
 
         self.client = Groq(api_key=api_key)
         self.model = model
@@ -218,6 +223,104 @@ class GroqLLMProvider(LLMProvider):
             return False
 
 
+class OpenRouterLLMProvider(LLMProvider):
+    """OpenRouter chat provider (OpenAI-compatible chat completions API)."""
+
+    API_URL = "https://openrouter.ai/api/v1/chat/completions"
+    MODELS_URL = "https://openrouter.ai/api/v1/models"
+
+    def __init__(self, api_key: str, model: Optional[str] = None, timeout: int = 30):
+        if not api_key:
+            raise ValueError("OpenRouter API key required")
+        if not model:
+            raise ValueError("A generation model is required for OpenRouter")
+
+        self.api_key = api_key
+        self.model = model
+        self.timeout = timeout
+        self.last_token_usage = 0
+        config = Config()
+        self.default_params = {
+            "max_tokens": config.AI_MAX_TOKENS,
+            "temperature": config.AI_TEMPERATURE,
+        }
+        # Reasoning models can spend the entire completion budget on hidden
+        # reasoning and return content=null with finish_reason=length. RecruAI
+        # asks these models for strict JSON, so default to non-reasoning output.
+        # Set OPENROUTER_ALLOW_REASONING=1 for a model that genuinely needs it.
+        if os.getenv("OPENROUTER_ALLOW_REASONING", "0") != "1":
+            self.default_params["reasoning"] = {"enabled": False}
+
+    def _headers(self) -> Dict[str, str]:
+        return {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": os.getenv("OPENROUTER_REFERER", "https://recruai.local"),
+            "X-Title": os.getenv("OPENROUTER_TITLE", "RecruAI"),
+        }
+
+    def generate(self, prompt: str, context: Optional[str] = None,
+                 params: Optional[Dict[str, Any]] = None) -> str:
+        messages = [{"role": "system", "content": prompt}]
+        if context:
+            messages.append({"role": "user", "content": context})
+        else:
+            messages = [
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": prompt},
+            ]
+        return self.chat(messages, params)
+
+    def chat(self, messages: List[Dict[str, str]],
+             params: Optional[Dict[str, Any]] = None) -> str:
+        try:
+            request_params = {**self.default_params}
+            if params:
+                request_params.update(params)
+            response = requests.post(
+                self.API_URL,
+                json={"model": self.model, "messages": messages, **request_params},
+                headers=self._headers(),
+                timeout=self.timeout,
+            )
+            response.raise_for_status()
+            payload = response.json()
+            choices = payload.get("choices") or []
+            if not choices:
+                raise ValueError("OpenRouter returned no choices")
+            choice = choices[0]
+            content = (choice.get("message") or {}).get("content")
+            if not isinstance(content, str):
+                finish_reason = choice.get("finish_reason")
+                if finish_reason == "length":
+                    raise ValueError(
+                        f"OpenRouter model {self.model} exhausted max_tokens "
+                        "before producing content; choose a non-reasoning model "
+                        "or raise the completion budget"
+                    )
+                raise ValueError(
+                    f"OpenRouter returned no message content "
+                    f"(finish_reason={finish_reason})"
+                )
+            self.last_token_usage = (payload.get("usage") or {}).get("total_tokens", 0)
+            return content.strip()
+        except Exception as e:
+            logger.error(f"OpenRouter API error: {str(e)}")
+            raise
+
+    def get_last_token_usage(self) -> int:
+        return self.last_token_usage
+
+    def healthcheck(self) -> bool:
+        try:
+            response = requests.get(
+                self.MODELS_URL, headers=self._headers(), timeout=self.timeout
+            )
+            return response.ok
+        except Exception:
+            return False
+
+
 class LocalLLMProvider(LLMProvider):
     """Local LLM provider (placeholder for future implementation)"""
 
@@ -238,11 +341,13 @@ class LocalLLMProvider(LLMProvider):
 class OpenAIEmbeddingProvider(EmbeddingProvider):
     """OpenAI embedding provider"""
 
-    def __init__(self, api_key: str, model: str = "text-embedding-ada-002", dimensions: int = 1536):
+    def __init__(self, api_key: str, model: Optional[str] = None, dimensions: int = 1536):
         if not OPENAI_AVAILABLE:
             raise ImportError("OpenAI package not installed")
         if not api_key:
             raise ValueError("OpenAI API key required")
+        if not model:
+            raise ValueError("An embedding model is required for OpenAI embeddings")
 
         self.client = OpenAI(api_key=api_key)
         self.model = model
@@ -310,10 +415,12 @@ class OpenRouterEmbeddingProvider(EmbeddingProvider):
 
     API_URL = "https://openrouter.ai/api/v1/embeddings"
 
-    def __init__(self, api_key: str, model: str = "sentence-transformers/all-minilm-l6-v2",
+    def __init__(self, api_key: str, model: Optional[str] = None,
                  dimensions: int = 384, timeout: int = 30):
         if not api_key:
             raise ValueError("OpenRouter API key required")
+        if not model:
+            raise ValueError("An embedding model is required for OpenRouter embeddings")
         self.api_key = api_key
         self.model = model
         self._embedding_dimension = dimensions
@@ -356,6 +463,202 @@ class OpenRouterEmbeddingProvider(EmbeddingProvider):
             raise
 
 
+class BudgetedLLMProvider(LLMProvider):
+    """The only LLM entry point application code should use.
+
+    It wraps a concrete provider, resolves the acting account (request user,
+    organization, or an explicit actor from a background job), reserves tokens
+    atomically, and writes a ``token_usage`` row for every call. No provider call
+    can bypass the allowance by calling ``chat`` or ``generate`` directly,
+    because ``AIProviderManager.llm`` returns this wrapper.
+    """
+
+    def __init__(self, provider: LLMProvider):
+        self._provider = provider
+
+    @property
+    def model(self):
+        return getattr(self._provider, "model", "unknown")
+
+    @property
+    def provider_name(self):
+        cls = type(self._provider).__name__
+        if cls.startswith("OpenAI"):
+            return "openai"
+        if cls.startswith("Groq"):
+            return "groq"
+        if cls.startswith("Local"):
+            return "local"
+        return cls.replace("LLMProvider", "").lower() or "unknown"
+
+    @property
+    def default_params(self):
+        return getattr(self._provider, "default_params", {}) or {}
+
+    def _begin(self, messages, params, actor, organization, operation_type):
+        from .utils.ai_budget import (
+            AIBudgetError,
+            allowance_for,
+            budget_enabled,
+            estimate_tokens_for_messages,
+            finalize_budget,
+            release_budget,
+            reserve_budget,
+            resolve_ai_actor,
+            used_tokens,
+        )
+
+        account, attribution_user = resolve_ai_actor(
+            user=actor, organization=organization
+        )
+        if account is None:
+            if budget_enabled():
+                raise AIBudgetError(
+                    "AI usage could not be attributed to an account. Please sign "
+                    "in again and retry.",
+                    code="ai_unattributed",
+                )
+            # Enforcement disabled and no actor: honour the explicit escape
+            # hatch, but do not pretend to record usage.
+            return None, {
+                "account": None,
+                "attribution_user": None,
+                "reservation": None,
+                "params": params,
+                "estimate": 0,
+                "budget_enabled": False,
+            }
+
+        configured_max = int(
+            (params or {}).get("max_tokens")
+            or self.default_params.get("max_tokens")
+            or 1024
+        )
+        prompt_estimate = estimate_tokens_for_messages(messages)
+        allowance = allowance_for(account)
+        remaining = None
+        request_params = dict(params or {})
+        if allowance > 0:
+            remaining = max(0, allowance - used_tokens(account))
+            # Leave room for the prompt; a completion that cannot fit means the
+            # allowance is effectively exhausted for this request.
+            available_completion = remaining - prompt_estimate
+            if available_completion < 1:
+                raise AIBudgetError(
+                    "This AI request needs more tokens than remain on the account. "
+                    "Ask an admin to top up the allowance and try again.",
+                    code="ai_budget_exhausted",
+                )
+            completion_cap = max(1, min(configured_max, available_completion))
+            request_params["max_tokens"] = completion_cap
+            estimate = prompt_estimate + completion_cap
+        else:
+            estimate = prompt_estimate + configured_max
+
+        if budget_enabled():
+            reservation = reserve_budget(account, estimate)
+        else:
+            reservation = {
+                "reserved": 0,
+                "previous_used": used_tokens(account),
+                "allowance": allowance,
+                "unlimited": True,
+            }
+
+        return account, {
+            "account": account,
+            "attribution_user": attribution_user,
+            "reservation": reservation,
+            "params": request_params,
+            "estimate": estimate,
+            "budget_enabled": budget_enabled(),
+            "finalize_budget": finalize_budget,
+            "release_budget": release_budget,
+            "AIBudgetError": AIBudgetError,
+        }
+
+    def _finish(self, context, text, operation_type):
+        if not context or context.get("account") is None:
+            return text
+        actual = 0
+        getter = getattr(self._provider, "get_last_token_usage", None)
+        if callable(getter):
+            try:
+                actual = int(getter() or 0)
+            except Exception:
+                actual = 0
+        if actual <= 0:
+            actual = int(context.get("estimate") or 1)
+        try:
+            context["finalize_budget"](
+                context["account"],
+                context["attribution_user"],
+                context["reservation"],
+                actual,
+                self.provider_name,
+                self.model,
+                operation_type,
+            )
+        except Exception:
+            # The model call succeeded; do not turn a ledger failure into a
+            # user-visible error. The next successful call will still be gated.
+            logger.exception(
+                "failed to finalize AI usage provider=%s model=%s",
+                self.provider_name,
+                self.model,
+            )
+        self.last_token_usage = actual
+        return text
+
+    def _fail(self, context):
+        if context and context.get("account") is not None:
+            try:
+                context["release_budget"](context["account"], context["reservation"])
+            except Exception:
+                logger.exception("failed to release AI budget reservation")
+
+    def chat(self, messages, params=None, *, actor=None, organization=None,
+             operation_type="ai_chat"):
+        account, context = self._begin(
+            messages, params, actor, organization, operation_type
+        )
+        try:
+            text = self._provider.chat(messages, context["params"])
+        except Exception:
+            self._fail(context)
+            raise
+        return self._finish(context, text, operation_type)
+
+    def generate(self, prompt, context=None, params=None, *, actor=None,
+                 organization=None, operation_type="ai_chat"):
+        messages = [{"role": "system", "content": prompt}]
+        if context:
+            messages.append({"role": "user", "content": context})
+        else:
+            messages = [
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": prompt},
+            ]
+        _, prepared = self._begin(
+            messages, params, actor, organization, operation_type
+        )
+        try:
+            text = self._provider.generate(prompt, context, prepared["params"])
+        except Exception:
+            self._fail(prepared)
+            raise
+        return self._finish(prepared, text, operation_type)
+
+    def get_last_token_usage(self) -> int:
+        return int(getattr(self, "last_token_usage", 0) or 0)
+
+    def healthcheck(self) -> bool:
+        return bool(self._provider.healthcheck())
+
+    def __getattr__(self, name):
+        return getattr(self._provider, name)
+
+
 class AIProviderManager:
     """Central manager for AI providers"""
 
@@ -364,21 +667,51 @@ class AIProviderManager:
         self._llm_provider: Optional[LLMProvider] = None
         self._embedding_provider: Optional[EmbeddingProvider] = None
         self._initialized = False
+        self._initialized_at = 0.0
+
+    def _refresh_if_stale(self):
+        """Drop cached providers after the configured TTL.
+
+        Admin writes invalidate this process immediately, but other gunicorn
+        workers would otherwise keep their old provider until restart. A small
+        periodic re-read keeps every worker on the same DB-backed config.
+        """
+        if not self._initialized or not self._initialized_at:
+            return
+        try:
+            interval = int(self.config.AI_PROVIDER_REFRESH_SECONDS)
+        except (TypeError, ValueError):
+            interval = 60
+        if interval > 0 and (time.monotonic() - self._initialized_at) >= interval:
+            self._initialized = False
 
     def initialize(self):
         """Initialize providers based on configuration"""
         if self._initialized:
             return
 
-        logger.info(f"Initializing AI providers - LLM: {self.config.AI_PROVIDER}, Embedding: {self.config.EMBEDDING_PROVIDER}")
+        # Prefer admin-managed DB config; fall back to env-based Config for
+        # local dev and first boot before any row exists.
+        from .utils.ai_provider_resolver import resolve_llm_provider, resolve_embedding_provider
 
-        # Initialize LLM provider
-        self._llm_provider = self._create_llm_provider()
+        logger.info("Initializing AI providers")
 
-        # Initialize embedding provider
-        self._embedding_provider = self._create_embedding_provider()
+        db_llm = resolve_llm_provider()
+        if db_llm is not None:
+            self._llm_provider = BudgetedLLMProvider(db_llm)
+        else:
+            logger.info("No DB LLM config; falling back to env")
+            self._llm_provider = BudgetedLLMProvider(self._create_llm_provider())
+
+        db_emb = resolve_embedding_provider()
+        if db_emb is not None:
+            self._embedding_provider = db_emb
+        else:
+            logger.info("No DB embedding config; falling back to env")
+            self._embedding_provider = self._create_embedding_provider()
 
         self._initialized = True
+        self._initialized_at = time.monotonic()
         logger.info("AI providers initialized successfully")
 
     def _create_llm_provider(self) -> LLMProvider:
@@ -388,7 +721,9 @@ class AIProviderManager:
         if provider == "openai":
             if not self.config.OPENAI_API_KEY:
                 raise ValueError("OPENAI_API_KEY required for OpenAI provider")
-            model = self.config.AI_MODEL or "gpt-4"
+            model = self.config.OPENAI_MODEL or self.config.AI_GENERATION_MODEL
+            if not model:
+                raise ValueError("OPENAI_MODEL (or AI_GENERATION_MODEL/AI_MODEL) is required")
             return OpenAILLMProvider(
                 api_key=self.config.OPENAI_API_KEY,
                 model=model,
@@ -398,11 +733,27 @@ class AIProviderManager:
         elif provider == "groq":
             if not self.config.GROQ_API_KEY:
                 raise ValueError("GROQ_API_KEY required for Groq provider")
-            model = self.config.AI_MODEL or "qwen/qwen3.8-27b"
+            model = self.config.GROQ_MODEL or self.config.AI_GENERATION_MODEL
+            if not model:
+                raise ValueError("GROQ_MODEL (or AI_GENERATION_MODEL/AI_MODEL) is required")
             return GroqLLMProvider(
                 api_key=self.config.GROQ_API_KEY,
                 model=model,
                 timeout=self.config.AI_TIMEOUT
+            )
+
+        elif provider == "openrouter":
+            if not self.config.OPENROUTER_API_KEY:
+                raise ValueError("OPENROUTER_API_KEY required for OpenRouter")
+            model = self.config.OPENROUTER_MODEL
+            if not model:
+                raise ValueError(
+                    "OPENROUTER_MODEL (or AI_GENERATION_MODEL/AI_MODEL) is required"
+                )
+            return OpenRouterLLMProvider(
+                api_key=self.config.OPENROUTER_API_KEY,
+                model=model,
+                timeout=self.config.AI_TIMEOUT,
             )
 
         elif provider == "local":
@@ -419,7 +770,9 @@ class AIProviderManager:
         if provider == "openai":
             if not self.config.OPENAI_API_KEY:
                 raise ValueError("OPENAI_API_KEY required for OpenAI embeddings")
-            model = self.config.EMBEDDING_MODEL or "text-embedding-ada-002"
+            model = self.config.EMBEDDING_MODEL
+            if not model:
+                raise ValueError("EMBEDDING_MODEL (or AI_EMBEDDING_MODEL) is required")
             return OpenAIEmbeddingProvider(
                 api_key=self.config.OPENAI_API_KEY,
                 model=model,
@@ -437,7 +790,9 @@ class AIProviderManager:
         elif provider == "openrouter":
             if not self.config.OPENROUTER_API_KEY:
                 raise ValueError("OPENROUTER_API_KEY required for OpenRouter embeddings")
-            model = self.config.EMBEDDING_MODEL or "sentence-transformers/all-minilm-l6-v2"
+            model = self.config.EMBEDDING_MODEL
+            if not model:
+                raise ValueError("EMBEDDING_MODEL (or AI_EMBEDDING_MODEL) is required")
             return OpenRouterEmbeddingProvider(
                 api_key=self.config.OPENROUTER_API_KEY,
                 model=model,
@@ -450,6 +805,7 @@ class AIProviderManager:
     @property
     def llm(self) -> LLMProvider:
         """Get the active LLM provider"""
+        self._refresh_if_stale()
         if not self._initialized:
             self.initialize()
         return self._llm_provider
@@ -457,12 +813,14 @@ class AIProviderManager:
     @property
     def embedding(self) -> EmbeddingProvider:
         """Get the active embedding provider"""
+        self._refresh_if_stale()
         if not self._initialized:
             self.initialize()
         return self._embedding_provider
 
     def healthcheck(self) -> Dict[str, bool]:
         """Check health of all providers"""
+        self._refresh_if_stale()
         if not self._initialized:
             self.initialize()
 
@@ -472,12 +830,35 @@ class AIProviderManager:
         }
 
     def get_provider_info(self) -> Dict[str, Any]:
-        """Get information about active providers"""
+        """Describe the providers actually in use, not just the env defaults."""
+        self._refresh_if_stale()
+        if not self._initialized:
+            self.initialize()
+
+        llm = self._llm_provider
+        embedding = self._embedding_provider
+
+        def _provider_name(provider, suffix):
+            if provider is None:
+                return None
+            name = getattr(provider, "provider_name", None)
+            if name:
+                return name
+            cls = type(provider).__name__
+            for prefix in ("OpenAI", "OpenRouter", "Groq", "HuggingFace"):
+                if cls.startswith(prefix):
+                    return prefix.lower()
+            return cls.replace(suffix, "").lower() or "unknown"
+
         return {
-            "llm_provider": self.config.AI_PROVIDER,
-            "embedding_provider": self.config.EMBEDDING_PROVIDER,
+            "llm_provider": _provider_name(llm, "LLMProvider"),
+            "llm_model": getattr(llm, "model", None),
+            "embedding_provider": _provider_name(embedding, "EmbeddingProvider"),
+            "embedding_model": getattr(embedding, "model", None),
             "rag_enabled": self.config.RAG_ENABLED,
-            "embedding_dimension": self.embedding.embedding_dimension if self._embedding_provider else None,
+            "embedding_dimension": (
+                embedding.embedding_dimension if embedding is not None else None
+            ),
         }
 
 

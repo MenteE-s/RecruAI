@@ -22,7 +22,7 @@ def follow_company():
     if not user_id or not org_id:
         return jsonify({"error": "organization_id required"}), 400
 
-    org = Organization.query.get(org_id)
+    org = db.session.get(Organization, org_id)
     if not org:
         return jsonify({"error": "organization not found"}), 404
 

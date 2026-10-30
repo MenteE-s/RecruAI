@@ -13,6 +13,9 @@ import {
   FiBriefcase,
   FiMail,
   FiCalendar,
+  FiRefreshCw,
+  FiClock,
+  FiX,
 } from "react-icons/fi";
 
 const Modal = ({ isOpen, onClose, children }) => {
@@ -36,16 +39,20 @@ const formatDate = (dateString) => {
 export default function TeamMembers() {
   const navigate = useNavigate();
   const [teamMembers, setTeamMembers] = useState([]);
+  const [invitations, setInvitations] = useState([]);
   const [candidates, setCandidates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [organizationId, setOrganizationId] = useState(null);
+  const [canManageTeam, setCanManageTeam] = useState(false);
+  const [canViewHiring, setCanViewHiring] = useState(false);
   const [activeTab, setActiveTab] = useState("team");
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [editingMember, setEditingMember] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [invitationActionId, setInvitationActionId] = useState(null);
 
   useEffect(() => {
     const getOrgId = async () => {
@@ -55,6 +62,9 @@ export default function TeamMembers() {
           const data = await res.json();
           if (data.user?.organization_id) setOrganizationId(data.user.organization_id);
           else setError("Unable to determine organization");
+          const permissions = data.user?.organization_permissions || [];
+          setCanManageTeam(permissions.includes("team.manage"));
+          setCanViewHiring(permissions.includes("hiring.view"));
         } else setError("Failed to authenticate");
       } catch { setError("Network error"); }
     };
@@ -81,16 +91,53 @@ export default function TeamMembers() {
     } catch { setError("Network error. Please try again."); }
     finally { setLoading(false); }
   };
+  const loadInvitations = async () => {
+    if (!organizationId) return;
+    try {
+      const res = await fetch(`${getBackendUrl()}/api/organizations/${organizationId}/invitations`, { credentials: "include", headers: getAuthHeaders() });
+      if (res.ok) setInvitations(await res.json());
+      else setInvitations([]);
+    } catch { setInvitations([]); }
+  };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { if (organizationId) { if (activeTab === "team") loadTeamMembers(); else loadHiredCandidates(); } }, [organizationId, activeTab]);
+  useEffect(() => { if (organizationId) { if (activeTab === "team") { loadTeamMembers(); loadInvitations(); } else loadHiredCandidates(); } }, [organizationId, activeTab]);
 
   const inviteMember = async (formData) => {
     setSaving(true); setError(null);
     try {
       const res = await fetch(`${getBackendUrl()}/api/organizations/${organizationId}/invite`, { method: "POST", headers: getAuthHeaders({ "Content-Type": "application/json" }), credentials: "include", body: JSON.stringify(formData) });
-      if (res.ok) { setShowInviteModal(false); loadTeamMembers(); } else setError((await res.json().catch(() => ({}))).error || "Failed to invite member");
+      const result = await res.json().catch(() => ({}));
+      if (res.ok) { setShowInviteModal(false); loadTeamMembers(); loadInvitations(); }
+      else {
+        if (result.invitation) loadInvitations();
+        setError(result.error || "Failed to invite member");
+      }
     } catch { setError("Network error. Please try again."); }
     finally { setSaving(false); }
+  };
+  const resendInvitation = async (invitation) => {
+    setInvitationActionId(invitation.id); setError(null);
+    try {
+      const res = await fetch(`${getBackendUrl()}/api/organizations/${organizationId}/invitations/${invitation.id}/resend`, { method: "POST", credentials: "include", headers: getAuthHeaders() });
+      const result = await res.json().catch(() => ({}));
+      if (res.ok && result.invitation) {
+        setInvitations((prev) => prev.map((item) => item.id === result.invitation.id ? result.invitation : item));
+      } else {
+        setError(result.error || "Failed to resend invitation");
+      }
+    } catch { setError("Network error. Please try again."); }
+    finally { setInvitationActionId(null); }
+  };
+  const revokeInvitation = async (invitation) => {
+    if (!window.confirm(`Revoke the invitation for ${invitation.email}?`)) return;
+    setInvitationActionId(invitation.id); setError(null);
+    try {
+      const res = await fetch(`${getBackendUrl()}/api/organizations/${organizationId}/invitations/${invitation.id}`, { method: "DELETE", credentials: "include", headers: getAuthHeaders() });
+      const result = await res.json().catch(() => ({}));
+      if (res.ok) setInvitations((prev) => prev.filter((item) => item.id !== invitation.id));
+      else setError(result.error || "Failed to revoke invitation");
+    } catch { setError("Network error. Please try again."); }
+    finally { setInvitationActionId(null); }
   };
   const editMember = async (formData) => {
     if (!editingMember) return;
@@ -137,9 +184,9 @@ export default function TeamMembers() {
             <div className="flex flex-wrap gap-2">
               <div className="flex bg-white/10 border border-white/20 p-1">
                 <button onClick={() => setActiveTab("team")} className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === "team" ? "bg-white text-gray-900" : "text-white hover:bg-white/10"}`}>Team • {teamMembers.length}</button>
-                <button onClick={() => setActiveTab("candidates")} className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === "candidates" ? "bg-white text-gray-900" : "text-white hover:bg-white/10"}`}>Hired • {candidates.length}</button>
+                {canViewHiring && <button onClick={() => setActiveTab("candidates")} className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === "candidates" ? "bg-white text-gray-900" : "text-white hover:bg-white/10"}`}>Hired • {candidates.length}</button>}
               </div>
-              {activeTab === "team" && (
+              {activeTab === "team" && canManageTeam && (
                 <button onClick={() => setShowInviteModal(true)} className="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-gray-900 text-sm font-medium hover:bg-gray-100 transition-colors">
                   <FiPlus className="w-4 h-4" /> Invite
                 </button>
@@ -166,6 +213,46 @@ export default function TeamMembers() {
 
       {error && <div className="mb-6 bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
 
+      {!loading && activeTab === "team" && invitations.length > 0 && (
+        <div className="mb-6 bg-white border border-gray-200">
+          <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-gray-100">
+            <div>
+              <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2"><FiClock className="w-4 h-4 text-amber-500" /> Pending invitations</h2>
+              <p className="text-xs text-gray-500 mt-1">They join the team only after accepting the email.</p>
+            </div>
+            <span className="text-xs font-semibold text-gray-500">{invitations.length}</span>
+          </div>
+          <div className="divide-y divide-gray-100">
+            {invitations.map((invitation) => (
+              <div key={invitation.id} className="px-5 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-gray-900 truncate">{invitation.email}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {invitation.role} · Expires {formatDate(invitation.expires_at)}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => resendInvitation(invitation)}
+                    disabled={invitationActionId === invitation.id}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    <FiRefreshCw className={`w-3.5 h-3.5 ${invitationActionId === invitation.id ? "animate-spin" : ""}`} /> Resend
+                  </button>
+                  <button
+                    onClick={() => revokeInvitation(invitation)}
+                    disabled={invitationActionId === invitation.id}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-red-200 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+                  >
+                    <FiX className="w-3.5 h-3.5" /> Revoke
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1, 2, 3].map((i) => (
@@ -182,7 +269,7 @@ export default function TeamMembers() {
             <div className="w-14 h-14 bg-gray-100 flex items-center justify-center mx-auto mb-4"><FiUsers className="w-7 h-7 text-gray-400" /></div>
             <h3 className="text-lg font-semibold text-gray-900">No team members yet</h3>
             <p className="text-sm text-gray-500 mt-1 max-w-md mx-auto">Invite your first team member to collaborate on hiring.</p>
-            <button onClick={() => setShowInviteModal(true)} className="mt-6 inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700"><FiPlus className="w-4 h-4" /> Invite first member</button>
+            {canManageTeam && <button onClick={() => setShowInviteModal(true)} className="mt-6 inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700"><FiPlus className="w-4 h-4" /> Invite first member</button>}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -202,8 +289,8 @@ export default function TeamMembers() {
                   </div>
                   <div className="mt-4 flex gap-2">
                     <button onClick={() => navigate(`/org/user/${member.user?.id}`)} className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-white border border-gray-200 text-xs font-medium text-blue-600 hover:bg-blue-50"><FiEye className="w-3.5 h-3.5" /> Profile</button>
-                    <button onClick={() => { setEditingMember(member); setShowEditModal(true); }} className="p-2 bg-white border border-gray-200 text-gray-500 hover:bg-gray-50"><FiEdit2 className="w-4 h-4" /></button>
-                    <button onClick={() => { setEditingMember(member); setShowDeleteConfirm(true); }} className="p-2 bg-white border border-gray-200 text-gray-400 hover:text-red-600 hover:bg-red-50"><FiTrash2 className="w-4 h-4" /></button>
+                    {canManageTeam && <button onClick={() => { setEditingMember(member); setShowEditModal(true); }} className="p-2 bg-white border border-gray-200 text-gray-500 hover:bg-gray-50"><FiEdit2 className="w-4 h-4" /></button>}
+                    {canManageTeam && <button onClick={() => { setEditingMember(member); setShowDeleteConfirm(true); }} className="p-2 bg-white border border-gray-200 text-gray-400 hover:text-red-600 hover:bg-red-50"><FiTrash2 className="w-4 h-4" /></button>}
                   </div>
                 </div>
               </div>
@@ -260,7 +347,8 @@ export default function TeamMembers() {
                   <option value="Admin">Admin</option>
                   <option value="HR">HR</option>
                   <option value="Manager">Manager</option>
-                  <option value="Member">Member</option>
+                  <option value="Interviewer">Interviewer</option>
+                  <option value="Viewer">Viewer</option>
                 </select>
               </div>
             </div>
@@ -283,7 +371,8 @@ export default function TeamMembers() {
                   <option value="Admin">Admin</option>
                   <option value="HR">HR</option>
                   <option value="Manager">Manager</option>
-                  <option value="Member">Member</option>
+                  <option value="Interviewer">Interviewer</option>
+                  <option value="Viewer">Viewer</option>
                 </select>
               </div>
               <div>

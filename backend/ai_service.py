@@ -5,11 +5,15 @@ Uses provider-agnostic AI system with support for OpenAI, Groq, and local models
 
 import os
 import json
+import logging
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 
 from .ai_providers import get_ai_provider_manager
+from .utils.ai_budget import AIBudgetError
 from .utils.timezone_utils import utc_now_iso
+
+logger = logging.getLogger(__name__)
 
 
 class AIService:
@@ -17,7 +21,24 @@ class AIService:
 
     def __init__(self):
         self.provider_manager = get_ai_provider_manager()
-        self.llm_provider = self.provider_manager.llm
+
+    @property
+    def llm_provider(self):
+        """Resolve the provider at call time so admin changes take effect.
+
+        A module-level AIService is imported before the app factory creates an
+        application context. Caching the provider here used to freeze the env
+        fallback and hide the DB-backed admin configuration indefinitely.
+        Tests may still override this attribute with a fake provider.
+        """
+        override = getattr(self, "_llm_provider_override", None)
+        if override is not None:
+            return override
+        return self.provider_manager.llm
+
+    @llm_provider.setter
+    def llm_provider(self, provider):
+        self._llm_provider_override = provider
 
     def generate_response(self, system_prompt: str, user_message: str, conversation_history: Optional[List[Dict]] = None,
                         user: Optional['User'] = None, operation_type: str = "ai_chat") -> str:
@@ -38,10 +59,10 @@ class AIService:
         if user:
             from backend.utils.subscription import SubscriptionManager
             from backend.config import Config
-            
+
             # Bypass subscription checks in local development environment
             if not Config.IS_PRODUCTION:
-                pass # Allow access
+                pass  # Allow access
             elif user.organization:
                 if not SubscriptionManager.check_organization_access(user.organization, "ai_chat"):
                     return "Your organization's trial has expired or subscription is inactive. Please upgrade to continue using AI features."
@@ -49,19 +70,7 @@ class AIService:
                 if not SubscriptionManager.check_user_access(user, "ai_chat"):
                     return "Your trial has expired or subscription is inactive. Please upgrade to continue using AI features."
 
-        # Cost control. Deliberately NOT behind the IS_PRODUCTION bypass that
-        # sits above: an entitlement is a product decision, but this is a bill,
-        # and an unbounded account is a support incident. Checked before the
-        # provider call, so a refused turn costs nothing.
-        from backend.utils.ai_budget import check_ai_budget
-        allowed, budget_message = check_ai_budget(user, operation_type)
-        if not allowed:
-            return budget_message
-
         try:
-            print(f"DEBUG: AI Service - Provider: {self.provider_manager.config.AI_PROVIDER}, Model: {self.provider_manager.config.AI_MODEL}")
-            print(f"DEBUG: API Key loaded: {'Yes' if self._has_api_key() else 'No'}")
-
             messages = [{"role": "system", "content": system_prompt}]
 
             # Add conversation history if provided
@@ -71,29 +80,42 @@ class AIService:
             # Add current user message
             messages.append({"role": "user", "content": user_message})
 
-            # Use provider-agnostic chat
-            response = self.llm_provider.chat(messages)
-
-            # Track token usage if user provided
-            if user and hasattr(self.llm_provider, 'get_last_token_usage'):
-                token_usage = self.llm_provider.get_last_token_usage()
-                if token_usage:
-                    SubscriptionManager.track_token_usage(
-                        user=user,
-                        org=user.organization,
-                        provider=self.provider_manager.config.AI_PROVIDER,
-                        model=self.provider_manager.config.AI_MODEL,
-                        tokens=token_usage,
-                        operation_type=operation_type
-                    )
-
-            print(f"DEBUG: AI response length: {len(response)}")
+            # The provider wrapper enforces the allowance atomically before the
+            # call and records the usage row afterwards. Passing `user` keeps
+            # attribution explicit even when this runs outside a request.
+            response = self.llm_provider.chat(
+                messages,
+                actor=user,
+                operation_type=operation_type,
+            )
+            provider_name = getattr(
+                self.llm_provider, "provider_name",
+                self.provider_manager.config.AI_PROVIDER,
+            )
+            logger.info(
+                "ai response provider=%s operation=%s chars=%s",
+                provider_name,
+                operation_type,
+                len(response or ""),
+            )
             return response
 
-        except Exception as e:
-            print(f"AI service error: {str(e)}")
-            import traceback
-            traceback.print_exc()
+        except AIBudgetError:
+            # Let the route return 402. Swallowing this into a friendly string
+            # made structured callers (plans, reviews, JSON tools) treat a budget
+            # stop as a malformed model response.
+            raise
+        except Exception:
+            active_provider = getattr(self.provider_manager, "_llm_provider", None)
+            provider_name = getattr(
+                active_provider, "provider_name",
+                self.provider_manager.config.AI_PROVIDER,
+            )
+            logger.exception(
+                "AI service error provider=%s operation=%s",
+                provider_name,
+                operation_type,
+            )
             return "I apologize, but I'm having trouble processing your response right now. Could you please try again?"
 
     def _has_api_key(self) -> bool:
@@ -206,23 +228,31 @@ def switch_ai_provider(provider: str):
 
 
 # Test function
-def test_ai_connection():
-    """Test the AI service connection"""
+def test_ai_connection(actor=None):
+    """Test the AI service connection.
+
+    ``actor`` is required when AI budget enforcement is enabled; the call fails
+    closed rather than spending tokens without an accountable user or org.
+    """
     try:
-        print("DEBUG: Testing AI connection...")
         service = get_ai_service()
         provider_info = service.provider_manager.get_provider_info()
-        print(f"DEBUG: Service initialized - LLM: {provider_info['llm_provider']}, Embedding: {provider_info['embedding_provider']}")
+        logger.info(
+            "ai connection test provider=%s embedding=%s",
+            provider_info["llm_provider"],
+            provider_info["embedding_provider"],
+        )
 
         test_prompt = "You are a helpful assistant. Respond with 'Hello, AI service is working!'"
         test_message = "Test message"
 
-        print("DEBUG: Making test request...")
-        response = service.generate_response(test_prompt, test_message)
-        print(f"DEBUG: Test response: {response[:100]}...")
+        response = service.generate_response(
+            test_prompt, test_message, user=actor, operation_type="ai_connection_test"
+        )
+        logger.info("ai connection test succeeded")
         return {"success": True, "response": response}
+    except AIBudgetError:
+        raise
     except Exception as e:
-        print(f"DEBUG: AI connection test failed: {str(e)}")
-        import traceback
-        traceback.print_exc()
+        logger.exception("ai connection test failed")
         return {"success": False, "error": str(e)}

@@ -23,6 +23,7 @@ from ...extensions import db
 from ...models import MockInterview, Post
 from ...mock_interview import generator
 from ...utils import mock_interview as mi
+from ...utils.ai_budget import AIBudgetError
 from ...utils.subscription import CVAI_MOCK_INTERVIEW, check_content_access
 
 MAX_ACTIVE_SESSIONS = 1  # one at a time: two live interviews is not practice
@@ -71,6 +72,13 @@ def _next_question(session, user):
                 {"text": candidate.text, "phase": candidate.phase,
                  "skill_slug": candidate.skill_slug}, session.current_phase):
             continue
+        asked.append({
+            "id": candidate.id,
+            "text": candidate.text,
+            "phase": session.current_phase,
+            "source": "bank",
+        })
+        session.set_asked(asked)
         return candidate.text, candidate.guidance, "bank"
 
     # Bank is exhausted for this phase. Generated, then validated against the
@@ -81,6 +89,13 @@ def _next_question(session, user):
         session.current_phase, skills,
         [q["text"] for q in asked if q.get("text")], user)
     if texts:
+        asked.append({
+            "id": None,
+            "text": texts[0],
+            "phase": session.current_phase,
+            "source": "generated",
+        })
+        session.set_asked(asked)
         return texts[0], None, "generated"
     return None, None, "exhausted"
 
@@ -214,6 +229,7 @@ def answer_mock_interview(interview_id):
     if mi.should_advance(session.current_phase, session.phase_turns):
         nxt = mi.next_phase(session.current_phase)
         if nxt is None:
+            db.session.commit()
             return jsonify({
                 'interview': session.to_dict(include_transcript=True),
                 'phase': _phase_payload(session),
@@ -224,12 +240,17 @@ def answer_mock_interview(interview_id):
         session.current_phase = nxt
         session.phase_turns = 0
 
+    # Persist the answer (and any phase advance) before fetching the next
+    # question, so a learner's last answer is never dropped by an early return.
+    db.session.commit()
+
     question, guidance, source = _next_question(session, user)
     if question is None:
         # Phase exhausted and the model could not fill it. Say so rather than
         # looping an empty screen at the learner.
         nxt = mi.next_phase(session.current_phase)
         if nxt is None:
+            db.session.commit()
             return jsonify({
                 'interview': session.to_dict(include_transcript=True),
                 'phase': _phase_payload(session),
@@ -241,6 +262,7 @@ def answer_mock_interview(interview_id):
         session.phase_turns = 0
         question, guidance, source = _next_question(session, user)
         if question is None:
+            db.session.commit()
             return jsonify({
                 'interview': session.to_dict(include_transcript=True),
                 'phase': _phase_payload(session),
@@ -303,8 +325,13 @@ def mock_interview_feedback(interview_id):
     session.completed_at = datetime.utcnow()
     db.session.commit()
 
-    result, error_detail = generator.review_interview(
-        session.get_transcript(), session.get_skill_slugs(), user)
+    try:
+        result, error_detail = generator.review_interview(
+            session.get_transcript(), session.get_skill_slugs(), user)
+    except AIBudgetError:
+        session.review_status = 'unavailable'
+        db.session.commit()
+        raise
 
     if error_detail:
         session.review_status = 'unavailable'

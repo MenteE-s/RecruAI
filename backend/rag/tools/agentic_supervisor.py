@@ -7,6 +7,7 @@ from .thinking import ThinkingModule
 from .retriever import RetrieverTool
 from .embedder import EmbedderTool
 from .generator import GeneratorTool
+from ...utils.ai_budget import AIBudgetError
 
 logger = logging.getLogger(__name__)
 
@@ -153,16 +154,19 @@ class AgenticRAGSupervisor(RAGSupervisor):
         thinking_start = time.time()
 
         try:
+            actor = (user_context or {}).get("actor")
             # Step 1: Analyze context
-            analysis = self.thinking_module.analyze_context(query, context_chunks)
+            analysis = self.thinking_module.analyze_context(
+                query, context_chunks, actor=actor
+            )
 
             # Step 2: Generate reasoning
             reasoning = self.thinking_module.generate_reasoning(
-                query, context_chunks, analysis
+                query, context_chunks, analysis, actor=actor
             )
 
             # Step 3: Validate reasoning
-            validation = self.thinking_module.validate_reasoning(reasoning)
+            validation = self.thinking_module.validate_reasoning(reasoning, actor=actor)
 
             thinking_time = time.time() - thinking_start
 
@@ -175,6 +179,8 @@ class AgenticRAGSupervisor(RAGSupervisor):
                 'thinking_successful': validation.get('is_acceptable', False)
             }
 
+        except AIBudgetError:
+            raise
         except Exception as e:
             logger.error(f"Thinking step failed: {e}")
             return {
@@ -228,6 +234,8 @@ class AgenticRAGSupervisor(RAGSupervisor):
 
             return generation_result
 
+        except AIBudgetError:
+            raise
         except Exception as e:
             logger.error(f"Response generation failed: {e}")
             return {

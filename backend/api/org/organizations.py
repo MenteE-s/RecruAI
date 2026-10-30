@@ -1,59 +1,50 @@
-from flask import request, jsonify
+from flask import request, jsonify, g
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy import func
 from .. import api_bp
 from ...extensions import db
-from ...models import Organization, TeamMember, User, AIInterviewAgent
+from ...models import Organization, TeamMember, User, AIInterviewAgent, OrganizationInvitation
 from ...utils.timezone_utils import is_valid_timezone, get_current_time_info, utc_iso, utc_now_iso
 from ...utils.kafka_service import kafka_service as kafka
+from ...utils.outbox import enqueue_email, EMAIL_INVITATION
 from ...utils.cache import cached, invalidate_org_cache
-from ...utils.security import sanitize_input, log_security_event
+from ...utils.security import sanitize_input, log_security_event, validate_email
+from ...utils.org_permissions import (
+    ORG_EDIT,
+    ORG_VIEW,
+    SELECTABLE_ROLES,
+    TEAM_MANAGE,
+    TEAM_VIEW,
+    current_user,
+    get_org_access,
+    invalidate_membership_caches,
+    is_last_admin,
+    normalize_stored_role,
+    org_permission_required,
+    parse_org_role,
+    sync_primary_org,
+)
 from ...utils.slug import slugify_company, ORG_RESERVED
+from ...utils.invitations import (
+    INVITATION_MAX_PER_HOUR,
+    INVITATION_RESEND_COOLDOWN_SECONDS,
+    INVITATION_TTL_DAYS,
+    active_invitation_for,
+    find_user_by_email,
+    generate_invitation_token,
+    hash_invitation_token,
+    normalize_email,
+    recent_invitation_count,
+)
 import json
-import secrets
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
-def _manages_org(org_id):
-    """Caller may administer this org: its org account or a team member."""
-    from flask_jwt_extended import get_jwt_identity
-    try:
-        uid = int(get_jwt_identity())
-    except (TypeError, ValueError):
-        return False
-    user = User.query.get(uid)
-    if not user:
-        return False
-    try:
-        org_id = int(org_id)
-    except (TypeError, ValueError):
-        return False
-    if user.role == "organization" and user.organization_id == org_id:
-        return True
-    return TeamMember.query.filter_by(organization_id=org_id, user_id=user.id).first() is not None
-
-
-ALLOWED_TEAM_ROLES = frozenset({"Admin", "HR", "Manager", "Member", "Employee"})
-
-
-def _is_org_admin(org_id):
-    """Caller may grant/revoke the Admin role: org owner account or Admin member."""
-    from flask_jwt_extended import get_jwt_identity
-    try:
-        uid = int(get_jwt_identity())
-    except (TypeError, ValueError):
-        return False
-    user = User.query.get(uid)
-    if not user:
-        return False
-    try:
-        org_id = int(org_id)
-    except (TypeError, ValueError):
-        return False
-    if user.role == "organization" and user.organization_id == org_id:
-        return True
-    tm = TeamMember.query.filter_by(organization_id=org_id, user_id=user.id).first()
-    return tm is not None and tm.role == "Admin"
+def _role_error():
+    return jsonify({
+        "error": "Invalid role.",
+        "allowed_roles": list(SELECTABLE_ROLES),
+    }), 400
 
 
 def _validate_permissions(permissions):
@@ -613,7 +604,7 @@ def create_organization_page():
     payload = request.get_json(silent=True) or {}
 
     try:
-        caller = User.query.get(int(get_jwt_identity()))
+        caller = db.session.get(User, int(get_jwt_identity()))
     except (TypeError, ValueError):
         caller = None
     if not caller:
@@ -732,7 +723,7 @@ def create_organization_page():
 def list_my_organization_pages():
     """Pages the signed-in user administers (founded + invited to)."""
     try:
-        caller = User.query.get(int(get_jwt_identity()))
+        caller = db.session.get(User, int(get_jwt_identity()))
     except (TypeError, ValueError):
         caller = None
     if not caller:
@@ -740,13 +731,13 @@ def list_my_organization_pages():
 
     rows = {}
     if caller.organization_id:
-        org = Organization.query.get(caller.organization_id)
-        if org:
+        org = db.session.get(Organization, caller.organization_id)
+        if org and get_org_access(caller, org.id) is not None:
             rows[org.id] = org
     for tm in TeamMember.query.filter_by(user_id=caller.id).all():
         if tm.organization_id not in rows:
-            org = Organization.query.get(tm.organization_id)
-            if org:
+            org = db.session.get(Organization, tm.organization_id)
+            if org and get_org_access(caller, org.id) is not None:
                 rows[org.id] = org
 
     return jsonify([{
@@ -757,6 +748,8 @@ def list_my_organization_pages():
         "location": o.location,
         "profile_image": o.profile_image,
         "company_size": o.company_size,
+        "role": get_org_access(caller, o.id).role,
+        "permissions": sorted(get_org_access(caller, o.id).permissions),
         "is_primary": o.id == caller.organization_id,
     } for o in rows.values()]), 200
 
@@ -777,7 +770,7 @@ def get_organization_by_slug(slug):
     org = Organization.query.filter(func.lower(Organization.slug) == clean).first()
     if not org:
         return jsonify({"error": "Not found"}), 404
-    if not _manages_org(org.id) and not org.is_public:
+    if get_org_access(current_user(), org.id) is None and not org.is_public:
         return jsonify({"error": "Not found"}), 404
 
     # Reuse the id-based handler so manager/private/cache behaviour stays in
@@ -792,11 +785,13 @@ def get_organization_by_slug(slug):
 # response (contacts + inactive posts) to an unrelated requester on HIT.
 @cached("org_details", ttl=300, key_func=lambda org_id: f"{get_jwt_identity()}:org_{org_id}")
 def get_organization(org_id):
-    org = Organization.query.get_or_404(org_id)
-    is_manager = _manages_org(org_id)
+    org = db.get_or_404(Organization, org_id)
+    access = get_org_access(current_user(), org_id)
+    is_manager = bool(access and access.can(ORG_VIEW))
     if is_manager:
         posts = [p.to_dict() for p in org.posts]
         return jsonify({
+            "access": access.to_dict(),
             "id": org.id,
             "name": org.name,
             "slug": org.slug,
@@ -831,12 +826,22 @@ def get_organization(org_id):
     public["posts"] = active_posts
     return jsonify(public)
 
+@api_bp.route("/organizations/<int:org_id>/permissions", methods=["GET"])
+@jwt_required()
+def get_organization_permissions(org_id):
+    """The caller's own role and permissions for this page."""
+    db.get_or_404(Organization, org_id)
+    access = get_org_access(current_user(), org_id)
+    if access is None:
+        return jsonify({"error": "Forbidden for this organization"}), 403
+    return jsonify(access.to_dict()), 200
+
+
 @api_bp.route("/organizations/<int:org_id>", methods=["PUT"])
 @jwt_required()
+@org_permission_required(ORG_EDIT)
 def update_organization(org_id):
-    if not _manages_org(org_id):
-        return jsonify({"error": "Forbidden for this organization"}), 403
-    org = Organization.query.get_or_404(org_id)
+    org = db.get_or_404(Organization, org_id)
     payload = request.get_json(silent=True) or {}
 
     # Update basic fields
@@ -881,11 +886,10 @@ def update_organization(org_id):
 
 @api_bp.route("/organizations/<int:org_id>/timezone", methods=["PUT"])
 @jwt_required()
+@org_permission_required(ORG_EDIT)
 def update_organization_timezone(org_id):
     """Update organization's timezone preference."""
-    if not _manages_org(org_id):
-        return jsonify({"error": "Forbidden for this organization"}), 403
-    org = Organization.query.get_or_404(org_id)
+    org = db.get_or_404(Organization, org_id)
     payload = request.get_json(silent=True) or {}
     
     tz = payload.get("timezone")
@@ -916,17 +920,16 @@ def update_organization_timezone(org_id):
 @jwt_required()
 def get_organization_current_time(org_id):
     """Get current time information in organization's timezone (auth required to prevent ID enumeration)."""
-    org = Organization.query.get_or_404(org_id)
+    org = db.get_or_404(Organization, org_id)
     tz = org.timezone or "UTC"
     return jsonify(get_current_time_info(tz)), 200
 
 
 @api_bp.route("/organizations/<int:org_id>/profile", methods=["PUT"])
 @jwt_required()
+@org_permission_required(ORG_EDIT)
 def update_organization_profile(org_id):
-    if not _manages_org(org_id):
-        return jsonify({"error": "Forbidden for this organization"}), 403
-    org = Organization.query.get_or_404(org_id)
+    org = db.get_or_404(Organization, org_id)
     payload = request.get_json(silent=True) or {}
 
     # Same validation as page creation — otherwise editing a page would be a
@@ -986,6 +989,7 @@ def update_organization_profile(org_id):
 
 @api_bp.route("/organizations/<int:org_id>/slug", methods=["PUT"])
 @jwt_required()
+@org_permission_required(ORG_EDIT)
 def update_organization_slug(org_id):
     """Change the page URL: /org/<slug>.
 
@@ -994,9 +998,7 @@ def update_organization_slug(org_id):
     break a URL that has already been printed on a job ad or pasted into an
     email, so the admin opts in to the move.
     """
-    if not _manages_org(org_id):
-        return jsonify({"error": "Forbidden for this organization"}), 403
-    org = Organization.query.get_or_404(org_id)
+    org = db.get_or_404(Organization, org_id)
     payload = request.get_json(silent=True) or {}
 
     requested = sanitize_input(payload.get("slug", "") or "", max_length=60).strip().lower()
@@ -1035,11 +1037,10 @@ def update_organization_slug(org_id):
 
 @api_bp.route("/organizations/<int:org_id>/visibility", methods=["PUT"])
 @jwt_required()
+@org_permission_required(ORG_EDIT)
 def update_organization_visibility(org_id):
     """Toggle how a page appears to people who don't administer it."""
-    if not _manages_org(org_id):
-        return jsonify({"error": "Forbidden for this organization"}), 403
-    org = Organization.query.get_or_404(org_id)
+    org = db.get_or_404(Organization, org_id)
     payload = request.get_json(silent=True) or {}
 
     # Explicit `is True/False` only: a missing key means "leave unchanged", and
@@ -1066,30 +1067,29 @@ def update_organization_visibility(org_id):
 
 @api_bp.route("/organizations/<int:org_id>/team-members", methods=["GET"])
 @jwt_required()
+@org_permission_required(TEAM_VIEW)
 def list_team_members(org_id):
-    if not _manages_org(org_id):
-        return jsonify({"error": "Forbidden for this organization"}), 403
-    org = Organization.query.get_or_404(org_id)
+    org = db.get_or_404(Organization, org_id)
     team_members = [tm.to_dict() for tm in org.team_members]
     return jsonify(team_members), 200
 
 @api_bp.route("/organizations/<int:org_id>/team-members", methods=["POST"])
 @jwt_required()
+@org_permission_required(TEAM_MANAGE)
 def add_team_member(org_id):
-    if not _manages_org(org_id):
-        return jsonify({"error": "Forbidden for this organization"}), 403
-    org = Organization.query.get_or_404(org_id)
+    caller = current_user()
+    org = db.get_or_404(Organization, org_id)
     payload = request.get_json(silent=True) or {}
     user_id = payload.get("user_id")
-    role = payload.get("role")
+    role = parse_org_role(payload.get("role"))
     permissions = payload.get("permissions")  # list of permissions
     join_date = payload.get("join_date")
 
-    if not user_id or not role:
+    if not user_id or not payload.get("role"):
         return jsonify({"error": "user_id and role required"}), 400
-    if role not in ALLOWED_TEAM_ROLES:
-        return jsonify({"error": f"Invalid role. Allowed: {sorted(ALLOWED_TEAM_ROLES)}"}), 400
-    if role == "Admin" and not _is_org_admin(org_id):
+    if role is None:
+        return _role_error()
+    if role == "Admin" and not g.org_access.is_admin:
         return jsonify({"error": "Only Admins can grant the Admin role"}), 403
     if not _validate_permissions(permissions):
         return jsonify({"error": "Invalid permissions (must be a list of <=50 strings)"}), 400
@@ -1098,7 +1098,7 @@ def add_team_member(org_id):
         return join_err
 
     # Check if user exists
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     if not user:
         return jsonify({"error": "user not found"}), 404
 
@@ -1114,9 +1114,19 @@ def add_team_member(org_id):
         permissions=json.dumps(permissions) if permissions else None,
         join_date=join_date
     )
+    if not user.organization_id:
+        user.organization_id = org_id
     db.session.add(tm)
     db.session.commit()
-    
+
+    invalidate_membership_caches(user.id, org_id)
+    log_security_event(
+        "team_member_added",
+        user_id=caller.id if caller else None,
+        ip_address=request.remote_addr,
+        details={"org_id": org_id, "member_user_id": user.id, "role": role},
+    )
+
     # Emit Kafka event for team member added
     kafka.emit_event('team_member_added', {
         'org_id': org_id,
@@ -1129,18 +1139,24 @@ def add_team_member(org_id):
 
 @api_bp.route("/organizations/<int:org_id>/team-members/<int:member_id>", methods=["PUT"])
 @jwt_required()
+@org_permission_required(TEAM_MANAGE)
 def update_team_member(org_id, member_id):
-    if not _manages_org(org_id):
-        return jsonify({"error": "Forbidden for this organization"}), 403
+    caller = current_user()
     tm = TeamMember.query.filter_by(id=member_id, organization_id=org_id).first_or_404()
     payload = request.get_json(silent=True) or {}
+    old_role = normalize_stored_role(tm.role)
 
     if "role" in payload:
-        new_role = payload["role"]
-        if new_role not in ALLOWED_TEAM_ROLES:
-            return jsonify({"error": f"Invalid role. Allowed: {sorted(ALLOWED_TEAM_ROLES)}"}), 400
-        if new_role == "Admin" and not _is_org_admin(org_id):
+        new_role = parse_org_role(payload["role"])
+        if new_role is None:
+            return _role_error()
+        if new_role == "Admin" and not g.org_access.is_admin:
             return jsonify({"error": "Only Admins can grant the Admin role"}), 403
+        if old_role == "Admin" and new_role != "Admin" and is_last_admin(org_id, tm.user_id):
+            return jsonify({
+                "error": "This is the last Admin. Promote another member before changing this role.",
+                "code": "last_admin",
+            }), 409
         tm.role = new_role
     if "permissions" in payload:
         if not _validate_permissions(payload["permissions"]):
@@ -1153,17 +1169,57 @@ def update_team_member(org_id, member_id):
         tm.join_date = parsed
 
     db.session.commit()
+    invalidate_membership_caches(tm.user_id, org_id)
+    if "role" in payload:
+        log_security_event(
+            "team_member_role_changed",
+            user_id=caller.id if caller else None,
+            ip_address=request.remote_addr,
+            details={
+                "org_id": org_id,
+                "member_user_id": tm.user_id,
+                "from": old_role,
+                "to": normalize_stored_role(tm.role),
+            },
+        )
+        kafka.emit_event('team_member_role_changed', {
+            'org_id': org_id,
+            'member_id': tm.id,
+            'from': old_role,
+            'to': normalize_stored_role(tm.role),
+            'timestamp': utc_now_iso(),
+        })
     return jsonify(tm.to_dict()), 200
 
 @api_bp.route("/organizations/<int:org_id>/team-members/<int:member_id>", methods=["DELETE"])
 @jwt_required()
+@org_permission_required(TEAM_MANAGE)
 def remove_team_member(org_id, member_id):
-    if not _manages_org(org_id):
-        return jsonify({"error": "Forbidden for this organization"}), 403
+    caller = current_user()
     tm = TeamMember.query.filter_by(id=member_id, organization_id=org_id).first_or_404()
+    member_user = tm.user
+    role = normalize_stored_role(tm.role)
+    if role == "Admin" and is_last_admin(org_id, tm.user_id):
+        return jsonify({
+            "error": "This is the last Admin. Promote another member before removing this one.",
+            "code": "last_admin",
+        }), 409
+
+    removed_user_id = tm.user_id
     db.session.delete(tm)
+    db.session.flush()
+    if member_user is not None:
+        sync_primary_org(member_user)
     db.session.commit()
-    
+
+    invalidate_membership_caches(removed_user_id, org_id)
+    log_security_event(
+        "team_member_removed",
+        user_id=caller.id if caller else None,
+        ip_address=request.remote_addr,
+        details={"org_id": org_id, "member_user_id": removed_user_id, "role": role},
+    )
+
     # Emit Kafka event for team member removed
     kafka.emit_event('team_member_removed', {
         'org_id': org_id,
@@ -1175,27 +1231,25 @@ def remove_team_member(org_id, member_id):
 
 @api_bp.route("/organizations/<int:org_id>/users", methods=["GET"])
 @jwt_required()
+@org_permission_required(TEAM_VIEW)
 def list_organization_users(org_id):
     """Get all users belonging to an organization (managers only)."""
-    if not _manages_org(org_id):
-        return jsonify({"error": "Forbidden for this organization"}), 403
-    org = Organization.query.get_or_404(org_id)
+    org = db.get_or_404(Organization, org_id)
     users = User.query.filter_by(organization_id=org_id).all()
     return jsonify([user.to_dict() for user in users]), 200
 
 
 @api_bp.route("/organizations/<int:org_id>/people", methods=["GET"])
 @jwt_required()
+@org_permission_required(TEAM_VIEW)
 def list_organization_people(org_id):
     """People connected to this org through work experience (linked FK or
     case-insensitive exact company-name match), split into current/past.
     Managers of the org only."""
-    if not _manages_org(org_id):
-        return jsonify({"error": "Forbidden for this organization"}), 403
     from datetime import date, datetime, timezone
     from sqlalchemy import func, or_
     from ...models import Experience
-    org = Organization.query.get_or_404(org_id)
+    org = db.get_or_404(Organization, org_id)
     # UTC calendar date (not server-local): consistent for viewers worldwide.
     today = datetime.now(timezone.utc).date()
     rows = (db.session.query(Experience, User)
@@ -1227,64 +1281,230 @@ def list_organization_people(org_id):
 
 @api_bp.route("/organizations/<int:org_id>/invite", methods=["POST"])
 @jwt_required()
+@org_permission_required(TEAM_MANAGE)
 def invite_team_member(org_id):
-    if not _manages_org(org_id):
-        return jsonify({"error": "Forbidden for this organization"}), 403
-    org = Organization.query.get_or_404(org_id)
-    payload = request.get_json(silent=True) or {}
-    email = payload.get("email")
-    role = payload.get("role", "Member")
-    permissions = payload.get("permissions")  # list of permissions
+    """Create or resend an invitation without pre-creating a User.
 
-    if not email:
-        return jsonify({"error": "email required"}), 400
-    if role not in ALLOWED_TEAM_ROLES:
-        return jsonify({"error": f"Invalid role. Allowed: {sorted(ALLOWED_TEAM_ROLES)}"}), 400
-    if role == "Admin" and not _is_org_admin(org_id):
+    The old implementation created an unverified User with a random password
+    and immediately added a TeamMember. That made the address impossible to
+    register and gave the invitee no way to sign in. Now an invitation is just
+    a hashed single-use token; the account is created only when the recipient
+    accepts it.
+    """
+    org = db.get_or_404(Organization, org_id)
+    caller = current_user()
+    if not caller:
+        return jsonify({"error": "User not found"}), 404
+
+    payload = request.get_json(silent=True) or {}
+    if not isinstance(payload, dict):
+        return jsonify({"error": "Invalid JSON body."}), 400
+    email = normalize_email(payload.get("email"))
+    role = parse_org_role(payload.get("role", "Interviewer"))
+    permissions = payload.get("permissions")
+    invite_join_date, join_err = _parse_join_date(payload.get("join_date"))
+
+    if not email or not validate_email(email):
+        return jsonify({"error": "Enter a valid email address."}), 400
+    if role is None:
+        return _role_error()
+    if role == "Admin" and not g.org_access.is_admin:
         return jsonify({"error": "Only Admins can grant the Admin role"}), 403
     if not _validate_permissions(permissions):
         return jsonify({"error": "Invalid permissions (must be a list of <=50 strings)"}), 400
-    invite_join_date, join_err = _parse_join_date(payload.get("join_date"))
     if join_err:
         return join_err
 
-    # Check if user already exists
-    user = User.query.filter_by(email=email).first()
-    if user:
-        # Check if already a member
-        existing = TeamMember.query.filter_by(organization_id=org_id, user_id=user.id).first()
-        if existing:
-            return jsonify({"error": "user is already a team member"}), 400
-        user_id = user.id
-    else:
-        # Invited colleagues are people, so they get an `individual` account
-        # like everyone else. Their page access comes from the team_members row
-        # written below — there are no organization-role accounts any more.
-        user = User(
-            email=email,
-            name=email.split('@')[0],  # Use email prefix as name
-            role="individual",
-            organization_id=org_id
-        )
-        # Random temporary password (must pass strength policy); share out-of-band.
-        user.set_password(f"Tmp-{secrets.token_urlsafe(12)}!A9")
-        db.session.add(user)
-        db.session.flush()  # Get user.id
-        user_id = user.id
-
-    # Add to team members
-    tm = TeamMember(
-        organization_id=org_id,
-        user_id=user_id,
-        role=role,
-        permissions=json.dumps(permissions) if permissions else None,
-        join_date=invite_join_date
+    # An already-active member is not a privacy leak: managers can already see
+    # the team list. An unverified legacy placeholder is different — allow a
+    # fresh invitation so the real owner can reclaim it through the token.
+    user = find_user_by_email(email)
+    existing = (
+        TeamMember.query.filter_by(organization_id=org.id, user_id=user.id).first()
+        if user else None
     )
-    db.session.add(tm)
-    # Joining a team means working here: lift the default 'unemployed' state
-    # so the profile doesn't contradict itself (Open to Work + In your team).
-    # Never demotes an existing hired/working/onboarding state.
-    if user.employment_status in (None, "", "unemployed"):
-        user.employment_status = "working"
+    if existing and user.email_verified:
+        return jsonify({
+            "error": "This person is already on your team.",
+            "code": "already_team_member",
+        }), 409
+
+    now = datetime.utcnow()
+    active = active_invitation_for(org.id, email)
+    resent = active is not None
+    if active and active.last_sent_at:
+        elapsed = (now - active.last_sent_at).total_seconds()
+        if elapsed < INVITATION_RESEND_COOLDOWN_SECONDS:
+            wait = int(INVITATION_RESEND_COOLDOWN_SECONDS - elapsed) + 1
+            return jsonify({
+                "error": f"Please wait {wait}s before resending this invitation.",
+                "retry_after": wait,
+            }), 429
+    if not active and recent_invitation_count(org.id, email) >= INVITATION_MAX_PER_HOUR:
+        return jsonify({
+            "error": "Too many invitations for this address. Try again later.",
+        }), 429
+
+    token = generate_invitation_token()
+    if active:
+        invitation = active
+    else:
+        invitation = OrganizationInvitation(
+            organization_id=org.id,
+            email=email,
+            created_at=now,
+        )
+        db.session.add(invitation)
+
+    invitation.email = email
+    invitation.role = role
+    invitation.permissions = json.dumps(permissions) if permissions else None
+    invitation.join_date = invite_join_date
+    invitation.invited_by_id = caller.id
+    invitation.token_hash = hash_invitation_token(token)
+    invitation.expires_at = now + timedelta(days=INVITATION_TTL_DAYS)
+    invitation.last_sent_at = now
+    enqueue_email(EMAIL_INVITATION, email, {
+        "organization_name": org.name,
+        "inviter_name": caller.name or caller.email,
+        "role": role,
+        "token": token,
+        "expires_days": INVITATION_TTL_DAYS,
+    })
     db.session.commit()
-    return jsonify({"message": "invitation sent", "team_member": tm.to_dict()}), 201
+
+    log_security_event(
+        "organization_invitation_sent",
+        user_id=caller.id,
+        ip_address=request.remote_addr,
+        email=email,
+        details={"org_id": org.id, "role": role, "resent": resent},
+    )
+    kafka.emit_event("organization_invitation_sent", {
+        "org_id": org.id,
+        "email": email,
+        "role": role,
+        "invitation_id": invitation.id,
+        "resent": resent,
+        "timestamp": utc_now_iso(),
+    })
+
+    return jsonify({
+        "message": "Invitation email resent." if resent else "Invitation email sent.",
+        "invitation": invitation.to_dict(),
+        "resent": resent,
+        "email_sent": True,
+    }), 200 if resent else 201
+
+
+@api_bp.route("/organizations/<int:org_id>/invitations", methods=["GET"])
+@jwt_required()
+@org_permission_required(TEAM_MANAGE)
+def list_organization_invitations(org_id):
+    now = datetime.utcnow()
+    invitations = (
+        OrganizationInvitation.query
+        .filter_by(organization_id=org_id)
+        .filter(
+            OrganizationInvitation.accepted_at.is_(None),
+            OrganizationInvitation.revoked_at.is_(None),
+            OrganizationInvitation.expires_at > now,
+        )
+        .order_by(OrganizationInvitation.created_at.desc())
+        .all()
+    )
+    return jsonify([invitation.to_dict() for invitation in invitations]), 200
+
+
+@api_bp.route("/organizations/<int:org_id>/invitations/<int:invitation_id>/resend", methods=["POST"])
+@jwt_required()
+@org_permission_required(TEAM_MANAGE)
+def resend_organization_invitation(org_id, invitation_id):
+    invitation = OrganizationInvitation.query.filter_by(
+        id=invitation_id, organization_id=org_id
+    ).first_or_404()
+    if invitation.status == "accepted":
+        return jsonify({"error": "This invitation has already been accepted."}), 409
+    if invitation.status == "revoked":
+        return jsonify({"error": "This invitation has been revoked."}), 410
+    if invitation.status == "expired":
+        return jsonify({"error": "This invitation has expired. Create a new one."}), 410
+
+    try:
+        caller = db.session.get(User, int(get_jwt_identity()))
+    except (TypeError, ValueError):
+        caller = None
+    if not caller:
+        return jsonify({"error": "User not found"}), 404
+
+    now = datetime.utcnow()
+    if invitation.last_sent_at:
+        elapsed = (now - invitation.last_sent_at).total_seconds()
+        if elapsed < INVITATION_RESEND_COOLDOWN_SECONDS:
+            wait = int(INVITATION_RESEND_COOLDOWN_SECONDS - elapsed) + 1
+            return jsonify({
+                "error": f"Please wait {wait}s before resending this invitation.",
+                "retry_after": wait,
+            }), 429
+
+    org = db.get_or_404(Organization, org_id)
+    token = generate_invitation_token()
+    invitation.token_hash = hash_invitation_token(token)
+    invitation.expires_at = now + timedelta(days=INVITATION_TTL_DAYS)
+    invitation.last_sent_at = now
+    invitation.invited_by_id = caller.id
+    enqueue_email(EMAIL_INVITATION, invitation.email, {
+        "organization_name": org.name,
+        "inviter_name": caller.name or caller.email,
+        "role": invitation.role,
+        "token": token,
+        "expires_days": INVITATION_TTL_DAYS,
+    })
+    db.session.commit()
+
+    log_security_event(
+        "organization_invitation_resent",
+        user_id=caller.id,
+        ip_address=request.remote_addr,
+        email=invitation.email,
+        details={"org_id": org.id, "invitation_id": invitation.id},
+    )
+    kafka.emit_event("organization_invitation_resent", {
+        "org_id": org.id,
+        "invitation_id": invitation.id,
+        "email": invitation.email,
+        "timestamp": utc_now_iso(),
+    })
+    return jsonify({
+        "message": "Invitation email resent.",
+        "invitation": invitation.to_dict(),
+        "email_sent": True,
+    }), 200
+
+
+@api_bp.route("/organizations/<int:org_id>/invitations/<int:invitation_id>", methods=["DELETE"])
+@jwt_required()
+@org_permission_required(TEAM_MANAGE)
+def revoke_organization_invitation(org_id, invitation_id):
+    invitation = OrganizationInvitation.query.filter_by(
+        id=invitation_id, organization_id=org_id
+    ).first_or_404()
+    if invitation.accepted_at:
+        return jsonify({"error": "This invitation has already been accepted."}), 409
+    if not invitation.revoked_at:
+        invitation.revoked_at = datetime.utcnow()
+        db.session.commit()
+        log_security_event(
+            "organization_invitation_revoked",
+            user_id=int(get_jwt_identity()),
+            ip_address=request.remote_addr,
+            email=invitation.email,
+            details={"org_id": org_id, "invitation_id": invitation.id},
+        )
+        kafka.emit_event("organization_invitation_revoked", {
+            "org_id": org_id,
+            "invitation_id": invitation.id,
+            "email": invitation.email,
+            "timestamp": utc_now_iso(),
+        })
+    return jsonify({"message": "Invitation revoked."}), 200

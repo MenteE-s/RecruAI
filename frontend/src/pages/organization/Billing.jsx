@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { getBackendUrl, getAuthHeaders } from '../../utils/auth';
 import Chip from '../../components/ui/Chip';
+import MenteeLoader from '../../components/ui/MenteeLoader';
+import { BILLING_BETA_MESSAGE, BILLING_ENABLED } from '../../utils/billing';
 import { FiCreditCard, FiZap, FiFileText, FiSettings, FiTrendingUp, FiAlertTriangle, FiDownload, FiArrowRight } from 'react-icons/fi';
 
 export default function Billing() {
@@ -54,9 +56,8 @@ export default function Billing() {
   if (loading) {
     return (
       <DashboardLayout >
-        <div className="space-y-4">
-          <div className="rounded-2xl bg-gray-900 h-44 animate-pulse" />
-          <div className="bg-white border border-gray-200 h-64 animate-pulse" />
+        <div className="flex min-h-[50vh] items-center justify-center bg-white border border-gray-200">
+          <MenteeLoader size={60} text="Loading billing…" />
         </div>
       </DashboardLayout>
     );
@@ -77,7 +78,12 @@ export default function Billing() {
   }
 
   const planName = userData?.subscription_status?.is_paid_active ? 'Pro' : userData?.subscription_status?.is_trial_active ? 'Trial' : 'Free';
-  const trialEnds = userData?.subscription_status?.trial_start_date ? new Date(new Date(userData.subscription_status.trial_start_date).getTime() + 7 * 24 * 60 * 60 * 1000) : null;
+  const trialStart = userData?.subscription_status?.trial_start_date;
+  const trialEnds = userData?.subscription_status?.trial_end_date
+    ? new Date(userData.subscription_status.trial_end_date)
+    : trialStart
+      ? new Date(new Date(trialStart).getTime() + 30 * 24 * 60 * 60 * 1000)
+      : null;
   const isTrialActive = userData?.subscription_status?.is_trial_active;
   const isPaidActive = userData?.subscription_status?.is_paid_active;
   const tokensUsed = userData?.subscription_status?.tokens_used || 0;
@@ -96,7 +102,7 @@ export default function Billing() {
                 BILLING
               </div>
               <h1 className="text-3xl md:text-[2rem] font-bold leading-tight">Billing & usage</h1>
-              <p className="text-gray-300 mt-2 max-w-xl text-sm md:text-[15px]">Manage your plan, tokens, and invoices.</p>
+              <p className="text-gray-300 mt-2 max-w-xl text-sm md:text-[15px]">Review your plan, trial, and token usage.</p>
               <div className="mt-3 flex items-center gap-2">
                 <Chip variant={isPaidActive ? 'success' : isTrialActive ? 'warning' : 'secondary'}>{planName} Plan</Chip>
                 {isTrialActive && trialEnds && <span className="text-xs text-amber-200 bg-amber-500/20 border border-amber-400/20 px-2 py-1">Trial ends {trialEnds.toLocaleDateString()}</span>}
@@ -196,20 +202,33 @@ export default function Billing() {
           <h2 className="text-sm font-semibold text-gray-900">Billing actions</h2>
         </div>
         <div className="p-6 space-y-3">
-          {!isPaidActive ? (
-            <button onClick={() => alert('Upgrade functionality with Stripe integration')} className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors">
-              Upgrade to Pro <FiArrowRight className="w-4 h-4" />
-            </button>
-          ) : (
-            <button onClick={() => { if (window.confirm('Cancel Pro subscription?')) alert('Cancellation'); }} className="w-full px-6 py-3 bg-white border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50">
-              Cancel subscription
-            </button>
+          {!BILLING_ENABLED && (
+            <div className="bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-700">
+              {BILLING_BETA_MESSAGE}
+            </div>
           )}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <button onClick={() => alert('Invoice download')} className="inline-flex items-center justify-center gap-1.5 px-4 py-3 bg-white border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50"><FiDownload className="w-4 h-4" /> Download invoice</button>
-            <button onClick={() => alert('Payment method update')} className="inline-flex items-center justify-center gap-1.5 px-4 py-3 bg-white border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50"><FiCreditCard className="w-4 h-4" /> Update payment</button>
-          </div>
-          <p className="text-xs text-gray-500 text-center pt-2">Secure billing via Stripe • Invoices sent to your email</p>
+          {BILLING_ENABLED && (
+            <>
+              {!isPaidActive ? (
+                <button onClick={() => alert('Upgrade functionality with Stripe integration')} className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors">
+                  Upgrade to Pro <FiArrowRight className="w-4 h-4" />
+                </button>
+              ) : (
+                <button onClick={() => { if (window.confirm('Cancel Pro subscription?')) alert('Cancellation'); }} className="w-full px-6 py-3 bg-white border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                  Cancel subscription
+                </button>
+              )}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button onClick={() => alert('Invoice download')} className="inline-flex items-center justify-center gap-1.5 px-4 py-3 bg-white border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50"><FiDownload className="w-4 h-4" /> Download invoice</button>
+                <button onClick={() => alert('Payment method update')} className="inline-flex items-center justify-center gap-1.5 px-4 py-3 bg-white border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50"><FiCreditCard className="w-4 h-4" /> Update payment</button>
+              </div>
+            </>
+          )}
+          <p className="text-xs text-gray-500 text-center pt-2">
+            {BILLING_ENABLED
+              ? "Secure billing via Stripe • Invoices sent to your email"
+              : "No payment is required during the beta."}
+          </p>
         </div>
       </div>
     </DashboardLayout>

@@ -1,16 +1,15 @@
 from flask import request, jsonify, make_response, current_app
 from flask_jwt_extended import (
-    create_access_token,
     jwt_required,
     get_jwt_identity,
     get_jwt,
-    set_access_cookies,
     unset_jwt_cookies,
 )
 from .. import api_bp
 from ...extensions import db
 from ...models import User
 from ...utils.security import log_security_event, sanitize_input
+from ...utils.org_permissions import user_payload_with_access
 from ...utils.kafka_service import kafka_service
 from ...utils.cache import (
     cache_get,
@@ -19,6 +18,14 @@ from ...utils.cache import (
     block_jti,
     _build_key,
     CACHE_TTL,
+)
+from .session import (
+    access_token_expires_in,
+    clear_refresh_cookie,
+    create_session_tokens,
+    revoke_all_refresh_tokens,
+    revoke_cookie_family,
+    set_refresh_cookie,
 )
 
 @api_bp.route("/auth/login", methods=["POST"])
@@ -57,21 +64,21 @@ def login():
         kafka_service.emit_event("user_login_failed", {"user_id": user.id, "email": email, "reason": "invalid_password", "ip": request.remote_addr})
         return jsonify({"error": "invalid credentials"}), 401
 
-    if not user.email_verified:
-        log_security_event("login_blocked_unverified", user_id=user.id, ip_address=request.remote_addr, email=email)
-        # Help the user forward: (re)send a code, respecting the cooldown.
-        try:
-            from .verification import _send_otp
-            code_status, _ = _send_otp(user)
-            resent = code_status == 200
-        except Exception:
-            resent = False
+    if user.deleted_at is not None:
+        log_security_event("login_blocked_deleted", user_id=user.id, ip_address=request.remote_addr)
         return jsonify({
-            "error": "Please verify your email first. Enter the code we sent you.",
-            "code": "email_not_verified",
-            "email": email,
-            "code_resent": resent,
-        }), 403
+            "error": "This account has been deleted.",
+            "code": "account_deleted",
+        }), 410
+
+    if not user.email_verified:
+        # Security: do not distinguish an unverified account from an invalid
+        # login. Auto-sending a code here would also leak timing and account
+        # state. Verification codes are requested through the dedicated OTP
+        # flow instead.
+        log_security_event("login_blocked_unverified", user_id=user.id, ip_address=request.remote_addr, email=email)
+        kafka_service.emit_event("user_login_failed", {"email": email, "reason": "unverified", "ip": request.remote_addr})
+        return jsonify({"error": "invalid credentials"}), 401
 
     log_security_event("login_success", user_id=user.id, ip_address=request.remote_addr, email=email)
     kafka_service.emit_event("user_login_success", {
@@ -83,10 +90,13 @@ def login():
     })
     db.session.commit()
 
-    additional_claims = {"role": user.role, "organization_id": user.organization_id}
-    access_token = create_access_token(identity=str(user.id), additional_claims=additional_claims)
-    resp = make_response(jsonify({"access_token": access_token, "user": user.to_dict()}), 200)
-    set_access_cookies(resp, access_token)
+    access_token, refresh_token = create_session_tokens(user)
+    resp = make_response(jsonify({
+        "access_token": access_token,
+        "expires_in": access_token_expires_in(),
+        "user": user_payload_with_access(user),
+    }), 200)
+    set_refresh_cookie(resp, refresh_token)
     return resp
 
 @api_bp.route("/auth/password/change", methods=["POST"])
@@ -94,14 +104,14 @@ def login():
 def change_password():
     """Change password for the current user (requires current password).
 
-    Updates password_changed_at so future token-freshness checks can reject
-    pre-change tokens. Revokes the current token + clears auth cache.
+    Bumps token_version so every token issued before the change is rejected,
+    blocks the current JTI immediately, and clears the auth cache.
     """
     try:
         uid = int(get_jwt_identity())
     except (TypeError, ValueError):
         return jsonify({"error": "Invalid user identity"}), 400
-    user = User.query.get(uid)
+    user = db.session.get(User, uid)
     if not user:
         return jsonify({"error": "user not found"}), 404
     try:
@@ -118,17 +128,25 @@ def change_password():
         return jsonify({"error": "Invalid current password"}), 401
     try:
         user.set_password(new_password)
+        user.token_version = int(user.token_version or 0) + 1
+        # A password change ends every refresh session, not just this tab.
+        # Same transaction as the hash/version update so it cannot half-apply.
+        revoke_all_refresh_tokens(user.id, commit=False)
+        db.session.commit()
     except ValueError as e:
         db.session.rollback()
         return jsonify({"error": str(e)}), 400
-    db.session.commit()
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception("Failed to change password")
+        return jsonify({"error": "Could not change password. Please try again."}), 500
     try:
         jti = get_jwt().get("jti")
         exp = current_app.config.get("JWT_ACCESS_TOKEN_EXPIRES")
         try:
             ttl = int(exp.total_seconds())
         except (AttributeError, TypeError, ValueError):
-            ttl = CACHE_TTL.get("jwt_blocklist", 7200)
+            ttl = CACHE_TTL.get("jwt_blocklist", 900)
         block_jti(jti, max(ttl, 60))
     except Exception:
         pass
@@ -158,7 +176,7 @@ def logout():
             try:
                 ttl = int(exp.total_seconds())
             except (AttributeError, TypeError, ValueError):
-                ttl = CACHE_TTL.get("jwt_blocklist", 7200)
+                ttl = CACHE_TTL.get("jwt_blocklist", 900)
             block_jti(jti, max(ttl, 60))
         except Exception:
             pass
@@ -167,8 +185,17 @@ def logout():
         except (TypeError, ValueError):
             pass
 
+    # Revoke the opaque refresh family for this browser as well as the
+    # access-token JTI. unset_jwt_cookies() clears legacy access/refresh
+    # cookies from older deployments.
+    try:
+        revoke_cookie_family()
+    except Exception:
+        current_app.logger.exception("Failed to revoke refresh family on logout")
     resp = make_response(jsonify({"msg": "logged out"}), 200)
+    clear_refresh_cookie(resp)
     unset_jwt_cookies(resp)
+    resp.headers["Cache-Control"] = "no-store"
     return resp
 
 @api_bp.route("/auth/me", methods=["GET"])
@@ -190,11 +217,13 @@ def get_me():
     except Exception:
         pass
 
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     if not user:
         return jsonify({"error": "user not found"}), 404
 
-    payload = {"user": user.to_dict()}
+    # Role is resolved live from team_members rather than trusted from a token
+    # or client. Membership changes call invalidate_auth_cache().
+    payload = {"user": user_payload_with_access(user)}
     try:
         cache_set(cache_key, payload, CACHE_TTL.get("auth_me", 90))
     except Exception:
@@ -207,7 +236,7 @@ def update_me():
     uid = get_jwt_identity()
     try:
         user_id = int(uid)
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         if not user:
             return jsonify({"error": "user not found"}), 404
     except (ValueError, TypeError):

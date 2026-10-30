@@ -9,17 +9,14 @@ from sqlalchemy.orm import sessionmaker
 
 from ...extensions import db
 from ...recommendations.tools.supervisor import RecommendationSupervisor
-from ...models import User, SavedJob, AIInterviewAgent, Organization, Post, TeamMember
+from ...models import User, SavedJob, AIInterviewAgent, Organization, Post
+from ...utils.org_permissions import HIRING_VIEW, get_permitted_org_ids
+from ...utils.ai_budget import AIBudgetError
 from ...utils.kafka_service import kafka_service
 
 
 def _managed_org_ids(user):
-    ids = set()
-    if user.organization_id:
-        ids.add(user.organization_id)
-    for tm in TeamMember.query.filter_by(user_id=user.id).all():
-        ids.add(tm.organization_id)
-    return ids
+    return get_permitted_org_ids(user, permission=HIRING_VIEW)
 
 
 def _is_hiring_user(user):
@@ -29,7 +26,7 @@ def _is_hiring_user(user):
 
 def _owns_job(user, job_id):
     try:
-        post = Post.query.get(int(job_id))
+        post = db.session.get(Post, int(job_id))
     except (TypeError, ValueError):
         return False
     return post is not None and post.organization_id in _managed_org_ids(user)
@@ -59,7 +56,7 @@ def recommend_candidates(job_id):
     """Get recommended candidates for a job posting"""
     try:
         current_user_id = get_jwt_identity()
-        user = User.query.get(current_user_id)
+        user = db.session.get(User, current_user_id)
         if not user:
             return jsonify({'error': 'User not found'}), 404
         if not _is_hiring_user(user):
@@ -78,7 +75,8 @@ def recommend_candidates(job_id):
             job_id=job_id,
             organization_id=str(user.organization_id) if user.organization_id else None,
             top_k=top_k,
-            include_explanations=include_explanations
+            include_explanations=include_explanations,
+            actor=user,
         )
 
         # Emit Kafka event
@@ -100,6 +98,8 @@ def recommend_candidates(job_id):
 
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
+    except AIBudgetError:
+        raise
     except Exception as e:
         logger.error(f"Error recommending candidates: {e}")
         return jsonify({'error': 'Internal server error'}), 500
@@ -111,7 +111,7 @@ def recommend_jobs():
     """Get recommended jobs for the current user"""
     try:
         current_user_id = get_jwt_identity()
-        user = User.query.get(current_user_id)
+        user = db.session.get(User, current_user_id)
         if not user:
             return jsonify({'error': 'User not found'}), 404
 
@@ -126,7 +126,8 @@ def recommend_jobs():
             user_id=str(user.id),
             organization_id=str(user.organization_id) if user.organization_id else None,
             top_k=top_k,
-            include_explanations=include_explanations
+            include_explanations=include_explanations,
+            actor=user,
         )
 
         # Emit Kafka event
@@ -147,6 +148,8 @@ def recommend_jobs():
 
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
+    except AIBudgetError:
+        raise
     except Exception as e:
         logger.error(f"Error recommending jobs: {e}")
         return jsonify({'error': 'Internal server error'}), 500
@@ -158,7 +161,7 @@ def recommend_agents(job_id):
     """Get recommended AI agents for interviewing candidates for a job"""
     try:
         current_user_id = get_jwt_identity()
-        user = User.query.get(current_user_id)
+        user = db.session.get(User, current_user_id)
         if not user:
             return jsonify({'error': 'User not found'}), 404
         if not _is_hiring_user(user):
@@ -177,7 +180,8 @@ def recommend_agents(job_id):
             job_id=job_id,
             organization_id=str(user.organization_id) if user.organization_id else None,
             top_k=top_k,
-            include_explanations=include_explanations
+            include_explanations=include_explanations,
+            actor=user,
         )
 
         return jsonify({
@@ -188,6 +192,8 @@ def recommend_agents(job_id):
 
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
+    except AIBudgetError:
+        raise
     except Exception as e:
         logger.error(f"Error recommending agents: {e}")
         return jsonify({'error': 'Internal server error'}), 500
@@ -199,7 +205,7 @@ def search_profiles():
     """Search profiles by text query using Postgres full-text search (no ML)."""
     try:
         current_user_id = get_jwt_identity()
-        user = User.query.get(current_user_id)
+        user = db.session.get(User, current_user_id)
         if not user:
             return jsonify({'error': 'User not found'}), 404
         if not _is_hiring_user(user):
@@ -245,6 +251,8 @@ def search_profiles():
             **result,
         })
 
+    except AIBudgetError:
+        raise
     except Exception as e:
         logger.error(f"Error searching profiles: {e}")
         return jsonify({'error': 'Internal server error'}), 500
@@ -256,7 +264,7 @@ def explain_candidate():
     """Generate AI explanation for a specific candidate (on-demand, not during search)"""
     try:
         current_user_id = get_jwt_identity()
-        user = User.query.get(current_user_id)
+        user = db.session.get(User, current_user_id)
         if not user:
             return jsonify({'error': 'User not found'}), 404
 
@@ -277,6 +285,8 @@ def explain_candidate():
             return jsonify(result)
         return jsonify({'error': 'Candidate not found'}), 404
 
+    except AIBudgetError:
+        raise
     except Exception as e:
         logger.error(f"Error explaining candidate: {e}")
         return jsonify({'error': 'Internal server error'}), 500
@@ -288,7 +298,7 @@ def get_candidate_profile(user_id):
     """Get enriched candidate profile with skills, experience, education."""
     try:
         current_user_id = get_jwt_identity()
-        me = User.query.get(current_user_id)
+        me = db.session.get(User, current_user_id)
         if not me:
             return jsonify({'error': 'User not found'}), 404
         if str(user_id) != str(me.id) and not _is_hiring_user(me):
@@ -298,6 +308,8 @@ def get_candidate_profile(user_id):
         if result:
             return jsonify(result)
         return jsonify({'error': 'Candidate not found'}), 404
+    except AIBudgetError:
+        raise
     except Exception as e:
         logger.error(f"Error fetching candidate profile: {e}")
         return jsonify({'error': 'Internal server error'}), 500
@@ -309,7 +321,7 @@ def compare_candidate_job():
     """Compare a candidate's profile against a job posting."""
     try:
         current_user_id = get_jwt_identity()
-        user = User.query.get(current_user_id)
+        user = db.session.get(User, current_user_id)
         if not user:
             return jsonify({'error': 'User not found'}), 404
 
@@ -332,6 +344,8 @@ def compare_candidate_job():
             return jsonify(result)
         return jsonify({'error': 'Candidate or job not found'}), 404
 
+    except AIBudgetError:
+        raise
     except Exception as e:
         logger.error(f"Error comparing candidate with job: {e}")
         return jsonify({'error': 'Internal server error'}), 500
@@ -343,7 +357,7 @@ def embed_profile():
     """Embed a user profile for recommendations"""
     try:
         current_user_id = get_jwt_identity()
-        user = User.query.get(current_user_id)
+        user = db.session.get(User, current_user_id)
         if not user:
             return jsonify({'error': 'User not found'}), 404
 
@@ -365,6 +379,8 @@ def embed_profile():
         else:
             return jsonify({'error': 'Failed to embed profile'}), 500
 
+    except AIBudgetError:
+        raise
     except Exception as e:
         logger.error(f"Error embedding profile: {e}")
         return jsonify({'error': 'Internal server error'}), 500
@@ -376,7 +392,7 @@ def embed_job(job_id):
     """Embed a job posting for recommendations"""
     try:
         current_user_id = get_jwt_identity()
-        user = User.query.get(current_user_id)
+        user = db.session.get(User, current_user_id)
         if not user:
             return jsonify({'error': 'User not found'}), 404
 
@@ -400,6 +416,8 @@ def embed_job(job_id):
         else:
             return jsonify({'error': 'Failed to embed job'}), 500
 
+    except AIBudgetError:
+        raise
     except Exception as e:
         logger.error(f"Error embedding job: {e}")
         return jsonify({'error': 'Internal server error'}), 500
@@ -411,7 +429,7 @@ def embed_agent(agent_id):
     """Embed an AI agent for recommendations"""
     try:
         current_user_id = get_jwt_identity()
-        user = User.query.get(current_user_id)
+        user = db.session.get(User, current_user_id)
         if not user:
             return jsonify({'error': 'User not found'}), 404
 
@@ -420,7 +438,7 @@ def embed_agent(agent_id):
             return jsonify({'error': 'Agent data is required'}), 400
 
         try:
-            agent = AIInterviewAgent.query.get(int(agent_id))
+            agent = db.session.get(AIInterviewAgent, int(agent_id))
         except (TypeError, ValueError):
             agent = None
         if not agent:
@@ -445,6 +463,8 @@ def embed_agent(agent_id):
         else:
             return jsonify({'error': 'Failed to embed agent'}), 500
 
+    except AIBudgetError:
+        raise
     except Exception as e:
         logger.error(f"Error embedding agent: {e}")
         return jsonify({'error': 'Internal server error'}), 500

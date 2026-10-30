@@ -84,7 +84,7 @@ and the learner-facing experience — content without a way to create and mainta
 it is the usual reason this track stalls.
 
 - [x] **C1. Quizzes** — `8c36329`. Multi-skill, ordered, pass mark, free preview.
-  - [x] C1.1. Question bank + authoring API (UI still missing; authoring itself is done).
+  - [x] C1.1. Question bank + authoring API + authoring UI shipped; backend gate.
   - [x] C1.2. Skill tagging per question → feeds the gap engine (A3).
   - [x] C1.3. Scoring + explanation feedback; results write to the skill profile.
 - [x] **C2. Guided projects** — 8 endpoints, migration `a2b3c4d5e6f7`, 76 checks.
@@ -92,7 +92,7 @@ it is the usual reason this track stalls.
   - [x] C2.2. Submission + review/feedback loop, with quotable evidence only.
   - [x] C2.3. Completed projects recorded on the profile as `evidence_source='project'`,
         deliberately **unverified** — a write-up cannot show the code runs.
-  - [ ] C2.4. Attach a completed project to the profile `projects` table so it shows
+  - [x] C2.4. Guided-project completion can now attach to the public profile 'projects' table (passed attempts only).
         on the public profile as a portfolio item (needs an employer-facing decision:
         whose name on it, and does it need a repo URL?). Blocked on D.
 - [x] **C3. Mock interviews** — migration `b3c4d5e6f7a8`, 8 endpoints, 60 checks.
@@ -122,9 +122,9 @@ it is the usual reason this track stalls.
       assessment endpoints, the five quiz endpoints and the eight project
       endpoints are gated. Quizzes and projects use `check_content_access()`,
       which decides on the *item* rather than the route so a free preview stays
-      reachable by a lapsed account. Mock interviews still to be gated.
+      reachable by a lapsed account. Mock interviews gated on AI-consuming endpoints; read endpoints stay open for past sessions.
 - [ ] C5. Content quality bar: minimum viable bank before launch for each of C1–C3.
-      Bank is 21 questions / 4 quizzes / 3 projects — demonstrable, not shippable.
+       Bank expanded to 39 questions / 6 quizzes / 4 projects � improved, still short of a launch-grade minimum.
 
 ### F. Packaging — CVAI inside Docker (in progress)
 

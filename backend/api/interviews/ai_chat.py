@@ -2,8 +2,9 @@ from flask import request, jsonify
 from .. import api_bp
 from ...utils.timezone_utils import utc_now_iso, utc_iso
 from ...extensions import db
-from ...models import Interview, User, AIInterviewAgent, ConversationMessage, PracticeAIAgent, TeamMember
+from ...models import Interview, User, AIInterviewAgent, ConversationMessage, PracticeAIAgent
 from ...ai_service import get_ai_service
+from ...utils.ai_budget import AIBudgetError
 from ...utils.subscription import require_subscription
 from ...rag.tools.thinking import ThinkingModule
 from ...utils.kafka_service import KafkaService
@@ -27,27 +28,23 @@ def interview_chat(interview_id):
     # Get authenticated user
     user_id = get_jwt_identity()
     user_id = int(user_id)  # Convert to int for database comparison
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     if not user:
         return jsonify({'error': 'User not found'}), 404
 
     message = data['message']
-    interview = Interview.query.get(interview_id)
+    interview = db.session.get(Interview, interview_id)
     if not interview:
         return jsonify({'error': 'Interview not found'}), 404
 
-    # Check access: participant or any managing-org member (direct account
-    # or team member) — same rule as interview detail/conversation.
+    # Check access: candidate participant or org staff with interview-management
+    # rights. Sending AI messages spends budget, so read-only viewers cannot.
     has_access = False
     if interview.user_id == user_id:
         has_access = True
     elif interview.organization_id is not None:
-        managed_ids = set()
-        if user.organization_id:
-            managed_ids.add(user.organization_id)
-        for tm in TeamMember.query.filter_by(user_id=user.id).all():
-            managed_ids.add(tm.organization_id)
-        has_access = interview.organization_id in managed_ids
+        from ...utils.org_permissions import has_org_permission, INTERVIEWS_MANAGE
+        has_access = has_org_permission(user, interview.organization_id, INTERVIEWS_MANAGE)
     
     if not has_access:
         return jsonify({'error': 'Access denied'}), 403
@@ -77,6 +74,16 @@ def interview_chat(interview_id):
 
     # Generate AI response with optional thinking
     thinking_step = None
+    try:
+        response = generate_agent_response(message, interview, agent, user, thinking_step)
+    except AIBudgetError as exc:
+        return jsonify({'error': exc.message, 'code': exc.code}), 402
+    except RuntimeError as exc:
+        return jsonify({
+            'error': 'AI unavailable',
+            'message': str(exc)
+        }), 503
+
     if enable_thinking:
         thinking_module = ThinkingModule()
         
@@ -93,9 +100,9 @@ def interview_chat(interview_id):
         system_context = f"This is a formal job interview for the position: {interview.title}. Organization: {interview.organization.name if interview.organization else 'N/A'}. Round: {interview.current_round or 1}."
 
         # Analyze and reason
-        analysis = thinking_module.analyze_context(message, context_chunks, system_context)
-        reasoning = thinking_module.generate_reasoning(message, context_chunks, analysis, system_context)
-        validation = thinking_module.validate_reasoning(reasoning)
+        analysis = thinking_module.analyze_context(message, context_chunks, system_context, actor=user)
+        reasoning = thinking_module.generate_reasoning(message, context_chunks, analysis, system_context, actor=user)
+        validation = thinking_module.validate_reasoning(reasoning, actor=user)
         
         thinking_step = {
             'analysis': analysis,
@@ -219,11 +226,25 @@ def generate_agent_response(message, interview, agent, user, thinking_step=None)
 
         # Generate response using the specialized interview AI service
         response = ai_service.generate_response(system_prompt, message, conversation_history, user, "interview_ai")
+
+        # Never persist a budget/subscription refusal or provider error as if
+        # the interviewer said it. A failed call is reported as failed.
+        refusal_prefixes = (
+            "Your trial has expired",
+            "Your organization's trial",
+            "I apologize, but I'm having trouble",
+            "AI service error",
+        )
+        if isinstance(response, str) and any(response.startswith(p) for p in refusal_prefixes):
+            raise RuntimeError(response)
+
         return response
 
+    except AIBudgetError:
+        raise
     except Exception as e:
         print(f"Error generating agent response: {e}")
-        return generate_fallback_response(message, interview, agent)
+        raise RuntimeError(f"AI agent response failed: {e}") from e
 
 
 def build_agent_system_prompt(agent, interview, is_first_message=False, thinking_step=None):

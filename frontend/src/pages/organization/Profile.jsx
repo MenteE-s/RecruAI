@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import FollowButton from "../../components/ui/FollowButton";
+import MenteeLoader from "../../components/ui/MenteeLoader";
 import {
 
 getUploadUrl,
@@ -320,12 +321,8 @@ export default function OrganizationProfile() {
   if (loading) {
     return (
       <DashboardLayout >
-        <div className="space-y-4">
-          <div className="rounded-2xl bg-gray-900 h-64 animate-pulse" />
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div className="bg-white border border-gray-200 h-48 animate-pulse" />
-            <div className="bg-white border border-gray-200 h-48 animate-pulse" />
-          </div>
+        <div className="flex min-h-[60vh] items-center justify-center">
+          <MenteeLoader size={72} text="Loading organization…" />
         </div>
       </DashboardLayout>
     );

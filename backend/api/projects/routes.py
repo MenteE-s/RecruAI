@@ -22,6 +22,7 @@ from .. import api_bp
 from ...extensions import db
 from ...models import GuidedProject, GuidedProjectAttempt
 from ...utils import guided_project_review as review_utils
+from ...utils.ai_budget import AIBudgetError
 from ...utils.subscription import CVAI_PROJECTS, check_content_access
 from ...utils.timezone_utils import utc_iso
 
@@ -281,7 +282,7 @@ def submit_guided_project(attempt_id):
     attempt.review_status = 'pending'
     db.session.commit()
 
-    result, error = _review_submission(user, project, criteria, submission)
+    result, error = _review_submission_safe(user, project, criteria, submission, attempt)
     if error:
         attempt.review_status = 'unavailable'
         attempt.completed_at = datetime.utcnow()
@@ -304,8 +305,9 @@ def submit_guided_project(attempt_id):
     attempt.completed_at = datetime.utcnow()
 
     updated = []
+    portfolio_project = None
     if not project.is_free_preview:
-        updated = _write_back(user, project, result, attempt)
+        updated, portfolio_project = _write_back(user, project, result, attempt)
     db.session.commit()
 
     return jsonify({
@@ -314,7 +316,24 @@ def submit_guided_project(attempt_id):
         'pass_mark': pass_mark,
         'review': result,
         'skills_updated': [s.to_dict() for s in updated],
+        'portfolio_project': portfolio_project.to_dict() if portfolio_project else None,
     }), 200
+
+
+def _review_submission_safe(user, project, criteria, submission, attempt):
+    """Run the reviewer, preserving a retryable state when the budget stops us.
+
+    A 402 must still tell the learner their work was saved. The attempt is left
+    ``unavailable`` rather than ``pending`` so a later page load does not imply
+    a review is still in flight.
+    """
+    try:
+        return _review_submission(user, project, criteria, submission)
+    except AIBudgetError:
+        attempt.review_status = 'unavailable'
+        attempt.completed_at = attempt.completed_at or datetime.utcnow()
+        db.session.commit()
+        raise
 
 
 def _review_submission(user, project, criteria, submission):
@@ -337,9 +356,9 @@ def _review_submission(user, project, criteria, submission):
         response = AIService().generate_response(
             REVIEW_SYSTEM_PROMPT, prompt, user=user,
             operation_type="cvai_project_review")
+    except AIBudgetError:
+        raise
     except Exception as exc:
-        # The allowance being spent lands here as an exception, and that is a
-        # legitimate "could not review" rather than a crash.
         return None, str(exc)
 
     payload = extract_json(response)
@@ -380,7 +399,35 @@ def _write_back(user, project, result, attempt):
             skill.evidence_source = 'project'
             skill.verified = False
             updated.append(skill)
-    return updated
+
+    # Record a completed attempt as a portfolio project on the learner's public
+    # profile. The name is the guided project's title (it is the learner's
+    # credit, not ours), and it is attached only when the learner has passed:
+    # a failed submission shows engagement on the skill, not a finished piece
+    # of work. No fabricated repository link is attached - that is data we do
+    # not have, and inventing it would be worse than leaving it absent.
+    portfolio_project = None
+    if attempt.passed:
+        import json
+        from ...models import Project
+        description = (attempt.submission or '').strip()[:4000]
+        existing = Project.query.filter_by(
+            user_id=user.id, name=project.title).first()
+        if existing is not None:
+            portfolio_project = existing
+        else:
+            portfolio_project = Project(
+                user_id=user.id,
+                name=project.title,
+                description=description or project.summary,
+                technologies=json.dumps(project.get_skill_slugs()),
+                status='completed',
+                start_date=attempt.completed_at.date() if attempt.completed_at else None,
+                end_date=attempt.completed_at.date() if attempt.completed_at else None,
+            )
+            db.session.add(portfolio_project)
+
+    return updated, portfolio_project
 
 
 @api_bp.route('/guided-projects/attempts', methods=['GET'])
@@ -487,7 +534,9 @@ def retry_guided_project_review(attempt_id):
     attempt.review_status = 'pending'
     db.session.commit()
 
-    result, error = _review_submission(user, project, criteria, attempt.submission)
+    result, error = _review_submission_safe(
+        user, project, criteria, attempt.submission, attempt
+    )
     if error:
         attempt.review_status = 'unavailable'
         db.session.commit()

@@ -3,6 +3,7 @@ from flask import jsonify
 from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
 
 
+from ..extensions import db
 from ..models import User
 
 
@@ -25,7 +26,7 @@ def require_auth(fn):
         uid = get_jwt_identity()
         try:
             user_id = int(uid)
-            user = User.query.get(user_id)
+            user = db.session.get(User, user_id)
             if not user:
                 return jsonify({"error": "user not found"}), 404
         except (ValueError, TypeError):
@@ -56,11 +57,40 @@ def organization_required(fn):
 
         uid = get_jwt_identity()
         try:
-            user = User.query.get(int(uid))
+            user = db.session.get(User, int(uid))
         except (TypeError, ValueError):
             return jsonify({"error": "invalid user identity"}), 400
         if not user or user.role != "organization":
             return jsonify({"error": "forbidden: organization membership required"}), 403
+
+        return fn(*args, **kwargs)
+
+    return wrapper
+
+
+def superadmin_required(fn):
+    """Decorator to ensure the caller is a platform superadmin.
+
+    Reads ``is_superadmin`` from the database at the decision point (same
+    reasoning as ``organization_required``). Superadmins bypass org scoping
+    and may use /api/admin/*. Never self-grantable: granting requires an
+    existing superadmin (or the grant_superadmin CLI script).
+    """
+
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        try:
+            verify_jwt_in_request()
+        except Exception:
+            return jsonify({"error": "missing or invalid token"}), 401
+
+        uid = get_jwt_identity()
+        try:
+            user = db.session.get(User, int(uid))
+        except (TypeError, ValueError):
+            return jsonify({"error": "invalid user identity"}), 400
+        if not user or not user.is_superadmin:
+            return jsonify({"error": "forbidden: superadmin required"}), 403
 
         return fn(*args, **kwargs)
 

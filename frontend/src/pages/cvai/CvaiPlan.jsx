@@ -29,7 +29,7 @@ export default function CvaiPlan() {
   const [creating, setCreating] = useState(false);
   const [busyStep, setBusyStep] = useState(null);
 
-  const [form, setForm] = useState({ goal: "", weekly_hours: 5 });
+  const [form, setForm] = useState({ goal: "", weekly_hours: 5, target_weeks: 12 });
   const [expanded, setExpanded] = useState(null);
   const [detail, setDetail] = useState(null);
 
@@ -63,10 +63,11 @@ export default function CvaiPlan() {
     const res = await cvai.createPlan({
       goal: form.goal,
       weekly_hours: Number(form.weekly_hours) || 5,
+      target_weeks: form.target_weeks === "" ? null : Number(form.target_weeks) || 12,
     });
     setCreating(false);
     if (!res.ok) { setError(messageOf(res, "Could not build a plan.")); return; }
-    setForm({ goal: "", weekly_hours: 5 });
+    setForm({ goal: "", weekly_hours: 5, target_weeks: 12 });
     await load();
   }
 
@@ -95,7 +96,7 @@ export default function CvaiPlan() {
   return (
     <CvaiShell
       title="Your plan"
-      subtitle="Built from what has actually been measured on your profile, then spread across the time you can give it."
+      subtitle="Built from what has actually been measured on your profile, then fitted to your timeline. The starter plan comes first; later work is shown as your full path."
     >
       {locked ? (
         <LockedNote what="Mentorship planning" />
@@ -140,8 +141,8 @@ export default function CvaiPlan() {
                 </Panel>
               ) : null}
 
-              <Panel title="Build a plan" hint="Costs AI tokens. Every subscriber gets the full plan.">
-                <form onSubmit={createPlan} className="grid gap-3 md:grid-cols-[3fr_1fr_auto] md:items-end">
+              <Panel title="Build a plan" hint="Costs AI tokens. The starter plan fits your timeline; later steps stay visible as your full path.">
+                <form onSubmit={createPlan} className="grid gap-3 md:grid-cols-[2fr_1fr_1fr_auto] md:items-end">
                   <label className="block">
                     <span className="text-xs font-medium text-gray-700">
                       What are you aiming for?
@@ -155,7 +156,7 @@ export default function CvaiPlan() {
                   </label>
                   <label className="block">
                     <span className="text-xs font-medium text-gray-700">
-                      Hours you can give each week
+                      Hours each week
                     </span>
                     <input
                       type="number"
@@ -166,6 +167,23 @@ export default function CvaiPlan() {
                       className="mt-1 w-full border border-gray-200 px-3 py-2 text-sm outline-none focus:border-blue-500"
                     />
                   </label>
+                  <label className="block">
+                    <span className="text-xs font-medium text-gray-700">
+                      Starter plan length
+                    </span>
+                    <select
+                      value={form.target_weeks}
+                      onChange={(e) => setForm({ ...form, target_weeks: e.target.value })}
+                      className="mt-1 w-full border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
+                    >
+                      <option value={8}>8 weeks</option>
+                      <option value={12}>12 weeks</option>
+                      <option value={16}>16 weeks</option>
+                      <option value={26}>26 weeks</option>
+                      <option value={52}>52 weeks</option>
+                      <option value="">No deadline</option>
+                    </select>
+                  </label>
                   <Button type="submit" disabled={creating || !form.goal.trim()}>
                     <FiPlusCircle className="h-4 w-4" /> {creating ? "Building…" : "Build plan"}
                   </Button>
@@ -173,8 +191,8 @@ export default function CvaiPlan() {
                 {options?.levels ? (
                   <p className="mt-2 text-xs text-gray-500">
                     Levels run {options.levels[0]} → {options.levels[options.levels.length - 1]}.
-                    The plan is built from what you have already measured and spread across the
-                    hours you have. If the work needs nine weeks, it says nine weeks.
+                    The starter plan is fitted to your timeline; work that does not fit is shown
+                    separately as the full path. At 5h/week, a 12-week starter plan is about 60 hours.
                   </p>
                 ) : null}
               </Panel>
@@ -182,8 +200,8 @@ export default function CvaiPlan() {
               <Panel title="Your plans">
                 {plans.length === 0 ? (
                   <EmptyNote>
-                    No plan yet. Build one above and it will be fitted to your measured gaps and
-                    the hours you can give it.
+                    No plan yet. Build a starter plan above and it will be fitted to your measured
+                    gaps and timeline, with the remaining work shown as your full path.
                   </EmptyNote>
                 ) : (
                   <div className="space-y-4">
@@ -214,6 +232,7 @@ function PlanCard({ plan, expanded, detail, busyStep, onExpand, onToggleStep }) 
   const total = plan.step_count || 0;
   const pct = total ? Math.round((done / total) * 100) : 0;
   const steps = detail?.steps || [];
+  const deferred = detail?.deferred_steps || [];
 
   return (
     <div className="border border-gray-200">
@@ -249,50 +268,85 @@ function PlanCard({ plan, expanded, detail, busyStep, onExpand, onToggleStep }) 
 
       {plan.trimmed ? (
         <div className="border-t border-gray-100 bg-amber-50 px-4 py-2 text-xs text-amber-800">
-          Trimmed to fit the time you have. {plan.trim_reason}
+          Starter plan fitted to your timeline. {plan.trim_reason}
         </div>
       ) : null}
 
-      {expanded && steps.length ? (
-        <ol className="space-y-2 border-t border-gray-100 p-4">
-          {steps.map((step, index) => {
-            const isDone = step.status === "done";
-            return (
-              <li key={step.id} className="flex items-start gap-3 border border-gray-200 p-3">
-                <button
-                  type="button"
-                  disabled={busyStep === step.id}
-                  onClick={() => onToggleStep(step)}
-                  className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center border transition-colors ${
-                    isDone
-                      ? "border-green-600 bg-green-600 text-white"
-                      : "border-gray-300 bg-white text-transparent hover:border-blue-500"
-                  }`}
-                  title={isDone ? "Mark not done" : "Mark done"}>
-                  <FiCheckCircle className="h-4 w-4" />
-                </button>
-                <div className="min-w-0 flex-1">
-                  <p className={`text-sm font-medium ${isDone ? "text-gray-500 line-through" : "text-gray-900"}`}>
-                    {index + 1}. {step.title}
-                  </p>
-                  {step.description ? (
-                    <p className="mt-0.5 text-xs text-gray-600">{step.description}</p>
-                  ) : null}
-                  <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px] text-gray-500">
-                    {step.resource_name ? (
-                      <Badge className="capitalize">{step.resource_type}</Badge>
+      {plan.deferred_step_count ? (
+        <div className="border-t border-gray-100 bg-gray-50 px-4 py-2 text-xs text-gray-600">
+          Full path: {plan.full_total_hours}h over {plan.full_weeks}w · {plan.deferred_step_count} later
+          {plan.deferred_step_count === 1 ? " step" : " steps"} beyond the starter plan.
+        </div>
+      ) : null}
+
+      {expanded ? (
+        <>
+          {steps.length ? (
+            <ol className="space-y-2 border-t border-gray-100 p-4">
+              {steps.map((step, index) => {
+                const isDone = step.status === "done";
+                return (
+                  <li key={step.id} className="flex items-start gap-3 border border-gray-200 p-3">
+                    <button
+                      type="button"
+                      disabled={busyStep === step.id}
+                      onClick={() => onToggleStep(step)}
+                      className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center border transition-colors ${
+                        isDone
+                          ? "border-green-600 bg-green-600 text-white"
+                          : "border-gray-300 bg-white text-transparent hover:border-blue-500"
+                      }`}
+                      title={isDone ? "Mark not done" : "Mark done"}>
+                      <FiCheckCircle className="h-4 w-4" />
+                    </button>
+                    <div className="min-w-0 flex-1">
+                      <p className={`text-sm font-medium ${isDone ? "text-gray-500 line-through" : "text-gray-900"}`}>
+                        {index + 1}. {step.title}
+                      </p>
+                      {step.description ? (
+                        <p className="mt-0.5 text-xs text-gray-600">{step.description}</p>
+                      ) : null}
+                      <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px] text-gray-500">
+                        {step.resource_name ? (
+                          <Badge className="capitalize">{step.resource_type}</Badge>
+                        ) : null}
+                        {step.resource_name ? <span>{step.resource_name}</span> : null}
+                        <span>{step.hours_estimate}h</span>
+                        {step.cost ? <span>{step.cost} cost</span> : null}
+                        {step.optional ? <Badge>Optional</Badge> : null}
+                        {step.target_date ? <span>by {new Date(step.target_date).toLocaleDateString()}</span> : null}
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
+          ) : null}
+
+          {deferred.length ? (
+            <details className="border-t border-gray-100">
+              <summary className="cursor-pointer px-4 py-2 text-xs font-medium text-gray-700">
+                Full path · {deferred.length} later {deferred.length === 1 ? "step" : "steps"}
+              </summary>
+              <ol className="space-y-2 px-4 pb-4">
+                {deferred.map((step, index) => (
+                  <li key={`${step.skill_slug || "later"}-${index}`} className="border border-gray-200 p-3">
+                    <p className="text-sm font-medium text-gray-900">{step.title}</p>
+                    {step.description ? (
+                      <p className="mt-0.5 text-xs text-gray-600">{step.description}</p>
                     ) : null}
-                    {step.resource_name ? <span>{step.resource_name}</span> : null}
-                    <span>{step.hours_estimate}h</span>
-                    {step.cost ? <span>{step.cost} cost</span> : null}
-                    {step.optional ? <Badge>Optional</Badge> : null}
-                    {step.target_date ? <span>by {new Date(step.target_date).toLocaleDateString()}</span> : null}
-                  </div>
-                </div>
-              </li>
-            );
-          })}
-        </ol>
+                    <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px] text-gray-500">
+                      <Badge>Later</Badge>
+                      {step.resource_name ? <span>{step.resource_name}</span> : null}
+                      <span>{step.hours_estimate}h</span>
+                      {step.cost ? <span>{step.cost} cost</span> : null}
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </details>
+          ) : null}
+        </>
       ) : null}
     </div>
   );

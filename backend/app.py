@@ -1,6 +1,9 @@
 import os
+import click
 from dotenv import load_dotenv
-from flask import Flask, jsonify, send_from_directory, request
+import uuid
+
+from flask import Flask, current_app, g, jsonify, send_from_directory, request
 
 # support running as a module (recommended) and as a script
 try:
@@ -45,14 +48,24 @@ def create_app(config_object: object | None = None):
 	- Initializes extensions (db, migrate)
 	- Registers blueprints under /api
 	"""
-	# load .env located next to this file (backend/.env) so CLI runs from
-	# the repo root still pick up the correct DATABASE_URL.
+	# Load .env for the normal entry point. A caller that supplies an explicit
+	# config object (tests, tooling) owns configuration and must not have the
+	# process environment overwritten underneath it.
 	here = os.path.dirname(os.path.abspath(__file__))
 	dotenv_path = os.path.join(here, ".env")
-	load_dotenv(dotenv_path, override=True)
+	if config_object is None:
+		load_dotenv(dotenv_path, override=True)
 
 	app = Flask(__name__)
 	app.config.from_object(config_object or Config)
+
+	# Fail fast on production misconfiguration (missing secrets/keys) rather
+	# than degrading silently at request time.
+	if app.config.get("IS_PRODUCTION"):
+		from .config import validate_production_config
+
+		for warning in validate_production_config(app.config):
+			app.logger.warning("config: %s", warning)
 
 	# Security: trust X-Forwarded-For/Proto from nginx (single proxy) so
 	# rate-limit keys and audit IPs see the real client, not the Docker gateway.
@@ -64,6 +77,35 @@ def create_app(config_object: object | None = None):
 
 	# Security: Set max content length
 	app.config['MAX_CONTENT_LENGTH'] = app.config.get('MAX_CONTENT_LENGTH', 16 * 1024 * 1024)  # 16MB
+
+	# Observability: propagate a request ID on every response and make it
+	# available to handlers and structured logs. Reuse an incoming ID when the
+	# caller (nginx, a job runner, another service) already set one.
+	@app.before_request
+	def _assign_request_id():
+		g.request_id = request.headers.get("X-Request-ID") or uuid.uuid4().hex
+
+	@app.after_request
+	def _add_request_id(response):
+		response.headers.setdefault("X-Request-ID", getattr(g, "request_id", ""))
+		return response
+
+	# Error tracking is optional and must never break startup. Configure with
+	# SENTRY_DSN; the package is an optional dependency.
+	sentry_dsn = app.config.get("SENTRY_DSN")
+	if sentry_dsn:
+		try:
+			import sentry_sdk
+			from sentry_sdk.integrations.flask import FlaskIntegration
+
+			sentry_sdk.init(
+				dsn=sentry_dsn,
+				integrations=[FlaskIntegration()],
+				traces_sample_rate=app.config.get("SENTRY_TRACES_SAMPLE_RATE", 0.0),
+				environment=app.config.get("FLASK_ENV", "production"),
+			)
+		except ImportError:
+			app.logger.warning("SENTRY_DSN is set but sentry-sdk is not installed")
 
 	# Allowed frontend origins (comma-separated FRONTEND_ORIGIN); single source
 	# used by Flask-CORS and Socket.IO so credentialed requests match.
@@ -80,7 +122,13 @@ def create_app(config_object: object | None = None):
 	with app.app_context():
 		@event.listens_for(db.engine, 'connect')
 		def register_pgvector(dbapi_connection, connection_record):
-			register_vector(dbapi_connection)
+			try:
+				register_vector(dbapi_connection)
+			except Exception as exc:
+				# The migrations container may connect before the vector
+				# extension exists. The migration chain creates it; later
+				# connections register normally. Non-vector queries still work.
+				app.logger.debug("pgvector adapter not registered: %s", exc)
 	# init JWT (raise if missing so we catch misconfiguration early)
 	# `jwt` is provided by the module-level import/fallback above so avoid
 	# package-relative imports here which break when the module is executed
@@ -89,7 +137,23 @@ def create_app(config_object: object | None = None):
 		raise RuntimeError("JWT extension not available; check backend.extensions")
 
 	jwt.init_app(app)
-	socketio.init_app(app, cors_allowed_origins=origins_list)
+	# Cross-worker fan-out: with a Redis message queue, emits from any worker
+	# reach sockets owned by another worker, so the API can scale past one
+	# process without dropping realtime notifications. Without Redis the queue
+	# stays local (single-worker topology). Threading mode is kept: moving to
+	# eventlet/gevent requires a load-tested migration (see P2-09).
+	socketio_queue = None
+	if app.config.get("REDIS_ENABLED", False):
+		socketio_queue = app.config.get("REDIS_URL", "redis://127.0.0.1:6379/0")
+	# Flask-SocketIO keeps server_options across init_app calls. Without this,
+	# a factory test that first configured Redis would keep a RedisManager even
+	# when the next app explicitly disables Redis.
+	socketio.server_options.pop("client_manager", None)
+	socketio.init_app(
+		app,
+		cors_allowed_origins=origins_list,
+		message_queue=socketio_queue,
+	)
 
 	# JWT error handlers - return JSON instead of HTML
 	@jwt.expired_token_loader
@@ -106,17 +170,36 @@ def create_app(config_object: object | None = None):
 
 	@jwt.token_in_blocklist_loader
 	def check_if_token_revoked(jwt_header, jwt_payload):
+		# 1) Explicit JTI blocklist (logout / current-token revocation).
 		# Logged-out tokens are revoked in Redis. Fail-closed when Redis is
 		# expected (REDIS_ENABLED) so logout cannot be bypassed by killing Redis;
 		# fail-open only when Redis is intentionally disabled.
 		try:
 			from .utils.cache import is_jti_blocked
-			return is_jti_blocked(jwt_payload.get("jti"))
+			if is_jti_blocked(jwt_payload.get("jti")):
+				return True
 		except Exception:
 			try:
-				return bool(app.config.get("REDIS_ENABLED", True))
+				if app.config.get("REDIS_ENABLED", True):
+					return True
 			except Exception:
 				return True
+
+		# 2) Token version: a password reset/change bumps users.token_version.
+		# Any token carrying an older version is dead even if its JTI was never
+		# individually blocklisted.
+		try:
+			from .models import User
+			uid = int(jwt_payload.get("sub"))
+			user = db.session.get(User, uid)
+			if user is None:
+				return True
+			if user.deleted_at is not None:
+				return True
+			return int(jwt_payload.get("ver", 0)) != int(user.token_version or 0)
+		except Exception:
+			# Fail closed on an unreadable identity/version.
+			return True
 
 	@jwt.revoked_token_loader
 	def revoked_token_callback(jwt_header, jwt_payload):
@@ -124,19 +207,33 @@ def create_app(config_object: object | None = None):
 
 
 
-	# Initialize Redis cache
+	# Initialize Redis cache. Production fails closed without it: the token
+	# blocklist, rate-limit counters, and cache all assume shared Redis, and a
+	# silent memory fallback would un-share limits and un-revoke logouts.
 	try:
 		from .extensions import init_redis
 		init_redis(app)
 	except Exception as e:
 		print(f"Warning: Could not initialize Redis: {e}")
+	if (
+		app.config.get("IS_PRODUCTION")
+		and app.config.get("REDIS_ENABLED", True)
+		and app.extensions.get("redis_client") is None
+	):
+		raise RuntimeError(
+			"Production config error: Redis is required (REDIS_URL) but unreachable. "
+			"Rate limits and token revocation must be shared, not per-process memory."
+		)
 
 	# Register socket events
 	with app.app_context():
 		from .api import sockets
 
-	# Initialize Kafka service (only if enabled)
-	if os.getenv("KAFKA_ENABLED", "0") == "1" or app.config.get("KAFKA_ENABLED", False):
+	# Initialize Kafka service (only if enabled). The config object is the
+	# source of truth: reading os.getenv() here meant a test config could not
+	# disable the consumer, and every process that imported the module started
+	# one. TESTING always opts out.
+	if app.config.get("KAFKA_ENABLED", False) and not app.config.get("TESTING"):
 		try:
 			from .utils.kafka_service import KafkaService
 			kafka = KafkaService()
@@ -154,47 +251,92 @@ def create_app(config_object: object | None = None):
 		except Exception as e:
 			print(f"Warning: Could not initialize Kafka: {e}")
 
-	# Initialize AI providers
-	try:
-		ai_manager = get_ai_provider_manager()
-		ai_manager.initialize()
-		provider_info = ai_manager.get_provider_info()
-		print(f"AI Providers initialized - LLM: {provider_info['llm_provider']}, Embedding: {provider_info['embedding_provider']}, RAG: {provider_info['rag_enabled']}")
-	except Exception as e:
-		print(f"Warning: Could not initialize AI providers: {e}")
-		import traceback
-		traceback.print_exc()
+	# Initialize AI providers. Tests and one-off tooling do not need provider
+	# discovery, and it can incur network calls during import.
+	if not app.config.get("TESTING"):
+		try:
+			# The resolver reads the active rows from PostgreSQL, so the
+			# factory must provide an application context. Without it the
+			# manager cached the env fallback until the next refresh.
+			with app.app_context():
+				ai_manager = get_ai_provider_manager()
+				ai_manager.initialize()
+				provider_info = ai_manager.get_provider_info()
+			print(f"AI Providers initialized - LLM: {provider_info['llm_provider']}, Embedding: {provider_info['embedding_provider']}, RAG: {provider_info['rag_enabled']}")
+		except Exception as e:
+			print(f"Warning: Could not initialize AI providers: {e}")
+			import traceback
+			traceback.print_exc()
 
 	# Security: Initialize rate limiter (Redis-backed when available so
 	# limits are shared across workers; falls back to memory otherwise).
-	try:
-		from flask_limiter import Limiter
-		from flask_limiter.util import get_remote_address
-		storage_uri = app.config.get('RATELIMIT_STORAGE_URL', "memory://")
-		if (not storage_uri or storage_uri == "memory://") and app.config.get("REDIS_ENABLED"):
-			storage_uri = app.config.get("REDIS_URL", "redis://127.0.0.1:6379/0")
+	def _rate_limit_key():
+		"""Authenticated requests get a per-user bucket; anonymous fall back to IP.
+
+		Only a signature check is performed here. Full revocation/version
+		validation still happens in the route's @jwt_required guard, so a stolen
+		expired token cannot buy extra quota.
+		"""
 		try:
-			limiter = Limiter(
-				app=app,
-				key_func=get_remote_address,
-				storage_uri=storage_uri,
-				strategy=app.config.get('RATELIMIT_STRATEGY', "fixed-window"),
-				default_limits=["200 per day", "50 per hour"],
-			)
-		except Exception as e:
-			print(f"Warning: Redis rate-limit storage unavailable ({e}); using memory://")
-			limiter = Limiter(
-				app=app,
-				key_func=get_remote_address,
-				storage_uri="memory://",
-				strategy=app.config.get('RATELIMIT_STRATEGY', "fixed-window"),
-				default_limits=["200 per day", "50 per hour"],
-			)
-	except ImportError:
-		print("Warning: Flask-Limiter not installed. Rate limiting disabled.")
-		limiter = None
-		if app.config.get("IS_PRODUCTION"):
-			raise RuntimeError("Flask-Limiter required in production")
+			from flask_jwt_extended import decode_token
+			raw = None
+			auth_header = request.headers.get("Authorization", "")
+			if auth_header.startswith("Bearer "):
+				raw = auth_header[7:].strip()
+			if raw:
+				claims = decode_token(raw)
+				sub = claims.get("sub")
+				if sub:
+					return f"user:{sub}"
+		except Exception:
+			pass
+		try:
+			from flask_limiter.util import get_remote_address
+			return f"ip:{get_remote_address()}"
+		except Exception:
+			return f"ip:{request.remote_addr or 'unknown'}"
+
+	# A disabled limiter must not wrap view functions at all. Flask-Limiter's
+	# wrappers hold only a weak reference to the extension; when the extension
+	# is disabled it is not retained on app.extensions, so wrapped routes later
+	# raise "weakly-referenced object no longer exists" on every request.
+	limiter = None
+	if app.config.get("RATELIMIT_ENABLED", True):
+		try:
+			from flask_limiter import Limiter
+			storage_uri = app.config.get('RATELIMIT_STORAGE_URL', "memory://")
+			if (not storage_uri or storage_uri == "memory://") and app.config.get("REDIS_ENABLED"):
+				storage_uri = app.config.get("REDIS_URL", "redis://127.0.0.1:6379/0")
+			# Defaults are deliberately generous: every unannotated read-only route
+			# gets this ceiling. Auth/OTP/AI/write routes keep their tighter limits
+			# below. 50/hour was low enough for one dashboard session to exhaust.
+			default_limits = ["30000 per day", "3000 per hour"]
+			try:
+				limiter = Limiter(
+					app=app,
+					key_func=_rate_limit_key,
+					storage_uri=storage_uri,
+					strategy=app.config.get('RATELIMIT_STRATEGY', "fixed-window"),
+					default_limits=default_limits,
+				)
+			except Exception as e:
+				print(f"Warning: Redis rate-limit storage unavailable ({e}); using memory://")
+				if app.config.get("IS_PRODUCTION"):
+					raise RuntimeError(
+						"Production config error: rate-limit storage must be Redis, not per-process memory."
+					)
+				limiter = Limiter(
+					app=app,
+					key_func=_rate_limit_key,
+					storage_uri="memory://",
+					strategy=app.config.get('RATELIMIT_STRATEGY', "fixed-window"),
+					default_limits=default_limits,
+				)
+		except ImportError:
+			print("Warning: Flask-Limiter not installed. Rate limiting disabled.")
+			limiter = None
+			if app.config.get("IS_PRODUCTION"):
+				raise RuntimeError("Flask-Limiter required in production")
 
 	# Skip rate limiting for CORS preflight (OPTIONS) and video polling endpoints
 	# that fire every 5-8s and would blow through normal limits instantly.
@@ -222,10 +364,13 @@ def create_app(config_object: object | None = None):
 				'style-src': "'self' 'unsafe-inline' https://fonts.googleapis.com",
 				'font-src': "'self' https://fonts.gstatic.com",
 				'img-src': "'self' data: https:",
-				'connect-src': "'self' https://api.openai.com https://api.groq.com",
+				'connect-src': "'self' https://api.openai.com https://api.groq.com https://api.recruai.menteeai.org wss://api.recruai.menteeai.org",
+				'media-src': "'self' blob:",
+				'worker-src': "'self' blob:",
 				'object-src': "'none'",
 				'base-uri': "'self'",
 				'frame-ancestors': "'none'",
+				'form-action': "'self'",
 			},
 			content_security_policy_nonce_in=['script-src', 'style-src'],
 			force_https=app.config['IS_PRODUCTION'],
@@ -235,20 +380,20 @@ def create_app(config_object: object | None = None):
 			frame_options='DENY',
 			x_content_type_options='nosniff',
 			x_xss_protection=True,
-			referrer_policy='strict-origin-when-cross-origin'
+			referrer_policy='strict-origin-when-cross-origin',
+			permissions_policy={
+				'camera': '(self)',
+				'microphone': '(self)',
+				'geolocation': '()',
+			},
 		)
 	except ImportError:
 		print("Warning: Flask-Talisman not installed. Security headers disabled.")
 		talisman = None
 
-	# Initialize background scheduler for interview status updates
-	# Temporarily disabled to debug API issues
-	# try:
-	# 	from .scheduler import init_scheduler
-	# 	init_scheduler(app)
-	# except Exception as e:
-	# 	print(f"Warning: Could not initialize background scheduler: {e}")
-	pass
+	# The scheduler is deliberately not started here. `backend.worker` owns it
+	# as a separate service; starting APScheduler in every gunicorn worker would
+	# duplicate every job. See backend/scheduler.py and docker-compose.aws.yml.
 
 	# enable CORS for API routes so frontend dev server can call /api/*
 	try:
@@ -257,7 +402,7 @@ def create_app(config_object: object | None = None):
 		if "*" in origins_list:
 			raise ValueError("FRONTEND_ORIGIN must not contain '*' when supports_credentials=True")
 		print(f"Setting CORS for {len(origins_list)} origin(s)", flush=True)
-		CORS(app, origins=origins_list, supports_credentials=True, allow_headers=["Content-Type", "Authorization", "X-CSRF-TOKEN"], methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"], expose_headers=["Content-Type", "Authorization"])
+		CORS(app, origins=origins_list, supports_credentials=True, allow_headers=["Content-Type", "Authorization", "X-CSRF-TOKEN"], methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"], expose_headers=["Content-Type", "Authorization", "Retry-After", "X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Reset"])
 	except Exception as e:
 		print(f"Failed to configure CORS: {e}", flush=True)
 		pass
@@ -274,11 +419,21 @@ def create_app(config_object: object | None = None):
 			if fn is None:
 				print(f"WARNING: rate-limit target missing: {endpoint} — fix endpoint name")
 				return
-			limiter.limit(spec)(fn)
+			# Flask-Limiter returns a wrapped view. It must be assigned back into
+			# Flask's view registry; calling the decorator without assigning is a
+			# silent no-op (the original P1-01 bug).
+			app.view_functions[endpoint] = limiter.limit(spec)(fn)
 
 		_limit("api.login", "10 per minute")
 		_limit("api.register", "5 per minute")
+		_limit("api.refresh_session", "60 per minute")
+		_limit("api.logout", "30 per minute")
 		_limit("api.get_me", "100 per minute")
+		# Privacy endpoints re-authenticate and touch many rows; keep them rare.
+		_limit("api.export_my_data", "5 per hour")
+		_limit("api.delete_my_account", "5 per hour")
+		_limit("api.deletion_status", "60 per minute")
+		_limit("api.health_scheduler", "60 per minute")
 		# Unauthenticated public-profile views write an analytics row per hit
 		_limit("api.get_public_profile", "60 per minute")
 		# OTP: tight caps stop email bombing and code guessing
@@ -286,6 +441,16 @@ def create_app(config_object: object | None = None):
 		_limit("api.verify_email_otp", "10 per minute")
 		_limit("api.request_email_change", "5 per minute")
 		_limit("api.verify_email_change", "10 per minute")
+		_limit("api.forgot_password", "5 per minute")
+		_limit("api.reset_password", "10 per minute")
+		# Organization invitations: the public token endpoints are unauthenticated,
+		# and the admin endpoints each send an email, so cap both sides.
+		_limit("api.get_invitation", "30 per minute")
+		_limit("api.accept_invitation", "10 per minute")
+		_limit("api.invite_team_member", "10 per minute")
+		_limit("api.list_organization_invitations", "60 per minute")
+		_limit("api.resend_organization_invitation", "10 per minute")
+		_limit("api.revoke_organization_invitation", "20 per minute")
 		# Spam-prone writes + expensive search
 		_limit("api.create_post", "30 per minute")
 		_limit("api.create_application", "30 per minute")
@@ -351,6 +516,8 @@ def create_app(config_object: object | None = None):
 	# Register practice AI agents blueprint separately to avoid circular imports
 	try:
 		from .api.practice_ai_agents import practice_ai_bp
+		# The blueprint attaches the verified-email guard at import time, so
+		# this factory stays safe to call more than once.
 		app.register_blueprint(practice_ai_bp, url_prefix="/api")
 	except ImportError:
 		try:
@@ -376,7 +543,9 @@ def create_app(config_object: object | None = None):
 		if fn is None:
 			print("WARNING: rate-limit target missing: recommendations.search_profiles — fix endpoint name")
 		else:
-			limiter.limit("60 per minute")(fn)
+			app.view_functions["recommendations.search_profiles"] = limiter.limit(
+				"60 per minute"
+			)(fn)
 
 	# Error handlers for API routes - return JSON instead of HTML.
 	# Messages are generic on purpose: exception text can leak internals.
@@ -396,10 +565,58 @@ def create_app(config_object: object | None = None):
 	def not_found(error):
 		return jsonify({"error": "Not Found"}), 404
 
+	@app.errorhandler(429)
+	def rate_limit_exceeded(error):
+		"""Return JSON (not Flask-Limiter's HTML default) with Retry-After.
+
+		The header is normally injected by Flask-Limiter; this handler also
+		sets a window-length fallback so every caller gets a usable value.
+		"""
+		retry_after = None
+		try:
+			retry_after = int(error.limit.limit.get_expiry())
+		except Exception:
+			retry_after = None
+		response = jsonify({
+			"error": "Too many requests. Please wait and try again.",
+			"code": "rate_limited",
+		})
+		response.status_code = 429
+		if retry_after:
+			response.headers.setdefault("Retry-After", str(max(1, retry_after)))
+		try:
+			current_app.logger.warning(
+				"rate_limit_exceeded endpoint=%s path=%s method=%s ip=%s limit=%s",
+				request.endpoint or "unknown",
+				request.path,
+				request.method,
+				request.remote_addr,
+				getattr(error.limit, "limit", "unknown"),
+			)
+		except Exception:
+			pass
+		return response
+
 	@app.errorhandler(500)
 	def internal_error(error):
 	    # Flask-CORS already handles ACAO; do not echo origins or errors here.
 	    return jsonify({"error": "Internal Server Error"}), 500
+
+	# Budget refusals are expected product states. A route that lets the
+	# exception escape gets a stable 402 JSON body instead of a 500.
+	try:
+		from .utils.ai_budget import AIBudgetError
+
+		@app.errorhandler(AIBudgetError)
+		def ai_budget_exceeded(error):
+			response = jsonify({
+				"error": error.message,
+				"code": error.code,
+			})
+			response.status_code = getattr(error, "status_code", 402)
+			return response
+	except Exception:
+		pass
 
 	# Serve uploaded files with MIME-sniffing protection
 	@app.route('/uploads/<path:filename>')
@@ -433,8 +650,18 @@ def create_app(config_object: object | None = None):
 		response.headers["X-Frame-Options"] = "DENY"
 		# Basic referrer policy
 		response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
-		# Feature-Policy / Permissions-Policy can be tightened as needed
-		# response.headers.setdefault("Permissions-Policy", "geolocation=(), microphone=()")
+		# Video interviews need camera/mic for this origin; deny the rest.
+		response.headers["Permissions-Policy"] = (
+			"camera=(self), microphone=(self), geolocation=()"
+		)
+		# Manual 429s (OTP cooldowns, invite limits) also get Retry-After.
+		if response.status_code == 429 and "Retry-After" not in response.headers:
+			try:
+				payload = response.get_json(silent=True) or {}
+				retry_after = int(payload.get("retry_after") or 60)
+			except Exception:
+				retry_after = 60
+			response.headers["Retry-After"] = str(max(1, retry_after))
 		# HSTS on in production by default (behind TLS-terminating nginx);
 		# explicitly opt out with ENABLE_HSTS=0 if ever serving plaintext.
 		if app.config.get("IS_PRODUCTION", False) or os.getenv("ENABLE_HSTS", "0") == "1":
@@ -472,7 +699,7 @@ def create_app(config_object: object | None = None):
 		if _fn is None:
 			print("WARNING: rate-limit target missing: health_check")
 		else:
-			limiter.limit("60 per minute")(_fn)
+			app.view_functions["health_check"] = limiter.limit("60 per minute")(_fn)
 
 	# helpful shell context for `flask shell`
 	try:
@@ -485,14 +712,78 @@ def create_app(config_object: object | None = None):
 		# models may not be importable before deps/migrations — ignore
 		pass
 
+	# Register the maintenance CLI command (defined below). Registering it here
+	# keeps one app instance per process; the old module-level `app` built a
+	# second one before gunicorn ever called the factory.
+	app.cli.command("db-optimize")(optimize_database)
+	app.cli.command("scheduler-run")(scheduler_run)
+	app.cli.command("scheduler-health")(scheduler_health_command)
+	app.cli.command("purge-account")(purge_account_command)
+	app.cli.command("purge-due-accounts")(purge_due_accounts_command)
+
 	return app
 
 
-# Create the app instance for gunicorn
-app = create_app()
+@click.argument("job", type=str)
+def scheduler_run(job):
+	"""Run one scheduler job in the foreground (for backfills and debugging)."""
+	import json
+	from .scheduler import JOB_DEFINITIONS, run_job
+
+	if job not in JOB_DEFINITIONS:
+		raise click.BadParameter(f"unknown job; choose from {', '.join(sorted(JOB_DEFINITIONS))}")
+	result = run_job(current_app._get_current_object(), job)
+	click.echo(json.dumps(result, indent=2, default=str))
 
 
-@app.cli.command("db-optimize")
+def scheduler_health_command():
+	"""Print scheduler freshness and exit non-zero if a job is stale."""
+	import json
+	from .scheduler import scheduler_health
+
+	health = scheduler_health(current_app._get_current_object())
+	click.echo(json.dumps(health, indent=2, default=str))
+	if not health["healthy"]:
+		raise click.ClickException("one or more scheduler jobs are stale")
+
+
+@click.argument("identifier", type=str)
+@click.option("--force", is_flag=True, help="Delete immediately, even inside the grace period.")
+def purge_account_command(identifier, force):
+	"""Hard-delete one account by id or email.
+
+	Without --force this only purges an account whose grace period has elapsed.
+	--force is the documented support path for an immediate, audited deletion.
+	"""
+	from .models import User
+	from .utils.account_deletion import purge_account, purge_account_now
+
+	user = None
+	try:
+		user = db.session.get(User, int(identifier))
+	except (TypeError, ValueError):
+		pass
+	if user is None:
+		user = User.query.filter(User.email.ilike(identifier)).first()
+	if user is None:
+		raise click.ClickException("account not found")
+
+	if force:
+		ok = purge_account_now(user, reason="support-cli")
+		click.echo(f"purged={ok} user_id={user.id}")
+	else:
+		result = purge_account(user.id, force=False, reason="scheduler-cli")
+		click.echo(f"result={result} user_id={user.id}")
+
+
+@click.option("--limit", default=25, type=int, help="Maximum accounts to purge in this run.")
+def purge_due_accounts_command(limit):
+	"""Run the due-account purge once (normally the scheduler does this)."""
+	from .utils.account_deletion import purge_due_accounts
+
+	click.echo(f"purged={purge_due_accounts(batch_size=limit)}")
+
+
 def optimize_database():
     """Create database indexes for optimal query performance"""
     from sqlalchemy import text
@@ -580,6 +871,7 @@ def optimize_database():
 
 
 if __name__ == "__main__":
+	app = create_app()
 	# quick dev runner - PORT read from backend/.env (no hardcoded fallback duplicated).
 	# Debug defaults OFF and is forced off in production; opt in with FLASK_DEBUG=1.
 	_debug = os.getenv("FLASK_DEBUG", "0") == "1" and not app.config.get("IS_PRODUCTION")

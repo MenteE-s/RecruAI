@@ -30,7 +30,7 @@ CACHE_TTL = {
     "org_details": 300,        # 5 min
     "org_listings": 600,       # 10 min
     "agent_config": 900,       # 15 min
-    "jwt_blocklist": 7200,     # 2h — matches JWT_ACCESS_TOKEN_EXPIRES default
+    "jwt_blocklist": 900,      # 15m — matches short access-token lifetime
     "general": 120,            # 2 min
 }
 
@@ -106,18 +106,32 @@ def cache_delete(key: str) -> bool:
         return False
 
 
-def cache_delete_pattern(pattern: str) -> bool:
-    """Delete all keys matching a pattern (e.g., 'recruai:v1:user_profile:*')."""
+def cache_delete_pattern(pattern: str, batch_size: int = 500) -> bool:
+    """Delete all keys matching a pattern (e.g., 'recruai:v1:user_profile:*').
+
+    Uses SCAN (non-blocking) instead of KEYS (blocks the single-threaded
+    server while it runs). Deletes in bounded batches so one invalidation
+    cannot build a giant DEL argument.
+    """
     client = _get_redis_client()
     if not client:
         return False
     try:
         # Must sanitize the same way _build_key does (replaces : with _)
         search_key = _sanitize_key(f"{CACHE_PREFIX}{pattern}")
-        keys = client.keys(search_key)
-        if keys:
-            client.delete(*keys)
-            logger.info(f"Cache invalidated {len(keys)} keys matching {pattern}")
+        deleted = 0
+        batch = []
+        for key in client.scan_iter(match=search_key, count=1000):
+            batch.append(key)
+            if len(batch) >= batch_size:
+                client.delete(*batch)
+                deleted += len(batch)
+                batch = []
+        if batch:
+            client.delete(*batch)
+            deleted += len(batch)
+        if deleted:
+            logger.info(f"Cache invalidated {deleted} keys matching {pattern}")
         return True
     except Exception as e:
         logger.warning(f"Cache DELETE pattern failed for {pattern}: {e}")
@@ -193,7 +207,7 @@ def block_jti(jti: str, ttl: Optional[int] = None) -> None:
     """Revoke a JWT by ID until it would naturally expire (fail-open)."""
     try:
         if jti:
-            cache_set(_build_key("jwt_blocklist", jti), {"revoked": True}, ttl or CACHE_TTL.get("jwt_blocklist", 7200))
+            cache_set(_build_key("jwt_blocklist", jti), {"revoked": True}, ttl or CACHE_TTL.get("jwt_blocklist", 900))
     except Exception:
         pass
 

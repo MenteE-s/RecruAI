@@ -65,24 +65,38 @@ class Config:
     if IS_PRODUCTION and JWT_SECRET_KEY == "dev-secret-change-in-production":
         raise ValueError("JWT_SECRET_KEY environment variable is required in production")
 
-    # Security: Enhanced JWT settings
-    # Allow override via JWT_TOKEN_LOCATION env (prod deploy uses headers-only).
-    # Default keeps headers+cookies for backward compat with existing frontend.
+    # Security: Enhanced JWT settings.
+    # Access tokens are short-lived bearer tokens returned in JSON and held in
+    # frontend memory only. Refresh tokens are opaque, HttpOnly cookies handled
+    # by backend/api/auth/session.py — never by Flask-JWT-Extended cookies.
     import json as _json
     _loc_raw = os.getenv("JWT_TOKEN_LOCATION")
     try:
-        JWT_TOKEN_LOCATION = _json.loads(_loc_raw) if _loc_raw else ["headers", "cookies"]
+        JWT_TOKEN_LOCATION = _json.loads(_loc_raw) if _loc_raw else ["headers"]
     except Exception:
-        JWT_TOKEN_LOCATION = [s.strip() for s in _loc_raw.split(",") if s.strip()] if _loc_raw else ["headers", "cookies"]
+        JWT_TOKEN_LOCATION = [s.strip() for s in _loc_raw.split(",") if s.strip()] if _loc_raw else ["headers"]
     JWT_COOKIE_SECURE = os.getenv("JWT_COOKIE_SECURE", "1" if IS_PRODUCTION else "0") == "1"
     JWT_COOKIE_SAMESITE = os.getenv("JWT_COOKIE_SAMESITE", "None" if IS_PRODUCTION else "Lax")
     JWT_COOKIE_HTTPONLY = True
-    # Enable CSRF protection in production for additional security
+    # Kept for legacy deployments; access tokens are header-only now.
     JWT_COOKIE_CSRF_PROTECT = os.getenv("JWT_COOKIE_CSRF_PROTECT", "1" if IS_PRODUCTION else "0") == "1"
 
-    # Security: Shorter token expiration for better security
+    # Security: short access-token lifetime, rotated refresh-token session.
     from datetime import timedelta
-    JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES_HOURS", "2")))  # 2 hours instead of 24
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(
+        minutes=int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES_MINUTES", "15"))
+    )
+    REFRESH_TOKEN_TTL_DAYS = int(os.getenv("REFRESH_TOKEN_TTL_DAYS", "30"))
+    REFRESH_COOKIE_NAME = os.getenv("REFRESH_COOKIE_NAME", "refresh_token")
+    REFRESH_COOKIE_PATH = os.getenv("REFRESH_COOKIE_PATH", "/api/auth")
+    REFRESH_COOKIE_SECURE = os.getenv(
+        "REFRESH_COOKIE_SECURE", "1" if IS_PRODUCTION else "0"
+    ) == "1"
+    # Frontend and API are same-site subdomains in production, so Lax is both
+    # sufficient and safer than None. Set None only for a truly cross-site API.
+    REFRESH_COOKIE_SAMESITE = os.getenv("REFRESH_COOKIE_SAMESITE", "Lax")
+    REFRESH_COOKIE_DOMAIN = os.getenv("REFRESH_COOKIE_DOMAIN") or None
+    REFRESH_REUSE_GRACE_SECONDS = int(os.getenv("REFRESH_REUSE_GRACE_SECONDS", "10"))
 
     # Kafka configuration. Toggle with KAFKA_ENABLED=1 (needs a reachable
     # broker at KAFKA_BOOTSTRAP_SERVERS); default off for small hosts.
@@ -145,6 +159,10 @@ class Config:
     # Security: Audit logging
     ENABLE_AUDIT_LOG = os.getenv("ENABLE_AUDIT_LOG", "1" if IS_PRODUCTION else "0") == "1"
 
+    # Ops token gating the detailed/ready/scheduler/outbox health endpoints.
+    # Never log this value; it is compared with hmac.compare_digest.
+    OPS_TOKEN = os.getenv("OPS_TOKEN")
+
     # AI Provider Configuration (dynamic properties)
     @property
     def AI_PROVIDER(self):
@@ -159,12 +177,35 @@ class Config:
         return os.getenv("RAG_ENABLED", "1") == "1"
 
     @property
+    def AI_GENERATION_MODEL(self):
+        return (os.getenv("AI_GENERATION_MODEL")
+                or os.getenv("AI_MODEL")
+                or os.getenv("GENERATION_MODEL"))
+
+    @property
     def AI_MODEL(self):
-        return os.getenv("AI_MODEL")
+        return self.AI_GENERATION_MODEL
+
+    @property
+    def GROQ_MODEL(self):
+        return os.getenv("GROQ_MODEL") or self.AI_GENERATION_MODEL
+
+    @property
+    def OPENAI_MODEL(self):
+        return os.getenv("OPENAI_MODEL") or self.AI_GENERATION_MODEL
+
+    @property
+    def OPENROUTER_MODEL(self):
+        return os.getenv("OPENROUTER_MODEL") or self.AI_GENERATION_MODEL
+
+    @property
+    def AI_EMBEDDING_MODEL(self):
+        return (os.getenv("AI_EMBEDDING_MODEL")
+                or os.getenv("EMBEDDING_MODEL"))
 
     @property
     def EMBEDDING_MODEL(self):
-        return os.getenv("EMBEDDING_MODEL")
+        return self.AI_EMBEDDING_MODEL
 
     @property
     def EMBEDDING_DIMENSIONS(self):
@@ -184,8 +225,10 @@ class Config:
         return os.getenv("OPENROUTER_API_KEY")
 
     @property
+    # On-demand Groq tiers enforce ~1000 output tokens/minute. Keep the default
+    # below that so a single request cannot exceed the provider limit.
     def AI_MAX_TOKENS(self):
-        return int(os.getenv("AI_MAX_TOKENS", "4000"))
+        return int(os.getenv("AI_MAX_TOKENS", "800"))
 
     @property
     def AI_TEMPERATURE(self):
@@ -194,6 +237,17 @@ class Config:
     @property
     def AI_TIMEOUT(self):
         return int(os.getenv("AI_TIMEOUT", "30"))
+
+    @property
+    def AI_PROVIDER_REFRESH_SECONDS(self):
+        """How often workers re-read the active DB provider rows.
+
+        Admin changes invalidate the manager in the worker that handled the
+        request. In a multi-worker deployment the other workers need a cheap
+        periodic check; 60 seconds is fast enough for an operator change and
+        far cheaper than a database round-trip on every AI call.
+        """
+        return int(os.getenv("AI_PROVIDER_REFRESH_SECONDS", "60"))
 
     @property
     def HUGGINGFACE_SPACES_URL(self):
@@ -261,3 +315,104 @@ class Config:
     @property
     def LIVEKIT_MAX_CONCURRENT_RECORDINGS(self):
         return int(os.getenv("LIVEKIT_MAX_CONCURRENT_RECORDINGS", "2"))
+
+
+def _is_production_config(config) -> bool:
+    get = config.get if hasattr(config, "get") else config.__getitem__
+    try:
+        return bool(get("IS_PRODUCTION"))
+    except Exception:
+        return False
+
+
+def validate_production_config(config=None) -> list:
+    """Fail fast when production is misconfigured. Returns warnings.
+
+    Raises ``RuntimeError`` naming the first missing requirement. Pure
+    function of the passed mapping so tests can call it directly; pass
+    ``app.config`` from the factory. LiveKit keys are required only when
+    video is enabled; AI needs at least one provider key; Resend is required
+    because OTP, password reset, and invitations all depend on it.
+    """
+    source = config if config is not None else os.environ
+    if hasattr(source, "get"):
+        raw_get = source.get
+    else:  # pragma: no cover - defensive; mappings always have .get
+        raw_get = source.__getitem__
+
+    def get(name):
+        # from_object() copies @property descriptors unevaluated, so a
+        # property object here means "read the live environment instead".
+        value = raw_get(name)
+        if isinstance(value, property):
+            value = os.environ.get(name)
+        return value
+
+    def required(name):
+        value = get(name)
+        if value is None or (isinstance(value, str) and not value.strip()):
+            raise RuntimeError(
+                f"Production config error: {name} is required but missing or empty."
+            )
+        return value
+
+    warnings = []
+    for name in ("SECRET_KEY", "JWT_SECRET_KEY", "RESEND_API_KEY", "OPS_TOKEN"):
+        if get(name) in (None, "", "dev-secret-change-in-production"):
+            raise RuntimeError(
+                f"Production config error: {name} must be set to a real value, not the dev default."
+                if "SECRET" in name
+                else f"Production config error: {name} is required but missing or empty."
+            )
+    # The DB URL lives in SQLALCHEMY_DATABASE_URI on the app config and in
+    # DATABASE_URL in the environment; accept either.
+    db_url = (
+        get("DATABASE_URL")
+        or get("SQLALCHEMY_DATABASE_URI")
+        or os.environ.get("DATABASE_URL")
+    )
+    if not db_url or not str(db_url).strip():
+        raise RuntimeError(
+            "Production config error: DATABASE_URL is required but missing or empty."
+        )
+
+    if not any(get(k) for k in ("GROQ_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY")):
+        raise RuntimeError(
+            "Production config error: at least one AI provider key is required "
+            "(GROQ_API_KEY, OPENAI_API_KEY, or OPENROUTER_API_KEY)."
+        )
+
+    # Rate limits and token revocation must be shared across workers. A
+    # disabled Redis silently turns both into per-process memory.
+    if not get("REDIS_ENABLED"):
+        raise RuntimeError(
+            "Production config error: REDIS_ENABLED must be true so limits and "
+            "revocations are shared, not per-process memory."
+        )
+
+    if str(get("VIDEO_ENABLED") or "0") == "1":
+        for name in (
+            "LIVEKIT_URL",
+            "LIVEKIT_PUBLIC_URL",
+            "LIVEKIT_API_KEY",
+            "LIVEKIT_API_SECRET",
+        ):
+            required(name)
+        public_url = str(get("LIVEKIT_PUBLIC_URL") or "")
+        if not public_url.startswith(("ws://", "wss://")):
+            raise RuntimeError(
+                "Production config error: LIVEKIT_PUBLIC_URL must be a browser-"
+                "reachable ws:// or wss:// URL."
+            )
+        if public_url.startswith("ws://"):
+            warnings.append(
+                "LIVEKIT_PUBLIC_URL uses ws://; browsers require wss:// when the "
+                "app is served over HTTPS."
+            )
+    elif not get("LIVEKIT_API_KEY"):
+        warnings.append(
+            "LIVEKIT_API_KEY is unset; video endpoints will report unconfigured "
+            "(expected while VIDEO_ENABLED=0)."
+        )
+
+    return warnings

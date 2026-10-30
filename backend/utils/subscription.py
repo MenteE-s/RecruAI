@@ -8,6 +8,7 @@ from typing import Optional, Dict, Any
 from functools import wraps
 from flask import current_app
 
+from backend.constants import TRIAL_PERIOD_DAYS
 from backend.extensions import db
 from backend.models.user import User
 from backend.models.organization import Organization
@@ -32,6 +33,7 @@ CVAI_QUIZZES = "cvai_quizzes"
 CVAI_PROJECTS = "cvai_projects"
 CVAI_MOCK_INTERVIEW = "cvai_mock_interview"
 CVAI_MENTORSHIP = "cvai_mentorship"
+CAREER_COACHING = "career_coaching"
 
 CVAI_FEATURES = (
     CVAI_SKILL_ASSESSMENT,
@@ -39,6 +41,7 @@ CVAI_FEATURES = (
     CVAI_PROJECTS,
     CVAI_MENTORSHIP,
     CVAI_MOCK_INTERVIEW,
+    CAREER_COACHING,
 )
 
 # What a lapsed individual may still do. Deliberately does NOT include any CVAI
@@ -47,6 +50,25 @@ BASIC_INDIVIDUAL_FEATURES = (
     "profile_management",
     "job_search",
     "basic_matching",
+)
+
+# Organization capability sets. Free orgs keep the basics; premium unlocks the
+# AI hiring surfaces. Admin-managed plans may override these per tenant.
+BASIC_ORGANIZATION_FEATURES = (
+    "profile_management",
+    "job_posting",
+    "basic_matching",
+    "team_management",
+)
+PREMIUM_ORGANIZATION_FEATURES = (
+    "profile_management",
+    "job_posting",
+    "basic_matching",
+    "team_management",
+    "ai_screening",
+    "ai_interview_agents",
+    "analytics",
+    "reports",
 )
 
 
@@ -97,26 +119,6 @@ class SubscriptionManager:
         return {}
 
     @staticmethod
-    def upgrade_to_paid(user: Optional[User] = None, org: Optional[Organization] = None) -> bool:
-        """Upgrade user or organization to paid plan"""
-        try:
-            if user:
-                user.subscription_status = "active"
-                user.paid_plan = True
-            elif org:
-                org.subscription_status = "active"
-                org.paid_plan = True
-            else:
-                return False
-
-            db.session.commit()
-            return True
-        except Exception as e:
-            current_app.logger.error(f"Failed to upgrade subscription: {e}")
-            db.session.rollback()
-            return False
-
-    @staticmethod
     def cancel_subscription(user: Optional[User] = None, org: Optional[Organization] = None) -> bool:
         """Cancel subscription for user or organization"""
         try:
@@ -137,33 +139,60 @@ class SubscriptionManager:
             return False
 
     @staticmethod
-    def check_trial_expiration() -> None:
-        """Check for expired trials and update status (to be called by scheduler)"""
-        try:
-            # Update expired user trials
-            expired_users = User.query.filter(
-                User.subscription_status == "trial",
-                User.trial_start_date < datetime.utcnow() - timedelta(days=7)
-            ).all()
+    def check_trial_expiration(batch_size: int = 1000, max_batches: int = 100) -> Dict[str, int]:
+        """Expire trials in bounded batches.
 
-            for user in expired_users:
-                user.subscription_status = "expired"
+        The scheduler calls this hourly. Loading every trial account into memory
+        would be a million-row object graph at scale, so the update is a set of
+        short ``UPDATE ... WHERE id IN (...)`` transactions. Returning counts
+        lets the worker record ``rows_updated`` and lets a test assert the 30-day
+        boundary without inspecting logs.
+        """
+        if batch_size <= 0:
+            batch_size = 1000
+        if max_batches <= 0:
+            max_batches = 1
 
-            # Update expired organization trials
-            expired_orgs = Organization.query.filter(
-                Organization.subscription_status == "trial",
-                Organization.trial_start_date < datetime.utcnow() - timedelta(days=7)
-            ).all()
+        cutoff = datetime.utcnow() - timedelta(days=TRIAL_PERIOD_DAYS)
+        totals = {"users": 0, "organizations": 0}
 
-            for org in expired_orgs:
-                org.subscription_status = "expired"
+        for model, key in ((User, "users"), (Organization, "organizations")):
+            batches = 0
+            while batches < max_batches:
+                rows = (
+                    db.session.query(model.id)
+                    .filter(
+                        model.subscription_status == "trial",
+                        model.trial_start_date.isnot(None),
+                        model.trial_start_date <= cutoff,
+                    )
+                    .limit(batch_size)
+                    .all()
+                )
+                ids = [row[0] for row in rows]
+                if not ids:
+                    break
+                updated = (
+                    db.session.query(model)
+                    .filter(model.id.in_(ids))
+                    .update(
+                        {model.subscription_status: "expired"},
+                        synchronize_session=False,
+                    )
+                )
+                db.session.commit()
+                totals[key] += int(updated or 0)
+                batches += 1
+                if len(ids) < batch_size:
+                    break
 
-            db.session.commit()
-            current_app.logger.info(f"Updated {len(expired_users)} users and {len(expired_orgs)} organizations with expired trials")
-
-        except Exception as e:
-            current_app.logger.error(f"Failed to check trial expiration: {e}")
-            db.session.rollback()
+        current_app.logger.info(
+            "trial expiration: %s users, %s organizations (cutoff=%s)",
+            totals["users"],
+            totals["organizations"],
+            cutoff.isoformat(),
+        )
+        return totals
 
 
 def require_subscription(feature: str):
@@ -180,7 +209,7 @@ def require_subscription(feature: str):
             from backend.config import Config
 
             user_id = get_jwt_identity()
-            user = User.query.get(user_id)
+            user = db.session.get(User, user_id)
 
             if not user:
                 return {"error": "User not found"}, 404
@@ -236,7 +265,7 @@ def check_content_access(feature: str, free_preview: bool = False):
 
     from flask_jwt_extended import get_jwt_identity
     user_id = get_jwt_identity()
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     if not user:
         return False, {"error": "User not found"}, 404
 
@@ -271,7 +300,7 @@ def require_interview_access():
             from backend.config import Config
 
             user_id = get_jwt_identity()
-            user = User.query.get(user_id)
+            user = db.session.get(User, user_id)
 
             if not user:
                 return {"error": "User not found"}, 404

@@ -11,7 +11,7 @@
 
 services:
   db:
-    image: pgvector/pgvector:0.7.0-pg15
+    image: pgvector/pgvector:0.7.0-pg15@sha256:222c299a9f011679695414546c7f92ba0b0ba5aa4c8b7e3e33a4209c9b337832
     container_name: recruai_db
     restart: unless-stopped
     environment:
@@ -27,7 +27,7 @@ services:
       retries: 5
 
   redis:
-    image: redis:7-alpine
+    image: redis:7-alpine@sha256:6ba19c50b56777f5c11c58eff8ddb69d0d5f27ba131cffb63f180ccfd43c66af
     container_name: recruai_redis
     restart: unless-stopped
     command: ["redis-server", "--appendonly", "yes"]
@@ -40,7 +40,7 @@ services:
       retries: 5
 
   kafka:
-    image: confluentinc/cp-kafka:7.6.0
+    image: confluentinc/cp-kafka:7.6.0@sha256:24cdd3a7fa89d2bed150560ebea81ff1943badfa61e51d66bb541a6b0d7fb047
     container_name: recruai_kafka
     restart: unless-stopped
     environment:
@@ -66,7 +66,7 @@ services:
       retries: 10
 
   kafka-init:
-    image: confluentinc/cp-kafka:7.6.0
+    image: confluentinc/cp-kafka:7.6.0@sha256:24cdd3a7fa89d2bed150560ebea81ff1943badfa61e51d66bb541a6b0d7fb047
     container_name: recruai_kafka_init
     depends_on:
       kafka:
@@ -82,7 +82,7 @@ services:
   # on this completing, so a failed migration stops the deploy instead of
   # serving traffic against a schema the code does not expect.
   #
-  # All 37 migrations, including the CVAI chain, are in the image. Run by hand:
+  # All migrations, including the CVAI chain, are in the image. Run by hand:
   #   docker compose -f docker-compose.vps.yml run --rm migrate
   migrate:
     build:
@@ -115,7 +115,7 @@ services:
     command:
       - sh
       - -c
-      - "python scripts/seed_skill_questions.py && python scripts/seed_quizzes.py && python scripts/seed_guided_projects.py"
+      - "python scripts/seed_skill_questions.py && python scripts/seed_quizzes.py && python scripts/seed_guided_projects.py && python scripts/seed_mock_interview_questions.py"
     depends_on:
       db:
         condition: service_healthy
@@ -151,11 +151,61 @@ services:
       start_period: 60s
       retries: 3
 
+  # Exactly one scheduler process (see docker-compose.aws.yml for why the API
+  # must never start APScheduler itself).
+  scheduler:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    image: recruai_backend:latest
+    container_name: recruai_scheduler
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env.vps
+    command: ["python", "-m", "backend.worker"]
+    volumes:
+      # Account purge must be able to remove uploads and interview recordings.
+      - backend_uploads:/app/backend/uploads
+      - recordings:/app/backend/uploads/recordings
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
+        required: false
+      redis:
+        condition: service_healthy
+
+  # Outbox worker: delivers queued email/Kafka/notifications with retries.
+  # Two parallel claim loops per process; raise OUTBOX_WORKERS on bigger hosts.
+  outbox-worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    image: recruai_backend:latest
+    container_name: recruai_outbox_worker
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env.vps
+    environment:
+      OUTBOX_WORKERS: "2"
+      OUTBOX_BATCH_SIZE: "25"
+      OUTBOX_POLL_INTERVAL: "2"
+    command: ["python", "-m", "backend.outbox_worker"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
+        required: false
+      redis:
+        condition: service_healthy
+
   # Self-hosted video (LiveKit SFU + TURN + recording egress).
   # Firewall must allow: TCP 7881, TCP+UDP 7882, TCP+UDP 3478, UDP 50000-50050.
   # Signaling reaches browsers as wss://<API_DOMAIN>/livekit/ via nginx.
   livekit:
-    image: livekit/livekit-server:v1.8.4
+    image: livekit/livekit-server:v1.8.4@sha256:621fd87bd64a0c83e1f2418ee0323eb920d00acdd73e5f79b303c64f6cc532af
     container_name: recruai_livekit
     restart: unless-stopped
     mem_limit: 1g
@@ -199,7 +249,7 @@ services:
 
   # Recording worker: room-composite MP4 -> /recordings (max 2 concurrent by config).
   egress:
-    image: livekit/egress:v1.8.4
+    image: livekit/egress:v1.8.4@sha256:b66a3b1efb18a68e85d1cf1b6fc818018beb47475acbe8c282be353e2ab37f75
     container_name: recruai_egress
     restart: unless-stopped
     mem_limit: 1g
@@ -225,7 +275,7 @@ services:
         condition: service_healthy
 
   nginx:
-    image: nginx:1.25-alpine
+    image: nginx:1.28-alpine@sha256:a8b39bd9cf0f83869a2162827a0caf6137ddf759d50a171451b335cecc87d236
     container_name: recruai_nginx
     restart: unless-stopped
     entrypoint: ["/bin/sh", "/entrypoint-vps.sh"]

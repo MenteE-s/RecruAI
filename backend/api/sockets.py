@@ -1,6 +1,7 @@
-from flask import request
+from flask import current_app, request
 from flask_jwt_extended import decode_token
-from ..extensions import socketio
+from ..extensions import db, socketio
+from ..models import User
 from flask_socketio import join_room, leave_room
 import logging
 
@@ -17,8 +18,26 @@ def _user_id_from_token(token):
         return None
     try:
         decoded = decode_token(token)
-        return int(decoded["sub"])
-    except (TypeError, ValueError, KeyError, Exception):
+        uid = int(decoded["sub"])
+        user = db.session.get(User, uid)
+        if user is None or not user.email_verified:
+            return None
+        # Match the REST guard: password reset/change bumps token_version.
+        if int(decoded.get("ver", 0)) != int(user.token_version or 0):
+            return None
+        # Honor logout JTI revocation. Fail closed when Redis is expected.
+        try:
+            from ..utils.cache import is_jti_blocked
+            if is_jti_blocked(decoded.get("jti")):
+                return None
+        except Exception:
+            if current_app.config.get("REDIS_ENABLED", True):
+                return None
+        return uid
+    except (TypeError, ValueError, KeyError):
+        return None
+    except Exception:
+        logger.debug("Socket token validation failed", exc_info=True)
         return None
 
 
@@ -41,7 +60,7 @@ def handle_connect(auth=None):
 
     try:
         from ..models import User
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         if not user:
             logger.warning(f"Connection attempt for unknown user {user_id}")
             return False
@@ -79,12 +98,12 @@ def handle_join_org(data):
             logger.warning("join_org without verifiable identity")
             return
     try:
-        from ..models import User as _User, TeamMember as _TM
-        user = _User.query.get(uid)
+        from ..models import User as _User
+        from ...utils.org_permissions import get_org_access
+        user = db.session.get(_User, uid)
         if not user:
             return
-        allowed = user.organization_id == org_id or _TM.query.filter_by(
-            organization_id=org_id, user_id=user.id).first() is not None
+        allowed = get_org_access(user, org_id) is not None
         if not allowed:
             logger.warning(f"User {user.id} denied org room org_{org_id}")
             return

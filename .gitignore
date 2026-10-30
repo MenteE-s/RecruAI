@@ -24,8 +24,8 @@ memory-bank
 backend/uploads/*
 !backend/uploads/.gitkeep
 
-# Root-level package-lock (frontend has its own)
-package-lock.json
+# Root-level package-lock (frontend and admin keep their own)
+/package-lock.json
 
 # OS files
 .DS_Store
@@ -42,3 +42,11 @@ pgdata/
 kafkadata/
 redisdata/
 .aider*
+
+# Local scratch files at repo root (not part of the project)
+/app.py
+/inventory.db
+
+# Playwright artifacts
+frontend/playwright-report/
+frontend/test-results/

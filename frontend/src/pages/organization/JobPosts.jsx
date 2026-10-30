@@ -35,12 +35,14 @@ export default function JobPosts() {
   const [showPublishConfirm, setShowPublishConfirm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [organizationId, setOrganizationId] = useState(null);
+  const [canManageHiring, setCanManageHiring] = useState(false);
 
   useEffect(() => {
     (async () => {
       const user = await verifyTokenWithServer();
       if (user?.organization_id) {
         setOrganizationId(user.organization_id);
+        setCanManageHiring((user.organization_permissions || []).includes("hiring.manage"));
         fetchPosts(user.organization_id);
       } else {
         setLoading(false);
@@ -180,9 +182,11 @@ export default function JobPosts() {
                   <p className="text-xs text-gray-300 mt-1">Other</p>
                 </div>
               </div>
-              <button onClick={() => (showCreateForm ? resetForm() : openForm(null))} className="w-full inline-flex items-center justify-center gap-2 bg-white text-gray-900 px-5 py-3 text-sm font-medium hover:bg-gray-100 transition-colors">
-                <FiPlus className="w-4 h-4" /> {showCreateForm ? "Cancel" : "New job post"}
-              </button>
+              {canManageHiring && (
+                <button onClick={() => (showCreateForm ? resetForm() : openForm(null))} className="w-full inline-flex items-center justify-center gap-2 bg-white text-gray-900 px-5 py-3 text-sm font-medium hover:bg-gray-100 transition-colors">
+                  <FiPlus className="w-4 h-4" /> {showCreateForm ? "Cancel" : "New job post"}
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -333,26 +337,28 @@ export default function JobPosts() {
                     </div>
                     {post.requirements && post.requirements.length > 0 && <div className="mt-2 flex flex-wrap gap-1.5">{post.requirements.slice(0, 3).map((r, j) => <span key={j} className="text-xs bg-white border border-gray-200 px-2 py-1 text-gray-600">{r}</span>)} {post.requirements.length > 3 && <span className="text-xs text-gray-500">+{post.requirements.length - 3}</span>}</div>}
                   </div>
-                  <div className="flex gap-1.5 shrink-0 ml-4">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleEdit(post);
-                      }}
-                      className="p-2 bg-white border border-gray-200 text-blue-600 hover:bg-blue-50"
-                    >
-                      <FiEdit2 className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDelete(post.id);
-                      }}
-                      className="p-2 bg-white border border-gray-200 text-red-600 hover:bg-red-50"
-                    >
-                      <FiTrash2 className="w-4 h-4" />
-                    </button>
-                  </div>
+                  {canManageHiring && (
+                    <div className="flex gap-1.5 shrink-0 ml-4">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEdit(post);
+                        }}
+                        className="p-2 bg-white border border-gray-200 text-blue-600 hover:bg-blue-50"
+                      >
+                        <FiEdit2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(post.id);
+                        }}
+                        className="p-2 bg-white border border-gray-200 text-red-600 hover:bg-red-50"
+                      >
+                        <FiTrash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}

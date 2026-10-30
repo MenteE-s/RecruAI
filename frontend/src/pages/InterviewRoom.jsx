@@ -1,11 +1,16 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import TextInterview from "../components/interviews/TextInterview";
-import VideoRoom from "../components/interviews/VideoRoom";
+import MenteeLoader from "../components/ui/MenteeLoader";
 import { parseUTC } from "../utils/timezone";
 import DualTime from "../components/ui/DualTime";
 import socketService from "../utils/socket";
 import { getCurrentUser } from "../utils/auth";
+import { VIDEO_ENABLED } from "../utils/video";
+// LiveKit is the heaviest vendor in the bundle: load it only when a video
+// interview actually renders, not on every dashboard visit. (Deliberately
+// not per-route splitting: that put a spinner on every first page visit.)
+const VideoRoom = React.lazy(() => import("../components/interviews/VideoRoom"));
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "";
 
@@ -544,7 +549,33 @@ const InterviewRoom = () => {
 
       case "video":
       case "human_video":
-        return <VideoRoom interviewId={interviewId} interview={interview} onLeave={() => navigate(`/in/interviews/${interviewId}`)} />;
+        if (!VIDEO_ENABLED) {
+          return (
+            <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+              <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full text-center">
+                <h2 className="text-xl font-semibold text-gray-900 mb-2">Video interviews are disabled</h2>
+                <p className="text-gray-600 mb-4">
+                  Video interviews are not available during this beta. Please use text or AI interviews instead.
+                </p>
+                <button
+                  onClick={() => navigate("/feed")}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  Return to Dashboard
+                </button>
+              </div>
+            </div>
+          );
+        }
+        return (
+          <Suspense fallback={
+            <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+              <MenteeLoader size={56} text="Loading video room…" />
+            </div>
+          }>
+            <VideoRoom interviewId={interviewId} interview={interview} onLeave={() => navigate(`/in/interviews/${interviewId}`)} />
+          </Suspense>
+        );
 
       default:
         return (

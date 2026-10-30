@@ -63,6 +63,66 @@ QUIZZES = [
         "is_free_preview": False,
         "skills": ["docker", "ci-cd", "git"],
     },
+    {
+        "slug": "python-fundamentals",
+        "title": "Python Fundamentals",
+        "description": "Core Python questions on functions, comprehensions and "
+                       "resource handling.",
+        "difficulty": "beginner",
+        "pass_percent": 50,
+        "is_free_preview": False,
+        "skills": ["python"],
+    },
+    {
+        "slug": "apis-and-version-control",
+        "title": "APIs and Version Control",
+        "description": "REST status codes plus the Git command that keeps and "
+                       "moves work around.",
+        "difficulty": "intermediate",
+        "pass_percent": 50,
+        "is_free_preview": False,
+        "skills": ["rest-apis", "git"],
+    },
+    {
+        "slug": "web-fundamentals",
+        "title": "Web Fundamentals",
+        "description": "HTML, CSS and JavaScript basics every developer "
+                       "should know before touching a framework.",
+        "difficulty": "beginner",
+        "pass_percent": 50,
+        "is_free_preview": True,
+        "skills": ["html", "css", "javascript"],
+    },
+    {
+        "slug": "backend-basics",
+        "title": "Backend Basics",
+        "description": "Python, SQL and PostgreSQL — the core of most "
+                       "server-side work.",
+        "difficulty": "intermediate",
+        "pass_percent": 50,
+        "is_free_preview": False,
+        "skills": ["python", "sql", "postgresql"],
+    },
+    {
+        "slug": "devops-security",
+        "title": "DevOps and Security",
+        "description": "Containers, CI/CD, Git and application-security "
+                       "essentials for shipping safely.",
+        "difficulty": "intermediate",
+        "pass_percent": 60,
+        "is_free_preview": False,
+        "skills": ["docker", "ci-cd", "git", "application-security"],
+    },
+    {
+        "slug": "react-advanced",
+        "title": "React Advanced",
+        "description": "Hooks, effects, performance and the reference traps "
+                       "that show up in real reviews.",
+        "difficulty": "advanced",
+        "pass_percent": 60,
+        "is_free_preview": False,
+        "skills": ["react"],
+    },
 ]
 
 

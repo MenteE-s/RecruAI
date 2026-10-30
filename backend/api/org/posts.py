@@ -1,24 +1,23 @@
 from flask import request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy import func
+from sqlalchemy.orm import selectinload
 from .. import api_bp
 from ...utils.timezone_utils import utc_now_iso, utc_iso
 from ...extensions import db
-from ...models import Post, Organization, User, TeamMember, CompanyFollow, Notification
+from ...models import Post, Organization, User, CompanyFollow, Notification
+from ...utils.org_permissions import HIRING_MANAGE, HIRING_VIEW, has_org_permission
 import json
 
 
+def _can_view_org(user, org_id):
+    """Caller may see this org's draft/closed posts."""
+    return has_org_permission(user, org_id, HIRING_VIEW)
+
+
 def _can_manage_org(user, org_id):
-    """Caller may mutate this org's posts: own org account or team member."""
-    if not user or not org_id:
-        return False
-    try:
-        org_id = int(org_id)
-    except (TypeError, ValueError):
-        return False
-    if user.role == "organization" and user.organization_id == org_id:
-        return True
-    return TeamMember.query.filter_by(organization_id=org_id, user_id=user.id).first() is not None
+    """Caller may create, edit, or delete this org's posts."""
+    return has_org_permission(user, org_id, HIRING_MANAGE)
 from datetime import datetime
 from ...utils.pagination import Pagination, get_pagination_params, paginated_response, apply_filters_and_sorting, get_request_filters, get_sorting_params
 from ...utils.kafka_service import kafka_service as kafka
@@ -38,15 +37,21 @@ def _parse_salary(value):
 @api_bp.route("/organizations/<int:org_id>/posts", methods=["GET"])
 @jwt_required(optional=True)
 def list_posts_for_org(org_id):
-    org = Organization.query.get_or_404(org_id)
-    posts = org.posts
+    org = db.get_or_404(Organization, org_id)
+    # Eager-load the org once: to_dict() touches it per post, and the identity
+    # map alone would still cost one query per distinct org.
+    posts = (
+        Post.query.filter_by(organization_id=org_id)
+        .options(selectinload(Post.organization))
+        .all()
+    )
     # Security: inactive/closed postings are visible only to the org's own
     # managers (the JobPosts management page needs them). Public and
     # unrelated callers see the same active-only surface as GET /api/posts.
     try:
         uid = get_jwt_identity()
-        caller = User.query.get(int(uid)) if uid is not None else None
-        if not _can_manage_org(caller, org_id):
+        caller = db.session.get(User, int(uid)) if uid is not None else None
+        if not _can_view_org(caller, org_id):
             posts = [p for p in posts if p.status == "active"]
     except (TypeError, ValueError):
         posts = [p for p in posts if p.status == "active"]
@@ -68,7 +73,7 @@ def create_post():
         return jsonify({"error": "organization_id and title required"}), 400
 
     try:
-        caller = User.query.get(int(get_jwt_identity()))
+        caller = db.session.get(User, int(get_jwt_identity()))
     except (TypeError, ValueError):
         caller = None
     if not _can_manage_org(caller, org_id):
@@ -90,7 +95,7 @@ def create_post():
     ):
         return jsonify({"error": "salary_min cannot be greater than salary_max"}), 400
 
-    org = Organization.query.get(org_id)
+    org = db.session.get(Organization, org_id)
     if not org:
         return jsonify({"error": "organization not found"}), 404
 
@@ -184,10 +189,10 @@ def create_post():
 @api_bp.route("/posts/<int:post_id>", methods=["PUT"])
 @jwt_required()
 def update_post(post_id):
-    post = Post.query.get_or_404(post_id)
+    post = db.get_or_404(Post, post_id)
 
     try:
-        caller = User.query.get(int(get_jwt_identity()))
+        caller = db.session.get(User, int(get_jwt_identity()))
     except (TypeError, ValueError):
         caller = None
     if not _can_manage_org(caller, post.organization_id):
@@ -271,9 +276,9 @@ def update_post(post_id):
 @api_bp.route("/posts/<int:post_id>", methods=["DELETE"])
 @jwt_required()
 def delete_post(post_id):
-    post = Post.query.get_or_404(post_id)
+    post = db.get_or_404(Post, post_id)
     try:
-        caller = User.query.get(int(get_jwt_identity()))
+        caller = db.session.get(User, int(get_jwt_identity()))
     except (TypeError, ValueError):
         caller = None
     if not _can_manage_org(caller, post.organization_id):
@@ -312,8 +317,11 @@ def list_posts():
     # Get sorting parameters
     sort_by, sort_order = get_sorting_params(default_sort='created_at')
 
-    # Build base query - only show active posts by default
-    query = Post.query.filter(Post.status == 'active')
+    # Build base query - only show active posts by default.
+    # Eager-load the org: to_dict() touches it per post.
+    query = Post.query.filter(Post.status == 'active').options(
+        selectinload(Post.organization)
+    )
 
     # Full-text search over title / requirements / description / category.
     # (The generic column filters below can't express `search`, so handle it here.)
@@ -358,7 +366,7 @@ def get_post_by_slug(slug):
     post = Post.query.filter(func.lower(Post.slug) == clean).first()
     if not post:
         if clean.isdigit():
-            post = Post.query.get(int(clean))
+            post = db.session.get(Post, int(clean))
     if not post:
         return jsonify({"error": "Not found"}), 404
     return get_post(post.id)
@@ -370,14 +378,14 @@ def get_post_by_slug(slug):
 # must be part of cache key to avoid serving private cached response.
 @cached("job_details", ttl=300, key_func=lambda post_id: f"{get_jwt_identity() or 'anon'}:post_{post_id}")
 def get_post(post_id):
-    post = Post.query.get_or_404(post_id)
+    post = db.get_or_404(Post, post_id)
     if post.status != "active":
         try:
             uid = get_jwt_identity()
-            caller = User.query.get(int(uid)) if uid is not None else None
+            caller = db.session.get(User, int(uid)) if uid is not None else None
         except (TypeError, ValueError):
             caller = None
-        if not _can_manage_org(caller, post.organization_id):
+        if not _can_view_org(caller, post.organization_id):
             # 404 (not 403) to avoid confirming existence of drafts.
             return jsonify({"error": "Not Found"}), 404
     return jsonify(post.to_dict())
@@ -391,15 +399,15 @@ def record_post_view(post_id):
     Kept separate from GET /posts/<id> so cached detail responses don't
     swallow view increments.
     """
-    post = Post.query.get_or_404(post_id)
+    post = db.get_or_404(Post, post_id)
     # Security: do not allow public enumeration/increment of drafts.
     if post.status != "active":
         try:
             uid = get_jwt_identity()
-            caller = User.query.get(int(uid)) if uid is not None else None
+            caller = db.session.get(User, int(uid)) if uid is not None else None
         except (TypeError, ValueError):
             caller = None
-        if not _can_manage_org(caller, post.organization_id):
+        if not _can_view_org(caller, post.organization_id):
             return jsonify({"error": "Not Found"}), 404
     try:
         Post.query.filter_by(id=post.id).update(

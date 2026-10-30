@@ -10,7 +10,7 @@ import {
   FiBarChart2,
 } from "react-icons/fi";
 import { useToast } from "../components/ui/ToastContext";
-import { getBackendUrl } from "../utils/auth";
+import { getBackendUrl, setAuthSession } from "../utils/auth";
 import OtpVerify from "../components/auth/OtpVerify";
 
 const HIGHLIGHTS = [
@@ -112,11 +112,7 @@ export default function Register() {
       }
       // registration success — if backend returned token, sign in immediately
       if (data.access_token) {
-        // Store the access token for header-based auth
-        localStorage.setItem("access_token", data.access_token);
-        // server set cookie; set local flags and role (server-verified)
-        localStorage.setItem("isAuthenticated", "true");
-        localStorage.setItem("authRole", data.user?.role || "individual");
+        setAuthSession(data.access_token, data.user);
         showToast({
           message: "Account created — signed in",
           type: "success",
@@ -142,13 +138,7 @@ export default function Register() {
   }
 
   const handleVerified = (data) => {
-    if (data.access_token) {
-      localStorage.setItem("access_token", data.access_token);
-    }
-    localStorage.setItem("isAuthenticated", "true");
-    if (data.user && data.user.role) {
-      localStorage.setItem("authRole", data.user.role);
-    }
+    setAuthSession(data.access_token, data.user);
     showToast({ message: "Email verified — welcome!", type: "success", position: "side", duration: 2400 });
     navigate("/feed", { replace: true });
   };

@@ -1,6 +1,8 @@
 from .user import User
 from .email_otp import EmailOtp
+from .refresh_token import RefreshToken
 from .organization import Organization
+from .organization_invitation import OrganizationInvitation
 from .team_member import TeamMember
 from .interview import Interview
 from .interview_analysis import InterviewAnalysis
@@ -53,11 +55,18 @@ from .payment_method import PaymentMethod
 from .profile_embedding import ProfileEmbedding
 from .job_embedding import JobEmbedding
 from .agent_embedding import AgentEmbedding
+from .scheduler_run import SchedulerRun
+from .account_deletion import AccountDeletion
+from .outbox_event import OutboxEvent
+from .ai_provider_config import AIProviderConfig
+from .plan import Plan
 
 __all__ = [
     "User",
     "EmailOtp",
+    "RefreshToken",
     "Organization",
+    "OrganizationInvitation",
     "TeamMember",
     "Interview",
     "InterviewAnalysis",
@@ -111,4 +120,9 @@ __all__ = [
     "ProfileEmbedding",
     "JobEmbedding",
     "AgentEmbedding",
+    "SchedulerRun",
+    "AccountDeletion",
+    "OutboxEvent",
+    "AIProviderConfig",
+    "Plan",
 ]
