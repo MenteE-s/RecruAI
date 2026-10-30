@@ -1384,7 +1384,7 @@ frontend/Dockerfile / Dockerfile.prod      two build paths</div>
     <div class="card pad">
       <h3 style="margin:0 0 8px;font-size:15px">Production checklist — config/ops</h3>
       <ul class="tight small">
-        <li><b>Email DNS</b> — SPF, DKIM, DMARC, deliverability test (P0-03/P0-04)</li>
+        <li><b>Email DNS</b> — SPF, DKIM, DMARC, deliverability test (P0-03/P0-04); see <a href="EMAIL_DNS.md">EMAIL_DNS.md</a></li>
         <li><b>LiveKit networking</b> — TCP/UDP/TURN, TLS/WSS, public URL (P0-01)</li>
         <li><b>DB migration</b> — snapshot + run upgrade + verify (P0-04 and others)</li>
         <li><b>TLS timer</b> — reload nginx + expiry alert (P1-09)</li>
@@ -2402,6 +2402,7 @@ proxy_read_timeout 3600s;
         <tr><td><b>Free-beta billing</b></td><td>pytest <code>test_subscription.py</code> + UI flag inspection</td><td><span class="tag green">Pass</span> upgrade returns 410 <code>billing_disabled</code>, expired trial remains expired, account unchanged; paid CTAs hidden in pricing/paywall/CVAI/billing.</td></tr>
         <tr><td><b>Self-hosted video config</b></td><td><code>docker compose config --quiet</code> for AWS (plain + <code>--profile video</code>) and VPS (with env file)</td><td><span class="tag green">Pass</span> AWS parses with video off and no LiveKit keys; profile parses with dummy keys. Render script fails closed when <code>VIDEO_ENABLED=1</code> and a key/URL is missing.</td></tr>
         <tr><td><b>Dependency audit</b></td><td><code>npm audit --omit=dev</code></td><td><span class="tag green">Pass</span> 0 production vulnerabilities (was 105: 3 critical, 81 high, 17 moderate, 4 low).</td></tr>
+        <tr><td><b>Email DNS</b></td><td>Public DNS-over-HTTPS lookup for MX/TXT/CNAME, 30 Oct 2026</td><td><span class="tag amber">Partial</span> DKIM exists at <code>resend._domainkey.menteeai.org</code> and the <code>send</code> CNAME supplies SPF/feedback MX. Root SPF and <code>_dmarc</code> are missing. Exact records and delivery test: <a href="EMAIL_DNS.md">EMAIL_DNS.md</a>.</td></tr>
         <tr><td><b>Route inventory</b></td><td>Python AST over <code>backend/</code></td><td><span class="tag blue">Info</span> 308 decorators, 19 without decorator-level auth (login, register, refresh, OTP, public profiles/posts, health, uploads, issue report).</td></tr>
         <tr><td><b>Code size</b></td><td>Line counts</td><td><span class="tag blue">Info</span> backend 37,054 lines / 221 files (excluding venv/migrations/tests); frontend 40,449 lines / 174 files (including tests); 64 models.</td></tr>
         <tr><td><b>Admin production config</b></td><td><code>VITE_API_BASE_URL=... npm run build</code>; unset-env check; JSON parse of <code>admin/vercel.json</code></td><td><span class="tag green">Pass</span> build succeeds at 296.95 kB raw / 90.51 kB gzip; missing API origin fails the prebuild; SPA rewrite and security headers validated.</td></tr>
@@ -2422,7 +2423,7 @@ proxy_read_timeout 3600s;
   <div class="grid2" style="margin-top:16px">
     <div class="callout amber">
       <b>Not verified here</b>
-      Live Vercel env vars (including the admin project), production LiveKit keys, Resend domain verification, RDS backup retention, DNS/TLS, real payment state, and production logs. Each is a Day 0–2 checklist item.
+      Live Vercel env vars (including the admin project), production LiveKit keys, Resend deliverability testing (DKIM and send-subdomain SPF are present; root SPF and DMARC are missing), RDS backup retention, DNS/TLS, real payment state, and production logs. Each is a Day 0–2 checklist item.
     </div>
     <div class="callout blue">
       <b>Reproduce</b>
