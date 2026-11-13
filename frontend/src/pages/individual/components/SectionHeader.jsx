@@ -2,17 +2,18 @@ import { FiPlus } from "react-icons/fi";
 
 export default function SectionHeader({ icon, title, onAdd }) {
   return (
-    <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-200">
-      <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-        {icon}
+    <div className="mb-4 flex items-center justify-between border-b border-line pb-3">
+      <h3 className="flex items-center gap-2 text-sm font-semibold text-ink">
+        <span className="text-gray-500">{icon}</span>
         {title}
       </h3>
       {onAdd && (
         <button
+          type="button"
           onClick={onAdd}
-          className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 font-medium"
+          className="inline-flex items-center gap-1 text-sm font-semibold text-brand-text transition-colors hover:text-brand-text"
         >
-          <FiPlus size={16} />
+          <FiPlus size={16} strokeWidth={2} />
           Add
         </button>
       )}

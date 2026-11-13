@@ -5,12 +5,12 @@ import { FiLogOut } from "react-icons/fi";
 import { getBackendUrl, clearLocalAuth } from "../../utils/auth";
 
 const VARIANT_STYLES = {
-  // Solid red button for navbars
+  // Neutral bordered button for navbars and rails
   solid:
-    "inline-flex items-center gap-1.5 px-4 py-1.5 bg-red-600 text-white text-sm font-medium hover:bg-red-700 transition-colors",
-  // Red-tinted row for the sidebar
+    "inline-flex items-center gap-1.5 rounded-xl border border-line bg-surface px-4 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-ink transition-colors",
+  // Quiet row for the sidebar
   sidebar:
-    "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium bg-red-50 text-red-700 hover:bg-red-100 transition-all duration-150",
+    "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-ink transition-all duration-150",
 };
 
 /**
@@ -58,8 +58,8 @@ export default function SignOutButton({ variant = "solid", className = "", iconO
       {confirmOpen &&
         createPortal(
           <div data-signout-dialog="true" className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
-            <div className="bg-white w-full max-w-sm border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900">Want to sign out?</h3>
+            <div className="bg-surface w-full max-w-sm rounded-xl border border-line p-6 shadow-s15 animate-popIn">
+              <h3 className="text-lg font-semibold text-ink">Want to sign out?</h3>
               <p className="text-sm text-gray-600 mt-2">
                 You'll need to sign in again to access your account.
               </p>
@@ -67,14 +67,14 @@ export default function SignOutButton({ variant = "solid", className = "", iconO
                 <button
                   onClick={doSignOut}
                   disabled={signingOut}
-                  className="flex-1 px-4 py-2.5 bg-red-600 text-white text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 rounded-xl border border-gray-900 bg-gray-900 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {signingOut ? "Signing out…" : "Yes, sign out"}
                 </button>
                 <button
                   onClick={() => setConfirmOpen(false)}
                   disabled={signingOut}
-                  className="px-5 py-2.5 bg-white border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                  className="rounded-xl border border-line bg-surface px-5 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
                 >
                   Stay
                 </button>

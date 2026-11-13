@@ -321,6 +321,17 @@ export function setAuthSession(token, user) {
 }
 
 async function fetchMeFromServer() {
+  // A stored session (refresh cookie) without an in-memory access token happens
+  // after a full page load. Refresh first so the /me request is authenticated
+  // on its first attempt — otherwise every reload fires an unauthenticated
+  // 401 /me followed by a silent refresh+retry (noisy, wasteful).
+  if (!accessToken && hasStoredSession()) {
+    const refreshed = await refreshAccessToken();
+    if (!refreshed.ok) {
+      if (refreshed.expired) clearLocalAuth();
+      return null;
+    }
+  }
   const res = await fetch(`${getBackendUrl()}/api/auth/me`, {
     method: "GET",
     credentials: "include",

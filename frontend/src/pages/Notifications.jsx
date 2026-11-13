@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import DashboardLayout from "../components/layout/DashboardLayout";
+import { AppShell, CenterBar } from "../components/layout/AppShell";
 import socketService from "../utils/socket";
 import { getBackendUrl, verifyTokenWithServer, getUploadUrl, orgPath, postPath } from "../utils/auth";
 import { formatDate } from "../utils/timezone";
@@ -192,13 +192,13 @@ export default function Notifications() {
       case "interview_scheduled":
       case "interview_cancelled":
       case "interview_passed":
-        return <FiClock className="w-4 h-4 text-blue-600" />;
+        return <FiClock className="h-4 w-4 text-brand-text" />;
       case "profile_favorited":
-        return <FiStar className="w-4 h-4 text-amber-600" />;
+        return <FiStar className="h-4 w-4 text-amber-600" />;
       case "profile_viewed":
-        return <FiEye className="w-4 h-4 text-green-600" />;
+        return <FiEye className="h-4 w-4 text-gray-500" />;
       default:
-        return <FiBell className="w-4 h-4 text-gray-500" />;
+        return <FiBell className="h-4 w-4 text-gray-500" />;
     }
   };
 
@@ -223,49 +223,46 @@ export default function Notifications() {
 
   if (loading) {
     return (
-      <DashboardLayout >
-        <div className="w-full max-w-3xl mx-auto space-y-2.5">
-          <div className="h-8 w-48 bg-gray-200 animate-pulse rounded-lg" />
+      <AppShell>
+        <CenterBar title="Notifications" />
+        <div className="w-full max-w-3xl mx-auto space-y-2.5 px-4 pb-6 pt-4">
+          <div className="h-8 w-48 animate-pulse rounded-xl bg-gray-100 dark:bg-gray-25" />
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-20 bg-white border border-gray-200 rounded-lg animate-pulse" />
+            <div key={i} className="h-20 animate-pulse rounded-xl border border-line bg-surface" />
           ))}
         </div>
-      </DashboardLayout>
+      </AppShell>
     );
   }
 
   return (
-    <DashboardLayout >
-      <div className="w-full max-w-3xl mx-auto space-y-2.5">
-        {/* Title + accurate counts */}
-        <div className="flex items-center justify-between gap-2">
-          <div>
-            <h1 className="text-base font-bold text-gray-900 tracking-tight">Notifications</h1>
-            <p className="text-[11px] text-gray-500 mt-0.5">
-              {stats.total} total · {stats.unread} unread
-              {stats.archived > 0 ? ` · ${stats.archived} archived` : ""}
-            </p>
-          </div>
-          {notifications.some((n) => !n.is_read) && (
-            <button onClick={bulkMarkAsRead} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition-colors rounded-full shrink-0">
-              <FiCheckCircle className="w-3.5 h-3.5" /> Mark all read
+    <AppShell>
+      <CenterBar
+        title="Notifications"
+        subtitle={`${stats.total} total · ${stats.unread} unread${stats.archived > 0 ? ` · ${stats.archived} archived` : ""}`}
+        actions={
+          notifications.some((n) => !n.is_read) ? (
+            <button onClick={bulkMarkAsRead} className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-brand-action px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-brand/90">
+              <FiCheckCircle className="h-3.5 w-3.5" /> Mark all read
             </button>
-          )}
-        </div>
+          ) : null
+        }
+      />
+      <div className="w-full max-w-3xl mx-auto space-y-2.5 px-4 pb-6 pt-4">
 
         {/* Search */}
         <div className="relative">
-          <FiSearch className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 w-3.5 h-3.5" />
+          <FiSearch className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 h-3.5 w-3.5" />
           <input
             type="text"
             placeholder="Search notifications…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-8 pr-8 py-1.5 bg-white border border-gray-200 rounded-lg text-xs text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-500 shadow-sm"
+            className="w-full rounded-xl border border-line bg-surface py-1.5 pl-8 pr-8 text-xs text-ink outline-none transition-colors placeholder:text-gray-500 focus:border-brand focus:ring-4 focus:ring-gray-100/50 dark:focus:ring-gray-600/50"
           />
           {search && (
             <button onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 rounded text-gray-500">
-              <FiX className="w-3.5 h-3.5" />
+              <FiX className="h-3.5 w-3.5" />
             </button>
           )}
         </div>
@@ -280,30 +277,30 @@ export default function Notifications() {
             <button
               key={p.value}
               onClick={() => handleFilterChange("read", p.value)}
-              className={`px-2.5 py-1 text-[11px] font-semibold rounded-full border transition-colors ${
+              className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-colors ${
                 filters.read === p.value
-                  ? "bg-gray-900 text-white border-gray-900"
-                  : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+                  ? "border-brand bg-brand-action text-white"
+                  : "border-line bg-surface text-gray-600 hover:bg-gray-50 dark:text-gray-500 dark:hover:bg-gray-25"
               }`}>
               {p.label}
             </button>
           ))}
           <button
             onClick={() => handleFilterChange("favorited", !filters.favorited)}
-            className={`px-2.5 py-1 text-[11px] font-semibold rounded-full border transition-colors ${
-              filters.favorited ? "bg-amber-100 text-amber-700 border-amber-200" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+            className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-colors ${
+              filters.favorited ? "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-400" : "border-line bg-surface text-gray-600 hover:bg-gray-50 dark:text-gray-500 dark:hover:bg-gray-25"
             }`}>
-            ★ Starred{filters.favorited && stats.favorited > 0 ? ` (${stats.favorited})` : ""}
+            <FiStar className="h-3 w-3" aria-hidden /> Starred{filters.favorited && stats.favorited > 0 ? ` (${stats.favorited})` : ""}
           </button>
           <button
             onClick={() => handleFilterChange("archived", !filters.archived)}
-            className={`px-2.5 py-1 text-[11px] font-semibold rounded-full border transition-colors ${
-              filters.archived ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+            className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-colors ${
+              filters.archived ? "border-brand bg-brand-action text-white" : "border-line bg-surface text-gray-600 hover:bg-gray-50 dark:text-gray-500 dark:hover:bg-gray-25"
             }`}>
             Archived
           </button>
           {hasActiveFilters && (
-            <button onClick={clearAll} className="text-[11px] font-medium text-blue-600 hover:underline px-1">
+            <button onClick={clearAll} className="px-1 text-[11px] font-medium text-brand-text hover:underline">
               Clear
             </button>
           )}
@@ -311,14 +308,14 @@ export default function Notifications() {
 
         {/* List */}
         {filteredBySearch.length === 0 ? (
-          <div className="bg-white border border-gray-200 rounded-lg p-8 text-center shadow-sm">
-            <FiInbox className="w-7 h-7 text-gray-300 mx-auto mb-2" />
-            <h3 className="text-sm font-semibold text-gray-900">No notifications</h3>
+          <div className="rounded-xl border border-line bg-surface p-8 text-center">
+            <FiInbox className="h-7 w-7 text-gray-300 mx-auto mb-2" />
+            <h3 className="text-sm font-semibold text-ink">No notifications</h3>
             <p className="text-xs text-gray-500 mt-0.5">
               {hasActiveFilters ? "Nothing matches your filters." : "You're all caught up!"}
             </p>
             {hasActiveFilters && (
-              <button onClick={clearAll} className="mt-3 px-3 py-1.5 bg-gray-900 text-white text-xs font-medium hover:bg-black rounded-full transition-colors">
+              <button onClick={clearAll} className="mt-3 rounded-full bg-brand-action px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-brand/90">
                 Clear filters
               </button>
             )}
@@ -335,51 +332,48 @@ export default function Notifications() {
                 const link = getNotificationLink(n);
                 if (link) navigate(link);
               }}
-              className={`bg-white border rounded-lg shadow-sm p-3 flex gap-2.5 cursor-pointer hover:shadow transition-shadow ${
-                !n.is_read ? "border-blue-200" : "border-gray-200"
+              className={`flex cursor-pointer gap-2.5 rounded-xl border bg-surface p-3 transition-shadow hover:shadow-s10 ${
+                !n.is_read ? "border-brand/30" : "border-line"
               }`}>
               {org?.profile_image ? (
                 <img
                   src={getUploadUrl(org.profile_image)}
                   alt={org.name}
-                  className="w-10 h-10 rounded-md object-cover border border-gray-200 shrink-0"
+                  className="h-10 w-10 rounded-xl object-cover border border-line shrink-0"
                 />
               ) : org ? (
-                <div className="w-10 h-10 rounded-md bg-gray-900 text-white flex items-center justify-center text-sm font-bold shrink-0">
+                <div className="h-10 w-10 rounded-xl bg-gray-900 text-white flex items-center justify-center text-sm font-bold shrink-0">
                   {(org.name || "?").charAt(0).toUpperCase()}
                 </div>
               ) : broadcast ? (
                 <img
                   src="/mentee-logo.png"
                   alt="RecruAI"
-                  className="w-10 h-10 rounded-md object-contain border border-blue-100 bg-blue-50 p-1 shrink-0"
+                  className="h-10 w-10 rounded-xl object-contain border border-line bg-gray-50 p-1 shrink-0 dark:bg-gray-25"
                 />
               ) : (
-                <div className={`w-10 h-10 rounded-md flex items-center justify-center border shrink-0 ${!n.is_read ? "bg-blue-50 border-blue-200" : "bg-gray-50 border-gray-200"}`}>
+                <div className={`h-10 w-10 rounded-xl border flex items-center justify-center shrink-0 ${!n.is_read ? "border-brand/20 bg-brand/10" : "border-line bg-gray-50 dark:bg-gray-25"}`}>
                   {getNotificationIcon(n.type)}
                 </div>
               )}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
-                  {!n.is_read && <span className="w-1.5 h-1.5 rounded-full bg-blue-600 shrink-0" />}
-                  <h3 className="text-[13px] font-semibold text-gray-900 leading-tight truncate">{n.title}</h3>
-                  {n.is_favorited && <FiStar className="w-3 h-3 text-amber-500 fill-amber-500 shrink-0" />}
+                  {!n.is_read && <span className="h-1.5 w-1.5 rounded-full bg-brand shrink-0" />}
+                  <h3 className="text-[13px] font-semibold text-ink leading-tight truncate">{n.title}</h3>
+                  {n.is_favorited && <FiStar className="h-3 w-3 text-amber-500 fill-amber-500 shrink-0" />}
                 </div>
                 <p className="text-xs text-gray-600 leading-snug line-clamp-2 mt-0.5">{n.message}</p>
                 <div className="flex items-center gap-2 mt-1 flex-wrap">
-                  <span className="text-[11px] text-gray-400">{formatDate(n.created_at)}</span>
+                  <span className="text-[11px] text-gray-500 font-mono tabular-nums">{formatDate(n.created_at)}</span>
                   {org && (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); if (org.id) navigate(orgPath(org)); }}
-                      className="text-[11px] font-medium text-gray-500 hover:text-blue-600 hover:underline truncate"
-                    >
+                    <span className="truncate text-[11px] font-medium text-gray-500">
                       {org.name}
-                    </button>
+                    </span>
                   )}
                   {post && (
                     <button
                       onClick={(e) => { e.stopPropagation(); navigate(postPath(post)); }}
-                      className="text-[11px] font-semibold text-blue-600 hover:underline"
+                      className="text-[11px] font-semibold text-brand-text hover:underline"
                     >
                       View job →
                     </button>
@@ -388,25 +382,25 @@ export default function Notifications() {
               </div>
               <div className="flex md:flex-col flex-row items-center gap-0.5 shrink-0">
                 {!n.is_read && (
-                  <button onClick={(e) => { e.stopPropagation(); markAsRead(n.id); }} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md" title="Mark as read">
-                    <FiEye className="w-3.5 h-3.5" />
+                  <button onClick={(e) => { e.stopPropagation(); markAsRead(n.id); }} className="rounded-lg p-1.5 text-gray-500 hover:bg-brand/10 hover:text-brand-text" title="Mark as read">
+                    <FiEye className="h-3.5 w-3.5" />
                   </button>
                 )}
                 <button
                   onClick={(e) => { e.stopPropagation(); favoriteNotification(n.id); }}
-                  className={`p-1.5 rounded-md ${n.is_favorited ? "text-amber-500 hover:bg-amber-50" : "text-gray-300 hover:text-amber-500 hover:bg-amber-50"}`}
+                  className={`rounded-lg p-1.5 ${n.is_favorited ? "text-amber-500 hover:bg-amber-50" : "text-gray-300 hover:text-amber-500 hover:bg-amber-50"}`}
                   title="Star"
                 >
-                  <FiStar className={`w-3.5 h-3.5 ${n.is_favorited ? "fill-amber-500" : ""}`} />
+                  <FiStar className={`h-3.5 w-3.5 ${n.is_favorited ? "fill-amber-500" : ""}`} />
                 </button>
                 <button
                   onClick={(e) => { e.stopPropagation(); filters.archived ? unarchiveNotification(n.id) : archiveNotification(n.id); }}
-                  className="p-1.5 text-gray-300 hover:text-gray-600 hover:bg-gray-100 rounded-md"
+                  className="rounded-lg p-1.5 text-gray-300 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-25"
                   title={filters.archived ? "Unarchive" : "Archive"}>
-                  {filters.archived ? <FiInbox className="w-3.5 h-3.5" /> : <FiArchive className="w-3.5 h-3.5" />}
+                  {filters.archived ? <FiInbox className="h-3.5 w-3.5" /> : <FiArchive className="h-3.5 w-3.5" />}
                 </button>
-                <button onClick={(e) => { e.stopPropagation(); deleteNotification(n.id); }} className="p-1.5 text-gray-300 hover:text-red-600 hover:bg-red-50 rounded-md" title="Delete">
-                  <FiTrash2 className="w-3.5 h-3.5" />
+                <button onClick={(e) => { e.stopPropagation(); deleteNotification(n.id); }} className="rounded-lg p-1.5 text-gray-300 hover:bg-red-50 hover:text-red-600" title="Delete">
+                  <FiTrash2 className="h-3.5 w-3.5" />
                 </button>
               </div>
             </div>
@@ -417,18 +411,18 @@ export default function Notifications() {
         {/* Pagination */}
         {totalPages > 1 && (
           <div className="flex items-center justify-between pt-1">
-            <span className="text-[11px] text-gray-500">Page {currentPage} of {totalPages}</span>
+            <span className="text-[11px] text-gray-500">Page <span className="font-mono tabular-nums">{currentPage}</span> of <span className="font-mono tabular-nums">{totalPages}</span></span>
             <div className="flex items-center gap-1.5">
-              <button onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-3 py-1.5 bg-white border border-gray-200 rounded-md text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+              <button onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1} className="rounded-xl border border-line bg-surface px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:text-gray-600 dark:hover:bg-gray-25 disabled:opacity-50 disabled:cursor-not-allowed">
                 Prev
               </button>
-              <button onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="px-3 py-1.5 bg-white border border-gray-200 rounded-md text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+              <button onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="rounded-xl border border-line bg-surface px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:text-gray-600 dark:hover:bg-gray-25 disabled:opacity-50 disabled:cursor-not-allowed">
                 Next
               </button>
             </div>
           </div>
         )}
       </div>
-    </DashboardLayout>
+    </AppShell>
   );
 }

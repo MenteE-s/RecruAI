@@ -12,8 +12,8 @@ import RecruAINavbar from '../components/product/RecruAINavbar';
 
 const RecruAILanding = () => {
   return (
-    <div className="min-h-screen">
-        <RecruAINavbar />
+    <div className="min-h-screen bg-surface text-ink transition-colors overflow-x-hidden page-transition">
+      <RecruAINavbar />
       <Hero />
       <Features />
       <HowItWorks />

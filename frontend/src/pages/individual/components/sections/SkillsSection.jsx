@@ -1,8 +1,10 @@
+import { motion, useReducedMotion } from "motion/react";
 import { FiTarget, FiX } from "react-icons/fi";
-import Card from "../../../../components/ui/Card";
+import { ProfileSection as Card } from "../../../../components/profile/ProfileSection";
 import SectionHeader from "../SectionHeader";
 
 export default function SkillsSection({ skills, onAdd, onRemove }) {
+  const reduce = useReducedMotion();
   return (
     <Card>
       <SectionHeader
@@ -15,15 +17,24 @@ export default function SkillsSection({ skills, onAdd, onRemove }) {
       ) : (
         <div className="flex flex-wrap gap-2">
           {(skills || []).map((skill, index) => (
-            <span
+            <motion.span
               key={skill.id || index}
-              className="inline-flex items-center px-3 py-1.5 rounded-full text-sm bg-blue-50 text-blue-700 border border-blue-200"
+              layout={!reduce}
+              initial={reduce ? false : { opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.18, delay: Math.min(index * 0.02, 0.2) }}
+              whileHover={reduce ? undefined : { y: -1, borderColor: "rgb(var(--brand) / 0.45)" }}
+              className="inline-flex items-center rounded-full border border-line bg-gray-50 px-3 py-1.5 text-sm text-gray-700 transition-colors dark:bg-gray-25 dark:text-gray-200"
             >
               {skill.name}
-              <button onClick={() => onRemove("skills", index)} className="ml-2 text-blue-400 hover:text-blue-600">
+              <button
+                onClick={() => onRemove("skills", index)}
+                aria-label={`Remove ${skill.name}`}
+                className="ml-2 text-gray-500 transition-colors hover:text-red-600"
+              >
                 <FiX size={12} />
               </button>
-            </span>
+            </motion.span>
           ))}
         </div>
       )}

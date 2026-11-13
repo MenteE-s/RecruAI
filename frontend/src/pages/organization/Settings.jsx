@@ -1,31 +1,32 @@
+import { OrgAppShell } from "../../components/layout/OrgAppShell";
 import { useState, useEffect } from "react";
-import DashboardLayout from "../../components/layout/DashboardLayout";
 import { verifyTokenWithServer, getBackendUrl, getAuthHeaders } from "../../utils/auth";
 import TimezoneSelector from "../../components/ui/TimezoneSelector";
 import PaymentMethods from "../../components/ui/PaymentMethods";
 import { BILLING_BETA_MESSAGE, BILLING_ENABLED } from "../../utils/billing";
 import OtpVerify from "../../components/auth/OtpVerify";
+import { ProfileSection } from "../../components/profile/ProfileSection";
+import { Button } from "../../components/ui/Button";
 import {
-  FiSettings,
-  FiCreditCard,
-  FiClock,
-  FiAlertTriangle,
-  FiCheckCircle,
-  FiXCircle,
-  FiBriefcase,
-  FiUsers,
-  FiGlobe,
-  FiShield,
-  FiTrash2,
-  FiArrowRight,
-  FiPlus,
-  FiTarget,
-  FiMail,
-  FiEdit2,
-} from "react-icons/fi";
+  Settings,
+  CreditCard,
+  Clock,
+  AlertTriangle,
+  CheckCircle,
+  XCircle,
+  Briefcase,
+  Users,
+  Globe,
+  Shield,
+  Trash2,
+  ArrowRight,
+  Plus,
+  Target,
+  Mail,
+  Edit2,
+} from "lucide-react";
 
 export default function OrganizationSettings() {
-
   const [user, setUser] = useState(null);
   const [organization, setOrganization] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -144,9 +145,9 @@ export default function OrganizationSettings() {
   };
 
   const roleBadge = (role) => {
-    if (role === "Admin") return "bg-blue-50 text-blue-700 border-blue-200";
-    if (role === "Manager") return "bg-green-50 text-green-700 border-green-200";
-    return "bg-gray-50 text-gray-600 border-gray-200";
+    if (role === "Admin") return "bg-gray-900 text-white";
+    if (role === "Manager") return "bg-brand/10 text-brand-text border-brand/20";
+    return "bg-gray-50 text-gray-600 border-line dark:bg-gray-25";
   };
 
   const [editingMemberId, setEditingMemberId] = useState(null);
@@ -281,104 +282,107 @@ export default function OrganizationSettings() {
 
   const orgName = organization?.name || user?.organization_name || "Organization";
 
+  const fieldCls = "w-full rounded-xl border border-line bg-surface px-3 py-2.5 text-sm text-ink outline-none transition-colors placeholder:text-gray-500 focus:border-brand focus:ring-4 focus:ring-[#E1E4E8]/50 shadow-s5";
+  const msgCls = (type) =>
+    type === "success"
+      ? "border-brand/20 bg-brand/10 text-brand-text"
+      : "border-red-200 bg-red-50 text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-400";
+
   return (
-    <DashboardLayout >
-      {/* Hero */}
-      <div className="relative overflow-hidden rounded-2xl bg-gray-900 text-white mb-6">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-transparent to-indigo-600/20" />
-        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3" />
-        <div className="relative p-6 md:p-8">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-            <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 border border-white/20 text-xs font-medium tracking-wide mb-3">
-                <FiSettings className="w-3.5 h-3.5" />
-                ORGANIZATION SETTINGS
+    <OrgAppShell>
+      {/* Header */}
+      <div className="px-4 pb-4 pt-4">
+        <div className="rounded-xl border border-line bg-surface p-5 shadow-s5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="min-w-0">
+              <div className="inline-flex items-center gap-2 rounded-full border border-line bg-gray-50 px-3 py-1 text-xs font-medium text-gray-600 dark:bg-gray-25">
+                <Settings className="h-3.5 w-3.5" strokeWidth={1.75} /> Organization settings
               </div>
-              <h1 className="text-3xl md:text-[2rem] font-bold leading-tight">{orgName}</h1>
-              <p className="text-gray-300 mt-2 max-w-xl text-sm md:text-[15px]">Manage your organization profile, plan, team, and preferences.</p>
+              <h1 className="mt-2 text-[20px] font-semibold leading-7 text-ink">{orgName}</h1>
+              <p className="mt-0.5 text-[13px] text-gray-500">Manage your organization profile, plan, team, and preferences.</p>
             </div>
-            <div className="grid grid-cols-3 gap-3 lg:w-[380px]">
-              <div className={`p-4 text-center border backdrop-blur ${isPaid ? "bg-green-500/20 border-green-400/20" : "bg-white/10 border-white/10"}`}>
-                <p className={`text-lg font-bold ${isPaid ? "text-green-300" : "text-white"}`}>{isPaid ? "Pro" : isTrial ? "Trial" : "Free"}</p>
-                <p className={`text-xs mt-1 ${isPaid ? "text-green-200" : "text-gray-300"}`}>Plan</p>
+            <div className="grid grid-cols-3 gap-3">
+              <div className={`rounded-xl border p-3.5 text-center shadow-s5 ${isPaid ? "border-brand/20 bg-brand/10" : "border-line bg-gray-50 dark:bg-gray-25"}`}>
+                <p className={`text-lg font-bold ${isPaid ? "text-brand-text" : "text-ink"}`}>{isPaid ? "Pro" : isTrial ? "Trial" : "Free"}</p>
+                <p className="mt-0.5 text-[11px] font-medium text-gray-500">Plan</p>
               </div>
-              <div className="bg-white/10 backdrop-blur border border-white/10 p-4 text-center">
-                <p className="text-lg font-bold">{status?.tokens_used?.toLocaleString() || "0"}</p>
-                <p className="text-xs text-gray-300 mt-1">Tokens</p>
+              <div className="rounded-xl border border-line bg-gray-50 p-3.5 text-center dark:bg-gray-25 shadow-s5">
+                <p className="text-lg font-bold font-mono tabular-nums text-ink">{status?.tokens_used?.toLocaleString() || "0"}</p>
+                <p className="mt-0.5 text-[11px] font-medium text-gray-500">Tokens</p>
               </div>
-              <div className="bg-white/10 backdrop-blur border border-white/10 p-4 text-center">
-                <p className="text-lg font-bold">{isTrial && trialEnd ? trialEnd.split("/")[0] : isPaid ? "∞" : "—"}</p>
-                <p className="text-xs text-gray-300 mt-1">{isTrial ? "Trial ends" : "Members"}</p>
+              <div className="rounded-xl border border-line bg-gray-50 p-3.5 text-center dark:bg-gray-25 shadow-s5">
+                <p className="text-lg font-bold font-mono tabular-nums text-ink">{isTrial && trialEnd ? trialEnd.split("/")[0] : isPaid ? "∞" : "—"}</p>
+                <p className="mt-0.5 text-[11px] font-medium text-gray-500">{isTrial ? "Trial ends" : "Members"}</p>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-4 px-4 pb-4">
         {/* Email details */}
-        <div className="bg-white border border-gray-200">
-          <div className="px-6 py-4 border-b border-gray-100">
-            <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2"><FiMail className="w-4 h-4 text-gray-500" /> Email details</h3>
-            <p className="text-sm text-gray-500 mt-1">Your login email, plus the contact email candidates see on your organization profile.</p>
+        <ProfileSection>
+          <div className="border-b border-line pb-4">
+            <h2 className="flex items-center gap-2 text-sm font-semibold text-ink"><Mail className="h-4 w-4 text-gray-500" strokeWidth={1.75} /> Email details</h2>
+            <p className="mt-0.5 text-sm text-gray-500">Your login email, plus the contact email candidates see on your organization profile.</p>
           </div>
-          <form onSubmit={handleEmailSave} className="p-6 space-y-4">
+          <form onSubmit={handleEmailSave} className="space-y-4 pt-4">
             {emailMsg && (
-              <div className={`px-4 py-3 text-sm border ${emailMsg.type === "success" ? "bg-green-50 border-green-200 text-green-700" : "bg-red-50 border-red-200 text-red-700"}`}>
+              <div className={`rounded-xl border px-4 py-3 text-sm ${msgCls(emailMsg.type)}`}>
                 {emailMsg.text}
               </div>
             )}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1.5">Account email</label>
+                <label className="mb-1.5 block text-xs font-medium text-gray-600 dark:text-gray-500">Account email</label>
                 <div className="relative">
-                  <FiMail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500 pointer-events-none" strokeWidth={1.75} />
                   <input
                     type="email"
                     required
                     value={emailForm.accountEmail}
                     onChange={(e) => { setEmailForm((p) => ({ ...p, accountEmail: e.target.value })); setPendingEmail(null); }}
                     placeholder="you@company.com"
-                    className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white"
+                    className={`${fieldCls} pl-9`}
                   />
                 </div>
-                <p className="text-xs text-gray-400 mt-1">Used for login and account notifications. Changing it sends a verification code to the new address first.</p>
+                <p className="mt-1 text-xs text-gray-500">Used for login and account notifications. Changing it sends a verification code to the new address first.</p>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1.5">Organization contact email</label>
+                <label className="mb-1.5 block text-xs font-medium text-gray-600 dark:text-gray-500">Organization contact email</label>
                 <div className="relative">
-                  <FiMail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500 pointer-events-none" strokeWidth={1.75} />
                   <input
                     type="email"
                     value={emailForm.contactEmail}
                     onChange={(e) => setEmailForm((p) => ({ ...p, contactEmail: e.target.value }))}
                     placeholder="careers@company.com"
-                    className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white"
+                    className={`${fieldCls} pl-9`}
                   />
                 </div>
-                <p className="text-xs text-gray-400 mt-1">Shown to candidates on your public profile.</p>
+                <p className="mt-1 text-xs text-gray-500">Shown to candidates on your public profile.</p>
               </div>
               <div className="md:col-span-2">
-                <label className="block text-xs font-medium text-gray-600 mb-1.5">Contact name</label>
+                <label className="mb-1.5 block text-xs font-medium text-gray-600 dark:text-gray-500">Contact name</label>
                 <input
                   type="text"
                   value={emailForm.contactName}
                   onChange={(e) => setEmailForm((p) => ({ ...p, contactName: e.target.value }))}
                   placeholder="Hiring team"
-                  className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white"
+                  className={fieldCls}
                 />
               </div>
             </div>
-            <button type="submit" disabled={emailSaving} className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50">
+            <Button variant="dark" type="submit" disabled={emailSaving}>
               {emailSaving ? "Saving…" : "Save email details"}
-            </button>
+            </Button>
             {pendingEmail && (
-              <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+              <div className="rounded-xl border border-line bg-gray-50 p-4 dark:bg-gray-25 shadow-s5">
                 <OtpVerify
                   email={user?.email}
                   displayEmail={pendingEmail}
                   headline="Confirm your new email"
-                  subline={<>Enter the 6-digit code sent to <span className="font-semibold text-neutral-900">{pendingEmail}</span>. Your current address keeps working until then.</>}
+                  subline={<>Enter the 6-digit code sent to <span className="font-semibold text-ink">{pendingEmail}</span>. Your current address keeps working until then.</>}
                   verifyPath="/api/auth/email/change-verify"
                   requestPath="/api/auth/email/change-request"
                   getVerifyBody={(code) => ({ new_email: pendingEmail, code })}
@@ -389,44 +393,44 @@ export default function OrganizationSettings() {
               </div>
             )}
           </form>
-        </div>
+        </ProfileSection>
 
         {/* Organization Profile */}
-        <div className="bg-white border border-gray-200">
-          <div className="px-6 py-4 border-b border-gray-100">
-            <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2"><FiBriefcase className="w-4 h-4 text-gray-500" /> Organization profile</h3>
-            <p className="text-sm text-gray-500 mt-1">Update your company details visible to candidates.</p>
+        <ProfileSection>
+          <div className="border-b border-line pb-4">
+            <h2 className="flex items-center gap-2 text-sm font-semibold text-ink"><Briefcase className="h-4 w-4 text-gray-500" strokeWidth={1.75} /> Organization profile</h2>
+            <p className="mt-0.5 text-sm text-gray-500">Update your company details visible to candidates.</p>
           </div>
           {loading ? (
-            <div className="p-6 animate-pulse space-y-3">
-              <div className="h-10 bg-gray-100" />
-              <div className="h-20 bg-gray-100" />
+            <div className="space-y-3 pt-4">
+              <div className="h-10 animate-pulse rounded-xl border border-line bg-surface" />
+              <div className="h-20 animate-pulse rounded-xl border border-line bg-surface" />
             </div>
           ) : organization ? (
-            <form onSubmit={handleProfileUpdate} className="p-6 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <form onSubmit={handleProfileUpdate} className="space-y-4 pt-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1.5">Company size</label>
-                  <input type="text" value={organization.company_size || ""} onChange={(e) => setOrganization({ ...organization, company_size: e.target.value })} placeholder="e.g. 11-50, 51-200" className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white" />
+                  <label className="mb-1.5 block text-xs font-medium text-gray-600 dark:text-gray-500">Company size</label>
+                  <input type="text" value={organization.company_size || ""} onChange={(e) => setOrganization({ ...organization, company_size: e.target.value })} placeholder="e.g. 11-50, 51-200" className={fieldCls} />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1.5">Industry</label>
+                  <label className="mb-1.5 block text-xs font-medium text-gray-600 dark:text-gray-500">Industry</label>
                   <div className="relative">
-                    <FiGlobe className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                    <input type="text" value={organization.industry || ""} onChange={(e) => setOrganization({ ...organization, industry: e.target.value })} placeholder="e.g. Technology, Healthcare" className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white" />
+                    <Globe className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500 pointer-events-none" strokeWidth={1.75} />
+                    <input type="text" value={organization.industry || ""} onChange={(e) => setOrganization({ ...organization, industry: e.target.value })} placeholder="e.g. Technology, Healthcare" className={`${fieldCls} pl-9`} />
                   </div>
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1.5">Mission</label>
-                <textarea value={organization.mission || ""} onChange={(e) => setOrganization({ ...organization, mission: e.target.value })} rows={3} placeholder="What drives your organization?" className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white resize-none" />
+                <label className="mb-1.5 block text-xs font-medium text-gray-600 dark:text-gray-500">Mission</label>
+                <textarea value={organization.mission || ""} onChange={(e) => setOrganization({ ...organization, mission: e.target.value })} rows={3} placeholder="What drives your organization?" className={`${fieldCls} resize-none`} />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1.5">Vision</label>
-                <textarea value={organization.vision || ""} onChange={(e) => setOrganization({ ...organization, vision: e.target.value })} rows={3} placeholder="Where are you headed?" className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white resize-none" />
+                <label className="mb-1.5 block text-xs font-medium text-gray-600 dark:text-gray-500">Vision</label>
+                <textarea value={organization.vision || ""} onChange={(e) => setOrganization({ ...organization, vision: e.target.value })} rows={3} placeholder="Where are you headed?" className={`${fieldCls} resize-none`} />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1.5">Social media links (JSON array)</label>
+                <label className="mb-1.5 block text-xs font-medium text-gray-600 dark:text-gray-500">Social media links (JSON array)</label>
                 <textarea
                   value={JSON.stringify(organization.social_media_links || [], null, 2)}
                   onChange={(e) => {
@@ -436,137 +440,148 @@ export default function OrganizationSettings() {
                     } catch {}
                   }}
                   rows={3}
-                  className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 text-sm font-mono focus:outline-none focus:border-blue-500 focus:bg-white resize-none"
+                  className={`${fieldCls} resize-none font-mono text-xs`}
                   placeholder='[{"platform": "LinkedIn", "url": "https://linkedin.com/company/..."}]'
                 />
               </div>
-              <button type="submit" disabled={saving} className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50">
+              <Button variant="dark" type="submit" disabled={saving}>
                 {saving ? "Saving…" : "Save profile"}
-              </button>
+              </Button>
             </form>
           ) : (
-            <div className="p-6 text-sm text-gray-500">No organization data available.</div>
+            <div className="pt-4 text-sm text-gray-500">No organization data available.</div>
           )}
-        </div>
+        </ProfileSection>
 
         {/* Current Plan */}
-        <div className="bg-white border border-gray-200 p-6">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <ProfileSection>
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2"><FiTarget className="w-4 h-4 text-gray-500" /> Current plan</h3>
-              <p className="text-2xl font-bold text-gray-900 mt-2 flex items-center gap-2 capitalize">
-                {isPaid ? "Pro" : isTrial ? "Trial" : "Free"} {isPaid && <span className="text-xs bg-green-600 text-white px-2 py-0.5">ACTIVE</span>}
+              <h2 className="flex items-center gap-2 text-sm font-semibold text-ink"><Target className="h-4 w-4 text-gray-500" strokeWidth={1.75} /> Current plan</h2>
+              <p className="mt-2 flex items-center gap-2 text-2xl font-bold capitalize text-ink">
+                {isPaid ? "Pro" : isTrial ? "Trial" : "Free"} {isPaid && <span className="rounded-full bg-brand-action px-2 py-0.5 text-xs font-semibold text-white">Active</span>}
               </p>
-              <p className="text-sm text-gray-500 mt-1 flex items-center gap-1.5"><span className="inline-flex items-center gap-1 text-xs bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5">🪙 Tokens: {status?.tokens_used?.toLocaleString() || "0"}</span> {isPaid ? "Full access to advanced hiring tools" : isTrial ? `Trial — ${status?.features_accessible?.includes("all") ? "full features" : "limited features"}` : "Limited for small teams"}</p>
-              {isTrial && trialEnd && <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 inline-flex items-center gap-1.5 px-2.5 py-1 mt-2"><FiClock className="w-3.5 h-3.5" /> Trial expires: {trialEnd}</p>}
+              <p className="mt-1 flex flex-wrap items-center gap-1.5 text-sm text-gray-500">
+                <span className="inline-flex items-center gap-1 rounded-full border border-line bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-600 dark:bg-gray-25">Tokens: <span className="font-mono tabular-nums">{status?.tokens_used?.toLocaleString() || "0"}</span></span>
+                {isPaid ? "Full access to advanced hiring tools" : isTrial ? `Trial — ${status?.features_accessible?.includes("all") ? "full features" : "limited features"}` : "Limited for small teams"}
+              </p>
+              {isTrial && trialEnd && (
+                <p className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-400">
+                  <Clock className="h-3.5 w-3.5" strokeWidth={1.75} /> Trial expires: <span className="font-mono tabular-nums">{trialEnd}</span>
+                </p>
+              )}
             </div>
             {!isPaid && BILLING_ENABLED && (
-              <button className="px-6 py-3 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors">
-                Upgrade to Pro <FiArrowRight className="w-4 h-4 inline ml-1" />
-              </button>
+              <Button variant="primary" size="lg" className="shrink-0">
+                Upgrade to Pro <ArrowRight className="h-4 w-4" strokeWidth={1.75} />
+              </Button>
             )}
             {!isPaid && !BILLING_ENABLED && (
-              <span className="text-xs text-amber-700 bg-amber-50 border border-amber-200 px-3 py-2">
+              <span className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-400 shadow-s5">
                 Paid upgrades are closed during the beta.
               </span>
             )}
           </div>
-        </div>
+        </ProfileSection>
 
         {/* Plan Comparison */}
-        <div className="bg-white border border-gray-200 p-6">
-          <h3 className="text-sm font-semibold text-gray-900">Available plans</h3>
-          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className={`border p-5 ${!isPaid ? "border-amber-400 bg-amber-50/50" : "border-gray-200 bg-white"}`}>
-              <h4 className="text-sm font-semibold text-gray-900">Trial</h4>
-              <p className="text-2xl font-bold text-gray-900 mt-2">Free</p>
-              <ul className="mt-3 space-y-1.5 text-sm text-gray-600"><li className="flex gap-2"><FiCheckCircle className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" /> Up to 5 team members</li><li className="flex gap-2"><FiCheckCircle className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" /> Basic job posting</li><li className="flex gap-2"><FiCheckCircle className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" /> Candidate tracking</li><li className="flex gap-2"><FiXCircle className="w-4 h-4 text-gray-300 shrink-0 mt-0.5" /> Limited analytics</li></ul>
-              {!isPaid && <span className="inline-flex mt-3 text-xs bg-amber-500 text-white px-2 py-1 font-medium">Current</span>}
+        <ProfileSection>
+          <h2 className="text-sm font-semibold text-ink">Available plans</h2>
+          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className={`rounded-xl border p-5 shadow-s5 ${!isPaid ? "border-amber-300 bg-amber-50/50 dark:border-amber-500/40 dark:bg-amber-500/10" : "border-line bg-surface"}`}>
+              <h3 className="text-sm font-semibold text-ink">Trial</h3>
+              <p className="mt-2 text-2xl font-bold text-ink">Free</p>
+              <ul className="mt-3 space-y-1.5 text-sm text-gray-600 dark:text-gray-500"><li className="flex gap-2"><CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-gray-500" strokeWidth={1.75} /> Up to 5 team members</li><li className="flex gap-2"><CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-gray-500" strokeWidth={1.75} /> Basic job posting</li><li className="flex gap-2"><CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-gray-500" strokeWidth={1.75} /> Candidate tracking</li><li className="flex gap-2"><XCircle className="mt-0.5 h-4 w-4 shrink-0 text-gray-300 dark:text-gray-600" strokeWidth={1.75} /> Limited analytics</li></ul>
+              {!isPaid && <span className="mt-3 inline-flex rounded-full bg-amber-100 text-amber-800 px-2.5 py-1 text-xs font-medium dark:bg-amber-500/20 dark:text-amber-400 shadow-s5">Current</span>}
             </div>
-            <div className={`border p-5 ${isPaid ? "border-green-500 bg-green-50/50" : "border-gray-200 bg-white"}`}>
-              <h4 className="text-sm font-semibold text-gray-900 flex items-center gap-2">Pro {isPaid && <span className="text-xs bg-green-600 text-white px-2 py-0.5">ACTIVE</span>}</h4>
-              <p className="text-2xl font-bold text-gray-900 mt-2">
+            <div className={`rounded-xl border p-5 shadow-s5 ${isPaid ? "border-brand/30 bg-brand/5" : "border-line bg-surface"}`}>
+              <h3 className="flex items-center gap-2 text-sm font-semibold text-ink">Pro {isPaid && <span className="rounded-full bg-brand-action px-2 py-0.5 text-xs font-semibold text-white">Active</span>}</h3>
+              <p className="mt-2 text-2xl font-bold text-ink">
                 {BILLING_ENABLED ? <>$29.99<span className="text-sm font-normal text-gray-500">/month</span></> : "Included during beta"}
               </p>
-              <ul className="mt-3 space-y-1.5 text-sm text-gray-600"><li className="flex gap-2"><FiCheckCircle className="w-4 h-4 text-green-600 shrink-0 mt-0.5" /> Unlimited team & AI matching</li><li className="flex gap-2"><FiCheckCircle className="w-4 h-4 text-green-600 shrink-0 mt-0.5" /> Advanced posting & full analytics</li><li className="flex gap-2"><FiCheckCircle className="w-4 h-4 text-green-600 shrink-0 mt-0.5" /> Integrations & API</li></ul>
+              <ul className="mt-3 space-y-1.5 text-sm text-gray-600 dark:text-gray-500"><li className="flex gap-2"><CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-brand-text" strokeWidth={1.75} /> Unlimited team &amp; AI matching</li><li className="flex gap-2"><CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-brand-text" strokeWidth={1.75} /> Advanced posting &amp; full analytics</li><li className="flex gap-2"><CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-brand-text" strokeWidth={1.75} /> Integrations &amp; API</li></ul>
               {isPaid ? (
-                <span className="inline-flex mt-3 text-xs bg-green-600 text-white px-3 py-1.5 font-medium">Current plan</span>
+                <span className="mt-3 inline-flex rounded-full bg-brand-action px-3 py-1.5 text-xs font-medium text-white shadow-s5">Current plan</span>
               ) : BILLING_ENABLED ? (
-                <button className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700">
-                  Upgrade now <FiArrowRight className="w-4 h-4" />
-                </button>
+                <Button variant="primary" size="sm" className="mt-3">
+                  Upgrade now <ArrowRight className="h-4 w-4" strokeWidth={1.75} />
+                </Button>
               ) : (
                 <span className="mt-3 inline-flex text-xs text-gray-500">Paid upgrades are closed during the beta.</span>
               )}
             </div>
           </div>
-        </div>
+        </ProfileSection>
 
         {/* Team */}
-        <div className="bg-white border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2"><FiUsers className="w-4 h-4 text-gray-500" /> Team management</h3>
-            <span className="text-xs text-gray-500">{teamMembers.length} {teamMembers.length === 1 ? "member" : "members"}</span>
+        <ProfileSection>
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="flex items-center gap-2 text-sm font-semibold text-ink"><Users className="h-4 w-4 text-gray-500" strokeWidth={1.75} /> Team management</h2>
+            <span className="text-xs font-mono tabular-nums text-gray-500">{teamMembers.length} {teamMembers.length === 1 ? "member" : "members"}</span>
           </div>
           {teamMsg && (
-            <div className={`mt-4 px-4 py-3 text-sm border ${teamMsg.type === "success" ? "bg-green-50 border-green-200 text-green-700" : "bg-red-50 border-red-200 text-red-700"}`}>
+            <div className={`mt-4 rounded-xl border px-4 py-3 text-sm ${msgCls(teamMsg.type)}`}>
               {teamMsg.text}
             </div>
           )}
           <div className="mt-4 space-y-2">
             {teamLoading ? (
-              <div className="flex justify-center py-6"><div className="animate-spin h-6 w-6 border-2 border-gray-200 border-t-blue-600 rounded-full" /></div>
+              <div className="flex justify-center py-6">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-line border-t-brand" />
+              </div>
             ) : teamMembers.length === 0 ? (
-              <div className="text-center py-6 border border-dashed border-gray-200 rounded-lg">
-                <FiUsers className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+              <div className="rounded-xl border border-dashed border-line py-6 text-center shadow-s5">
+                <Users className="mx-auto mb-2 h-8 w-8 text-gray-300" strokeWidth={1.75} />
                 <p className="text-sm text-gray-500">No team members yet</p>
-                <p className="text-xs text-gray-400 mt-1">Invite your first teammate below</p>
+                <p className="mt-1 text-xs text-gray-500">Invite your first teammate below</p>
               </div>
             ) : (
               teamMembers.map((member) => {
                 const isSelf = user && member.user_id === user.id;
                 const isEditing = editingMemberId === member.id;
                 return (
-                  <div key={member.id} className="flex items-center justify-between gap-3 p-4 border border-gray-200 hover:bg-gray-50">
+                  <div key={member.id} className="flex flex-col gap-3 rounded-xl border border-line bg-surface p-4 transition-colors hover:bg-gray-50 dark:hover:bg-gray-25 sm:flex-row sm:items-center sm:justify-between shadow-s5">
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">
+                      <p className="truncate text-sm font-medium text-ink">
                         {member.user?.name || member.user?.email || "Unknown"} • {member.role}
-                        {isSelf && <span className="ml-2 text-[10px] font-bold bg-gray-900 text-white px-2 py-0.5 rounded-full">YOU</span>}
+                        {isSelf && <span className="ml-2 rounded-full bg-gray-900 px-2 py-0.5 text-[10px] font-bold text-white dark:bg-gray-50 dark:text-ink">YOU</span>}
                       </p>
-                      <p className="text-xs text-gray-500 truncate">{member.user?.email}</p>
+                      <p className="truncate text-xs text-gray-500">{member.user?.email}</p>
                     </div>
                     {isEditing ? (
-                      <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex shrink-0 items-center gap-2">
                         <select
+                          aria-label="Edit role for member"
                           value={editRole}
                           onChange={(e) => setEditRole(e.target.value)}
-                          className="px-2 py-1.5 bg-white border border-gray-200 text-xs focus:outline-none focus:border-blue-500"
+                          className="rounded-lg border border-line bg-surface px-2 py-1.5 text-xs text-ink outline-none transition-colors focus:border-brand focus:ring-4 focus:ring-[#E1E4E8]/50 shadow-s5"
                         >
                           <option value="Member">Member</option>
                           <option value="Manager">Manager</option>
                           <option value="HR">HR</option>
                           <option value="Admin">Admin</option>
                         </select>
-                        <button onClick={() => handleSaveRole(member)} disabled={roleBusy} className="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium hover:bg-blue-700 disabled:opacity-50">
+                        <Button variant="dark" size="sm" onClick={() => handleSaveRole(member)} disabled={roleBusy}>
                           {roleBusy ? "Saving…" : "Save"}
-                        </button>
-                        <button onClick={() => setEditingMemberId(null)} className="px-3 py-1.5 bg-white border border-gray-200 text-xs font-medium text-gray-700 hover:bg-gray-50">
+                        </Button>
+                        <Button variant="secondary" size="sm" onClick={() => setEditingMemberId(null)}>
                           Cancel
-                        </button>
+                        </Button>
                       </div>
                     ) : (
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className={`text-xs border px-2 py-1 ${roleBadge(member.role)}`}>{member.role}</span>
+                      <div className="flex shrink-0 items-center gap-2">
+                        <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${roleBadge(member.role)}`}>{member.role}</span>
                         <button
                           onClick={() => { setEditingMemberId(member.id); setEditRole(member.role); setTeamMsg(null); }}
                           title="Edit role"
-                          className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-200"
+                          aria-label={`Edit role for ${member.user?.name || "member"}`}
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-xl text-gray-500 transition-colors hover:bg-gray-50 hover:text-brand-text dark:hover:bg-gray-25"
                         >
-                          <FiEdit2 className="w-4 h-4" />
+                          <Edit2 className="h-4 w-4" strokeWidth={1.75} />
                         </button>
                         {!isSelf && (
-                          <button onClick={() => handleRemoveMember(member)} title="Remove from team" className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200">
-                            <FiTrash2 className="w-4 h-4" />
+                          <button onClick={() => handleRemoveMember(member)} title="Remove from team" aria-label={`Remove ${member.user?.name || "member"} from team`} className="inline-flex h-8 w-8 items-center justify-center rounded-xl text-gray-500 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/10">
+                            <Trash2 className="h-4 w-4" strokeWidth={1.75} />
                           </button>
                         )}
                       </div>
@@ -576,25 +591,26 @@ export default function OrganizationSettings() {
               })
             )}
             {showInvite ? (
-              <form onSubmit={handleInvite} className="p-4 border border-blue-200 bg-blue-50/50 space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-[1fr_140px] gap-3">
+              <form onSubmit={handleInvite} className="space-y-3 rounded-xl border border-line bg-gray-50 p-4 dark:bg-gray-25 shadow-s5">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_140px]">
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1.5">Email address</label>
+                    <label className="mb-1.5 block text-xs font-medium text-gray-600 dark:text-gray-500">Email address</label>
                     <input
                       type="email"
                       required
                       value={inviteForm.email}
                       onChange={(e) => setInviteForm((p) => ({ ...p, email: e.target.value }))}
                       placeholder="teammate@company.com"
-                      className="w-full px-3 py-2.5 bg-white border border-gray-200 text-sm focus:outline-none focus:border-blue-500"
+                      className={fieldCls}
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1.5">Role</label>
+                    <label className="mb-1.5 block text-xs font-medium text-gray-600 dark:text-gray-500">Role</label>
                     <select
+                      aria-label="Role for invite"
                       value={inviteForm.role}
                       onChange={(e) => setInviteForm((p) => ({ ...p, role: e.target.value }))}
-                      className="w-full px-3 py-2.5 bg-white border border-gray-200 text-sm focus:outline-none focus:border-blue-500"
+                      className={fieldCls}
                     >
                       <option value="Member">Member</option>
                       <option value="Manager">Manager</option>
@@ -604,92 +620,97 @@ export default function OrganizationSettings() {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <button type="submit" disabled={inviteBusy} className="px-4 py-2 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50">
+                  <Button variant="dark" type="submit" disabled={inviteBusy}>
                     {inviteBusy ? "Inviting…" : "Send invite"}
-                  </button>
-                  <button type="button" onClick={() => setShowInvite(false)} className="px-4 py-2 bg-white border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                  </Button>
+                  <Button variant="secondary" type="button" onClick={() => setShowInvite(false)}>
                     Cancel
-                  </button>
+                  </Button>
                 </div>
               </form>
             ) : (
-              <button onClick={() => { setShowInvite(true); setTeamMsg(null); }} className="inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50"><FiPlus className="w-4 h-4" /> Invite team member</button>
+              <Button variant="secondary" onClick={() => { setShowInvite(true); setTeamMsg(null); }}>
+                <Plus className="h-4 w-4" strokeWidth={1.75} /> Invite team member
+              </Button>
             )}
           </div>
-        </div>
+        </ProfileSection>
 
         {/* Payment */}
-        <div className="bg-white border border-gray-200 p-6">
-          <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2"><FiCreditCard className="w-4 h-4 text-gray-500" /> Payment methods</h3>
+        <ProfileSection>
+          <h2 className="flex items-center gap-2 text-sm font-semibold text-ink"><CreditCard className="h-4 w-4 text-gray-500" strokeWidth={1.75} /> Payment methods</h2>
           <div className="mt-4">
             {BILLING_ENABLED ? (
               <PaymentMethods storageKey={organization?.id ? `recruai_cards_org_${organization.id}` : "recruai_cards_org"} />
             ) : (
-              <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 px-3 py-2">
+              <p className="inline-flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-400 shadow-s5">
                 {BILLING_BETA_MESSAGE}
               </p>
             )}
           </div>
-        </div>
+        </ProfileSection>
 
         {/* Billing */}
-        <div className="bg-white border border-gray-200 p-6">
-          <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2"><FiClock className="w-4 h-4 text-gray-500" /> Billing history</h3>
-          <div className="mt-4 text-center py-6 border border-dashed border-gray-200 rounded-lg">
-            <FiClock className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+        <ProfileSection>
+          <h2 className="flex items-center gap-2 text-sm font-semibold text-ink"><Clock className="h-4 w-4 text-gray-500" strokeWidth={1.75} /> Billing history</h2>
+          <div className="mt-4 rounded-xl border border-dashed border-line py-6 text-center shadow-s5">
+            <Clock className="mx-auto mb-2 h-8 w-8 text-gray-300" strokeWidth={1.75} />
             <p className="text-sm text-gray-500">{BILLING_ENABLED ? "No invoices yet" : "Billing is not active during the beta"}</p>
-            <p className="text-xs text-gray-400 mt-1">{BILLING_ENABLED ? "Your billing history will appear here" : BILLING_BETA_MESSAGE}</p>
+            <p className="mt-1 text-xs text-gray-500">{BILLING_ENABLED ? "Your billing history will appear here" : BILLING_BETA_MESSAGE}</p>
           </div>
-        </div>
+        </ProfileSection>
 
         {/* Preferences */}
-        <div className="bg-white border border-gray-200 p-6">
-          <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2"><FiShield className="w-4 h-4 text-gray-500" /> Organization preferences</h3>
-          <div className="mt-4 divide-y divide-gray-100">
+        <ProfileSection>
+          <h2 className="flex items-center gap-2 text-sm font-semibold text-ink"><Shield className="h-4 w-4 text-gray-500" strokeWidth={1.75} /> Organization preferences</h2>
+          <div className="mt-2 divide-y divide-line">
             {[
-              { title: "Email notifications", desc: "Receive updates about team activity and billing", defaultChecked: true, icon: FiMail },
-              { title: "Team invitations", desc: "Allow team members to invite others", defaultChecked: true, icon: FiUsers },
-              { title: "Data analytics", desc: "Help improve our service with usage analytics", defaultChecked: true, icon: FiShield },
+              { title: "Email notifications", desc: "Receive updates about team activity and billing", defaultChecked: true, icon: Mail },
+              { title: "Team invitations", desc: "Allow team members to invite others", defaultChecked: true, icon: Users },
+              { title: "Data analytics", desc: "Help improve our service with usage analytics", defaultChecked: true, icon: Shield },
             ].map((pref) => {
               const Icon = pref.icon;
               return (
                 <div key={pref.title} className="flex items-center justify-between py-4">
                   <div className="flex gap-3">
-                    <div className="w-8 h-8 bg-gray-50 border border-gray-200 flex items-center justify-center shrink-0"><Icon className="w-4 h-4 text-gray-500" /></div>
-                    <div><p className="text-sm font-medium text-gray-900">{pref.title}</p><p className="text-xs text-gray-500">{pref.desc}</p></div>
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-line bg-gray-50 dark:bg-gray-25 shadow-s5"><Icon className="h-4 w-4 text-gray-500" strokeWidth={1.75} /></div>
+                    <div><p className="text-sm font-medium text-ink">{pref.title}</p><p className="text-xs text-gray-500">{pref.desc}</p></div>
                   </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" defaultChecked={pref.defaultChecked} className="sr-only peer" />
-                    <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:w-4 after:h-4 after:transition-all peer-checked:after:translate-x-4"></div>
+                  <label className="relative inline-flex cursor-pointer items-center">
+                    <input type="checkbox" aria-label={pref.title} defaultChecked={pref.defaultChecked} className="sr-only peer" />
+                    <div className="peer h-5 w-9 rounded-full bg-gray-200 transition-colors after:absolute after:left-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-all peer-checked:bg-brand peer-checked:after:translate-x-4"></div>
                   </label>
                 </div>
               );
             })}
           </div>
-        </div>
+        </ProfileSection>
 
         {/* Timezone */}
-        <div className="bg-white border border-gray-200 p-6">
-          <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2"><FiGlobe className="w-4 h-4 text-gray-500" /> Timezone settings</h3>
-          <p className="text-sm text-gray-500 mt-1">Set your organization's timezone for all team members.</p>
+        <ProfileSection>
+          <h2 className="flex items-center gap-2 text-sm font-semibold text-ink"><Globe className="h-4 w-4 text-gray-500" strokeWidth={1.75} /> Timezone settings</h2>
+          <p className="mt-0.5 text-sm text-gray-500">Set your organization's timezone for all team members.</p>
           <div className="mt-4"><TimezoneSelector organizationId={organization?.id} value={organization?.timezone} showCurrentTime={true} /></div>
-        </div>
+        </ProfileSection>
 
         {/* Danger */}
-        <div className="border border-red-200 bg-white">
-          <div className="bg-red-50 px-6 py-3 border-b border-red-200 flex items-center gap-2"><FiAlertTriangle className="w-4 h-4 text-red-600" /><h3 className="text-sm font-semibold text-red-700">Danger zone</h3></div>
-          <div className="p-6 space-y-3">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 border border-red-100 bg-red-50/50">
-              <div><p className="text-sm font-medium text-gray-900">Cancel subscription</p><p className="text-xs text-gray-600">End subscription and downgrade to trial</p></div>
-              <button className="px-4 py-2 bg-white border border-red-200 text-sm font-medium text-red-600 hover:bg-red-50 shrink-0">Cancel</button>
+        <div className="overflow-hidden rounded-xl border border-red-200 bg-surface dark:border-red-500/30 shadow-s5">
+          <div className="flex items-center gap-2 border-b border-red-200 bg-red-50 px-5 py-3 dark:border-red-500/30 dark:bg-red-500/10">
+            <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" strokeWidth={1.75} />
+            <h2 className="text-sm font-semibold text-red-700 dark:text-red-400">Danger zone</h2>
+          </div>
+          <div className="space-y-3 p-5">
+            <div className="flex flex-col gap-3 rounded-xl border border-red-100 bg-red-50/50 p-4 dark:border-red-500/20 dark:bg-red-500/5 sm:flex-row sm:items-center sm:justify-between shadow-s5">
+              <div><p className="text-sm font-medium text-ink">Cancel subscription</p><p className="text-xs text-gray-600 dark:text-gray-500">End subscription and downgrade to trial</p></div>
+              <Button variant="danger" size="sm" className="shrink-0 border border-red-200 hover:bg-red-50 dark:border-red-500/30">Cancel</Button>
             </div>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 border border-red-200 bg-red-50">
-              <div><p className="text-sm font-medium text-gray-900 flex items-center gap-2"><FiTrash2 className="w-4 h-4 text-red-600" /> Delete organization</p><p className="text-xs text-gray-600">Permanently delete organization and all data</p></div>
-              <button className="px-4 py-2 bg-red-600 text-white text-sm font-medium hover:bg-red-700 shrink-0">Delete</button>
+            <div className="flex flex-col gap-3 rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-500/30 dark:bg-red-500/10 sm:flex-row sm:items-center sm:justify-between shadow-s5">
+              <div><p className="flex items-center gap-2 text-sm font-medium text-ink"><Trash2 className="h-4 w-4 text-red-600 dark:text-red-400" strokeWidth={1.75} /> Delete organization</p><p className="text-xs text-gray-600 dark:text-gray-500">Permanently delete organization and all data</p></div>
+              <Button variant="danger" size="sm" className="shrink-0 bg-red-600 text-white hover:bg-red-700 dark:bg-red-600 dark:text-white dark:hover:bg-red-700">Delete</Button>
             </div>
           </div>
         </div>
       </div>
-    </DashboardLayout>
+    </OrgAppShell>
   );
 }

@@ -251,17 +251,66 @@ export const CURRENCIES = [
 ];
 
 export function currencySymbol(code) {
-  const found = CURRENCIES.find((c) => c.code === code);
-  return found ? found.symbol : "$";
+  if (!code) return "$";
+  const trimmed = String(code).trim();
+  if (["$", "€", "£", "₹", "¥"].includes(trimmed)) return trimmed;
+  const upper = trimmed.toUpperCase();
+  const SYMBOLS = {
+    USD: "$",
+    EUR: "€",
+    GBP: "£",
+    INR: "₹",
+    JPY: "¥",
+    CNY: "¥",
+  };
+  if (SYMBOLS[upper]) return SYMBOLS[upper];
+  const found = CURRENCIES.find((c) => c.code === upper);
+  return found ? found.symbol : upper;
 }
 
 export function formatSalaryRange(min, max, code) {
-  if (!min && !max) return null;
-  const sym = currencySymbol(code);
+  const minNum = min != null && min !== "" && !isNaN(min) ? Number(min) : null;
+  const maxNum = max != null && max !== "" && !isNaN(max) ? Number(max) : null;
+
+  if (minNum == null && maxNum == null) return null;
+
   const fmt = (v) => Number(v).toLocaleString();
-  if (min && max) return `${sym}${fmt(min)} - ${sym}${fmt(max)} ${code || ""}`.trim();
-  return `${sym}${fmt(min || max)} ${code || ""}`.trim();
+  const cur = (code || "USD").trim();
+
+  // If already a recognized single-glyph symbol
+  if (["$", "€", "£", "₹", "¥"].includes(cur)) {
+    if (minNum != null && maxNum != null) {
+      return `${cur}${fmt(minNum)} – ${cur}${fmt(maxNum)}`;
+    }
+    return `${cur}${fmt(minNum != null ? minNum : maxNum)}`;
+  }
+
+  const upper = cur.toUpperCase();
+  const SYMBOLS = {
+    USD: "$",
+    EUR: "€",
+    GBP: "£",
+    INR: "₹",
+    JPY: "¥",
+    CNY: "¥",
+  };
+
+  if (SYMBOLS[upper]) {
+    const sym = SYMBOLS[upper];
+    if (minNum != null && maxNum != null) {
+      return `${sym}${fmt(minNum)} – ${sym}${fmt(maxNum)}`;
+    }
+    return `${sym}${fmt(minNum != null ? minNum : maxNum)}`;
+  }
+
+  // Multi-letter currency codes: PKR, AED, SAR, CAD, AUD, etc.
+  if (minNum != null && maxNum != null) {
+    return `${upper} ${fmt(minNum)} – ${fmt(maxNum)}`;
+  }
+  return `${upper} ${fmt(minNum != null ? minNum : maxNum)}`;
 }
+
+export const formatSalary = formatSalaryRange;
 
 // --- Location helpers: form uses { city, country, remote },
 // stored string stays "City, Country" / "Remote" (backward compatible).

@@ -1,4 +1,14 @@
 import React, { useState } from "react";
+import {
+  Mail,
+  Phone,
+  MapPin,
+  Send,
+  CheckCircle2,
+  Clock,
+  Headphones,
+} from "lucide-react";
+import { FiTwitter, FiLinkedin, FiGithub } from "react-icons/fi";
 import RecruAINavbar from "../components/product/RecruAINavbar";
 import Footer from "../components/Footer";
 
@@ -28,215 +38,161 @@ const ContactUs = () => {
       setIsSubmitting(false);
       setSubmitted(true);
       setFormData({ name: "", email: "", subject: "", message: "" });
-    }, 2000);
+    }, 1000);
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-surface text-ink transition-colors">
       <RecruAINavbar />
 
       {/* Hero Section */}
-      <div className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h1 className="text-4xl md:text-6xl font-bold mb-6">
-              Get in Touch
-            </h1>
-            <p className="text-xl md:text-2xl text-indigo-100 max-w-3xl mx-auto">
-              Have questions about RecruAI? Need support? We're here to help you
-              succeed in your recruitment journey.
-            </p>
+      <section className="border-b border-line bg-surface py-16 sm:py-20">
+        <div className="max-w-[1120px] mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <div className="inline-flex items-center gap-2 rounded-full px-3 py-1 bg-brand/10 border border-brand/20 text-xs font-semibold text-brand-text mb-4">
+            <Headphones className="h-3.5 w-3.5" strokeWidth={1.8} />
+            <span>Support &amp; inquiries</span>
           </div>
+          <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-ink mb-4">
+            Get in touch with <span className="text-brand-text">RecruAI</span>
+          </h1>
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-500 max-w-2xl mx-auto leading-relaxed">
+            Have questions about our AI interview platform or organizational hiring solutions? Our team is here to help.
+          </p>
         </div>
-      </div>
+      </section>
 
       {/* Contact Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+      <div className="max-w-[1120px] mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-16">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-12 items-start">
           {/* Contact Information */}
           <div>
-            <h2 className="text-3xl font-bold text-gray-900 mb-8">
-              Contact Information
+            <h2 className="text-2xl font-bold text-ink mb-6">
+              Contact information
             </h2>
 
-            <div className="space-y-6">
-              <div className="flex items-start">
-                <div className="flex-shrink-0">
-                  <svg
-                    className="w-6 h-6 text-indigo-600 mt-1"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                    />
-                  </svg>
+            <div className="space-y-4">
+              <div className="flex items-start rounded-xl border border-line bg-surface p-5 shadow-s5">
+                <div className="w-10 h-10 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center text-brand-text shrink-0 mr-4">
+                  <Mail className="h-5 w-5" strokeWidth={1.8} />
                 </div>
-                <div className="ml-4">
-                  <h3 className="text-lg font-medium text-gray-900">Email</h3>
-                  <p className="text-gray-600">contact@mentee.ai</p>
-                  <p className="text-sm text-gray-500 mt-1">
-                    We typically respond within 24 hours
+                <div>
+                  <h3 className="text-sm font-semibold text-ink">Email</h3>
+                  <a
+                    href="mailto:contact@menteeai.org"
+                    className="text-sm text-gray-600 dark:text-gray-500 hover:text-brand-text transition-colors mt-0.5 block"
+                  >
+                    contact@menteeai.org
+                  </a>
+                  <p className="text-xs text-gray-500 dark:text-gray-500 mt-1 flex items-center gap-1.5">
+                    <Clock className="h-3 w-3 text-brand-text" strokeWidth={1.8} />
+                    <span>Average reply within <span className="font-mono tabular-nums font-semibold text-ink">24 hours</span></span>
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-start">
-                <div className="flex-shrink-0">
-                  <svg
-                    className="w-6 h-6 text-indigo-600 mt-1"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
-                    />
-                  </svg>
+              <div className="flex items-start rounded-xl border border-line bg-surface p-5 shadow-s5">
+                <div className="w-10 h-10 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center text-brand-text shrink-0 mr-4">
+                  <Phone className="h-5 w-5" strokeWidth={1.8} />
                 </div>
-                <div className="ml-4">
-                  <h3 className="text-lg font-medium text-gray-900">Phone</h3>
-                  <p className="text-gray-600">+1 (555) 123-4567</p>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Mon-Fri 9AM-6PM EST
+                <div>
+                  <h3 className="text-sm font-semibold text-ink">Regional phone &amp; support</h3>
+                  <p className="font-mono tabular-nums text-sm text-gray-600 dark:text-gray-500 mt-0.5">+92 300 000 0000</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                    Monday to Friday, <span className="font-mono tabular-nums">9:00 AM – 6:00 PM</span> PKT / GST
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-start">
-                <div className="flex-shrink-0">
-                  <svg
-                    className="w-6 h-6 text-indigo-600 mt-1"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                    />
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                    />
-                  </svg>
+              <div className="flex items-start rounded-xl border border-line bg-surface p-5 shadow-s5">
+                <div className="w-10 h-10 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center text-brand-text shrink-0 mr-4">
+                  <MapPin className="h-5 w-5" strokeWidth={1.8} />
                 </div>
-                <div className="ml-4">
-                  <h3 className="text-lg font-medium text-gray-900">Office</h3>
-                  <p className="text-gray-600">
-                    123 Innovation Drive
+                <div>
+                  <h3 className="text-sm font-semibold text-ink">Regional headquarters</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-500 mt-0.5 leading-relaxed">
+                    MenteE Inc.
                     <br />
-                    Tech Valley, CA 94043
-                    <br />
-                    United States
+                    Lahore, Pakistan · Serving Pakistan &amp; the Gulf
                   </p>
                 </div>
               </div>
             </div>
 
+            {/* Platform Health Mini Card */}
+            <div className="mt-6 rounded-xl border border-line bg-gray-100/50 dark:bg-gray-25/50 p-4">
+              <div className="flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-brand animate-pulse" />
+                  <span className="font-medium text-ink">Platform systems operational</span>
+                </div>
+                <span className="font-mono tabular-nums text-brand-text font-semibold">99.98% uptime</span>
+              </div>
+            </div>
+
             <div className="mt-8">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">
-                Follow Us
+              <h3 className="text-sm font-semibold text-ink mb-3">
+                Follow us
               </h3>
-              <div className="flex space-x-4">
+              <div className="flex space-x-2.5">
                 <a
-                  href="https://twitter.com/mentee_ai"
+                  href="https://twitter.com/menteeaiorg"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-gray-400 hover:text-indigo-600 transition-colors"
+                  className="w-10 h-10 rounded-xl border border-line bg-surface flex items-center justify-center text-gray-500 dark:text-gray-500 transition-colors hover:text-brand-text hover:border-brand/40 hover:bg-gray-100 dark:hover:bg-gray-25 shadow-s5"
+                  aria-label="Twitter"
                 >
-                  <svg
-                    className="w-6 h-6"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z" />
-                  </svg>
+                  <FiTwitter className="h-4 w-4" strokeWidth={1.8} />
                 </a>
                 <a
-                  href="https://linkedin.com/company/mentee-ai"
+                  href="https://linkedin.com/company/menteeai"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-gray-400 hover:text-indigo-600 transition-colors"
+                  className="w-10 h-10 rounded-xl border border-line bg-surface flex items-center justify-center text-gray-500 dark:text-gray-500 transition-colors hover:text-brand-text hover:border-brand/40 hover:bg-gray-100 dark:hover:bg-gray-25 shadow-s5"
+                  aria-label="LinkedIn"
                 >
-                  <svg
-                    className="w-6 h-6"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
-                  </svg>
+                  <FiLinkedin className="h-4 w-4" strokeWidth={1.8} />
                 </a>
                 <a
                   href="https://github.com/mentee-ai"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-gray-400 hover:text-indigo-600 transition-colors"
+                  className="w-10 h-10 rounded-xl border border-line bg-surface flex items-center justify-center text-gray-500 dark:text-gray-500 transition-colors hover:text-brand-text hover:border-brand/40 hover:bg-gray-100 dark:hover:bg-gray-25 shadow-s5"
+                  aria-label="GitHub"
                 >
-                  <svg
-                    className="w-6 h-6"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M12 .5C5.73.5.5 5.73.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.55 0-.27-.01-1.17-.02-2.12-3.2.7-3.88-1.39-3.88-1.39-.53-1.35-1.3-1.71-1.3-1.71-1.06-.72.08-.71.08-.71 1.17.08 1.78 1.2 1.78 1.2 1.04 1.78 2.72 1.26 3.39.97.11-.76.41-1.26.74-1.55-2.55-.29-5.24-1.28-5.24-5.72 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.45.11-3.02 0 0 .97-.31 3.18 1.18a11.1 11.1 0 0 1 2.9-.39c.99 0 1.99.13 2.92.39 2.2-1.5 3.17-1.18 3.17-1.18.63 1.57.23 2.73.11 3.02.74.81 1.18 1.84 1.18 3.1 0 4.45-2.69 5.42-5.25 5.71.42.36.79 1.09.79 2.2 0 1.59-.01 2.88-.01 3.28 0 .3.21.66.8.55C20.71 21.39 24 17.08 24 12c0-6.27-5.23-11.5-12-11.5z" />
-                  </svg>
+                  <FiGithub className="h-4 w-4" strokeWidth={1.8} />
                 </a>
               </div>
             </div>
           </div>
 
           {/* Contact Form */}
-          <div>
-            <h2 className="text-3xl font-bold text-gray-900 mb-8">
-              Send us a Message
+          <div className="rounded-xl border border-line bg-surface p-6 sm:p-8 shadow-s5">
+            <h2 className="text-xl font-bold text-ink mb-6">
+              Send us a message
             </h2>
 
             {submitted ? (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-                <div className="flex">
-                  <div className="flex-shrink-0">
-                    <svg
-                      className="h-5 w-5 text-green-400"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                  </div>
-                  <div className="ml-3">
-                    <h3 className="text-sm font-medium text-green-800">
-                      Message sent successfully!
-                    </h3>
-                    <p className="mt-2 text-sm text-green-700">
-                      Thank you for contacting us. We'll get back to you within
-                      24 hours.
-                    </p>
-                  </div>
+              <div className="rounded-xl border border-brand/20 bg-brand/10 p-6 flex items-start gap-3">
+                <div className="w-8 h-8 rounded-full bg-brand text-white flex items-center justify-center shrink-0 mt-0.5">
+                  <CheckCircle2 className="h-4 w-4" strokeWidth={2.4} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-brand-text">
+                    Message sent successfully
+                  </h3>
+                  <p className="mt-1 text-sm text-gray-600 dark:text-gray-500 leading-relaxed">
+                    Thank you for reaching out. A member of our team will review your message and reply within 24 hours.
+                  </p>
                 </div>
               </div>
             ) : (
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <label
                     htmlFor="name"
-                    className="block text-sm font-medium text-gray-700"
+                    className="block text-xs font-semibold text-ink mb-1.5"
                   >
-                    Full Name
+                    Full name
                   </label>
                   <input
                     type="text"
@@ -245,16 +201,17 @@ const ContactUs = () => {
                     value={formData.name}
                     onChange={handleChange}
                     required
-                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                    placeholder="Your name"
+                    className="block w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink outline-none transition-colors placeholder:text-gray-500 dark:placeholder:text-gray-500 focus:border-brand focus:ring-4 focus:ring-brand/20"
                   />
                 </div>
 
                 <div>
                   <label
                     htmlFor="email"
-                    className="block text-sm font-medium text-gray-700"
+                    className="block text-xs font-semibold text-ink mb-1.5"
                   >
-                    Email Address
+                    Email address
                   </label>
                   <input
                     type="email"
@@ -263,14 +220,15 @@ const ContactUs = () => {
                     value={formData.email}
                     onChange={handleChange}
                     required
-                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                    placeholder="you@example.com"
+                    className="block w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink outline-none transition-colors placeholder:text-gray-500 dark:placeholder:text-gray-500 focus:border-brand focus:ring-4 focus:ring-brand/20"
                   />
                 </div>
 
                 <div>
                   <label
                     htmlFor="subject"
-                    className="block text-sm font-medium text-gray-700"
+                    className="block text-xs font-semibold text-ink mb-1.5"
                   >
                     Subject
                   </label>
@@ -280,44 +238,47 @@ const ContactUs = () => {
                     value={formData.subject}
                     onChange={handleChange}
                     required
-                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                    className="block w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink outline-none transition-colors placeholder:text-gray-500 dark:placeholder:text-gray-500 focus:border-brand focus:ring-4 focus:ring-brand/20"
                   >
                     <option value="">Select a subject</option>
-                    <option value="general">General Inquiry</option>
-                    <option value="support">Technical Support</option>
-                    <option value="billing">Billing Question</option>
-                    <option value="partnership">Partnership Opportunity</option>
-                    <option value="feedback">Feedback</option>
-                    <option value="other">Other</option>
+                    <option value="general">General inquiry</option>
+                    <option value="enterprise">Organization hiring &amp; ATS</option>
+                    <option value="support">Candidate technical support</option>
+                    <option value="billing">Billing &amp; beta access</option>
+                    <option value="partnership">Partnership opportunity</option>
+                    <option value="feedback">Feedback &amp; suggestions</option>
                   </select>
                 </div>
 
                 <div>
                   <label
                     htmlFor="message"
-                    className="block text-sm font-medium text-gray-700"
+                    className="block text-xs font-semibold text-ink mb-1.5"
                   >
                     Message
                   </label>
                   <textarea
                     id="message"
                     name="message"
-                    rows={6}
+                    rows={5}
                     value={formData.message}
                     onChange={handleChange}
                     required
-                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                    placeholder="Tell us how we can help you..."
+                    className="block w-full resize-none rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink outline-none transition-colors placeholder:text-gray-500 dark:placeholder:text-gray-500 focus:border-brand focus:ring-4 focus:ring-brand/20"
+                    placeholder="Tell us how we can help..."
                   />
                 </div>
 
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full bg-indigo-600 text-white py-3 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isSubmitting ? "Sending..." : "Send Message"}
-                </button>
+                <div className="pt-2">
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-brand px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand/90 disabled:opacity-50 disabled:cursor-not-allowed shadow-s5"
+                  >
+                    <Send className="h-4 w-4" strokeWidth={1.8} />
+                    <span>{isSubmitting ? "Sending..." : "Send message"}</span>
+                  </button>
+                </div>
               </form>
             )}
           </div>

@@ -113,15 +113,15 @@ export const LEVEL_ORDER = ["Beginner", "Intermediate", "Advanced", "Expert"];
 export function levelTone(level) {
   switch (level) {
     case "Expert":
-      return "bg-purple-50 text-purple-700 border-purple-200";
+      return "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-500/10 dark:text-purple-400 dark:border-purple-500/30";
     case "Advanced":
-      return "bg-blue-50 text-blue-700 border-blue-200";
+      return "bg-brand/10 text-brand-text border-brand/20 dark:bg-brand/15 dark:text-brand-text";
     case "Intermediate":
-      return "bg-green-50 text-green-700 border-green-200";
+      return "bg-green-50 text-green-700 border-green-200 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/30";
     case "Beginner":
-      return "bg-amber-50 text-amber-700 border-amber-200";
+      return "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/30";
     default:
-      return "bg-gray-50 text-gray-600 border-gray-200";
+      return "bg-gray-50 text-gray-600 border-gray-200 dark:bg-gray-25 dark:text-gray-500 dark:border-line";
   }
 }
 
@@ -150,12 +150,12 @@ export function evidenceLabel(skill) {
 }
 
 export const VERDICT_TONE = {
-  on_track: "text-green-700 bg-green-50 border-green-200",
-  ahead: "text-green-700 bg-green-50 border-green-200",
-  behind: "text-amber-700 bg-amber-50 border-amber-200",
-  off_track: "text-red-700 bg-red-50 border-red-200",
-  not_started: "text-gray-600 bg-gray-50 border-gray-200",
-  completed: "text-green-700 bg-green-50 border-green-200",
+  on_track: "text-green-700 bg-green-50 border-green-200 dark:text-green-400 dark:bg-green-500/10 dark:border-green-500/30",
+  ahead: "text-green-700 bg-green-50 border-green-200 dark:text-green-400 dark:bg-green-500/10 dark:border-green-500/30",
+  behind: "text-amber-700 bg-amber-50 border-amber-200 dark:text-amber-400 dark:bg-amber-500/10 dark:border-amber-500/30",
+  off_track: "text-red-700 bg-red-50 border-red-200 dark:text-red-400 dark:bg-red-500/10 dark:border-red-500/30",
+  not_started: "text-gray-600 bg-gray-50 border-gray-200 dark:text-gray-500 dark:bg-gray-25 dark:border-line",
+  completed: "text-green-700 bg-green-50 border-green-200 dark:text-green-400 dark:bg-green-500/10 dark:border-green-500/30",
 };
 
 export const VERDICT_LABEL = {
@@ -168,10 +168,10 @@ export const VERDICT_LABEL = {
 };
 
 export const PRIORITY_TONE = {
-  urgent: "border-red-300 bg-red-50",
-  high: "border-amber-300 bg-amber-50",
-  normal: "border-gray-200 bg-white",
-  low: "border-gray-200 bg-white",
+  urgent: "border-red-300 bg-red-50 dark:border-red-500/30 dark:bg-red-500/10",
+  high: "border-amber-300 bg-amber-50 dark:border-amber-500/30 dark:bg-amber-500/10",
+  normal: "border-line bg-surface dark:bg-gray-25",
+  low: "border-line bg-surface dark:bg-gray-25",
 };
 
 export function percent(value) {

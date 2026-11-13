@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { FiMail, FiRefreshCw, FiArrowLeft } from "react-icons/fi";
+import { Mail, RefreshCw, ArrowLeft, AlertCircle, CheckCircle2 } from "lucide-react";
 import { getBackendUrl } from "../../utils/auth";
 
 const CODE_LEN = 6;
@@ -137,37 +137,41 @@ export default function OtpVerify({
 
   return (
     <div>
-      <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-neutral-900 text-white">
-        <FiMail className="h-6 w-6" />
+      <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-2xl border border-brand/25 bg-brand/10 text-brand-text shadow-s5">
+        <Mail className="h-5 w-5 text-brand-text" strokeWidth={2} />
       </div>
-      <h2 className="text-center text-2xl font-extrabold tracking-tight">{headline}</h2>
-      <p className="mt-2 text-center text-sm text-neutral-500">
+      <h2 className="text-center text-2xl font-extrabold tracking-tight text-ink sm:text-3xl">
+        {headline}
+      </h2>
+      <p className="mt-2 text-center text-sm text-gray-500 leading-relaxed">
         {subline || (
           <>
-            We sent a 6-digit code to <span className="font-semibold text-neutral-900">{displayEmail || email}</span>.
+            We sent a 6-digit code to <span className="font-semibold text-ink">{displayEmail || email}</span>.
             It expires in 10 minutes.
           </>
         )}
       </p>
 
       {error && (
-        <div className="mt-5 rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm font-medium text-red-700">
-          {error}
+        <div className="mt-5 flex items-start gap-2.5 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3.5 text-sm font-medium text-rose-700 dark:text-rose-300 shadow-s5">
+          <AlertCircle className="h-4 w-4 shrink-0 text-rose-600 dark:text-rose-400 mt-0.5" strokeWidth={2} />
+          <div className="flex-1">{error}</div>
         </div>
       )}
       {info && (
-        <div className="mt-5 rounded-lg border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-sm font-medium text-emerald-700">
-          {info}
+        <div className="mt-5 flex items-start gap-2.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3.5 text-sm font-medium text-emerald-700 dark:text-emerald-300 shadow-s5">
+          <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400 mt-0.5" strokeWidth={2} />
+          <div className="flex-1">{info}</div>
         </div>
       )}
 
       <form onSubmit={submit} className="mt-6">
-        <div className="flex justify-center gap-2" onPaste={handlePaste}>
+        <div className="flex justify-center gap-2 sm:gap-2.5" onPaste={handlePaste}>
           {digits.map((d, i) => (
             <input
               key={i}
               ref={(el) => (inputs.current[i] = el)}
-              className="h-14 w-12 rounded-lg border border-gray-200 bg-gray-50 text-center text-xl font-extrabold text-neutral-900 outline-none transition focus:border-neutral-900 focus:bg-white focus:ring-2 focus:ring-neutral-900/10"
+              className="h-12 w-10 sm:h-14 sm:w-12 rounded-xl border border-line bg-surface text-center font-mono text-xl sm:text-2xl font-bold text-ink outline-none transition-all focus:border-brand focus:ring-2 focus:ring-brand/20 shadow-s5"
               value={d}
               onChange={(e) => handleChange(i, e)}
               onKeyDown={(e) => handleKeyDown(i, e)}
@@ -181,7 +185,7 @@ export default function OtpVerify({
         <button
           type="submit"
           disabled={verifying}
-          className="mt-6 w-full rounded-lg bg-neutral-900 py-3 text-sm font-bold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-60"
+          className="mt-6 w-full rounded-xl border border-brand bg-brand py-3 text-sm font-semibold text-white shadow-s5 transition hover:bg-brand/90 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
         >
           {verifying ? "Verifying…" : "Verify email"}
         </button>
@@ -192,9 +196,9 @@ export default function OtpVerify({
           <button
             type="button"
             onClick={onBack}
-            className="inline-flex items-center gap-1.5 font-medium text-neutral-500 hover:text-neutral-900 transition-colors"
+            className="inline-flex items-center gap-1.5 font-medium text-gray-500 hover:text-ink transition-colors focus:outline-none"
           >
-            <FiArrowLeft className="h-4 w-4" /> Back
+            <ArrowLeft className="h-4 w-4" strokeWidth={2} /> <span>Back</span>
           </button>
         ) : (
           <span />
@@ -203,10 +207,18 @@ export default function OtpVerify({
           type="button"
           onClick={resend}
           disabled={cooldown > 0 || resending}
-          className="inline-flex items-center gap-1.5 font-semibold text-neutral-900 underline underline-offset-4 hover:no-underline disabled:text-neutral-400 disabled:no-underline"
+          className="inline-flex items-center gap-1.5 font-semibold text-ink underline underline-offset-4 hover:no-underline disabled:text-gray-500 disabled:no-underline transition-colors focus:outline-none"
         >
-          <FiRefreshCw className={`h-3.5 w-3.5 ${resending ? "animate-spin" : ""}`} />
-          {cooldown > 0 ? `Resend in ${cooldown}s` : "Resend code"}
+          <RefreshCw className={`h-3.5 w-3.5 ${resending ? "animate-spin" : ""}`} strokeWidth={2} />
+          <span>
+            {cooldown > 0 ? (
+              <>
+                Resend in <strong className="font-mono tabular-nums">{cooldown}s</strong>
+              </>
+            ) : (
+              "Resend code"
+            )}
+          </span>
         </button>
       </div>
     </div>

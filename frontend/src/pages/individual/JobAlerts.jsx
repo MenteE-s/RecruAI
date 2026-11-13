@@ -1,93 +1,187 @@
-import DashboardLayout from "../../components/layout/DashboardLayout";
-import { FiBell, FiMapPin, FiBriefcase, FiClock, FiEye, FiBookmark, FiMail, FiSmartphone, FiCalendar, FiZap, FiSettings, FiPlus, FiSearch } from "react-icons/fi";
+import React, { useState } from "react";
+import { AppShell, CenterBar } from "../../components/layout/AppShell";
+import { RailSection } from "../../components/layout/RightRail";
+import { JobRow, OrgMark, StatusTag } from "../../components/jobs/JobBits";
+import { Button, ButtonLink } from "../../components/ui/Button";
+import {
+  Bell,
+  Mail,
+  Smartphone,
+  Calendar,
+  Zap,
+  Settings,
+  Plus,
+} from "lucide-react";
+
+/**
+ * JobAlerts — Static settings & active alerts surface.
+ * Aligned with Stageshow craft rules: >=12px insets, sentence case,
+ * Lucide icons at 14-16px, dark-mode parity, tabular monospace numbers.
+ */
+
+const ALERTS = [
+  {
+    id: "alert-1",
+    title: "Software engineer — remote",
+    company: "TechCorp Inc.",
+    location: "San Francisco, CA · Remote",
+    time: "2h ago",
+    badge: "New",
+    status: "accepted",
+  },
+  {
+    id: "alert-2",
+    title: "Frontend developer",
+    company: "StartupXYZ",
+    location: "New York, NY",
+    time: "1d ago",
+    badge: "Active",
+    status: "reviewed",
+  },
+];
+
+const PREFERENCES = [
+  { label: "Email notifications", desc: "Instant matches to your inbox", icon: Mail, key: "email" },
+  { label: "Push notifications", desc: "Browser & mobile pushes", icon: Smartphone, key: "push" },
+  { label: "Weekly summary", desc: "Digest every Monday morning", icon: Calendar, key: "summary" },
+];
+
+function AlertSettingsCard() {
+  const [prefs, setPrefs] = useState({
+    email: true,
+    push: true,
+    summary: false,
+  });
+
+  const toggle = (key) => setPrefs((p) => ({ ...p, [key]: !p[key] }));
+
+  return (
+    <div className="rounded-xl border border-line bg-surface dark:border-line dark:bg-gray-25/80 p-4">
+      <div className="flex flex-col divide-y divide-line dark:divide-line">
+        {PREFERENCES.map((pref) => {
+          const Icon = pref.icon;
+          const checked = prefs[pref.key];
+          return (
+            <div key={pref.label} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
+              <div className="flex items-center gap-3">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-line bg-gray-50 dark:border-line dark:bg-gray-25/50">
+                  <Icon className="h-4 w-4 text-gray-500 dark:text-gray-500" strokeWidth={1.75} />
+                </div>
+                <div>
+                  <p className="text-[13px] font-medium leading-5 text-ink">{pref.label}</p>
+                  <p className="text-[11px] leading-4 text-gray-500 dark:text-gray-500">{pref.desc}</p>
+                </div>
+              </div>
+              <label className="relative inline-flex shrink-0 cursor-pointer items-center">
+                <input
+                  type="checkbox"
+                  aria-label={pref.label}
+                  checked={checked}
+                  onChange={() => toggle(pref.key)}
+                  className="sr-only peer"
+                />
+                <div className="peer h-5 w-9 rounded-full bg-gray-200 transition-colors after:absolute after:left-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:bg-white after:shadow-sm after:transition-transform peer-checked:bg-brand peer-checked:after:translate-x-4 dark:bg-gray-25" />
+              </label>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 export default function JobAlerts() {
-  return (
-    <DashboardLayout >
-      {/* Filter */}
-      <div className="flex items-center gap-3 mb-4 mt-6">
-        <div className="relative flex-1 max-w-xl min-w-[260px]">
-          <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-          <span className="w-full block pl-10 pr-3 py-2.5 bg-white border border-gray-200 text-sm text-gray-700 font-medium">Job alert settings</span>
-        </div>
-        <div className="flex items-center gap-2 text-xs text-gray-500 shrink-0">
-          <FiBell className="w-3.5 h-3.5" />
-          <span>Active alerts: 2</span>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-3">
-          {[
-            { title: "Software Engineer — Remote", company: "TechCorp Inc.", location: "San Francisco, CA • Remote", time: "2 hours ago", badge: "New", color: "bg-green-50 text-green-700 border-green-200" },
-            { title: "Frontend Developer", company: "StartupXYZ", location: "New York, NY", time: "1 day ago", badge: "Hot", color: "bg-blue-50 text-blue-700 border-blue-200" },
-          ].map((job, i) => (
-            <div key={i} className="group bg-white border border-gray-200 p-5 hover:border-gray-300 hover:shadow-sm transition-all">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex gap-3">
-                  <div className="hidden sm:flex w-10 h-10 bg-gray-900 text-white items-center justify-center text-sm font-bold shrink-0">{job.company[0]}</div>
-                  <div>
-                    <h3 className="text-[15px] font-semibold text-gray-900 group-hover:text-blue-600">{job.title}</h3>
-                    <p className="text-sm text-gray-600 flex items-center gap-1.5 mt-0.5"><FiBriefcase className="w-3.5 h-3.5 text-gray-400" />{job.company} <span className="text-gray-300">•</span> <span className="flex items-center gap-1"><FiMapPin className="w-3 h-3 text-gray-400" />{job.location}</span></p>
-                    <p className="text-xs text-gray-500 flex items-center gap-1 mt-1.5"><FiClock className="w-3 h-3" />{job.time}</p>
-                  </div>
-                </div>
-                <span className={`hidden sm:inline-flex text-xs font-medium border px-2.5 py-1 h-fit ${job.color}`}>{job.badge}</span>
-              </div>
-              <div className="mt-4 flex gap-2">
-                <button className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700"><FiEye className="w-4 h-4" /> View job</button>
-                <button className="inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50"><FiBookmark className="w-4 h-4" /> Save</button>
-                <span className={`sm:hidden inline-flex items-center text-xs font-medium border px-2 py-1 ml-auto ${job.color}`}>{job.badge}</span>
-              </div>
-            </div>
-          ))}
-
-          <div className="bg-amber-50 border border-amber-200 p-4 flex gap-3">
-            <FiZap className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+  const railContent = (
+    <>
+      <RailSection title="Settings">
+        <AlertSettingsCard />
+      </RailSection>
+      <RailSection>
+        <div className="rounded-xl border border-line bg-surface dark:border-line dark:bg-gray-25/80 p-4">
+          <div className="flex items-start gap-3">
+            <Zap className="mt-0.5 h-4 w-4 shrink-0 text-brand-text" strokeWidth={1.75} />
             <div>
-              <p className="text-sm font-medium text-amber-900">Create a new alert</p>
-              <p className="text-xs text-amber-700 mt-1">Set a search like “Remote • Product Designer • $90k+” and get daily digests.</p>
-              <button className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-amber-200 text-xs font-medium text-amber-700 hover:bg-amber-50"><FiPlus className="w-3.5 h-3.5" /> New alert</button>
+              <p className="text-sm font-semibold leading-5 text-ink">Pro tip</p>
+              <p className="mt-1 text-xs leading-5 text-gray-500 dark:text-gray-500">
+                Specify salary range and location constraints to reduce noise and receive higher-fit recommendations.
+              </p>
+            </div>
+          </div>
+        </div>
+      </RailSection>
+    </>
+  );
+
+  return (
+    <AppShell rail={railContent}>
+      <CenterBar
+        title="Job alerts"
+        backTo="/in/jobs"
+        backLabel="Jobs"
+        actions={
+          <div className="flex items-center gap-2">
+            <ButtonLink to="/in/jobs" variant="secondary" size="sm">
+              <span>Saved jobs</span>
+            </ButtonLink>
+            <ButtonLink to="/feed" variant="secondary" size="sm">
+              <span>Browse jobs</span>
+            </ButtonLink>
+          </div>
+        }
+      />
+
+      <div className="px-4 pb-1 pt-3">
+        <p className="flex items-center gap-1.5 text-[11px] leading-4 text-gray-500 dark:text-gray-500">
+          <Bell className="h-3.5 w-3.5 text-gray-500 dark:text-gray-500 shrink-0" strokeWidth={1.75} />
+          <span>
+            Active alerts: <span className="font-mono tabular-nums font-medium text-ink">2</span>
+          </span>
+        </p>
+      </div>
+
+      <div className="mt-2">
+        {ALERTS.map((alert) => (
+          <JobRow
+            key={alert.id}
+            avatar={<OrgMark name={alert.company} image={null} />}
+            title={alert.title}
+            titleSuffix={alert.company ? `at ${alert.company}` : null}
+            meta={alert.location}
+            time={alert.time}
+            actions={<StatusTag status={alert.status}>{alert.badge}</StatusTag>}
+            mobileActions={<StatusTag status={alert.status}>{alert.badge}</StatusTag>}
+          />
+        ))}
+
+        <div className="px-4 py-4">
+          <div className="rounded-xl border border-line bg-surface dark:border-line dark:bg-gray-25/80 p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-line bg-gray-50 dark:border-line dark:bg-gray-25/50">
+                  <Settings className="h-4 w-4 text-gray-500 dark:text-gray-500" strokeWidth={1.75} />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold leading-5 text-ink">Create a new alert</p>
+                  <p className="mt-1 text-xs leading-5 text-gray-500 dark:text-gray-500">
+                    Target roles by title, location, or compensation. RecruAI notifies you when new matches publish.
+                  </p>
+                </div>
+              </div>
+              <Button variant="secondary" size="sm" className="shrink-0 gap-1.5">
+                <Plus className="h-3.5 w-3.5" strokeWidth={2} />
+                <span>New alert</span>
+              </Button>
             </div>
           </div>
         </div>
 
-        <div className="space-y-6">
-          <div className="bg-white border border-gray-200 p-6">
-            <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2"><FiSettings className="w-4 h-4 text-gray-500" /> Alert settings</h3>
-            <div className="mt-4 space-y-4">
-              {[
-                { label: "Email notifications", desc: "Instant matches to your inbox", icon: FiMail, checked: true },
-                { label: "Push notifications", desc: "Browser & mobile pushes", icon: FiSmartphone, checked: true },
-                { label: "Weekly summary", desc: "Digest every Monday", icon: FiCalendar, checked: false },
-              ].map((pref) => {
-                const Icon = pref.icon;
-                return (
-                  <div key={pref.label} className="flex items-center justify-between py-2">
-                    <div className="flex gap-3">
-                      <div className="w-8 h-8 bg-gray-50 border border-gray-200 flex items-center justify-center shrink-0"><Icon className="w-4 h-4 text-gray-500" /></div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">{pref.label}</p>
-                        <p className="text-xs text-gray-500">{pref.desc}</p>
-                      </div>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" defaultChecked={pref.checked} className="sr-only peer" />
-                      <div className="w-9 h-5 bg-gray-200 peer peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:w-4 after:h-4 after:transition-all peer-checked:after:translate-x-4"></div>
-                    </label>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="bg-blue-600 text-white p-6">
-            <h3 className="text-sm font-semibold flex items-center gap-2"><FiZap className="w-4 h-4" /> Pro tip</h3>
-            <p className="text-sm text-blue-50 mt-2">Add salary range and location to reduce noise. You’ll get 3× more relevant alerts.</p>
-            <button className="mt-4 w-full bg-white text-blue-600 py-2.5 text-sm font-medium hover:bg-blue-50 transition-colors">Manage alert criteria</button>
-          </div>
+        {/* Settings also accessible on mobile (rail is hidden below lg) */}
+        <div className="px-4 pb-6 lg:hidden">
+          <RailSection title="Alert settings">
+            <AlertSettingsCard />
+          </RailSection>
         </div>
       </div>
-    </DashboardLayout>
+    </AppShell>
   );
 }

@@ -1,70 +1,111 @@
-import React, { useState, useEffect } from "react";
+import { OrgAppShell } from "../../components/layout/OrgAppShell";
+import { motion } from "motion/react";
+import { useState, useEffect } from "react";
+import AnimatedNumber from "../../components/motion/AnimatedNumber";
 import { useNavigate } from "react-router-dom";
-import DashboardLayout from "../../components/layout/DashboardLayout";
-import { getBackendUrl, getAuthHeaders } from "../../utils/auth";
+import { getBackendUrl, getAuthHeaders, verifyTokenWithServer } from "../../utils/auth";
 import { formatDate } from "../../utils/timezone";
 import DualTime from "../../components/ui/DualTime";
-import { FiBarChart2, FiAward, FiUsers, FiTarget, FiCheckCircle, FiAlertTriangle, FiArrowRight } from "react-icons/fi";
+import EmptyState from "../../components/ui/EmptyState";
+import {
+  BarChart2,
+  Award,
+  Users,
+  Target,
+  CheckCircle,
+  AlertTriangle,
+  ArrowRight,
+} from "lucide-react";
 
 export default function OrganizationAnalytics() {
   const navigate = useNavigate();
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [orgId] = useState(1);
+  const [orgError, setOrgError] = useState(null);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { fetchInterviewAnalytics(); }, []);
 
   const fetchInterviewAnalytics = async () => {
     try {
-      const res = await fetch(`${getBackendUrl()}/api/organizations/${orgId}/analytics`, { credentials: "include", headers: getAuthHeaders() });
+      // Resolve the authenticated organization context — never a hardcoded id.
+      const user = await verifyTokenWithServer();
+      const resolvedOrgId = user?.organization_id;
+      if (!resolvedOrgId) {
+        setOrgError("No organization access");
+        setLoading(false);
+        return;
+      }
+      const res = await fetch(`${getBackendUrl()}/api/organizations/${resolvedOrgId}/analytics`, { credentials: "include", headers: getAuthHeaders() });
       if (res.ok) setAnalytics(await res.json());
     } catch (e) { console.error(e); } finally { setLoading(false); }
   };
 
   if (loading) {
     return (
-      <DashboardLayout >
-        <div className="space-y-4">
-          <div className="rounded-2xl bg-gray-900 h-48 animate-pulse" />
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            {[1, 2, 3, 4].map((i) => <div key={i} className="bg-white border border-gray-200 h-28 animate-pulse" />)}
+      <OrgAppShell>
+        <div className="space-y-4 px-4 pb-4 pt-4">
+          <div className="h-44 animate-pulse rounded-xl border border-line bg-surface shadow-s5" />
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {[1, 2, 3, 4].map((i) => <div key={i} className="h-24 animate-pulse rounded-xl border border-line bg-surface shadow-s5" />)}
+          </div>
+          <div className="h-48 animate-pulse rounded-xl border border-line bg-surface shadow-s5" />
+        </div>
+      </OrgAppShell>
+    );
+  }
+
+  if (orgError) {
+    return (
+      <OrgAppShell>
+        <div className="flex min-h-[60vh] items-center justify-center px-4">
+          <div className="w-full max-w-md rounded-2xl border border-line bg-surface p-8 text-center shadow-s5">
+            <BarChart2 className="mx-auto mb-4 h-8 w-8 text-gray-500" strokeWidth={1.75} />
+            <h1 className="text-base font-semibold text-ink">No organization access</h1>
+            <p className="mt-1 text-xs text-gray-500">Analytics are available to organization members.</p>
           </div>
         </div>
-      </DashboardLayout>
+      </OrgAppShell>
     );
   }
 
   const hasData = analytics && analytics.total_interviews_analyzed > 0;
 
+  const chipCls = "inline-flex items-center rounded-full border border-line bg-gray-50 dark:bg-gray-25 px-2.5 py-0.5 text-[11px] font-medium text-gray-600 dark:text-gray-600";
+  const statusChip = (status) =>
+    status === "completed"
+      ? "bg-brand/10 text-brand-text border-brand/20 capitalize"
+      : status === "cancelled"
+        ? "bg-red-50 text-red-700 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/30 capitalize"
+        : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/30 capitalize";
+
   return (
-    <DashboardLayout >
-      {/* Hero */}
-      <div className="relative overflow-hidden rounded-2xl bg-gray-900 text-white mb-6">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-transparent to-indigo-600/20" />
-        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3" />
-        <div className="relative p-6 md:p-8">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-            <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 border border-white/20 text-xs font-medium tracking-wide mb-3">
-                <FiBarChart2 className="w-3.5 h-3.5" />
-                ANALYTICS
+    <OrgAppShell>
+      {/* Header */}
+      <div className="px-4 pb-4 pt-4">
+        <div className="rounded-xl border border-line bg-surface p-5 shadow-s5 card-hover">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-brand/10 text-brand-text shadow-s5">
+                  <BarChart2 className="h-4 w-4" strokeWidth={1.75} />
+                </span>
+                <h1 className="text-xl font-bold tracking-tight text-ink">Organization analytics</h1>
               </div>
-              <h1 className="text-3xl md:text-[2rem] font-bold leading-tight">Interview analytics</h1>
-              <p className="text-gray-300 mt-2 max-w-xl text-sm md:text-[15px]">Insights into performance, candidate evaluations, and hiring trends.</p>
+              <p className="mt-1 text-xs text-gray-500">Insights into performance, candidate evaluations, and hiring trends.</p>
             </div>
-            <div className="grid grid-cols-3 gap-3 lg:w-[380px]">
-              <div className="bg-white/10 backdrop-blur border border-white/10 p-4 text-center">
-                <p className="text-2xl font-bold">{analytics?.total_interviews_analyzed || 0}</p>
-                <p className="text-xs text-gray-300 mt-1">Analyzed</p>
+            <div className="grid grid-cols-3 gap-2.5">
+              <div className="rounded-xl border border-line bg-gray-50 dark:bg-gray-25 p-3 text-center shadow-s5">
+                <AnimatedNumber value={analytics?.total_interviews_analyzed || 0} className="text-lg font-bold font-mono tabular-nums text-ink" />
+                <p className="mt-0.5 text-[11px] font-medium text-gray-500">Analyzed</p>
               </div>
-              <div className="bg-blue-500/20 backdrop-blur border border-blue-400/20 p-4 text-center">
-                <p className="text-2xl font-bold text-blue-200">{analytics?.average_scores?.overall ? `${analytics.average_scores.overall}%` : "—"}</p>
-                <p className="text-xs text-blue-200 mt-1">Avg score</p>
+              <div className="rounded-xl border border-line bg-gray-50 dark:bg-gray-25 p-3 text-center shadow-s5">
+                <AnimatedNumber value={analytics?.average_scores?.overall ?? null} suffix="%" className="text-lg font-bold font-mono tabular-nums text-ink" />
+                <p className="mt-0.5 text-[11px] font-medium text-gray-500">Avg score</p>
               </div>
-              <div className="bg-green-500/20 backdrop-blur border border-green-400/20 p-4 text-center">
-                <p className="text-2xl font-bold text-green-200">{analytics?.pass_rate ? `${analytics.pass_rate}%` : "—"}</p>
-                <p className="text-xs text-green-200 mt-1">Pass rate</p>
+              <div className="rounded-xl border border-brand/20 bg-brand/10 p-3 text-center shadow-s5">
+                <AnimatedNumber value={analytics?.pass_rate ?? null} suffix="%" className="text-lg font-bold font-mono tabular-nums text-brand-text" />
+                <p className="mt-0.5 text-[11px] font-medium text-gray-500">Pass rate</p>
               </div>
             </div>
           </div>
@@ -72,130 +113,183 @@ export default function OrganizationAnalytics() {
       </div>
 
       {!hasData ? (
-        <div className="bg-white border border-gray-200 p-12 text-center">
-          <div className="w-14 h-14 bg-gray-100 flex items-center justify-center mx-auto mb-4"><FiBarChart2 className="w-7 h-7 text-gray-400" /></div>
-          <h3 className="text-lg font-semibold text-gray-900">No analytics yet</h3>
-          <p className="text-sm text-gray-500 mt-1 max-w-md mx-auto">Complete interviews and generate analyses to see insights here.</p>
+        <div className="px-4 pb-4">
+          <div className="rounded-xl border border-line bg-surface p-8 shadow-s5">
+            <EmptyState
+              icon={BarChart2}
+              title="No analytics yet"
+              body="Complete interviews and generate analyses to see insights here."
+            />
+          </div>
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-            <div className="bg-white border border-gray-200 p-5 text-center">
-              <p className="text-2xl font-bold text-blue-600">{analytics?.total_interviews_analyzed || 0}</p>
-              <p className="text-xs text-gray-500 mt-1">Interviews analyzed</p>
+          <div className="grid grid-cols-2 gap-3 px-4 pb-4 lg:grid-cols-4">
+            <div className="rounded-xl border border-line bg-surface p-5 text-center shadow-s5">
+              <AnimatedNumber value={analytics?.total_interviews_analyzed || 0} className="text-2xl font-bold font-mono tabular-nums tracking-tight text-ink" />
+              <p className="mt-1 text-xs font-medium text-gray-500">Interviews analyzed</p>
             </div>
-            <div className="bg-white border border-gray-200 p-5 text-center">
-              <p className="text-2xl font-bold text-green-600">{analytics?.average_scores?.overall ? `${analytics.average_scores.overall}%` : "--"}</p>
-              <p className="text-xs text-gray-500 mt-1">Avg overall</p>
+            <div className="rounded-xl border border-line bg-surface p-5 text-center shadow-s5">
+              <AnimatedNumber value={analytics?.average_scores?.overall ?? null} suffix="%" className="text-2xl font-bold font-mono tabular-nums tracking-tight text-ink" />
+              <p className="mt-1 text-xs font-medium text-gray-500">Avg overall</p>
             </div>
-            <div className="bg-white border border-gray-200 p-5 text-center">
-              <p className="text-2xl font-bold text-purple-600">{analytics?.pass_rate ? `${analytics.pass_rate}%` : "--"}</p>
-              <p className="text-xs text-gray-500 mt-1">Pass rate</p>
+            <div className="rounded-xl border border-line bg-surface p-5 text-center shadow-s5">
+              <AnimatedNumber value={analytics?.pass_rate ?? null} suffix="%" className="text-2xl font-bold font-mono tabular-nums tracking-tight text-ink" />
+              <p className="mt-1 text-xs font-medium text-gray-500">Pass rate</p>
             </div>
-            <div className="bg-white border border-gray-200 p-5 text-center">
-              <p className="text-2xl font-bold text-orange-600">{analytics?.top_strengths?.length || 0}</p>
-              <p className="text-xs text-gray-500 mt-1">Top skills</p>
+            <div className="rounded-xl border border-brand/20 bg-brand/10 p-5 text-center shadow-s5">
+              <AnimatedNumber value={analytics?.top_strengths?.length || 0} className="text-2xl font-bold font-mono tabular-nums tracking-tight text-brand-text" />
+              <p className="mt-1 text-xs font-medium text-gray-500">Top skills</p>
             </div>
           </div>
 
           {analytics?.average_scores && (
-            <div className="bg-white border border-gray-200 p-6 mb-6">
-              <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2"><FiTarget className="w-4 h-4 text-gray-500" /> Average scores</h3>
-              <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                {[
-                  { label: "Communication", score: analytics.average_scores.communication, color: "bg-blue-600", icon: FiUsers },
-                  { label: "Technical", score: analytics.average_scores.technical, color: "bg-green-600", icon: FiAward },
-                  { label: "Problem solving", score: analytics.average_scores.problem_solving, color: "bg-purple-600", icon: FiTarget },
-                  { label: "Cultural fit", score: analytics.average_scores.cultural_fit, color: "bg-orange-600", icon: FiUsers },
-                ].map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <div key={item.label} className="border border-gray-100 p-4 text-center">
-                      <div className={`w-10 h-10 ${item.color} flex items-center justify-center mx-auto`}><Icon className="w-5 h-5 text-white" /></div>
-                      <p className="text-2xl font-bold text-gray-900 mt-3">{item.score ? `${item.score}%` : "--"}</p>
-                      <p className="text-xs text-gray-500 mt-1">{item.label}</p>
-                      {item.score && <div className="mt-3 h-1.5 bg-gray-100"><div className={`${item.color} h-1.5`} style={{ width: `${item.score}%` }} /></div>}
-                    </div>
-                  );
-                })}
+            <div className="px-4 pb-4">
+              <div className="rounded-xl border border-line bg-surface p-5 shadow-s5 card-hover">
+                <div className="flex items-center gap-2 border-b border-line pb-4">
+                  <Target className="h-4 w-4 text-gray-500" strokeWidth={1.75} />
+                  <h2 className="text-sm font-semibold text-ink">Average scores</h2>
+                </div>
+                <div className="grid grid-cols-1 gap-4 pt-4 sm:grid-cols-2 lg:grid-cols-4">
+                  {[
+                    { label: "Communication", score: analytics.average_scores.communication, icon: Users },
+                    { label: "Technical", score: analytics.average_scores.technical, icon: Award },
+                    { label: "Problem solving", score: analytics.average_scores.problem_solving, icon: Target },
+                    { label: "Cultural fit", score: analytics.average_scores.cultural_fit, icon: Users },
+                  ].map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <div key={item.label} className="rounded-xl border border-line bg-gray-50 dark:bg-gray-25 p-4 text-center shadow-s5">
+                        <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-surface border border-line shadow-s5">
+                          <Icon className="h-4 w-4 text-gray-500" strokeWidth={1.75} />
+                        </div>
+                        <AnimatedNumber value={item.score ?? null} suffix="%" className="mt-3 text-2xl font-bold font-mono tabular-nums text-ink" />
+                        <p className="mt-1 text-xs font-medium text-gray-500">{item.label}</p>
+                        {item.score && (
+                          <div className="mt-3 h-2 rounded-full bg-line/60 dark:bg-gray-700/50">
+                            <motion.div
+                              className="h-2 rounded-full bg-brand"
+                              initial={{ width: 0 }}
+                              animate={{ width: `${item.score}%` }}
+                              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            <div className="bg-white border border-gray-200 p-6">
-              <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2"><FiCheckCircle className="w-4 h-4 text-green-600" /> Most common strengths</h3>
-              <div className="mt-4 space-y-3">
+          <div className="grid grid-cols-1 gap-4 px-4 pb-4 lg:grid-cols-2">
+            <div className="rounded-xl border border-line bg-surface p-5 shadow-s5 card-hover">
+              <div className="flex items-center gap-2 border-b border-line pb-4">
+                <CheckCircle className="h-4 w-4 text-brand-text" strokeWidth={1.75} />
+                <h2 className="text-sm font-semibold text-ink">Most common strengths</h2>
+              </div>
+              <div className="space-y-3.5 pt-4">
                 {analytics?.top_strengths?.slice(0, 5).map((s, i) => (
-                  <div key={i} className="flex items-center justify-between">
-                    <span className="text-sm text-gray-700">{s.skill}</span>
-                    <div className="flex items-center gap-2">
-                      <div className="w-16 h-1.5 bg-gray-100"><div className="bg-green-600 h-1.5" style={{ width: `${(s.count / analytics.total_interviews_analyzed) * 100}%` }} /></div>
-                      <span className="text-xs font-medium text-gray-600 w-6 text-right">{s.count}</span>
+                  <div key={i} className="flex items-center justify-between gap-3">
+                    <span className="truncate text-xs font-medium text-gray-700 dark:text-gray-600">{s.skill}</span>
+                    <div className="flex shrink-0 items-center gap-2.5">
+                      <div className="h-2 w-20 rounded-full bg-line/60 dark:bg-gray-700/50">
+                        <div className="h-2 rounded-full bg-brand" style={{ width: `${(s.count / analytics.total_interviews_analyzed) * 100}%` }} />
+                      </div>
+                      <span className="w-6 text-right text-xs font-semibold font-mono tabular-nums text-ink">{s.count}</span>
                     </div>
                   </div>
-                )) || <p className="text-sm text-gray-500">No data</p>}
+                )) || <p className="text-xs text-gray-500">No data</p>}
               </div>
             </div>
-            <div className="bg-white border border-gray-200 p-6">
-              <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2"><FiAlertTriangle className="w-4 h-4 text-amber-600" /> Common improvements</h3>
-              <div className="mt-4 space-y-3">
+
+            <div className="rounded-xl border border-line bg-surface p-5 shadow-s5 card-hover">
+              <div className="flex items-center gap-2 border-b border-line pb-4">
+                <AlertTriangle className="h-4 w-4 text-amber-500" strokeWidth={1.75} />
+                <h2 className="text-sm font-semibold text-ink">Common improvements</h2>
+              </div>
+              <div className="space-y-3.5 pt-4">
                 {analytics?.common_improvements?.slice(0, 5).map((imp, i) => (
-                  <div key={i} className="flex items-center justify-between">
-                    <span className="text-sm text-gray-700">{imp.area}</span>
-                    <div className="flex items-center gap-2">
-                      <div className="w-16 h-1.5 bg-gray-100"><div className="bg-amber-500 h-1.5" style={{ width: `${(imp.count / analytics.total_interviews_analyzed) * 100}%` }} /></div>
-                      <span className="text-xs font-medium text-gray-600 w-6 text-right">{imp.count}</span>
+                  <div key={i} className="flex items-center justify-between gap-3">
+                    <span className="truncate text-xs font-medium text-gray-700 dark:text-gray-600">{imp.area}</span>
+                    <div className="flex shrink-0 items-center gap-2.5">
+                      <div className="h-2 w-20 rounded-full bg-line/60 dark:bg-gray-700/50">
+                        <div className="h-2 rounded-full bg-amber-500" style={{ width: `${(imp.count / analytics.total_interviews_analyzed) * 100}%` }} />
+                      </div>
+                      <span className="w-6 text-right text-xs font-semibold font-mono tabular-nums text-ink">{imp.count}</span>
                     </div>
                   </div>
-                )) || <p className="text-sm text-gray-500">No data</p>}
+                )) || <p className="text-xs text-gray-500">No data</p>}
               </div>
             </div>
           </div>
 
           {analytics?.analytics?.length > 0 && (
-            <div className="bg-white border border-gray-200 p-6 mb-6">
-              <h3 className="text-sm font-semibold text-gray-900">Recent analyses</h3>
-              <div className="mt-4 space-y-3">
-                {analytics.analytics.slice(0, 5).map((analysis) => (
-                  <div key={analysis.id} onClick={() => navigate(`/in/interviews/${analysis.interview_id}/analysis`)} className="border border-gray-200 p-4 hover:border-gray-300 hover:bg-gray-50 cursor-pointer flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">Interview #{analysis.interview_id}</p>
-                      <p className="text-xs text-gray-500">{formatDate(analysis.created_at)}</p>
-                      <div className="mt-1 flex gap-1">
-                        <span className="text-xs bg-gray-50 border border-gray-200 px-2 py-1">Comm {analysis.communication_score || "--"}</span>
-                        <span className="text-xs bg-gray-50 border border-gray-200 px-2 py-1">Tech {analysis.technical_score || "--"}</span>
+            <div className="px-4 pb-4">
+              <div className="rounded-xl border border-line bg-surface p-5 shadow-s5 card-hover">
+                <div className="flex items-center gap-2 border-b border-line pb-4">
+                  <BarChart2 className="h-4 w-4 text-gray-500" strokeWidth={1.75} />
+                  <h2 className="text-sm font-semibold text-ink">Recent analyses</h2>
+                </div>
+                <div className="space-y-3 pt-4">
+                  {analytics.analytics.slice(0, 5).map((analysis) => (
+                    <button
+                      key={analysis.id}
+                      type="button"
+                      onClick={() => navigate(`/in/interviews/${analysis.interview_id}/analysis`)}
+                      className="flex w-full flex-col gap-3 rounded-xl border border-line bg-surface p-4 text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-25 sm:flex-row sm:items-center sm:justify-between shadow-s5"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-ink">Interview <span className="font-mono tabular-nums">#{analysis.interview_id}</span></p>
+                        <p className="mt-0.5 text-xs text-gray-500">{formatDate(analysis.created_at)}</p>
+                        <div className="mt-2 flex gap-1.5">
+                          <span className={chipCls}>Comm <span className="font-mono tabular-nums ml-1">{analysis.communication_score || "--"}</span></span>
+                          <span className={chipCls}>Tech <span className="font-mono tabular-nums ml-1">{analysis.technical_score || "--"}</span></span>
+                        </div>
                       </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-lg font-bold text-blue-600">{analysis.overall_score}/100</p>
-                      <span className="text-xs text-blue-600 flex items-center gap-1 justify-end">View <FiArrowRight className="w-3 h-3" /></span>
-                    </div>
-                  </div>
-                ))}
+                      <div className="flex shrink-0 items-center gap-2 sm:flex-col sm:items-end sm:gap-0.5">
+                        <p className="text-lg font-bold font-mono tabular-nums text-ink">{analysis.overall_score}/100</p>
+                        <span className="flex items-center gap-1 text-xs font-semibold text-brand-text">View <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.75} /></span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           )}
 
           {analytics?.recent_interviews?.length > 0 && (
-            <div className="bg-white border border-gray-200 p-6">
-              <h3 className="text-sm font-semibold text-gray-900">Recent interviews</h3>
-              <div className="mt-4 space-y-3">
-                {analytics.recent_interviews.slice(0, 5).map((interview) => (
-                  <div key={interview.id} onClick={() => navigate(`/in/interviews/${interview.id}/analysis`)} className="border border-gray-200 p-4 hover:bg-gray-50 cursor-pointer flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{interview.title || `Interview #${interview.id}`}</p>
-                      <p className="text-xs text-gray-500"><DualTime value={interview.scheduled_at_iso || interview.scheduled_at} otherTimezone={interview.candidate_timezone} otherLabel={interview.user_name} variant="compact" showRelative={false} /> • {interview.duration_minutes} min • {interview.interview_type}</p>
-                      {interview.post_title && <p className="text-xs text-blue-600 mt-1">{interview.post_title}</p>}
-                    </div>
-                    <span className={`text-xs font-medium border px-2 py-1 ${interview.status === "completed" ? "bg-green-50 text-green-700 border-green-200" : interview.status === "cancelled" ? "bg-red-50 text-red-700 border-red-200" : "bg-amber-50 text-amber-700 border-amber-200"}`}>{interview.status}</span>
-                  </div>
-                ))}
+            <div className="px-4 pb-4">
+              <div className="rounded-xl border border-line bg-surface p-5 shadow-s5 card-hover">
+                <div className="flex items-center gap-2 border-b border-line pb-4">
+                  <Users className="h-4 w-4 text-gray-500" strokeWidth={1.75} />
+                  <h2 className="text-sm font-semibold text-ink">Recent interviews</h2>
+                </div>
+                <div className="space-y-3 pt-4">
+                  {analytics.recent_interviews.slice(0, 5).map((interview) => (
+                    <button
+                      key={interview.id}
+                      type="button"
+                      onClick={() => navigate(`/in/interviews/${interview.id}/analysis`)}
+                      className="flex w-full flex-col gap-3 rounded-xl border border-line bg-surface p-4 text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-25 sm:flex-row sm:items-center sm:justify-between shadow-s5"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-ink">{interview.title || `Interview #${interview.id}`}</p>
+                        <p className="mt-0.5 text-xs text-gray-500">
+                          <DualTime value={interview.scheduled_at_iso || interview.scheduled_at} otherTimezone={interview.candidate_timezone} otherLabel={interview.user_name} variant="compact" showRelative={false} /> • <span className="font-mono tabular-nums">{interview.duration_minutes}</span> min • {interview.interview_type}
+                        </p>
+                        {interview.post_title && <p className="mt-1 text-xs font-semibold text-brand-text">{interview.post_title}</p>}
+                      </div>
+                      <span className={`shrink-0 rounded-full border px-2.5 py-1 text-xs font-semibold ${statusChip(interview.status)}`}>{interview.status}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           )}
         </>
       )}
-    </DashboardLayout>
+    </OrgAppShell>
   );
 }

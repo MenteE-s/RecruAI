@@ -1,5 +1,5 @@
 import { FiCode, FiX } from "react-icons/fi";
-import Card from "../../../../components/ui/Card";
+import { ProfileSection as Card } from "../../../../components/profile/ProfileSection";
 import SectionHeader from "../SectionHeader";
 
 export default function HobbiesSection({ hobbyInterests, onAdd, onRemove }) {
@@ -11,9 +11,9 @@ export default function HobbiesSection({ hobbyInterests, onAdd, onRemove }) {
       ) : (
         <div className="flex flex-wrap gap-2">
           {(hobbyInterests || []).map((hobby, index) => (
-            <span key={hobby.id || index} className="inline-flex items-center px-3 py-1.5 rounded-full text-sm bg-pink-50 text-pink-700 border border-pink-200">
+            <span key={hobby.id || index} className="inline-flex items-center px-3 py-1.5 rounded-full text-sm bg-brand/10 text-brand-text border border-brand/20">
               {hobby.name}
-              <button onClick={() => onRemove("hobbyInterests", index)} className="ml-2 text-pink-400 hover:text-pink-600">
+              <button onClick={() => onRemove("hobbyInterests", index)} className="ml-2 text-gray-500 hover:text-red-600">
                 <FiX size={12} />
               </button>
             </span>

@@ -1,311 +1,362 @@
-import React from "react";
+import React, { useState } from "react";
+import { Link } from "react-router-dom";
+import {
+  ShieldCheck,
+  Lock,
+  Clock,
+  Printer,
+  ChevronRight,
+  CheckCircle2,
+  Building2,
+  Mail,
+  ExternalLink,
+  FileText,
+  KeyRound,
+  Database,
+} from "lucide-react";
 import RecruAINavbar from "../components/product/RecruAINavbar";
 import Footer from "../components/Footer";
 
+const sections = [
+  { id: "intro", title: "1. Introduction & scope" },
+  { id: "collect", title: "2. Information we collect" },
+  { id: "usage", title: "3. How we use your information" },
+  { id: "sharing", title: "4. Information sharing & disclosures" },
+  { id: "security", title: "5. Data security & encryption" },
+  { id: "retention", title: "6. Data retention & account deletion" },
+  { id: "rights", title: "7. Your privacy rights" },
+  { id: "cookies", title: "8. Cookies and telemetry" },
+  { id: "transfers", title: "9. International data transfers" },
+  { id: "children", title: "10. Children's privacy" },
+  { id: "changes", title: "11. Changes to this policy" },
+  { id: "contact", title: "12. Contact data protection office" },
+];
+
 const PrivacyPolicy = () => {
+  const [activeSection, setActiveSection] = useState("intro");
+
+  const scrollTo = (id) => {
+    setActiveSection(id);
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-surface text-ink transition-colors">
       <RecruAINavbar />
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="bg-white shadow-lg rounded-lg overflow-hidden">
-          <div className="px-6 py-8 sm:px-10">
-            <h1 className="text-3xl font-bold text-gray-900 mb-8 text-center">
-              Privacy Policy
-            </h1>
-
-            <div className="prose prose-gray max-w-none">
-              <p className="text-sm text-gray-600 mb-8">
-                Last updated: November 30, 2025
+      {/* Header */}
+      <section className="border-b border-line bg-surface py-12 sm:py-16">
+        <div className="max-w-[1120px] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <div className="inline-flex items-center gap-2 rounded-full px-3 py-1 bg-brand/10 border border-brand/20 text-xs font-semibold text-brand-text mb-3">
+                <ShieldCheck className="h-3.5 w-3.5" strokeWidth={1.8} />
+                <span>Privacy &amp; data governance</span>
+              </div>
+              <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-ink">
+                Privacy policy
+              </h1>
+              <p className="mt-2 text-sm text-gray-600 dark:text-gray-500 max-w-2xl leading-relaxed">
+                How RecruAI and MenteE protect, process, and respect candidate profiles, interview transcripts, and organization data across Pakistan and the Gulf.
               </p>
+            </div>
 
-              <section className="mb-8">
-                <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-                  1. Introduction
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-line bg-gray-100 dark:bg-gray-25 text-xs text-gray-600 dark:text-gray-600">
+                <Clock className="h-3.5 w-3.5 text-brand-text" strokeWidth={1.8} />
+                <span>Last updated: <span className="font-mono tabular-nums font-semibold text-ink">Nov 30, 2025</span></span>
+              </div>
+              <button
+                type="button"
+                onClick={handlePrint}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-line bg-surface hover:bg-gray-100 dark:hover:bg-gray-25 text-xs font-medium text-ink transition-colors shadow-s5"
+              >
+                <Printer className="h-3.5 w-3.5" strokeWidth={1.8} />
+                <span>Print policy</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-6 flex flex-wrap items-center gap-2">
+            <span className="font-mono text-xs text-gray-500 dark:text-gray-500">Doc ID: PP-2025-V2</span>
+            <span className="text-gray-300 dark:text-gray-600">·</span>
+            <span className="text-xs text-gray-500 dark:text-gray-500">Pakistan &amp; GCC compliant</span>
+            <span className="text-gray-300 dark:text-gray-600">·</span>
+            <span className="text-xs text-gray-500 dark:text-gray-500">Estimated read: <span className="font-mono tabular-nums">7 min</span></span>
+          </div>
+        </div>
+      </section>
+
+      {/* Main Content with Table of Contents */}
+      <div className="max-w-[1120px] mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          {/* Sticky Table of Contents Sidebar */}
+          <aside className="lg:col-span-4 sticky top-6 hidden lg:block">
+            <div className="rounded-xl border border-line bg-surface p-5 shadow-s5">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-500 mb-3">
+                Contents
+              </h2>
+              <nav className="space-y-1">
+                {sections.map((sec) => (
+                  <button
+                    key={sec.id}
+                    type="button"
+                    onClick={() => scrollTo(sec.id)}
+                    className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium transition-colors flex items-center justify-between ${
+                      activeSection === sec.id
+                        ? "bg-brand/10 text-brand-text font-semibold"
+                        : "text-gray-600 dark:text-gray-500 hover:text-ink hover:bg-gray-100 dark:hover:bg-gray-25"
+                    }`}
+                  >
+                    <span className="truncate">{sec.title}</span>
+                    <ChevronRight className="h-3.5 w-3.5 shrink-0 opacity-60" strokeWidth={1.8} />
+                  </button>
+                ))}
+              </nav>
+
+              <div className="mt-5 pt-4 border-t border-line space-y-2">
+                <Link
+                  to="/terms"
+                  className="t-min inline-flex items-center text-xs font-medium text-brand-text hover:underline gap-1"
+                >
+                  <span>View terms and conditions</span>
+                  <ExternalLink className="h-3 w-3" strokeWidth={1.8} />
+                </Link>
+                <Link
+                  to="/cookies"
+                  className="t-min inline-flex items-center text-xs font-medium text-brand-text hover:underline gap-1"
+                >
+                  <span>View cookies policy</span>
+                  <ExternalLink className="h-3 w-3" strokeWidth={1.8} />
+                </Link>
+              </div>
+            </div>
+          </aside>
+
+          {/* Legal Body */}
+          <main className="lg:col-span-8 rounded-xl border border-line bg-surface p-6 sm:p-10 shadow-s5">
+            <div className="space-y-10 text-sm leading-relaxed text-gray-600 dark:text-gray-500">
+              <section id="intro" className="scroll-mt-8">
+                <h2 className="text-xl font-bold text-ink mb-3">
+                  1. Introduction &amp; scope
                 </h2>
-                <p className="text-gray-700 mb-4">
-                  At MenteE ("we," "us," or "our"), we are committed to
-                  protecting your privacy and ensuring the security of your
-                  personal information. This Privacy Policy explains how we
-                  collect, use, disclose, and safeguard your information when
-                  you use our RecruAI platform.
+                <p className="mb-3">
+                  At MenteE ("we," "us," or "our"), we respect your privacy and are committed to safeguarding personal information collected through the RecruAI platform. This Privacy policy governs how we collect, process, store, and protect candidate credentials, resumes, mock interview audio/video transcripts, and organizational applicant records.
                 </p>
-                <p className="text-gray-700">
-                  By using our Service, you agree to the collection and use of
-                  information in accordance with this policy.
+                <p>
+                  By accessing or registering for RecruAI, you acknowledge that your personal information is processed according to the terms of this policy.
                 </p>
               </section>
 
-              <section className="mb-8">
-                <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-                  2. Information We Collect
+              <section id="collect" className="scroll-mt-8">
+                <h2 className="text-xl font-bold text-ink mb-3">
+                  2. Information we collect
                 </h2>
-
-                <h3 className="text-xl font-medium text-gray-900 mb-3">
-                  2.1 Personal Information
-                </h3>
-                <p className="text-gray-700 mb-4">
-                  We may collect the following personal information:
+                <p className="mb-4">
+                  We collect information necessary to deliver precision semantic matching, automated ATS diagnostics, and AI interview simulations:
                 </p>
-                <ul className="list-disc pl-6 text-gray-700 mb-4">
-                  <li>Name and contact information (email, phone number)</li>
-                  <li>
-                    Professional information (resume, work experience,
-                    education)
-                  </li>
-                  <li>Account credentials and profile information</li>
-                  <li>Communication preferences</li>
-                  <li>
-                    Payment information (processed securely by third-party
-                    providers)
-                  </li>
-                </ul>
 
-                <h3 className="text-xl font-medium text-gray-900 mb-3">
-                  2.2 Usage Data
-                </h3>
-                <p className="text-gray-700 mb-4">
-                  We automatically collect certain information when you use our
-                  Service:
-                </p>
-                <ul className="list-disc pl-6 text-gray-700 mb-4">
-                  <li>IP address and location information</li>
-                  <li>Browser type and version</li>
-                  <li>Pages visited and time spent on our Service</li>
-                  <li>Device information and operating system</li>
-                  <li>Referral sources</li>
-                </ul>
+                <div className="space-y-3">
+                  <div className="rounded-lg border border-line bg-gray-100/50 dark:bg-gray-25/50 p-4">
+                    <h3 className="text-xs font-semibold text-ink mb-1.5 flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-brand-text" strokeWidth={1.8} />
+                      <span>Professional &amp; profile information</span>
+                    </h3>
+                    <p className="text-xs">
+                      Candidate resumes, educational background, work experience, verified skills, portfolio links, and preferred salary/location preferences.
+                    </p>
+                  </div>
 
-                <h3 className="text-xl font-medium text-gray-900 mb-3">
-                  2.3 Interview Data
-                </h3>
-                <p className="text-gray-700 mb-4">
-                  For interview-related features, we may collect:
-                </p>
-                <ul className="list-disc pl-6 text-gray-700">
-                  <li>Interview recordings and transcripts</li>
-                  <li>AI-generated analysis and feedback</li>
-                  <li>Performance metrics and scoring</li>
-                </ul>
+                  <div className="rounded-lg border border-line bg-gray-100/50 dark:bg-gray-25/50 p-4">
+                    <h3 className="text-xs font-semibold text-ink mb-1.5 flex items-center gap-2">
+                      <KeyRound className="h-4 w-4 text-brand-text" strokeWidth={1.8} />
+                      <span>Account credentials &amp; contact data</span>
+                    </h3>
+                    <p className="text-xs">
+                      Full name, verified email address, phone number, hashed passwords (bcrypt), and role authorizations (individual, recruiter, superadmin).
+                    </p>
+                  </div>
+
+                  <div className="rounded-lg border border-line bg-gray-100/50 dark:bg-gray-25/50 p-4">
+                    <h3 className="text-xs font-semibold text-ink mb-1.5 flex items-center gap-2">
+                      <Database className="h-4 w-4 text-brand-text" strokeWidth={1.8} />
+                      <span>Interview &amp; diagnostic telemetry</span>
+                    </h3>
+                    <p className="text-xs">
+                      WebRTC practice interview audio/video streams, natural language transcripts, AI-generated performance scores, and 384-dimensional dense vector embeddings.
+                    </p>
+                  </div>
+                </div>
               </section>
 
-              <section className="mb-8">
-                <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-                  3. How We Use Your Information
+              <section id="usage" className="scroll-mt-8">
+                <h2 className="text-xl font-bold text-ink mb-3">
+                  3. How we use your information
                 </h2>
-                <p className="text-gray-700 mb-4">
-                  We use the collected information for various purposes:
+                <p className="mb-3">
+                  Your information is utilized solely to deliver core recruitment and career advancement capabilities:
                 </p>
-                <ul className="list-disc pl-6 text-gray-700">
-                  <li>To provide and maintain our Service</li>
-                  <li>To process transactions and manage subscriptions</li>
-                  <li>To communicate with you about our Service</li>
-                  <li>To provide customer support</li>
-                  <li>To analyze usage patterns and improve our Service</li>
-                  <li>To comply with legal obligations</li>
-                  <li>To detect and prevent fraud</li>
-                </ul>
-              </section>
-
-              <section className="mb-8">
-                <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-                  4. Information Sharing and Disclosure
-                </h2>
-                <p className="text-gray-700 mb-4">
-                  We may share your information in the following circumstances:
-                </p>
-
-                <h3 className="text-xl font-medium text-gray-900 mb-3">
-                  4.1 With Service Providers
-                </h3>
-                <p className="text-gray-700 mb-4">
-                  We may share information with third-party service providers
-                  who assist us in operating our Service, such as payment
-                  processors, cloud hosting providers, and analytics services.
-                </p>
-
-                <h3 className="text-xl font-medium text-gray-900 mb-3">
-                  4.2 Business Transfers
-                </h3>
-                <p className="text-gray-700 mb-4">
-                  If we are involved in a merger, acquisition, or sale of
-                  assets, your information may be transferred as part of that
-                  transaction.
-                </p>
-
-                <h3 className="text-xl font-medium text-gray-900 mb-3">
-                  4.3 Legal Requirements
-                </h3>
-                <p className="text-gray-700 mb-4">
-                  We may disclose your information if required by law or in
-                  response to legal processes, such as subpoenas or court
-                  orders.
-                </p>
-
-                <h3 className="text-xl font-medium text-gray-900 mb-3">
-                  4.4 With Your Consent
-                </h3>
-                <p className="text-gray-700">
-                  We may share information with your explicit consent for
-                  specific purposes.
-                </p>
-              </section>
-
-              <section className="mb-8">
-                <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-                  5. Data Security
-                </h2>
-                <p className="text-gray-700 mb-4">
-                  We implement appropriate technical and organizational measures
-                  to protect your personal information against unauthorized
-                  access, alteration, disclosure, or destruction. These measures
-                  include:
-                </p>
-                <ul className="list-disc pl-6 text-gray-700">
-                  <li>Encryption of data in transit and at rest</li>
-                  <li>Regular security audits and updates</li>
-                  <li>Access controls and authentication requirements</li>
-                  <li>Secure data centers and infrastructure</li>
-                </ul>
-              </section>
-
-              <section className="mb-8">
-                <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-                  6. Data Retention
-                </h2>
-                <p className="text-gray-700 mb-4">
-                  We retain your personal information only as long as necessary
-                  for the purposes outlined in this Privacy Policy, unless a
-                  longer retention period is required by law. When we no longer
-                  need your information, we will securely delete or anonymize
-                  it. Verification codes are deleted within 24 hours of use or
-                  expiry, and inactive accounts are purged 30 days after a
-                  confirmed deletion request.
-                </p>
-              </section>
-
-              <section className="mb-8">
-                <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-                  7. Your Rights
-                </h2>
-                <p className="text-gray-700 mb-4">
-                  Depending on your location, you may have the following rights
-                  regarding your personal information:
-                </p>
-                <ul className="list-disc pl-6 text-gray-700">
-                  <li>
-                    <strong>Access:</strong> Request a copy of your personal
-                    information
+                <ul className="space-y-2 list-none pl-0">
+                  <li className="flex items-start gap-2.5">
+                    <CheckCircle2 className="h-4 w-4 text-brand-text shrink-0 mt-0.5" strokeWidth={1.8} />
+                    <span>Generate semantic vector rankings for job applications using pgvector.</span>
                   </li>
-                  <li>
-                    <strong>Correction:</strong> Request correction of
-                    inaccurate information
+                  <li className="flex items-start gap-2.5">
+                    <CheckCircle2 className="h-4 w-4 text-brand-text shrink-0 mt-0.5" strokeWidth={1.8} />
+                    <span>Run natural language processing (NLP) diagnostics on ATS resume compatibility.</span>
                   </li>
-                  <li>
-                    <strong>Deletion:</strong> Request deletion of your personal
-                    information
+                  <li className="flex items-start gap-2.5">
+                    <CheckCircle2 className="h-4 w-4 text-brand-text shrink-0 mt-0.5" strokeWidth={1.8} />
+                    <span>Power CVAI 12-week customized mentorship roadmaps and skill quizzes.</span>
                   </li>
-                  <li>
-                    <strong>Portability:</strong> Request transfer of your data
-                  </li>
-                  <li>
-                    <strong>Restriction:</strong> Request limitation of
-                    processing
-                  </li>
-                  <li>
-                    <strong>Objection:</strong> Object to processing based on
-                    legitimate interests
+                  <li className="flex items-start gap-2.5">
+                    <CheckCircle2 className="h-4 w-4 text-brand-text shrink-0 mt-0.5" strokeWidth={1.8} />
+                    <span>Deliver transactional security notices, invitation tokens, and interview confirmations via Resend.</span>
                   </li>
                 </ul>
-                <p className="text-gray-700 mt-4">
-                  To exercise these rights, please contact us at
-                  privacy@mentee.ai.
+              </section>
+
+              <section id="sharing" className="scroll-mt-8">
+                <h2 className="text-xl font-bold text-ink mb-3">
+                  4. Information sharing &amp; disclosures
+                </h2>
+                <p className="mb-3">
+                  We do not sell, rent, or monetize your personal data or interview recordings to third-party data brokers. Information is shared strictly under explicit operational bounds:
+                </p>
+                <div className="rounded-xl border border-line bg-gray-100/50 dark:bg-gray-25/50 p-4 space-y-2 text-xs">
+                  <p>• <strong>To hiring organizations:</strong> When you explicitly apply for an open job posting, your candidate profile, resume, and verified assessment scores are provided to the recruiting team.</p>
+                  <p>• <strong>To infrastructure providers:</strong> Encrypted hosting on secure cloud infrastructure, LiveKit WebRTC for video rooms, and Resend for transactional emails.</p>
+                  <p>• <strong>Legal compliance:</strong> When mandated by valid legal process, judicial order, or regulatory authorities in applicable jurisdictions.</p>
+                </div>
+              </section>
+
+              <section id="security" className="scroll-mt-8">
+                <h2 className="text-xl font-bold text-ink mb-3">
+                  5. Data security &amp; encryption
+                </h2>
+                <p className="mb-3">
+                  We employ rigorous technical and organizational security controls to protect user data:
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="rounded-lg border border-line bg-gray-100/50 dark:bg-gray-25/50 p-3.5">
+                    <div className="flex items-center gap-2 font-semibold text-xs text-ink mb-1">
+                      <Lock className="h-3.5 w-3.5 text-brand-text" strokeWidth={1.8} />
+                      <span>Encryption standards</span>
+                    </div>
+                    <p className="text-xs">TLS 1.3 encryption in transit and AES-256 cryptographic encryption at rest for all database assets.</p>
+                  </div>
+                  <div className="rounded-lg border border-line bg-gray-100/50 dark:bg-gray-25/50 p-3.5">
+                    <div className="flex items-center gap-2 font-semibold text-xs text-ink mb-1">
+                      <ShieldCheck className="h-3.5 w-3.5 text-brand-text" strokeWidth={1.8} />
+                      <span>Authentication security</span>
+                    </div>
+                    <p className="text-xs">HTTP-only SameSite cookies, JWT token revocation, and secure bcrypt password hashing.</p>
+                  </div>
+                </div>
+              </section>
+
+              <section id="retention" className="scroll-mt-8">
+                <h2 className="text-xl font-bold text-ink mb-3">
+                  6. Data retention &amp; account deletion
+                </h2>
+                <p className="mb-3">
+                  We retain personal data only for the period necessary to deliver our services. One-time verification OTP codes are automatically deleted within <span className="font-mono tabular-nums font-semibold text-ink">24 hours</span>.
+                </p>
+                <p>
+                  Upon receiving a confirmed account deletion request, user profiles, resumes, and interview records are permanently purged from active databases within <span className="font-mono tabular-nums font-semibold text-ink">30 days</span>.
                 </p>
               </section>
 
-              <section className="mb-8">
-                <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-                  8. Cookies and Tracking
+              <section id="rights" className="scroll-mt-8">
+                <h2 className="text-xl font-bold text-ink mb-3">
+                  7. Your privacy rights
                 </h2>
-                <p className="text-gray-700 mb-4">
-                  We use cookies and similar tracking technologies to enhance
-                  your experience on our Service. You can control cookie
-                  settings through your browser preferences.
+                <p className="mb-3">
+                  Regardless of your location across Pakistan, the GCC, or internationally, you have full ownership over your personal data:
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  <div className="p-3 rounded-lg border border-line bg-gray-100/50 dark:bg-gray-25/50">
+                    <span className="font-semibold text-ink">Right to access:</span> Request a complete export of your personal information and scores.
+                  </div>
+                  <div className="p-3 rounded-lg border border-line bg-gray-100/50 dark:bg-gray-25/50">
+                    <span className="font-semibold text-ink">Right to rectify:</span> Update inaccurate profile data directly through settings.
+                  </div>
+                  <div className="p-3 rounded-lg border border-line bg-gray-100/50 dark:bg-gray-25/50">
+                    <span className="font-semibold text-ink">Right to delete:</span> Request permanent erasure of candidate records and CVs.
+                  </div>
+                  <div className="p-3 rounded-lg border border-line bg-gray-100/50 dark:bg-gray-25/50">
+                    <span className="font-semibold text-ink">Right to opt-out:</span> Unsubscribe from email updates or non-essential cookies.
+                  </div>
+                </div>
+              </section>
+
+              <section id="cookies" className="scroll-mt-8">
+                <h2 className="text-xl font-bold text-ink mb-3">
+                  8. Cookies and telemetry
+                </h2>
+                <p>
+                  We utilize cookies to maintain session authenticity and interface preferences. For a comprehensive overview of how cookies are deployed, review our dedicated{" "}
+                  <Link to="/cookies" className="text-brand-text hover:underline font-medium">
+                    Cookies policy
+                  </Link>.
                 </p>
               </section>
 
-              <section className="mb-8">
-                <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-                  9. Third-Party Services
+              <section id="transfers" className="scroll-mt-8">
+                <h2 className="text-xl font-bold text-ink mb-3">
+                  9. International data transfers
                 </h2>
-                <p className="text-gray-700 mb-4">
-                  Our Service may contain links to third-party websites or
-                  services. We are not responsible for the privacy practices of
-                  these third parties. We encourage you to review their privacy
-                  policies.
+                <p>
+                  Your information may be processed in secure data centers located in regions where our hosting infrastructure operates. We guarantee standard contractual clauses and rigorous encryption safeguards across all international data transfers.
                 </p>
               </section>
 
-              <section className="mb-8">
-                <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-                  10. Children's Privacy
+              <section id="children" className="scroll-mt-8">
+                <h2 className="text-xl font-bold text-ink mb-3">
+                  10. Children's privacy
                 </h2>
-                <p className="text-gray-700 mb-4">
-                  Our Service is not intended for children under 13 years of
-                  age. We do not knowingly collect personal information from
-                  children under 13. If we become aware that we have collected
-                  personal information from a child under 13, we will take steps
-                  to delete such information.
+                <p>
+                  RecruAI is designed strictly for professionals and students seeking employment aged 16 and older. We do not knowingly collect personal information from individuals under 16 years of age.
                 </p>
               </section>
 
-              <section className="mb-8">
-                <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-                  11. International Data Transfers
+              <section id="changes" className="scroll-mt-8">
+                <h2 className="text-xl font-bold text-ink mb-3">
+                  11. Changes to this policy
                 </h2>
-                <p className="text-gray-700 mb-4">
-                  Your information may be transferred to and processed in
-                  countries other than your own. We ensure appropriate
-                  safeguards are in place to protect your information during
-                  such transfers.
+                <p>
+                  We may periodically revise this Privacy policy to reflect new capabilities or statutory updates. When material amendments occur, we will notify registered users via in-app banner or registered email.
                 </p>
               </section>
 
-              <section className="mb-8">
-                <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-                  12. Changes to This Privacy Policy
+              <section id="contact" className="scroll-mt-8 pt-4 border-t border-line">
+                <h2 className="text-xl font-bold text-ink mb-3">
+                  12. Contact data protection office
                 </h2>
-                <p className="text-gray-700 mb-4">
-                  We may update this Privacy Policy from time to time. We will
-                  notify you of any changes by posting the new Privacy Policy on
-                  this page and updating the "Last updated" date.
+                <p className="mb-4">
+                  To exercise your data privacy rights or submit questions regarding this policy:
                 </p>
-                <p className="text-gray-700">
-                  We encourage you to review this Privacy Policy periodically to
-                  stay informed about our privacy practices.
-                </p>
-              </section>
-
-              <section className="mb-8">
-                <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-                  13. Contact Us
-                </h2>
-                <p className="text-gray-700 mb-4">
-                  If you have any questions about this Privacy Policy or our
-                  privacy practices, please contact us:
-                </p>
-                <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-                  <p className="text-gray-700">
-                    <strong>Email:</strong> privacy@mentee.ai
-                  </p>
-                  <p className="text-gray-700">
-                    <strong>Address:</strong> 123 Innovation Drive, Tech Valley,
-                    CA 94043, United States
-                  </p>
+                <div className="rounded-xl border border-line bg-gray-100/50 dark:bg-gray-25/50 p-5 space-y-2 text-xs">
+                  <div className="flex items-center gap-2 text-ink font-semibold">
+                    <Building2 className="h-4 w-4 text-brand-text" strokeWidth={1.8} />
+                    <span>MenteE Inc. — Data Protection Office</span>
+                  </div>
+                  <p>Lahore, Pakistan · Serving Pakistan &amp; the Gulf</p>
+                  <div className="flex items-center gap-2 pt-1 text-gray-600 dark:text-gray-600">
+                    <Mail className="h-3.5 w-3.5 text-brand-text" strokeWidth={1.8} />
+                    <span>Email: <a href="mailto:privacy@menteeai.org" className="text-brand-text hover:underline">privacy@menteeai.org</a></span>
+                  </div>
                 </div>
               </section>
             </div>
-          </div>
+          </main>
         </div>
       </div>
 

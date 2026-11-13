@@ -1,183 +1,81 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  content: ["./src/**/*.{html,js,jsx}"],
+  content: ["./src/**/*.{html,js,jsx,ts,tsx}"],
+  darkMode: "class",
   theme: {
     extend: {
       colors: {
-        // MenteE brand (menteeai.org): monochrome charcoal. The app's brand
-        // utilities are `blue-*` (primary) and `indigo-*` (secondary), so both
-        // scales render charcoal — every bg-blue-600 button, text-blue-600
-        // link, and indigo gradient resolves to the brand palette with no
-        // per-file churn. 600 #171717 is the mentee primary (buttons, text);
-        // 700 #000000 darkens on hover; light steps tint surfaces.
-        // Single-knob brand accent. Every blue-* utility resolves to an HSL
-        // value derived from --brand-hue, so changing that one CSS variable in
-        // src/index.css re-themes the whole app (24 = burnt orange).
-        blue: {
-          50: 'hsl(var(--brand-hue) 90% 97% / <alpha-value>)',
-          100: 'hsl(var(--brand-hue) 90% 93% / <alpha-value>)',
-          200: 'hsl(var(--brand-hue) 88% 85% / <alpha-value>)',
-          300: 'hsl(var(--brand-hue) 86% 72% / <alpha-value>)',
-          400: 'hsl(var(--brand-hue) 84% 62% / <alpha-value>)',
-          500: 'hsl(var(--brand-hue) 82% 52% / <alpha-value>)',
-          600: 'hsl(var(--brand-hue) 80% 42% / <alpha-value>)',
-          700: 'hsl(var(--brand-hue) 78% 34% / <alpha-value>)',
-          800: 'hsl(var(--brand-hue) 76% 26% / <alpha-value>)',
-          900: 'hsl(var(--brand-hue) 74% 14% / <alpha-value>)',
-          950: 'hsl(var(--brand-hue) 72% 8% / <alpha-value>)',
+        gray: {
+          0: "rgb(var(--gray-00) / <alpha-value>)",
+          25: "rgb(var(--gray-25) / <alpha-value>)",
+          50: "rgb(var(--gray-50) / <alpha-value>)",
+          100: "rgb(var(--gray-100) / <alpha-value>)",
+          200: "rgb(var(--gray-200) / <alpha-value>)",
+          300: "rgb(var(--gray-300) / <alpha-value>)",
+          400: "rgb(var(--gray-400) / <alpha-value>)",
+          500: "rgb(var(--gray-500) / <alpha-value>)",
+          600: "rgb(var(--gray-600) / <alpha-value>)",
+          700: "rgb(var(--gray-700) / <alpha-value>)",
+          800: "rgb(var(--gray-800) / <alpha-value>)",
+          900: "rgb(var(--gray-900) / <alpha-value>)",
+          "1k": "rgb(var(--gray-1k) / <alpha-value>)",
         },
-        indigo: {
-          50: '#f7f7f7',
-          100: '#e9e9e9',
-          200: '#d4d4d4',
-          300: '#b3b3b3',
-          400: '#8a8a8a',
-          500: '#6b6b6b',
-          600: '#171717',
-          700: '#000000',
-          800: '#000000',
-          900: '#171717',
-          950: '#0a0a0a',
+        ink: "rgb(var(--gray-1k) / <alpha-value>)",
+        surface: "rgb(var(--gray-00) / <alpha-value>)",
+        canvas: "rgb(var(--gray-00) / <alpha-value>)",
+        line: "rgb(var(--border) / <alpha-value>)",
+        brand: {
+          DEFAULT: "rgb(var(--brand) / <alpha-value>)",
+          text: "rgb(var(--brand-text) / <alpha-value>)",
+          action: "rgb(var(--brand-action) / <alpha-value>)",
+          border: "rgb(var(--brand-border) / <alpha-value>)",
+          underline: "rgb(var(--brand-underline) / <alpha-value>)",
+          soft: "rgb(var(--brand) / 0.08)",
         },
-        primary: {
-          50: '#f7f7f7',
-          100: '#e9e9e9',
-          200: '#d4d4d4',
-          300: '#b3b3b3',
-          400: '#8a8a8a',
-          500: '#6b6b6b',
-          600: '#171717',
-          700: '#000000',
-          800: '#000000',
-          900: '#171717',
+        peach: {
+          50: "rgb(var(--peach-50) / <alpha-value>)",
+          100: "rgb(var(--peach-100) / <alpha-value>)",
+          300: "rgb(var(--peach-300) / <alpha-value>)",
         },
-        secondary: {
-          50: '#fafafa',
-          100: '#f5f5f5',
-          200: '#e5e5e5',
-          300: '#d4d4d4',
-          400: '#a3a3a3',
-          500: '#737373',
-          600: '#525252',
-          700: '#404040',
-          800: '#262626',
-          900: '#171717',
-        },
-        accent: {
-          50: '#f7f7f7',
-          100: '#e9e9e9',
-          200: '#d4d4d4',
-          300: '#b3b3b3',
-          400: '#8a8a8a',
-          500: '#6b6b6b',
-          600: '#171717',
-          700: '#000000',
-          800: '#000000',
-          900: '#171717',
-        },
-        success: {
-          50: '#f0fdf4',
-          100: '#dcfce7',
-          200: '#bbf7d0',
-          300: '#86efac',
-          400: '#4ade80',
-          500: '#22c55e',
-          600: '#16a34a',
-          700: '#15803d',
-          800: '#166534',
-          900: '#14532d',
-        }
+      },
+      borderColor: {
+        DEFAULT: "rgb(var(--border) / <alpha-value>)",
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        display: ['Poppins', 'system-ui', 'sans-serif'],
+        sans: ['"Geist Variable"', "Geist", "ui-sans-serif", "system-ui", "sans-serif"],
+        serif: ['"Instrument Serif"', "Georgia", "serif"],
+        mono: ['"Geist Mono"', "ui-monospace", "SFMono-Regular", "monospace"],
       },
-      animation: {
-        'fade-in': 'fadeIn 0.8s ease-in-out',
-        'fade-in-up': 'fadeInUp 0.8s ease-out',
-        'fade-in-down': 'fadeInDown 0.8s ease-out',
-        'slide-up': 'slideUp 0.6s ease-out',
-        'slide-left': 'slideLeft 0.8s ease-out',
-        'slide-right': 'slideRight 0.8s ease-out',
-        'float': 'float 6s ease-in-out infinite',
-        'bounce-slow': 'bounceSlow 3s ease-in-out infinite',
-        'pulse-glow': 'pulseGlow 2s ease-in-out infinite',
-        'gradient': 'gradient 8s ease infinite',
-        'shimmer': 'shimmer 2s linear infinite',
-        'wiggle': 'wiggle 1s ease-in-out infinite',
-        'spin-slow': 'spin 3s linear infinite',
-        'ping-slow': 'ping 3s cubic-bezier(0, 0, 0.2, 1) infinite',
-        'scale-in': 'scaleIn 0.5s ease-out',
-        'rotate-in': 'rotateIn 0.8s ease-out',
+      boxShadow: {
+        s5: "0 1px 1px -0.5px rgb(0 0 0 / 0.03), 0 3px 3px -1.5px rgb(0 0 0 / 0.03)",
+        s10: "0 1px 1px -0.5px rgb(0 0 0 / 0.03), 0 3px 3px -1.5px rgb(0 0 0 / 0.03), 0 6px 6px -3px rgb(0 0 0 / 0.03)",
+        s15:
+          "0 1px 1px -0.5px rgb(0 0 0 / 0.03), 0 3px 3px -1.5px rgb(0 0 0 / 0.03), 0 6px 6px -3px rgb(0 0 0 / 0.03), 0 12px 12px -6px rgb(0 0 0 / 0.06), 0 24px 24px -12px rgb(0 0 0 / 0.06)",
+        focus: "0 0 0 4px rgb(225 228 232 / 0.5)",
+        pop: "0 4px 12px -2px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.06)",
       },
       keyframes: {
-        fadeIn: {
-          '0%': { opacity: '0' },
-          '100%': { opacity: '1' },
+        fadeIn: { from: { opacity: "0" }, to: { opacity: "1" } },
+        popIn: {
+          from: { opacity: "0", transform: "scale(0.97) translateY(4px)" },
+          to: { opacity: "1", transform: "scale(1) translateY(0)" },
         },
-        fadeInUp: {
-          '0%': { opacity: '0', transform: 'translateY(30px)' },
-          '100%': { opacity: '1', transform: 'translateY(0)' },
-        },
-        fadeInDown: {
-          '0%': { opacity: '0', transform: 'translateY(-30px)' },
-          '100%': { opacity: '1', transform: 'translateY(0)' },
+        sheetIn: {
+          from: { opacity: "0", transform: "translateY(8px) scale(0.995)" },
+          to: { opacity: "1", transform: "translateY(0) scale(1)" },
         },
         slideUp: {
-          '0%': { transform: 'translateY(20px)', opacity: '0' },
-          '100%': { transform: 'translateY(0)', opacity: '1' },
+          from: { opacity: "0", transform: "translateY(10px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
         },
-        slideLeft: {
-          '0%': { transform: 'translateX(-30px)', opacity: '0' },
-          '100%': { transform: 'translateX(0)', opacity: '1' },
-        },
-        slideRight: {
-          '0%': { transform: 'translateX(30px)', opacity: '0' },
-          '100%': { transform: 'translateX(0)', opacity: '1' },
-        },
-        float: {
-          '0%, 100%': { transform: 'translateY(0px)' },
-          '50%': { transform: 'translateY(-20px)' },
-        },
-        bounceSlow: {
-          '0%, 100%': { transform: 'translateY(0px)' },
-          '50%': { transform: 'translateY(-15px)' },
-        },
-        pulseGlow: {
-          '0%, 100%': { boxShadow: '0 0 20px rgba(23, 23, 23, 0.35)' },
-          '50%': { boxShadow: '0 0 30px rgba(23, 23, 23, 0.65)' },
-        },
-        gradient: {
-          '0%, 100%': { backgroundPosition: '0% 50%' },
-          '50%': { backgroundPosition: '100% 50%' },
-        },
-        shimmer: {
-          '0%': { transform: 'translateX(-100%)' },
-          '100%': { transform: 'translateX(100%)' },
-        },
-        wiggle: {
-          '0%, 100%': { transform: 'rotate(-3deg)' },
-          '50%': { transform: 'rotate(3deg)' },
-        },
-        scaleIn: {
-          '0%': { transform: 'scale(0.8)', opacity: '0' },
-          '100%': { transform: 'scale(1)', opacity: '1' },
-        },
-        rotateIn: {
-          '0%': { transform: 'rotate(-180deg) scale(0.8)', opacity: '0' },
-          '100%': { transform: 'rotate(0deg) scale(1)', opacity: '1' },
-        }
       },
-      backgroundImage: {
-        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
-        'gradient-conic': 'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
-        'grid-pattern': 'url("data:image/svg+xml,%3csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3e%3cg fill=\'none\' fill-rule=\'evenodd\'%3e%3cg fill=\'%239C92AC\' fill-opacity=\'0.4\'%3e%3ccircle cx=\'30\' cy=\'30\' r=\'2\'/%3e%3c/g%3e%3c/g%3e%3c/svg%3e")',
+      animation: {
+        fadeIn: "fadeIn 160ms ease-out",
+        popIn: "popIn 140ms ease-out",
+        sheetIn: "sheetIn 180ms cubic-bezier(0.16, 1, 0.3, 1)",
+        slideUp: "slideUp 200ms cubic-bezier(0.16, 1, 0.3, 1)",
       },
-      backgroundSize: {
-        '300%': '300%',
-      }
     },
   },
   plugins: [],
-}
-
+};

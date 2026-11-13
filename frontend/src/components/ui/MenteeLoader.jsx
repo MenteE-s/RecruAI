@@ -44,7 +44,7 @@ export default function MenteeLoader({ size = 56, text = "Loading…", inline = 
   return (
     <span className={`flex flex-col items-center justify-center gap-1.5 ${className}`} role="status" aria-label={text || "Loading"}>
       {mark(size)}
-      {text ? <p className="text-[11px] text-gray-400 font-medium">{text}</p> : null}
+      {text ? <p className="text-[11px] font-medium text-gray-500">{text}</p> : null}
     </span>
   );
 }

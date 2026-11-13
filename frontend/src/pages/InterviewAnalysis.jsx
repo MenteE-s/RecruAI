@@ -1,13 +1,32 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import DashboardLayout from "../components/layout/DashboardLayout";
-import IndividualNavbar from "../components/layout/IndividualNavbar";
-import OrganizationNavbar from "../components/layout/OrganizationNavbar";
-import Card from "../components/ui/Card";
+import { AppShell, CenterBar } from "../components/layout/AppShell";
+import { OrgAppShell } from "../components/layout/OrgAppShell";
 import { getBackendUrl, getAuthHeaders } from "../utils/auth";
 import DualTime from "../components/ui/DualTime";
+import MenteeLoader from "../components/ui/MenteeLoader";
+import {
+  Clock,
+  Video,
+  Briefcase,
+  CheckCircle2,
+  Check,
+  ArrowRight,
+  TrendingUp,
+  Cpu,
+  BarChart3,
+  AlertCircle,
+  ArrowLeft,
+  MessageSquare,
+} from "lucide-react";
 
-const InterviewAnalysis = () => {
+const AnalysisCard = ({ children, className = "" }) => (
+  <div className={`rounded-xl border border-line bg-surface p-5 sm:p-6 shadow-s5 dark:bg-gray-25/60 ${className}`}>
+    {children}
+  </div>
+);
+
+export default function InterviewAnalysis() {
   const { interviewId } = useParams();
   const navigate = useNavigate();
   const [interview, setInterview] = useState(null);
@@ -22,20 +41,19 @@ const InterviewAnalysis = () => {
     typeof analysis.overall_score === "number" &&
     typeof analysis.communication_score === "number";
 
-  // Get user role and determine navbar
-  const userRole = localStorage.getItem("authRole");
+  const userRole = typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
+
   useEffect(() => {
     if (interviewId) {
       fetchInterviewData();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [interviewId]);
 
   const fetchInterviewData = async () => {
     try {
       setLoading(true);
 
-      // Fetch interview details
       const interviewResponse = await fetch(
         `${getBackendUrl()}/api/interviews/${interviewId}`,
         {
@@ -51,7 +69,6 @@ const InterviewAnalysis = () => {
       const interviewData = await interviewResponse.json();
       setInterview(interviewData);
 
-      // Fetch analysis if interview is completed
       if (interviewData.status === "completed") {
         try {
           const analysisResponse = await fetch(
@@ -70,12 +87,11 @@ const InterviewAnalysis = () => {
               setAnalysis(null);
             }
           }
-        } catch (analysisError) {
+        } catch {
           console.log("Analysis not available yet");
         }
       }
 
-      // Fetch messages
       const conversationResponse = await fetch(
         `${getBackendUrl()}/api/interviews/${interviewId}/conversation`,
         {
@@ -97,8 +113,8 @@ const InterviewAnalysis = () => {
         }));
         setMessages(transcript);
       }
-    } catch (error) {
-      console.error("Error fetching interview data:", error);
+    } catch (err) {
+      console.error("Error fetching interview data:", err);
       setError("Failed to load interview analysis");
     } finally {
       setLoading(false);
@@ -125,436 +141,450 @@ const InterviewAnalysis = () => {
       } else {
         throw new Error("Failed to generate analysis");
       }
-    } catch (error) {
-      console.error("Error generating analysis:", error);
+    } catch (err) {
+      console.error("Error generating analysis:", err);
       setError("Failed to generate analysis");
     } finally {
       setGeneratingAnalysis(false);
     }
   };
 
-  const getScoreColor = (score) => {
-    if (score >= 85) return "text-green-600 bg-green-100";
-    if (score >= 70) return "text-blue-600 bg-blue-100";
-    if (score >= 55) return "text-yellow-600 bg-yellow-100";
-    return "text-red-600 bg-red-100";
+  const getScoreBadgeClass = (score) => {
+    if (score >= 85) return "bg-brand/10 text-brand-text border-brand/20 dark:border-brand/30 dark:bg-brand/15";
+    if (score >= 70) return "bg-brand/10 text-brand-text border-brand/20 dark:bg-brand/15 dark:text-brand-text dark:border-brand/30";
+    if (score >= 55) return "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/60";
+    return "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-300 dark:border-red-800/60";
   };
 
-  const getScoreWidth = (score) => {
-    return `${Math.min(score, 100)}%`;
+  const getScoreBarClass = (score) => {
+    if (score >= 85) return "bg-brand";
+    if (score >= 70) return "bg-brand dark:bg-brand";
+    if (score >= 55) return "bg-amber-500";
+    return "bg-red-500";
   };
+
+  const pageTitle = (
+    <div className="flex items-center gap-2 min-w-0">
+      <button
+        onClick={() => navigate(userRole === "organization" ? "/org/interviews" : `/in/interviews/${interviewId}`)}
+        className="p-1 -ml-1 text-secondary hover:text-ink hover:bg-gray-100 dark:hover:bg-gray-25 rounded-lg transition-colors"
+        aria-label="Back"
+      >
+        <ArrowLeft className="h-4 w-4" strokeWidth={1.75} />
+      </button>
+      <div className="min-w-0">
+        <h1 className="text-sm font-semibold text-ink truncate leading-tight">Interview analysis</h1>
+        {interview?.title && (
+          <p className="text-[11px] text-secondary truncate mt-0.5">{interview.title}</p>
+        )}
+      </div>
+    </div>
+  );
 
   if (loading) {
+    const loadingContent = (
+      <div className="flex justify-center items-center py-16">
+        <MenteeLoader size={52} text="Loading interview analysis…" />
+      </div>
+    );
+    if (userRole === "organization") {
+      return <OrgAppShell title={pageTitle}>{loadingContent}</OrgAppShell>;
+    }
     return (
-      <DashboardLayout
-        NavbarComponent={
-          userRole === "organization" ? OrganizationNavbar : IndividualNavbar
-        }>
-        <div className="flex justify-center items-center py-8">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-3"></div>
-            <p className="text-gray-600">Loading interview analysis...</p>
-          </div>
-        </div>
-      </DashboardLayout>
+      <AppShell>
+        <CenterBar title={pageTitle} />
+        {loadingContent}
+      </AppShell>
     );
   }
 
   if (error || !interview) {
-    return (
-      <DashboardLayout
-        NavbarComponent={
-          userRole === "organization" ? OrganizationNavbar : IndividualNavbar
-        }>
-        <div className="max-w-4xl mx-auto p-4">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
-            <div className="text-red-500 text-3xl mb-3">⚠️</div>
-            <h2 className="text-lg font-semibold text-red-800 mb-2">
-              {error || "Interview not found"}
-            </h2>
-            <button
-              onClick={() => navigate("/feed")}
-              className="mt-3 px-5 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-            >
-              Return to Dashboard
-            </button>
+    const errorContent = (
+      <div className="max-w-2xl mx-auto p-4 py-8">
+        <div className="bg-surface border border-line rounded-2xl p-8 text-center shadow-s5 dark:bg-gray-25/60">
+          <div className="w-12 h-12 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/60 text-red-600 flex items-center justify-center mx-auto mb-3">
+            <AlertCircle className="w-6 h-6" strokeWidth={1.75} />
           </div>
+          <h2 className="text-base font-bold text-ink mb-1.5">
+            {error || "Interview not found"}
+          </h2>
+          <p className="text-xs text-secondary max-w-sm mx-auto mb-5 leading-relaxed">
+            We couldn't retrieve the analysis for this session. It may have been removed or the link is invalid.
+          </p>
+          <button
+            onClick={() => navigate(userRole === "organization" ? "/org/interviews" : "/in/interviews")}
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-brand text-white text-xs font-semibold rounded-xl shadow-s5 hover:bg-brand/90 transition-colors"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" strokeWidth={1.75} />
+            <span>Return to interviews</span>
+          </button>
         </div>
-      </DashboardLayout>
+      </div>
+    );
+    if (userRole === "organization") {
+      return <OrgAppShell title={pageTitle}>{errorContent}</OrgAppShell>;
+    }
+    return (
+      <AppShell>
+        <CenterBar title={pageTitle} />
+        {errorContent}
+      </AppShell>
     );
   }
 
-  return (
-    <DashboardLayout
-      NavbarComponent={
-        userRole === "organization" ? OrganizationNavbar : IndividualNavbar
-      }>
-      <div className="max-w-6xl mx-auto p-4 space-y-4">
-        {/* Header */}
-        <div
-          className={`rounded-xl p-4 text-white ${
-            userRole === "organization"
-              ? "bg-gradient-to-br from-yellow-600/90 via-amber-600/80 to-purple-700/70"
-              : "bg-gradient-to-br from-indigo-600/90 via-purple-600/80 to-cyan-700/70"
-          }`}>
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-xl font-bold mb-2">Interview Analysis</h1>
-              <p className="text-blue-100">{interview.title}</p>
-            </div>
-            <div className="text-right">
-              <div className="text-sm text-blue-100">Status</div>
-              <span
-                className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                  interview.status === "completed"
-                    ? "bg-green-500 text-white"
-                    : interview.status === "cancelled"
-                    ? "bg-red-500 text-white"
-                    : "bg-yellow-500 text-white"
-                }`}>
-                {interview.status}
-              </span>
-            </div>
-          </div>
-        </div>
+  const statusBadge = () => {
+    if (interview.status === "completed") {
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-brand/10 text-brand-text border border-brand/20 dark:border-brand/30 dark:bg-brand/15">
+          <CheckCircle2 className="w-3 h-3" strokeWidth={1.75} />
+          <span>Completed</span>
+        </span>
+      );
+    }
+    if (interview.status === "cancelled") {
+      return (
+        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold bg-red-50 text-red-700 border border-red-200 dark:bg-red-950/40 dark:text-red-300 dark:border-red-800/60">
+          Cancelled
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/60">
+        {interview.status ? interview.status.replace(/_/g, " ") : "Scheduled"}
+      </span>
+    );
+  };
 
-        {/* Interview Overview */}
-        <Card>
-          <h2 className="text-xl font-semibold mb-4">Interview Overview</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <div className="text-sm text-gray-600">Date & Time</div>
-              <div className="font-medium">
-                <DualTime
-                  value={interview.scheduled_at_iso || interview.scheduled_at}
-                  others={[
-                    { timezone: interview.organization_timezone, label: interview.organization },
-                    { timezone: interview.candidate_timezone, label: interview.user_name },
-                  ]}
-                />
-              </div>
-            </div>
-            <div>
-              <div className="text-sm text-gray-600">Duration</div>
-              <div className="font-medium">
-                {interview.duration_minutes} minutes
-              </div>
-            </div>
-            <div>
-              <div className="text-sm text-gray-600">Type</div>
-              <div className="font-medium capitalize">
-                {interview.interview_type} Interview
-              </div>
-            </div>
-            {interview.recording_url && (
-              <div className="md:col-span-3 mt-2">
-                <div className="text-sm text-gray-600 mb-1">Recording</div>
-                <video
-                  controls
-                  preload="metadata"
-                  src={`${interview.recording_url.startsWith("http") ? "" : getBackendUrl()}${interview.recording_url}`}
-                  className="w-full rounded-lg bg-black max-h-[480px]"
-                />
-              </div>
+  const mainContent = (
+    <div className="max-w-4xl mx-auto px-4 py-5 space-y-4">
+      {/* Header Card */}
+      <AnalysisCard>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h2 className="text-base font-bold text-ink leading-snug">{interview.title}</h2>
+            {interview.post_title && (
+              <p className="text-xs text-brand-text font-medium flex items-center gap-1.5 mt-1.5">
+                <Briefcase className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} />
+                <span>{interview.post_title}</span>
+              </p>
+            )}
+            {interview.organization && (
+              <p className="text-xs text-secondary mt-1">
+                Organization: <span className="text-ink font-medium">{interview.organization}</span>
+                {interview.user_name ? ` · Candidate: ${interview.user_name}` : ""}
+              </p>
             )}
           </div>
-          {interview.post_title && (
-            <div className="mt-4 pt-4 border-t">
-              <div className="text-sm text-gray-600">Position</div>
-              <div className="font-medium">{interview.post_title}</div>
+          <div>{statusBadge()}</div>
+        </div>
+      </AnalysisCard>
+
+      {/* Interview Overview */}
+      <AnalysisCard>
+        <h2 className="text-xs font-bold text-ink uppercase tracking-wider mb-3">Interview overview</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-1">
+          <div className="rounded-xl border border-line bg-surface p-3 dark:bg-gray-25/50">
+            <div className="text-[11px] font-medium text-secondary flex items-center gap-1 mb-1">
+              <Clock className="w-3 h-3 text-secondary/70" strokeWidth={1.75} />
+              <span>Date &amp; time</span>
+            </div>
+            <div className="text-xs font-semibold text-ink">
+              <DualTime
+                value={interview.scheduled_at_iso || interview.scheduled_at}
+                others={[
+                  { timezone: interview.organization_timezone, label: interview.organization },
+                  { timezone: interview.candidate_timezone, label: interview.user_name },
+                ]}
+              />
+            </div>
+          </div>
+          <div className="rounded-xl border border-line bg-surface p-3 dark:bg-gray-25/50">
+            <div className="text-[11px] font-medium text-secondary flex items-center gap-1 mb-1">
+              <Clock className="w-3 h-3 text-secondary/70" strokeWidth={1.75} />
+              <span>Duration</span>
+            </div>
+            <div className="text-xs font-semibold font-mono text-ink">
+              {interview.duration_minutes} minutes
+            </div>
+          </div>
+          <div className="rounded-xl border border-line bg-surface p-3 dark:bg-gray-25/50">
+            <div className="text-[11px] font-medium text-secondary flex items-center gap-1 mb-1">
+              <Video className="w-3 h-3 text-secondary/70" strokeWidth={1.75} />
+              <span>Type</span>
+            </div>
+            <div className="text-xs font-semibold text-ink capitalize">
+              {interview.interview_type ? interview.interview_type.replace(/_/g, " ") : "Standard"} interview
+            </div>
+          </div>
+          {interview.recording_url && (
+            <div className="sm:col-span-3 mt-1">
+              <div className="text-xs font-medium text-secondary mb-1.5 flex items-center gap-1">
+                <Video className="w-3.5 h-3.5 text-secondary/70" strokeWidth={1.75} />
+                <span>Recording</span>
+              </div>
+              <video
+                controls
+                preload="metadata"
+                src={`${interview.recording_url.startsWith("http") ? "" : getBackendUrl()}${interview.recording_url}`}
+                className="w-full rounded-xl bg-black max-h-[440px] border border-line shadow-s5"
+              />
             </div>
           )}
-        </Card>
+        </div>
+      </AnalysisCard>
 
-        {/* Analysis Section */}
-        {interview.status !== "completed" ? (
-          <Card>
-            <div className="text-center py-8">
-              <div className="text-4xl mb-4">ℹ️</div>
-              <h3 className="text-lg font-semibold mb-2">
-                Analysis Not Available Yet
-              </h3>
-              <p className="text-gray-600">
-                This interview must be marked as <b>completed</b> before
-                analysis can be generated.
-              </p>
-            </div>
-          </Card>
-        ) : (
-          <>
-            {!hasValidAnalysis ? (
-              <Card>
-                <div className="text-center py-8">
-                  <div className="text-4xl mb-4">📊</div>
-                  <h3 className="text-lg font-semibold mb-2">
-                    Analysis Not Available
-                  </h3>
-                  <p className="text-gray-600 mb-4">
-                    Generate AI-powered analysis to see detailed performance
-                    insights.
-                  </p>
-                  <button
-                    onClick={generateAnalysis}
-                    disabled={generatingAnalysis}
-                    className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {generatingAnalysis
-                      ? "Generating Analysis..."
-                      : "Generate Analysis"}
-                  </button>
-                </div>
-              </Card>
+      {/* Analysis Section */}
+      {interview.status !== "completed" ? (
+        <AnalysisCard className="text-center py-10">
+          <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-500 flex items-center justify-center mx-auto mb-3">
+            <Clock className="w-6 h-6" strokeWidth={1.75} />
+          </div>
+          <h3 className="text-sm font-bold text-ink mb-1">
+            Analysis not available yet
+          </h3>
+          <p className="text-xs text-secondary max-w-sm mx-auto leading-relaxed">
+            This interview must be marked as <span className="font-semibold text-ink">completed</span> before
+            performance insights can be generated.
+          </p>
+        </AnalysisCard>
+      ) : !hasValidAnalysis ? (
+        <AnalysisCard className="text-center py-10">
+          <div className="w-12 h-12 rounded-xl bg-brand/10 text-brand-text flex items-center justify-center mx-auto mb-3 dark:bg-brand/15">
+            <BarChart3 className="w-6 h-6" strokeWidth={1.75} />
+          </div>
+          <h3 className="text-sm font-bold text-ink mb-1">
+            Analysis not generated
+          </h3>
+          <p className="text-xs text-secondary max-w-sm mx-auto mb-4 leading-relaxed">
+            Generate AI-powered insights to review performance scores, response metrics, and tailored recommendations.
+          </p>
+          <button
+            onClick={generateAnalysis}
+            disabled={generatingAnalysis}
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-brand text-white text-xs font-semibold rounded-xl hover:bg-brand/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-s5"
+          >
+            {generatingAnalysis ? (
+              <>
+                <MenteeLoader size={16} text={null} inline />
+                <span>Generating analysis…</span>
+              </>
             ) : (
               <>
-                {/* Performance Scores */}
-                <Card>
-                  <h2 className="text-xl font-semibold mb-6">
-                    Performance Scores
-                  </h2>
-                  <div className="space-y-4">
-                    {[
-                      {
-                        label: "Overall Performance",
-                        score: analysis.overall_score,
-                        key: "overall",
-                      },
-                      {
-                        label: "Communication",
-                        score: analysis.communication_score,
-                        key: "communication",
-                      },
-                      {
-                        label: "Technical Skills",
-                        score: analysis.technical_score,
-                        key: "technical",
-                      },
-                      {
-                        label: "Problem Solving",
-                        score: analysis.problem_solving_score,
-                        key: "problem_solving",
-                      },
-                      {
-                        label: "Cultural Fit",
-                        score: analysis.cultural_fit_score,
-                        key: "cultural_fit",
-                      },
-                    ].map((item) => (
-                      <div
-                        key={item.key}
-                        className="flex items-center justify-between"
-                      >
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-sm font-medium text-gray-700">
-                              {item.label}
-                            </span>
-                            <span
-                              className={`text-sm font-bold px-2 py-1 rounded ${getScoreColor(
-                                item.score
-                              )}`}>
-                              {item.score}/100
-                            </span>
-                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div
-                              className={`h-2 rounded-full transition-all duration-500 ${
-                                item.score >= 85
-                                  ? "bg-green-500"
-                                  : item.score >= 70
-                                  ? "bg-blue-500"
-                                  : item.score >= 55
-                                  ? "bg-yellow-500"
-                                  : "bg-red-500"
-                              }`}
-                              style={{ width: getScoreWidth(item.score) }}
-                            ></div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </Card>
-
-                {/* AI Analysis Summary */}
-                <Card>
-                  <h2 className="text-xl font-semibold mb-4">
-                    AI Analysis Summary
-                  </h2>
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <div className="flex items-start">
-                      <div className="text-2xl mr-3">🤖</div>
-                      <div>
-                        <p className="text-gray-800">
-                          {analysis.ai_analysis_summary}
-                        </p>
-                        <div className="mt-2 text-sm text-gray-600">
-                          Analyzed by: {analysis.analyzed_by} • Method:{" "}
-                          {analysis.analysis_method}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-
-                {/* Strengths and Improvements */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Card>
-                    <h2 className="text-xl font-semibold mb-4 text-green-600">
-                      💪 Key Strengths
-                    </h2>
-                    <div className="space-y-3">
-                      {analysis.strengths && analysis.strengths.length > 0 ? (
-                        analysis.strengths.map((strength, index) => (
-                          <div key={index} className="flex items-start">
-                            <div className="text-green-500 mr-2 mt-1">✓</div>
-                            <span className="text-gray-700">{strength}</span>
-                          </div>
-                        ))
-                      ) : (
-                        <p className="text-gray-500 italic">
-                          No strengths identified
-                        </p>
-                      )}
-                    </div>
-                  </Card>
-
-                  <Card>
-                    <h2 className="text-xl font-semibold mb-4 text-orange-600">
-                      🎯 Areas for Improvement
-                    </h2>
-                    <div className="space-y-3">
-                      {analysis.improvements &&
-                      analysis.improvements.length > 0 ? (
-                        analysis.improvements.map((improvement, index) => (
-                          <div key={index} className="flex items-start">
-                            <div className="text-orange-500 mr-2 mt-1">→</div>
-                            <span className="text-gray-700">{improvement}</span>
-                          </div>
-                        ))
-                      ) : (
-                        <p className="text-gray-500 italic">
-                          No improvements suggested
-                        </p>
-                      )}
-                    </div>
-                  </Card>
-                </div>
-
-                {/* Interview Metrics */}
-                <Card>
-                  <h2 className="text-xl font-semibold mb-4">
-                    Interview Metrics
-                  </h2>
-<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-blue-600">
-                        {analysis.actual_duration_minutes ||
-                          interview.duration_minutes}
-                      </div>
-                      <div className="text-sm text-gray-600">
-                        Duration (minutes)
-                      </div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-green-600">
-                        {analysis.average_response_time_seconds
-                          ? `${analysis.average_response_time_seconds}s`
-                          : "--"}
-                      </div>
-                      <div className="text-sm text-gray-600">
-                        Avg Response Time
-                      </div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-purple-600">
-                        {analysis.question_count || "--"}
-                      </div>
-                      <div className="text-sm text-gray-600">
-                        Questions Asked
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-
-                {/* Detailed Feedback */}
-                {analysis.detailed_feedback && (
-                  <Card>
-                    <h2 className="text-xl font-semibold mb-4">
-                      Detailed Feedback
-                    </h2>
-                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                      <p className="text-gray-800 whitespace-pre-line">
-                        {analysis.detailed_feedback}
-                      </p>
-                    </div>
-                  </Card>
-                )}
-
-                {/* Conversation Transcript */}
-                <Card>
-                  <h2 className="text-xl font-semibold mb-4">
-                    Conversation Transcript
-                  </h2>
-                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 max-h-96 overflow-y-auto">
-                    <div className="space-y-4">
-                      {messages.map((message, index) => (
-                        <div key={message.id || index} className="flex">
-                          <div className="flex-shrink-0 w-20 text-sm text-gray-500">
-                            {message.user?.name || "AI"}:
-                          </div>
-                          <div className="flex-1">
-                            <div
-                              className={`inline-block px-3 py-2 rounded-lg text-sm ${
-                                message.message_type === "ai_response"
-                                  ? "bg-blue-100 text-blue-800"
-                                  : message.message_type ===
-                                    "interviewer_response"
-                                  ? "bg-green-100 text-green-800"
-                                  : "bg-gray-100 text-gray-800"
-                              }`}>
-                              {message.content}
-                            </div>
-                            <div className="text-xs text-gray-400 mt-1">
-                              <DualTime value={message.created_at} variant="compact" showRelative={false} />
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </Card>
+                <Cpu className="h-4 w-4" strokeWidth={1.75} />
+                <span>Generate analysis</span>
               </>
             )}
-          </>
-        )}
+          </button>
+        </AnalysisCard>
+      ) : (
+        <>
+          {/* Performance Scores */}
+          <AnalysisCard>
+            <h2 className="text-xs font-bold text-ink uppercase tracking-wider mb-4">
+              Performance scores
+            </h2>
+            <div className="space-y-3.5">
+              {[
+                { label: "Overall performance", score: analysis.overall_score, key: "overall" },
+                { label: "Communication", score: analysis.communication_score, key: "communication" },
+                { label: "Technical skills", score: analysis.technical_score, key: "technical" },
+                { label: "Problem solving", score: analysis.problem_solving_score, key: "problem_solving" },
+                { label: "Cultural fit", score: analysis.cultural_fit_score, key: "cultural_fit" },
+              ].map((item) => (
+                <div key={item.key} className="space-y-1.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-medium text-ink">{item.label}</span>
+                    <span className={`font-bold font-mono px-2 py-0.5 rounded-full border text-[11px] ${getScoreBadgeClass(item.score)}`}>
+                      {item.score}/100
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-2 overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 ${getScoreBarClass(item.score)}`}
+                      style={{ width: `${Math.min(Math.max(item.score, 4), 100)}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </AnalysisCard>
 
-        {/* Actions */}
-        <div className="flex justify-center gap-4">
-          <button
-            onClick={() => navigate(`/in/interviews/${interviewId}`)}
-            className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-          >
-            Back to Details
-          </button>
-          <button
-            onClick={() => navigate("/feed")}
-            className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-          >
-            Back to Dashboard
-          </button>
-          {interview.status === "completed" && !analysis && (
-            <button
-              onClick={generateAnalysis}
-              disabled={generatingAnalysis}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {generatingAnalysis ? "Generating..." : "Generate Analysis"}
-            </button>
+          {/* AI Analysis Summary */}
+          <AnalysisCard>
+            <h2 className="text-xs font-bold text-ink uppercase tracking-wider mb-3">
+              AI analysis summary
+            </h2>
+            <div className="rounded-xl border border-line bg-brand/5 dark:bg-brand/10 p-4">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg bg-brand/10 text-brand-text flex items-center justify-center shrink-0 mt-0.5 dark:bg-brand/15">
+                  <Cpu className="h-4 w-4" strokeWidth={1.75} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-ink leading-relaxed">
+                    {analysis.ai_analysis_summary}
+                  </p>
+                  <p className="mt-2 text-[11px] text-secondary">
+                    Analyzed by: <span className="text-ink font-medium">{analysis.analyzed_by}</span>
+                    {analysis.analysis_method ? ` · Method: ${analysis.analysis_method}` : ""}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </AnalysisCard>
+
+          {/* Strengths and Improvements */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <AnalysisCard>
+              <h2 className="text-xs font-bold text-brand-text uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5" strokeWidth={1.75} />
+                <span>Key strengths</span>
+              </h2>
+              <div className="space-y-2.5">
+                {analysis.strengths && analysis.strengths.length > 0 ? (
+                  analysis.strengths.map((strength, index) => (
+                    <div key={index} className="flex items-start gap-2 text-xs">
+                      <Check className="w-3.5 h-3.5 text-brand-text shrink-0 mt-0.5" strokeWidth={1.75} />
+                      <span className="text-ink leading-relaxed">{strength}</span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-xs text-secondary italic">No strengths identified</p>
+                )}
+              </div>
+            </AnalysisCard>
+
+            <AnalysisCard>
+              <h2 className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                <TrendingUp className="w-3.5 h-3.5" strokeWidth={1.75} />
+                <span>Areas for improvement</span>
+              </h2>
+              <div className="space-y-2.5">
+                {analysis.improvements && analysis.improvements.length > 0 ? (
+                  analysis.improvements.map((improvement, index) => (
+                    <div key={index} className="flex items-start gap-2 text-xs">
+                      <ArrowRight className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" strokeWidth={1.75} />
+                      <span className="text-ink leading-relaxed">{improvement}</span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-xs text-secondary italic">No improvements suggested</p>
+                )}
+              </div>
+            </AnalysisCard>
+          </div>
+
+          {/* Interview Metrics */}
+          <AnalysisCard>
+            <h2 className="text-xs font-bold text-ink uppercase tracking-wider mb-4">
+              Interview metrics
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="rounded-xl border border-line bg-surface p-3.5 text-center dark:bg-gray-25/50">
+                <div className="text-2xl font-extrabold font-mono text-ink">
+                  {analysis.actual_duration_minutes || interview.duration_minutes}
+                </div>
+                <div className="text-[11px] font-medium text-secondary mt-1">
+                  Duration (minutes)
+                </div>
+              </div>
+              <div className="rounded-xl border border-line bg-surface p-3.5 text-center dark:bg-gray-25/50">
+                <div className="text-2xl font-extrabold font-mono text-brand-text">
+                  {analysis.average_response_time_seconds
+                    ? `${analysis.average_response_time_seconds}s`
+                    : "—"}
+                </div>
+                <div className="text-[11px] font-medium text-secondary mt-1">
+                  Average response time
+                </div>
+              </div>
+              <div className="rounded-xl border border-line bg-surface p-3.5 text-center dark:bg-gray-25/50">
+                <div className="text-2xl font-extrabold font-mono text-ink">
+                  {analysis.question_count || "—"}
+                </div>
+                <div className="text-[11px] font-medium text-secondary mt-1">
+                  Questions asked
+                </div>
+              </div>
+            </div>
+          </AnalysisCard>
+
+          {/* Detailed Feedback */}
+          {analysis.detailed_feedback && (
+            <AnalysisCard>
+              <h2 className="text-xs font-bold text-ink uppercase tracking-wider mb-3">
+                Detailed feedback
+              </h2>
+              <div className="rounded-xl border border-line bg-surface p-4 dark:bg-gray-25/50">
+                <p className="text-xs text-ink leading-relaxed whitespace-pre-line">
+                  {analysis.detailed_feedback}
+                </p>
+              </div>
+            </AnalysisCard>
           )}
-        </div>
-      </div>
-    </DashboardLayout>
-  );
-};
 
-export default InterviewAnalysis;
+          {/* Conversation Transcript */}
+          <AnalysisCard>
+            <h2 className="text-xs font-bold text-ink uppercase tracking-wider mb-3 flex items-center gap-1.5">
+              <MessageSquare className="w-3.5 h-3.5 text-brand-text" strokeWidth={1.75} />
+              <span>Conversation transcript</span>
+            </h2>
+            <div className="rounded-xl border border-line bg-surface p-3 max-h-96 overflow-y-auto space-y-3 dark:bg-gray-25/50">
+              {messages.length === 0 ? (
+                <p className="text-xs text-secondary py-3 text-center">No transcript available.</p>
+              ) : (
+                messages.map((message, index) => (
+                  <div key={message.id || index} className="flex gap-2 text-xs">
+                    <div className="w-16 font-semibold text-secondary shrink-0 truncate">
+                      {message.user?.name || "AI"}:
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div
+                        className={`inline-block px-3 py-2 rounded-xl text-xs leading-relaxed ${
+                          message.message_type === "ai_response"
+                            ? "bg-brand/10 text-ink border border-brand/20 dark:border-brand/30 dark:bg-brand/15"
+                            : "bg-gray-100 dark:bg-gray-800 text-ink border border-line"
+                        }`}
+                      >
+                        {message.content}
+                      </div>
+                      <div className="text-[10px] text-secondary mt-0.5">
+                        <DualTime value={message.created_at} variant="compact" showRelative={false} />
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </AnalysisCard>
+        </>
+      )}
+
+      {/* Footer Actions */}
+      <div className="flex flex-wrap items-center justify-center gap-3 pt-4 pb-8">
+        <button
+          onClick={() => navigate(userRole === "organization" ? "/org/interviews" : `/in/interviews/${interviewId}`)}
+          className="px-4 py-2 border border-line bg-surface text-ink text-xs font-semibold hover:bg-gray-100 dark:hover:bg-gray-25 dark:bg-gray-25/50 rounded-xl transition-colors shadow-s5"
+        >
+          Back to details
+        </button>
+        <button
+          onClick={() => navigate("/feed")}
+          className="px-4 py-2 border border-line bg-surface text-ink text-xs font-semibold hover:bg-gray-100 dark:hover:bg-gray-25 dark:bg-gray-25/50 rounded-xl transition-colors shadow-s5"
+        >
+          Back to dashboard
+        </button>
+      </div>
+    </div>
+  );
+
+  if (userRole === "organization") {
+    return <OrgAppShell title={pageTitle}>{mainContent}</OrgAppShell>;
+  }
+
+  return (
+    <AppShell>
+      <CenterBar title={pageTitle} />
+      {mainContent}
+    </AppShell>
+  );
+}

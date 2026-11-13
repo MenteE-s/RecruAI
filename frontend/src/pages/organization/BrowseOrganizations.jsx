@@ -1,14 +1,16 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import DashboardLayout from "../../components/layout/DashboardLayout";
-import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
-import Card from "../../components/ui/Card";
+import { OrgAppShell } from "../../components/layout/OrgAppShell";
+import { AppShell } from "../../components/layout/AppShell";
+import { Button, ButtonLink } from "../../components/ui/Button";
+import { Input } from "../../components/ui/Input";
+import { Avatar } from "../../components/ui/Avatar";
+import EmptyState from "../../components/ui/EmptyState";
 import {
-
-getUploadUrl,
-getBackendUrl,
-getAuthHeaders,
-orgPath
+  getUploadUrl,
+  getBackendUrl,
+  getAuthHeaders,
+  orgPath,
 } from "../../utils/auth";
 import {
   FiSearch,
@@ -19,7 +21,14 @@ import {
   FiEye,
 } from "react-icons/fi";
 
-export default function BrowseOrganizations() {
+export default function BrowseOrganizations({ audience = "organization" }) {
+  const wrap = (node) =>
+    audience === "individual" ? (
+      // One owning header: the body renders `Browse organizations`; there is no bar.
+      <AppShell>{node}</AppShell>
+    ) : (
+      <OrgAppShell>{node}</OrgAppShell>
+    );
   const navigate = useNavigate();
 
   const [organizations, setOrganizations] = useState([]);
@@ -75,170 +84,127 @@ export default function BrowseOrganizations() {
   }, [searchTerm, organizations]);
 
   if (loading) {
-    return (
-      <DashboardLayout
-        NavbarComponent={OrganizationNavbar}>
-        <div className="flex justify-center items-center py-12">
-          <div className="animate-pulse">
-            <div className="text-gray-500 mb-4">Loading organizations...</div>
-            <div className="w-64 h-4 bg-gray-200 rounded mb-2"></div>
-            <div className="w-48 h-4 bg-gray-200 rounded"></div>
-          </div>
+    return wrap(
+      <div className="space-y-4 px-4 py-4">
+        <div className="h-24 animate-pulse rounded-xl border border-line bg-surface" />
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-56 animate-pulse rounded-xl border border-line bg-surface" />
+          ))}
         </div>
-      </DashboardLayout>
+      </div>
     );
   }
 
-  return (
-    <DashboardLayout
-      NavbarComponent={OrganizationNavbar}>
-      {/* Error Message */}
+  return wrap(
+    <>
       {error && (
-        <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <span>{error}</span>
-            </div>
-            <button
-              onClick={() => setError(null)}
-              className="text-red-700 hover:text-red-900"
-            >
-              ×
-            </button>
-          </div>
+        <div className="mx-4 mt-4 flex items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          <span>{error}</span>
+          <button onClick={() => setError(null)} className="text-red-700 hover:text-red-900" aria-label="Dismiss">
+            ×
+          </button>
         </div>
       )}
 
-      <div className="mb-6">
-        <div className="rounded-2xl p-6 bg-white border border-gray-200 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold font-display text-gray-900">
-                Browse Organizations
-              </h1>
-              <p className="mt-1 text-gray-500">
-                Discover companies and explore opportunities
-              </p>
-            </div>
+      {/* Header */}
+      <div className="px-4 pb-4 pt-4">
+        <div className="rounded-xl border border-line bg-surface p-5">
+          {audience === "individual" ? (
+            <h2 className="text-[20px] font-semibold leading-7 text-ink">Browse Organizations</h2>
+          ) : (
+            <h1 className="text-[20px] font-semibold leading-7 text-ink">Browse Organizations</h1>
+          )}
+          <p className="mt-0.5 text-[13px] text-gray-500">Discover companies and explore opportunities.</p>
+        </div>
+      </div>
+
+      {/* Search */}
+      <div className="px-4 pb-4">
+        <div className="rounded-xl border border-line bg-surface p-4">
+          <div className="relative">
+            <FiSearch className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+            <Input
+              type="text"
+              placeholder="Search organizations by name, description, location, or industry..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9"
+            />
           </div>
         </div>
       </div>
 
-      {/* Search Bar */}
-      <Card className="mb-6">
-        <div className="relative">
-          <FiSearch className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search organizations by name, description, location, or industry..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-        </div>
-      </Card>
-
       {/* Organizations Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-4 px-4 pb-4 md:grid-cols-2 lg:grid-cols-3">
         {filteredOrganizations.length === 0 ? (
-          <div className="col-span-full text-center py-12">
-            <FiBriefcase size={48} className="mx-auto text-gray-400 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              No Organizations Found
-            </h3>
-            <p className="text-gray-500">
-              {searchTerm
-                ? "Try adjusting your search terms"
-                : "No organizations available"}
-            </p>
+          <div className="col-span-full">
+            <EmptyState
+              icon={FiBriefcase}
+              title="No Organizations Found"
+              body={searchTerm ? "Try adjusting your search terms" : "No organizations available"}
+            />
           </div>
         ) : (
           filteredOrganizations.map((org) => (
-            <Card key={org.id} className="hover:shadow-lg transition-shadow">
-              <div className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0 h-12 w-12">
-                      {org.profile_image ? (
-                        <Link to={orgPath(org)} className="h-12 w-12 block">
-                          <img
-                            src={getUploadUrl(org.profile_image)}
-                            alt={`${org.name} profile`}
-                            className="h-12 w-12 rounded-lg object-cover border-2 border-gray-200 hover:border-blue-300 transition-colors"
-                          />
-                        </Link>
-                      ) : (
-                        <div className="h-12 w-12 rounded-lg bg-green-700 flex items-center justify-center">
-                          <FiBriefcase size={20} className="text-white" />
-                        </div>
-                      )}
-                    </div>
-                    <div className="ml-3">
-                      <h3 className="text-lg font-semibold text-gray-900">
-                        {org.name}
-                      </h3>
-                      {org.industry && (
-                        <p className="text-sm text-gray-500">{org.industry}</p>
-                      )}
-                    </div>
+            <div key={org.id} className="flex flex-col rounded-xl border border-line bg-surface p-5 transition-colors hover:bg-gray-50 dark:hover:bg-gray-25">
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                  <Link to={orgPath(org)} aria-label={`View ${org.name || "organization"} profile`} className="shrink-0">
+                    {org.profile_image ? (
+                      <img
+                        src={getUploadUrl(org.profile_image)}
+                        alt={`${org.name} profile`}
+                        className="h-12 w-12 rounded-xl border border-line object-cover transition-colors hover:border-brand"
+                      />
+                    ) : (
+                      <Avatar name={org.name || "?"} size="2xl" rounded="xl" />
+                    )}
+                  </Link>
+                  <div className="min-w-0">
+                    <h3 className="truncate text-sm font-semibold text-ink">{org.name}</h3>
+                    {org.industry && <p className="truncate text-xs text-gray-500">{org.industry}</p>}
                   </div>
                 </div>
-
-                {org.description && (
-                  <p className="text-gray-600 text-sm mb-4 line-clamp-3">
-                    {org.description}
-                  </p>
-                )}
-
-                <div className="space-y-2 mb-4">
-                  {org.location && (
-                    <div className="flex items-center text-sm text-gray-500">
-                      <FiMapPin className="mr-2" size={14} />
-                      {org.location}
-                    </div>
-                  )}
-                  {org.website && (
-                    <div className="flex items-center text-sm text-gray-500">
-                      <FiGlobe className="mr-2" size={14} />
-                      <a
-                        href={org.website}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:text-blue-800"
-                      >
-                        {org.website}
-                      </a>
-                    </div>
-                  )}
-                  {org.company_size && (
-                    <div className="flex items-center text-sm text-gray-500">
-                      <FiUsers className="mr-2" size={14} />
-                      {org.company_size} employees
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => navigate(orgPath(org))}
-                    className="inline-flex items-center px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                  >
-                    <FiEye className="mr-1.5" size={14} />
-                    Profile
-                  </button>
-                  <a
-                    href="/feed"
-                    className="inline-flex items-center px-3 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-black focus:ring-2 focus:ring-gray-900 focus:ring-offset-2 transition-colors"
-                  >
-                    <FiBriefcase className="mr-1.5" size={14} />
-                    Openings
-                  </a>
-                </div>
               </div>
-            </Card>
+
+              {org.description && (
+                <p className="mt-3 line-clamp-3 text-[13px] leading-5 text-gray-600">{org.description}</p>
+              )}
+
+              <div className="mt-3 space-y-1.5">
+                {org.location && (
+                  <div className="flex items-center text-[13px] text-gray-500">
+                    <FiMapPin className="mr-2 h-3.5 w-3.5 shrink-0" /> {org.location}
+                  </div>
+                )}
+                {org.website && (
+                  <div className="flex items-center text-[13px] text-gray-500">
+                    <FiGlobe className="mr-2 h-3.5 w-3.5 shrink-0" />
+                    <a href={org.website} target="_blank" rel="noopener noreferrer" className="truncate font-medium text-ink hover:text-brand-text">
+                      {org.website}
+                    </a>
+                  </div>
+                )}
+                {org.company_size && (
+                  <div className="flex items-center text-[13px] text-gray-500">
+                    <FiUsers className="mr-2 h-3.5 w-3.5 shrink-0" /> {org.company_size} employees
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-4 flex gap-2 pt-1">
+                <Button variant="primary" size="sm" className="flex-1" onClick={() => navigate(orgPath(org))}>
+                  <FiEye className="h-3.5 w-3.5" /> Profile
+                </Button>
+                <ButtonLink to="/feed" variant="secondary" size="sm" className="flex-1">
+                  <FiBriefcase className="h-3.5 w-3.5" /> Openings
+                </ButtonLink>
+              </div>
+            </div>
           ))
         )}
       </div>
-    </DashboardLayout>
+    </>
   );
 }

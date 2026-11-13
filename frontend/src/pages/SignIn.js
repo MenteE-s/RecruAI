@@ -1,23 +1,106 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import {
-  FiArrowLeft,
-  FiEye,
-  FiEyeOff,
-  FiCheck,
-  FiZap,
-  FiTarget,
-  FiUsers,
-} from "react-icons/fi";
+  Eye,
+  EyeOff,
+  Zap,
+  Target,
+  Users,
+  CheckCircle2,
+  Briefcase,
+  BarChart3,
+  AlertCircle,
+} from "lucide-react";
 import { useToast } from "../components/ui/ToastContext";
 import { getBackendUrl, getSafeNextPath, setAuthSession } from "../utils/auth";
 import OtpVerify from "../components/auth/OtpVerify";
+import AuthLayout from "../components/auth/AuthLayout";
+
+const inputCls =
+  "block w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink placeholder-gray-400 outline-none transition-all focus:border-brand focus:ring-2 focus:ring-brand/20 shadow-s5";
 
 const HIGHLIGHTS = [
-  { icon: FiTarget, title: "AI-matched jobs", text: "Roles tailored to your skills, not keywords." },
-  { icon: FiZap, title: "Unlimited mock interviews", text: "Practice with instant AI feedback." },
-  { icon: FiUsers, title: "Pipeline automation", text: "Applied → hired, fully tracked." },
+  { icon: Target, title: "AI-matched jobs", text: "Roles tailored to your skills, not keywords." },
+  { icon: Zap, title: "Unlimited mock interviews", text: "Practice with instant AI feedback." },
+  { icon: Users, title: "Pipeline automation", text: "Applied → hired, fully tracked." },
 ];
+
+/* ── Stageshow illustration: SignIn right panel ─────────────────────────── */
+function SignInIllustration() {
+  return (
+    <div className="my-6 space-y-3.5">
+      {/* Welcome-back notification card */}
+      <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-4.5 shadow-2xl backdrop-blur-md">
+        {/* Card header row */}
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand/20 border border-brand/30 text-xs font-bold text-brand-underline">
+            FA
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-bold text-white">Welcome back, Fatima</p>
+            <p className="text-[11px] text-slate-400">RecruAI · Just now</p>
+          </div>
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-brand/10 px-2.5 py-0.5 text-[10px] font-semibold text-brand-underline">
+            <span className="h-1.5 w-1.5 rounded-full bg-brand animate-pulse" />
+            New
+          </span>
+        </div>
+
+        {/* Divider */}
+        <div className="my-3 border-t border-white/10" />
+
+        {/* Match highlight */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 text-xs text-slate-300">
+            <Briefcase className="h-4 w-4 text-brand-underline shrink-0" strokeWidth={2} />
+            <span>3 new job matches since your last login</span>
+          </div>
+          <CheckCircle2 className="h-4 w-4 shrink-0 text-brand-underline" strokeWidth={2} />
+        </div>
+      </div>
+
+      {/* Activity feed card */}
+      <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 shadow-xl">
+        <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+          Recent activity
+        </p>
+        <div className="space-y-2">
+          {/* Row 1 — applied */}
+          <div className="flex items-center gap-3 rounded-xl border border-white/5 bg-white/[0.02] p-2.5 transition-colors">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-500/20 text-[10px] font-bold text-emerald-400">
+              A
+            </div>
+            <div className="flex flex-1 items-center justify-between min-w-0">
+              <p className="truncate text-xs font-medium text-slate-200">Applied — Senior Dev, Karachi</p>
+              <span className="ml-2 shrink-0 font-mono text-[10px] text-slate-400 tabular-nums">2d</span>
+            </div>
+          </div>
+          {/* Row 2 — interview */}
+          <div className="flex items-center gap-3 rounded-xl border border-white/5 bg-white/[0.02] p-2.5 transition-colors">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-brand/20 text-[10px] font-bold text-brand-underline">
+              M
+            </div>
+            <div className="flex flex-1 items-center justify-between min-w-0">
+              <p className="truncate text-xs font-medium text-slate-200">Interview scheduled · Fri 10:00 AM</p>
+              <span className="ml-2 shrink-0 font-mono text-[10px] text-slate-400 tabular-nums">5d</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ATS score strip */}
+      <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3">
+        <div className="flex items-center gap-2 text-xs text-slate-300">
+          <BarChart3 className="h-4 w-4 text-brand-underline shrink-0" strokeWidth={2} />
+          <span>ATS resume score</span>
+        </div>
+        <span className="font-mono text-sm font-extrabold tabular-nums text-white">
+          91<span className="ml-0.5 text-xs font-medium text-slate-400">/100</span>
+        </span>
+      </div>
+    </div>
+  );
+}
 
 export default function SignIn() {
   const [email, setEmail] = useState("");
@@ -93,7 +176,6 @@ export default function SignIn() {
         }
         const msg = data.error || "Sign in failed";
         setError(msg);
-        // show side toast for errors
         showToast({
           message: msg,
           type: "error",
@@ -105,7 +187,6 @@ export default function SignIn() {
       }
       // Keep the access token in memory only; the refresh cookie is HttpOnly.
       setAuthSession(data.access_token, data.user);
-      // show success toast
       showToast({
         message: "Signed in",
         type: "success",
@@ -115,14 +196,8 @@ export default function SignIn() {
       // prefer SPA navigation but fall back to full reload if SPA route doesn't take
       navigate(nextPath || "/feed", { replace: true });
       if (typeof window !== "undefined") {
-        // small delay: if SPA navigation didn't change the path (protected route may redirect),
-        // force a hard navigation to help surface errors in the network tab.
         setTimeout(() => {
           if (window.location.pathname === "/signin") {
-            // eslint-disable-next-line no-console
-            console.warn(
-              "SPA navigation to /dashboard didn't take effect — forcing full reload"
-            );
             window.location.assign(nextPath || "/feed");
           }
         }, 600);
@@ -141,176 +216,133 @@ export default function SignIn() {
   }
 
   return (
-    <div className="min-h-screen bg-white text-neutral-900">
-      <div className="grid min-h-screen grid-cols-1 lg:grid-cols-2">
-        {/* Left — form column */}
-        <div className="flex flex-col px-6 py-6 sm:px-12 lg:px-16 xl:px-24">
-          <div className="flex items-center justify-between">
-            <button
-              onClick={() => navigate("/")}
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-neutral-500 hover:text-neutral-900 transition-colors"
-              type="button"
+    <AuthLayout
+      backTo="/"
+      backLabel="Back"
+      panelEyebrow="Live — AI hiring platform"
+      panelTitle={
+        <>
+          Welcome back.
+          <br />
+          <span className="text-slate-400">Pick up where you left off.</span>
+        </>
+      }
+      highlights={HIGHLIGHTS}
+      preview={<SignInIllustration />}
+    >
+      {otpEmail ? (
+        <OtpVerify email={otpEmail} onVerified={handleVerified} onBack={() => setOtpEmail(null)} />
+      ) : (
+        <>
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-gray-500">
+            Welcome back
+          </p>
+          <h1 className="mt-1.5 text-3xl font-extrabold tracking-tight sm:text-4xl text-ink">
+            Sign in to RecruAI
+          </h1>
+          <p className="mt-2 text-sm text-gray-500">
+            New here?{" "}
+            <Link
+              to="/register"
+              className="font-semibold text-brand-text underline underline-offset-4 hover:no-underline"
             >
-              <FiArrowLeft className="w-4 h-4" /> Back
-            </button>
-            <span className="text-sm font-extrabold tracking-tight">
-              RecruAI <span className="font-medium text-neutral-400">by MenteE</span>
-            </span>
-          </div>
+              Create an account
+            </Link>
+          </p>
 
-          <div className="flex flex-1 items-center justify-center py-10">
-            <div className="w-full max-w-md">
-              {otpEmail ? (
-                <OtpVerify email={otpEmail} onVerified={handleVerified} onBack={() => setOtpEmail(null)} />
-              ) : (
-              <>
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-neutral-400">
-                Welcome back
-              </p>
-              <h1 className="mt-2 text-3xl font-extrabold tracking-tight sm:text-4xl">
-                Sign in to RecruAI
-              </h1>
-              <p className="mt-2 text-sm text-neutral-500">
-                New here?{" "}
-                <Link
-                  to="/register"
-                  className="font-semibold text-neutral-900 underline underline-offset-4 hover:no-underline"
-                >
-                  Create an account
-                </Link>
-              </p>
+          {/* Error banner — status red, never mud */}
+          {error && (
+            <div className="mt-5 flex items-start gap-2.5 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3.5 text-sm font-medium text-rose-700 dark:text-rose-300 shadow-s5">
+              <AlertCircle className="h-4 w-4 shrink-0 text-rose-600 dark:text-rose-400 mt-0.5" strokeWidth={2} />
+              <div className="flex-1">{error}</div>
+            </div>
+          )}
 
-              {error && (
-                <div className="mt-5 rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm font-medium text-red-700">
-                  {error}
-                </div>
-              )}
+          {/* Form — 8–12px clearance between fields and button */}
+          <form onSubmit={submit} className="mt-6 space-y-3.5">
+            <div>
+              <label
+                htmlFor="signin-email"
+                className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-gray-500"
+              >
+                Email
+              </label>
+              <input
+                id="signin-email"
+                className={inputCls}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                type="email"
+                autoComplete="email"
+                placeholder="you@example.com"
+                required
+              />
+            </div>
 
-              <form onSubmit={submit} className="mt-6 space-y-4">
-                <div>
-                  <label
-                    htmlFor="signin-email"
-                    className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-neutral-500"
-                  >
-                    Email
-                  </label>
-                  <input
-                    id="signin-email"
-                    className="block w-full rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-neutral-900 placeholder-gray-400 outline-none transition focus:border-neutral-900 focus:bg-white focus:ring-2 focus:ring-neutral-900/10"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    type="email"
-                    autoComplete="email"
-                    placeholder="you@example.com"
-                    required
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="signin-password"
-                    className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-neutral-500"
-                  >
-                    Password
-                  </label>
-                  <div className="relative">
-                    <input
-                      id="signin-password"
-                      className="block w-full rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 pr-11 text-sm text-neutral-900 placeholder-gray-400 outline-none transition focus:border-neutral-900 focus:bg-white focus:ring-2 focus:ring-neutral-900/10"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      type={showPassword ? "text" : "password"}
-                      autoComplete="current-password"
-                      placeholder="••••••••"
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword((s) => !s)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-900 transition-colors"
-                      aria-label={showPassword ? "Hide password" : "Show password"}
-                    >
-                      {showPassword ? (
-                        <FiEyeOff className="w-5 h-5" />
-                      ) : (
-                        <FiEye className="w-5 h-5" />
-                      )}
-                    </button>
-                  </div>
-                  <div className="mt-1.5 text-right">
-                    <Link
-                      to="/forgot-password"
-                      className="text-xs font-semibold text-neutral-500 underline underline-offset-4 transition-colors hover:text-neutral-900"
-                    >
-                      Forgot password?
-                    </Link>
-                  </div>
-                </div>
+            <div>
+              <label
+                htmlFor="signin-password"
+                className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-gray-500"
+              >
+                Password
+              </label>
+              <div className="relative">
+                <input
+                  id="signin-password"
+                  className={`${inputCls} pr-11`}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
+                  placeholder="••••••••"
+                  required
+                />
                 <button
-                  className="w-full rounded-lg bg-neutral-900 py-3 text-sm font-bold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-60"
-                  disabled={loading}
-                  type="submit"
+                  type="button"
+                  onClick={() => setShowPassword((s) => !s)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 transition-colors hover:text-ink hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
                 >
-                  {loading ? "Signing in…" : "Sign in"}
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" strokeWidth={2} />
+                  ) : (
+                    <Eye className="h-4 w-4" strokeWidth={2} />
+                  )}
                 </button>
-              </form>
-
-              <p className="mt-6 text-center text-xs leading-relaxed text-neutral-400">
-                By continuing you agree to our{" "}
-                <Link to="/terms" className="underline underline-offset-2 hover:text-neutral-700">
-                  Terms
-                </Link>{" "}
-                and{" "}
-                <Link to="/privacy" className="underline underline-offset-2 hover:text-neutral-700">
-                  Privacy Policy
-                </Link>
-                .
-              </p>
-              </>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Right — brand panel */}
-        <div className="relative hidden overflow-hidden bg-neutral-900 text-white lg:flex lg:flex-col lg:justify-between lg:p-12 xl:p-16">
-          <div
-            className="pointer-events-none absolute inset-0 opacity-[0.35]"
-            style={{
-              backgroundImage:
-                "radial-gradient(circle at 80% 10%, rgba(255,255,255,0.14), transparent 45%), radial-gradient(circle at 10% 90%, rgba(255,255,255,0.08), transparent 40%)",
-            }}
-          />
-          <div className="relative">
-            <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs font-semibold text-neutral-200">
-              <span className="h-2 w-2 rounded-full bg-emerald-400" />
-              Live — AI hiring platform
-            </span>
-            <h2 className="mt-6 text-4xl font-extrabold leading-[1.05] tracking-tight xl:text-5xl">
-              Welcome back.
-              <br />
-              <span className="text-neutral-400">Pick up where you left off.</span>
-            </h2>
-          </div>
-
-          <div className="relative space-y-5">
-            {HIGHLIGHTS.map(({ icon: Icon, title, text }) => (
-              <div key={title} className="flex items-start gap-4">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.06]">
-                  <Icon className="h-5 w-5 text-emerald-400" />
-                </div>
-                <div>
-                  <p className="text-sm font-bold">{title}</p>
-                  <p className="mt-0.5 text-sm text-neutral-400">{text}</p>
-                </div>
               </div>
-            ))}
-            <div className="flex items-center gap-2 border-t border-white/10 pt-6 text-xs text-neutral-400">
-              <FiCheck className="h-4 w-4 text-emerald-400" />
-              Built for Pakistan — expanding across the Gulf &amp; beyond
+              <div className="mt-2 text-right">
+                <Link
+                  to="/forgot-password"
+                  className="text-xs font-semibold text-gray-500 underline underline-offset-4 transition-colors hover:text-ink"
+                >
+                  Forgot password?
+                </Link>
+              </div>
             </div>
-          </div>
-        </div>
-      </div>
-    </div>
+
+            {/* Primary action — descriptive label */}
+            <button
+              className="w-full rounded-xl border border-brand bg-brand py-3 text-sm font-semibold text-white shadow-s5 transition hover:bg-brand/90 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+              disabled={loading}
+              type="submit"
+            >
+              {loading ? "Signing in…" : "Sign in to RecruAI"}
+            </button>
+          </form>
+
+          <p className="mt-6 text-center text-xs leading-relaxed text-gray-500">
+            By continuing you agree to our{" "}
+            <Link to="/terms" className="underline underline-offset-2 hover:text-ink">
+              Terms
+            </Link>{" "}
+            and{" "}
+            <Link to="/privacy" className="underline underline-offset-2 hover:text-ink">
+              Privacy Policy
+            </Link>
+            .
+          </p>
+        </>
+      )}
+    </AuthLayout>
   );
 }

@@ -1,73 +1,48 @@
-import React, { createContext, useContext, useState, useCallback } from "react";
+import React, { createContext, useContext, useCallback } from "react";
+import { Toaster, toast } from "sonner";
 
 const ToastContext = createContext(null);
 
-let toastId = 0;
-
+/**
+ * ToastProvider — thin compatibility layer over Sonner.
+ * Existing call sites keep using `showToast({ message, type, position, duration })`,
+ * but notifications now stack cleanly with exit animations and swipe-to-dismiss.
+ */
 export function ToastProvider({ children }) {
-  const [toasts, setToasts] = useState([]);
-
   const showToast = useCallback(
     ({ message, type = "info", position = "side", duration = 3000 }) => {
-      const id = ++toastId;
-      const t = { id, message, type, position };
-      setToasts((s) => [...s, t]);
-      if (duration > 0) {
-        setTimeout(() => {
-          setToasts((s) => s.filter((x) => x.id !== id));
-        }, duration);
-      }
-      return id;
+      const sonnerPosition = position === "center" ? "top-center" : "bottom-right";
+      const options = { position: sonnerPosition, duration };
+      if (type === "success") return toast.success(message, options);
+      if (type === "error") return toast.error(message, options);
+      if (type === "warning") return toast.warning(message, options);
+      return toast(message, options);
     },
     []
   );
 
-  const dismissToast = useCallback(
-    (id) => setToasts((s) => s.filter((t) => t.id !== id)),
-    []
-  );
+  const dismissToast = useCallback((id) => {
+    if (id != null) toast.dismiss(id);
+  }, []);
 
   return (
     <ToastContext.Provider value={{ showToast, dismissToast }}>
       {children}
-
-      {/* Side toasts (stack on bottom-right) */}
-      <div className="pointer-events-none fixed bottom-6 right-6 flex flex-col gap-3 z-50">
-        {toasts
-          .filter((t) => t.position === "side")
-          .map((t) => (
-            <div
-              key={t.id}
-              className={`pointer-events-auto max-w-xs w-full rounded-lg p-3 shadow-lg border ${
-                t.type === "error"
-                  ? "bg-red-600 text-white border-red-700"
-                  : t.type === "success"
-                  ? "bg-green-600 text-white border-green-700"
-                  : "bg-white text-neutral-900 border-secondary-200"
-              }`}>
-              <div className="text-sm">{t.message}</div>
-            </div>
-          ))}
-      </div>
-
-      {/* Center toasts (pop) */}
-      <div className="pointer-events-none fixed inset-0 flex items-center justify-center z-50">
-        {toasts
-          .filter((t) => t.position === "center")
-          .map((t) => (
-            <div
-              key={t.id}
-              className={`pointer-events-auto mx-auto max-w-xl w-full rounded-xl p-4 shadow-2xl border text-center ${
-                t.type === "error"
-                  ? "bg-red-600 text-white border-red-700"
-                  : t.type === "success"
-                  ? "bg-emerald-600 text-white border-emerald-700"
-                  : "bg-white text-neutral-900 border-secondary-200"
-              }`}>
-              <div className="text-base font-medium">{t.message}</div>
-            </div>
-          ))}
-      </div>
+      <Toaster
+        position="bottom-right"
+        richColors
+        closeButton
+        theme="system"
+        toastOptions={{
+          classNames: {
+            toast:
+              "!rounded-xl !border-line !bg-surface !text-ink !shadow-s15",
+            description: "!text-gray-500",
+            actionButton: "!bg-brand-action !text-white",
+            cancelButton: "!bg-gray-100 !text-ink",
+          },
+        }}
+      />
     </ToastContext.Provider>
   );
 }

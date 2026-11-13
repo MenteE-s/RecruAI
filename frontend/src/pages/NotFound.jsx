@@ -22,7 +22,7 @@ export default function NotFound() {
   const missingPath = location.pathname || "/unknown";
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-neutral-50 text-neutral-900">
+    <div className="relative min-h-screen overflow-hidden bg-surface text-ink">
       {/* Backdrop: faint dot grid + soft emerald wash */}
       <div
         aria-hidden="true"
@@ -64,7 +64,7 @@ export default function NotFound() {
         </h1>
         <p className="mt-4 max-w-md text-sm leading-relaxed text-neutral-500">
           No route matches{" "}
-          <code className="rounded-md border border-neutral-200 bg-white px-1.5 py-0.5 font-mono text-xs text-neutral-700">
+          <code className="rounded-lg border border-line bg-surface px-1.5 py-0.5 font-mono text-xs text-neutral-700">
             {missingPath}
           </code>
           . It may have moved, been deleted, or never existed — let's get you back on track.
@@ -74,13 +74,13 @@ export default function NotFound() {
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
           <button
             onClick={() => navigate(-1)}
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-neutral-900 px-6 py-3 text-sm font-bold text-white transition hover:bg-black"
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-brand bg-brand-action px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-brand/90"
           >
             <FiArrowLeft className="h-4 w-4" /> Go back
           </button>
           <Link
             to="/feed"
-            className="inline-flex items-center justify-center gap-2 rounded-lg border border-neutral-200 bg-white px-6 py-3 text-sm font-bold text-neutral-900 transition hover:border-neutral-900"
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-line bg-surface px-6 py-3 text-sm font-medium text-ink transition-colors hover:bg-gray-50 dark:hover:bg-gray-25"
           >
             <FiHome className="h-4 w-4" /> Dashboard
           </Link>
@@ -92,9 +92,9 @@ export default function NotFound() {
             <Link
               key={label}
               to={to}
-              className="group flex items-center gap-3 rounded-xl border border-neutral-200 bg-white p-3.5 text-left transition hover:border-neutral-900 hover:shadow-sm"
+              className="group flex items-center gap-3 rounded-xl border border-line bg-surface p-3.5 text-left transition-colors hover:border-brand/40"
             >
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-neutral-500 transition group-hover:bg-neutral-900 group-hover:text-emerald-400">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-50 text-gray-500 transition group-hover:bg-brand-action group-hover:text-white dark:bg-gray-25">
                 <Icon className="h-4 w-4" />
               </span>
               <span className="min-w-0">

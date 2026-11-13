@@ -96,7 +96,7 @@ function validateCard({ name, number, expiry, cvc }) {
 function brandStyles(brand) {
   switch (brand) {
     case "Visa":
-      return "bg-blue-600 text-white";
+      return "bg-brand text-white";
     case "Mastercard":
       return "bg-gray-900 text-white";
     case "Amex":
@@ -272,36 +272,36 @@ export default function PaymentMethods({ organizationId = null }) {
   return (
     <div>
       {msg && (
-        <div className={`px-4 py-3 text-sm border mb-4 ${msg.type === "success" ? "bg-green-50 border-green-200 text-green-700" : "bg-red-50 border-red-200 text-red-700"}`}>
+        <div className={`mb-4 rounded-xl border px-4 py-3 text-sm ${msg.type === "success" ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-400" : "border-red-200 bg-red-50 text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-400"}`}>
           {msg.text}
         </div>
       )}
 
       {loading ? (
-        <div className="flex justify-center py-6"><div className="animate-spin h-6 w-6 border-2 border-gray-200 border-t-blue-600 rounded-full" /></div>
+        <div className="flex justify-center py-6"><div className="animate-spin h-6 w-6 rounded-full border-2 border-line border-t-brand" /></div>
       ) : cards.length > 0 ? (
         <div className="space-y-3">
           {cards.map((card) => (
-            <div key={card.id} className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all">
+            <div key={card.id} className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-xl border border-line bg-surface p-4 transition-colors hover:border-brand/40">
               <div className="flex items-center gap-3 flex-1 min-w-0">
                 <div className={`w-12 h-9 flex items-center justify-center text-[10px] font-bold rounded shrink-0 ${brandStyles(card.brand)}`}>
                   {card.brand === "Mastercard" ? "MC" : card.brand.slice(0, 4).toUpperCase()}
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-gray-900">
+                  <p className="text-sm font-semibold text-ink">
                     {card.brand} •••• {card.last4}
-                    {card.isDefault && <span className="ml-2 text-[10px] font-bold bg-green-600 text-white px-2 py-0.5 rounded-full">DEFAULT</span>}
+                    {card.isDefault && <span className="ml-2 rounded-full bg-brand/10 px-2 py-0.5 text-[10px] font-bold text-brand-text">DEFAULT</span>}
                   </p>
                   <p className="text-xs text-gray-500 truncate">{card.name} • Expires {card.expMonth}/{card.expYear}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 {!card.isDefault && (
-                  <button onClick={() => handleSetDefault(card.id)} disabled={actionBusy} className="text-xs font-medium px-3 py-1.5 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+                  <button onClick={() => handleSetDefault(card.id)} disabled={actionBusy} className="rounded-xl border border-line bg-surface px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50">
                     Set default
                   </button>
                 )}
-                <button onClick={() => handleRemove(card.id)} disabled={actionBusy} title="Remove card" className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200 disabled:opacity-50">
+                <button onClick={() => handleRemove(card.id)} disabled={actionBusy} title="Remove card" className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200 disabled:opacity-50">
                   <FiTrash2 className="w-4 h-4" />
                 </button>
               </div>
@@ -310,16 +310,16 @@ export default function PaymentMethods({ organizationId = null }) {
         </div>
       ) : (
         !showForm && (
-          <div className="text-center py-6 border border-dashed border-gray-200 rounded-lg">
+          <div className="rounded-xl border border-dashed border-line bg-canvas/50 py-6 text-center">
             <FiCreditCard className="w-8 h-8 text-gray-300 mx-auto mb-2" />
             <p className="text-sm text-gray-500">No payment methods yet</p>
-            <p className="text-xs text-gray-400 mt-1">Add a card to upgrade to Pro later</p>
+            <p className="text-xs text-gray-500 mt-1">Add a card to upgrade to Pro later</p>
           </div>
         )
       )}
 
       {showForm ? (
-        <form onSubmit={handleAdd} noValidate className="mt-4 border border-gray-200 rounded-lg overflow-hidden">
+        <form onSubmit={handleAdd} noValidate className="mt-4 overflow-hidden rounded-xl border border-line bg-surface">
           {/* Live card preview */}
           <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white p-5">
             <div className="flex items-center justify-between">
@@ -332,7 +332,7 @@ export default function PaymentMethods({ organizationId = null }) {
               <span className="text-gray-300 font-mono">{form.expiry || "MM/YY"}</span>
             </div>
           </div>
-          <div className="p-5 space-y-4 bg-white">
+          <div className="space-y-4 p-5">
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1.5">Name on card</label>
               <input
@@ -341,7 +341,7 @@ export default function PaymentMethods({ organizationId = null }) {
                 onChange={(e) => setField("name", e.target.value)}
                 placeholder="Jane Doe"
                 autoComplete="cc-name"
-                className={`w-full px-3 py-2.5 bg-gray-50 border text-sm focus:outline-none focus:bg-white ${errors.name ? "border-red-400 focus:border-red-500" : "border-gray-200 focus:border-blue-500"}`}
+                className={`w-full rounded-xl border bg-surface px-3 py-2.5 text-sm outline-none transition-colors ${errors.name ? "border-red-400 focus:border-red-500" : "border-line focus:border-brand focus:ring-4 focus:ring-[#E1E4E8]/50"}`}
               />
               {errors.name && <p className="text-xs text-red-600 mt-1">{errors.name}</p>}
             </div>
@@ -354,9 +354,9 @@ export default function PaymentMethods({ organizationId = null }) {
                 onChange={(e) => setField("number", e.target.value)}
                 placeholder={previewBrand === "Amex" ? "3782 822463 10005" : "4242 4242 4242 4242"}
                 autoComplete="cc-number"
-                className={`w-full px-3 py-2.5 bg-gray-50 border text-sm font-mono focus:outline-none focus:bg-white ${errors.number ? "border-red-400 focus:border-red-500" : "border-gray-200 focus:border-blue-500"}`}
+                className={`w-full rounded-xl border bg-surface px-3 py-2.5 font-mono text-sm outline-none transition-colors ${errors.number ? "border-red-400 focus:border-red-500" : "border-line focus:border-brand focus:ring-4 focus:ring-[#E1E4E8]/50"}`}
               />
-              {errors.number ? <p className="text-xs text-red-600 mt-1">{errors.number}</p> : <p className="text-xs text-gray-400 mt-1">Visa, Mastercard, Amex and Discover accepted.</p>}
+              {errors.number ? <p className="text-xs text-red-600 mt-1">{errors.number}</p> : <p className="text-xs text-gray-500 mt-1">Visa, Mastercard, Amex and Discover accepted.</p>}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -368,7 +368,7 @@ export default function PaymentMethods({ organizationId = null }) {
                   onChange={(e) => setField("expiry", e.target.value)}
                   placeholder="MM/YY"
                   autoComplete="cc-exp"
-                  className={`w-full px-3 py-2.5 bg-gray-50 border text-sm font-mono focus:outline-none focus:bg-white ${errors.expiry ? "border-red-400 focus:border-red-500" : "border-gray-200 focus:border-blue-500"}`}
+                  className={`w-full rounded-xl border bg-surface px-3 py-2.5 font-mono text-sm outline-none transition-colors ${errors.expiry ? "border-red-400 focus:border-red-500" : "border-line focus:border-brand focus:ring-4 focus:ring-[#E1E4E8]/50"}`}
                 />
                 {errors.expiry && <p className="text-xs text-red-600 mt-1">{errors.expiry}</p>}
               </div>
@@ -381,24 +381,24 @@ export default function PaymentMethods({ organizationId = null }) {
                   onChange={(e) => setField("cvc", e.target.value)}
                   placeholder={previewBrand === "Amex" ? "4 digits" : "3 digits"}
                   autoComplete="cc-csc"
-                  className={`w-full px-3 py-2.5 bg-gray-50 border text-sm font-mono focus:outline-none focus:bg-white ${errors.cvc ? "border-red-400 focus:border-red-500" : "border-gray-200 focus:border-blue-500"}`}
+                  className={`w-full rounded-xl border bg-surface px-3 py-2.5 font-mono text-sm outline-none transition-colors ${errors.cvc ? "border-red-400 focus:border-red-500" : "border-line focus:border-brand focus:ring-4 focus:ring-[#E1E4E8]/50"}`}
                 />
                 {errors.cvc && <p className="text-xs text-red-600 mt-1">{errors.cvc}</p>}
               </div>
             </div>
-            <p className="text-xs text-gray-400 flex items-center gap-1.5"><FiShield className="w-3.5 h-3.5 shrink-0" /> Only the brand, last 4 digits and expiry are saved on this device. Full number and CVC are never stored.</p>
+            <p className="text-xs text-gray-500 flex items-center gap-1.5"><FiShield className="w-3.5 h-3.5 shrink-0" /> Only the brand, last 4 digits and expiry are saved on this device. Full number and CVC are never stored.</p>
             <div className="flex gap-2">
-              <button type="submit" className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700">
+              <button type="submit" className="inline-flex items-center gap-2 rounded-xl border border-brand bg-brand-action px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand/90">
                 <FiCheck className="w-4 h-4" /> Save card
               </button>
-              <button type="button" onClick={() => { setShowForm(false); setErrors({}); }} className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50">
+              <button type="button" onClick={() => { setShowForm(false); setErrors({}); }} className="inline-flex items-center gap-2 rounded-xl border border-line bg-surface px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50">
                 <FiX className="w-4 h-4" /> Cancel
               </button>
             </div>
           </div>
         </form>
       ) : (
-        <button onClick={() => { setShowForm(true); setMsg(null); }} className="mt-4 inline-flex items-center gap-1.5 px-4 py-2.5 bg-gray-900 text-white text-sm font-medium hover:bg-black transition-colors">
+        <button onClick={() => { setShowForm(true); setMsg(null); }} className="mt-4 inline-flex items-center gap-1.5 rounded-xl border border-gray-900 bg-gray-900 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-gray-800">
           <FiPlus className="w-4 h-4" /> Add payment method
         </button>
       )}

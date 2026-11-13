@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import PageManagerLayout from "../../components/page/PageManagerLayout";
 import TimezoneSelector from "../../components/ui/TimezoneSelector";
 import { getCurrentUser, getBackendUrl, getAuthHeaders } from "../../utils/auth";
-import { FiClock, FiAward, FiCheckCircle, FiXCircle, FiAlertTriangle } from "react-icons/fi";
+import { Clock, Award, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
 
 export default function PageSettings() {
   const [org, setOrg] = useState(null);
@@ -35,8 +35,8 @@ export default function PageSettings() {
   if (error && !org) {
     return (
       <PageManagerLayout title="Page settings">
-        <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 text-center">
-          <p className="text-[12.5px] text-gray-600">{error}</p>
+        <div className="bg-surface border border-line rounded-xl p-6 text-center max-w-sm mx-auto shadow-s5">
+          <p className="text-[12.5px] text-gray-600 dark:text-gray-500">{error}</p>
         </div>
       </PageManagerLayout>
     );
@@ -59,88 +59,103 @@ export default function PageSettings() {
       title="Page settings"
       subtitle="Operational settings for your company page."
     >
-      <div className="space-y-4">
-        {/* Subscription */}
-        <section className="bg-white border border-gray-200 rounded-lg shadow-sm">
-          <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
-            <FiAward className="w-4 h-4 text-gray-500" />
-            <h2 className="text-[13px] font-semibold text-gray-900">Subscription</h2>
-            <span
-              className={`ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                isPaid ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
-              }`}>
-              {isPaid ? "PRO" : isTrial ? "TRIAL" : "EXPIRED"}
-            </span>
-          </div>
-          <div className="p-4">
-            <p className="text-[12.5px] text-gray-700">
-              {isPaid
-                ? "Your page is on the Pro plan with full access to hiring tools."
-                : isTrial
-                  ? "Your page is on a free trial."
-                  : "Your trial has ended. Basic page features still work."}
-            </p>
-            <ul className="mt-3 space-y-1.5">
-              <li className="flex items-center gap-2 text-[12px] text-gray-600">
-                {sub.can_schedule_interview
-                  ? <FiCheckCircle className="w-3.5 h-3.5 text-green-600 shrink-0" />
-                  : <FiXCircle className="w-3.5 h-3.5 text-gray-300 shrink-0" />}
-                Interview scheduling {typeof sub.interviews_remaining === "number" && isTrial
-                  ? `(${sub.interviews_remaining} of 5 remaining on trial)`
-                  : ""}
-              </li>
-              <li className="flex items-center gap-2 text-[12px] text-gray-600">
-                <FiCheckCircle className="w-3.5 h-3.5 text-green-600 shrink-0" />
-                Post jobs and manage candidates
-              </li>
-            </ul>
-            <p className="mt-3 text-[11px] text-gray-400">
-              Tokens used: {sub.tokens_used?.toLocaleString?.() ?? 0}
-            </p>
-          </div>
-        </section>
-
-        {/* Timezone */}
-        <section className="bg-white border border-gray-200 rounded-lg shadow-sm">
-          <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
-            <FiClock className="w-4 h-4 text-gray-500" />
-            <h2 className="text-[13px] font-semibold text-gray-900">Timezone</h2>
-          </div>
-          <div className="p-4">
-            <p className="text-[11.5px] text-gray-500 mb-3">
-              Interview times and candidate availability display in this timezone.
-            </p>
-            <TimezoneSelector
-              organizationId={org.id}
-              value={org.timezone || "UTC"}
-              showCurrentTime={true}
-            />
-          </div>
-        </section>
-
-        {/* Danger zone */}
-        <section className="bg-white border border-red-200 rounded-lg shadow-sm">
-          <div className="px-4 py-3 border-b border-red-100">
-            <h2 className="text-[13px] font-semibold text-gray-900">Danger zone</h2>
-          </div>
-          <div className="p-4 flex items-start gap-2.5">
-            <FiAlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-red-500" />
-            <div className="min-w-0 flex-1">
-              <p className="text-[12.5px] font-semibold text-gray-900">Delete this page</p>
-              <p className="text-[11.5px] text-gray-500 mt-0.5 leading-relaxed">
-                Removes the page, its job posts and its team links. Your personal account
-                and profile stay intact. Contact support to proceed.
-              </p>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        {/* Main Column */}
+        <div className="lg:col-span-7 xl:col-span-8 space-y-5">
+          {/* Subscription */}
+          <section className="bg-surface border border-line rounded-xl shadow-s5 overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-line flex items-center gap-2">
+              <Award className="h-4 w-4 text-gray-500" strokeWidth={1.75} />
+              <h2 className="text-[13.5px] font-semibold text-ink">Subscription plan</h2>
+              <span
+                className={`ml-auto text-[10.5px] font-bold font-mono px-2 py-0.5 rounded-full ${
+                  isPaid ? "bg-brand/10 text-brand-text" : "bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400"
+                }`}>
+                {isPaid ? "Pro" : isTrial ? "Trial" : "Expired"}
+              </span>
             </div>
-            <button
-              type="button"
-              disabled
-              className="px-3 py-1.5 rounded-md border border-red-200 bg-white text-[12px] font-semibold text-red-600 cursor-not-allowed opacity-60 shrink-0"
-            >
-              Request deletion
-            </button>
+            <div className="p-5">
+              <p className="text-[13px] text-gray-700 dark:text-gray-600">
+                {isPaid
+                  ? "Your page is on the Pro plan with full access to hiring tools."
+                  : isTrial
+                    ? "Your page is on a free trial."
+                    : "Your trial has ended. Basic page features still work."}
+              </p>
+              <ul className="mt-3.5 space-y-2">
+                <li className="flex items-center gap-2.5 text-[12.5px] text-gray-600 dark:text-gray-500">
+                  {sub.can_schedule_interview
+                    ? <CheckCircle className="h-4 w-4 text-brand-text shrink-0" strokeWidth={1.75} />
+                    : <XCircle className="h-4 w-4 text-gray-300 shrink-0 dark:text-gray-600" strokeWidth={1.75} />}
+                  Interview scheduling {typeof sub.interviews_remaining === "number" && isTrial
+                    ? `(${sub.interviews_remaining} of 5 remaining on trial)`
+                    : ""}
+                </li>
+                <li className="flex items-center gap-2.5 text-[12.5px] text-gray-600 dark:text-gray-500">
+                  <CheckCircle className="h-4 w-4 text-brand-text shrink-0" strokeWidth={1.75} />
+                  Post jobs and manage candidates
+                </li>
+              </ul>
+              <div className="mt-4 pt-3 border-t border-line flex items-center justify-between text-[11.5px] text-gray-500">
+                <span>Tokens used:</span>
+                <span className="font-mono tabular-nums text-ink">{sub.tokens_used?.toLocaleString?.() ?? 0}</span>
+              </div>
+            </div>
+          </section>
+
+          {/* Danger zone */}
+          <section className="bg-surface border border-red-200 rounded-xl shadow-s5 overflow-hidden dark:border-red-500/30">
+            <div className="px-5 py-3.5 border-b border-red-100 dark:border-red-500/20">
+              <h2 className="text-[13.5px] font-semibold text-red-700 dark:text-red-400">Danger zone</h2>
+            </div>
+            <div className="p-5 flex items-start gap-3">
+              <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-red-500" strokeWidth={1.75} />
+              <div className="min-w-0 flex-1">
+                <p className="text-[13px] font-semibold text-ink">Delete this company page</p>
+                <p className="text-[12px] text-gray-500 mt-0.5 leading-relaxed">
+                  Permanently removes this company page, all active job postings, and team membership associations.
+                  Your personal candidate account and profile remain intact.
+                </p>
+              </div>
+              <button
+                type="button"
+                disabled
+                className="px-3.5 py-2 rounded-xl border border-red-200 bg-surface text-xs font-semibold text-red-600 cursor-not-allowed opacity-60 shrink-0 dark:border-red-500/30 dark:text-red-400 shadow-s5"
+              >
+                Request deletion
+              </button>
+            </div>
+          </section>
+        </div>
+
+        {/* Side Column */}
+        <div className="lg:col-span-5 xl:col-span-4 space-y-5">
+          {/* Timezone */}
+          <section className="bg-surface border border-line rounded-xl shadow-s5 overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-line flex items-center gap-2">
+              <Clock className="h-4 w-4 text-gray-500" strokeWidth={1.75} />
+              <h2 className="text-[13.5px] font-semibold text-ink">Timezone</h2>
+            </div>
+            <div className="p-5">
+              <p className="text-[12px] text-gray-500 mb-3.5 leading-relaxed">
+                Interview schedules, candidate booking slots, and pipeline timestamps are evaluated in this timezone.
+              </p>
+              <TimezoneSelector
+                organizationId={org.id}
+                value={org.timezone || "UTC"}
+                showCurrentTime={true}
+              />
+            </div>
+          </section>
+
+          {/* Operational Support Tip */}
+          <div className="bg-gray-50 border border-line rounded-xl shadow-s5 p-4 dark:bg-gray-25 text-[12px] leading-relaxed text-gray-600 dark:text-gray-500">
+            <p className="font-semibold text-ink mb-1">Company operations</p>
+            <p>
+              Changes to timezone take effect immediately across all scheduled interview rooms and candidate invites.
+            </p>
           </div>
-        </section>
+        </div>
       </div>
     </PageManagerLayout>
   );

@@ -1,24 +1,47 @@
 import { useState } from "react";
 import {
-  FiChevronDown,
-  FiChevronUp,
-  FiUser,
-  FiBriefcase,
-  FiBook,
-  FiTarget,
-  FiCode,
-  FiFileText,
-  FiAward,
-  FiCheck,
-  FiGlobe,
-  FiHeart,
-  FiUsers,
-  FiLink,
-} from "react-icons/fi";
+  ChevronDown,
+  ChevronUp,
+  User,
+  Briefcase,
+  BookOpen,
+  Target,
+  Code,
+  FileText,
+  Award,
+  CheckCircle2,
+  Globe,
+  Heart,
+  Users,
+  Link2,
+} from "lucide-react";
 
 const iconMap = {
-  FiUser, FiBriefcase, FiBook, FiTarget, FiCode, FiFileText,
-  FiAward, FiCheck, FiGlobe, FiHeart, FiUsers, FiLink,
+  FiUser: User,
+  FiBriefcase: Briefcase,
+  FiBook: BookOpen,
+  FiTarget: Target,
+  FiCode: Code,
+  FiFileText: FileText,
+  FiAward: Award,
+  FiCheck: CheckCircle2,
+  FiGlobe: Globe,
+  FiHeart: Heart,
+  FiUsers: Users,
+  FiLink: Link2,
+  // Direct Lucide aliases
+  User,
+  Briefcase,
+  BookOpen,
+  Target,
+  Code,
+  FileText,
+  Award,
+  CheckCircle2,
+  Globe,
+  Heart,
+  Users,
+  Link2,
 };
 
 const allTabs = [
@@ -37,7 +60,7 @@ const allTabs = [
   { id: "memberships", label: "Memberships", icon: "FiBriefcase" },
   { id: "patents", label: "Patents", icon: "FiFileText" },
   { id: "courses", label: "Courses", icon: "FiBook" },
-  { id: "social", label: "Social Links", icon: "FiLink" },
+  { id: "social", label: "Social links", icon: "FiLink" },
   { id: "achievements", label: "Achievements", icon: "FiAward" },
   { id: "conferences", label: "Conferences", icon: "FiUsers" },
   { id: "speaking", label: "Speaking", icon: "FiUsers" },
@@ -47,49 +70,59 @@ const allTabs = [
 export const profileSectionTabs = allTabs;
 export const profileSectionIcons = iconMap;
 
-export default function ProfileTabs({ activeTab, onTabChange }) {
+/**
+ * ProfileTabs — Peerlist-style section navigation aligned with Stageshow craft rules.
+ * Renders in the right rail (lg+) and below the hero on small screens.
+ */
+export default function ProfileTabs({ activeTab, onTabChange, className }) {
   const [expanded, setExpanded] = useState(false);
   const visibleTabs = expanded ? allTabs : allTabs.slice(0, 4);
 
   return (
-    <div className="mt-4">
-      <div className="border-t border-gray-200 pt-4">
-        <div className="space-y-1">
-          {visibleTabs.map((tab) => {
-            const Icon = iconMap[tab.icon];
-            return (
-              <button
-                key={tab.id}
-                onClick={() => onTabChange(tab.id)}
-                className={`w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
-                  activeTab === tab.id
-                    ? "bg-blue-50 text-blue-600 border-l-2 border-blue-600"
-                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 border-l-2 border-transparent"
-                }`}>
-                <Icon size={16} />
-                {tab.label}
-              </button>
-            );
-          })}
+    <nav aria-label="Profile sections" className={className}>
+      <div className="flex flex-col gap-1">
+        {visibleTabs.map((tab) => {
+          const Icon = iconMap[tab.icon];
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => onTabChange(tab.id)}
+              className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium leading-snug transition-colors ${
+                isActive
+                  ? "bg-gray-100 dark:bg-gray-25 font-semibold text-ink dark:text-white"
+                  : "text-gray-600 dark:text-gray-600 hover:bg-gray-50 dark:hover:bg-gray-25/60 hover:text-ink dark:hover:text-gray-200"
+              }`}
+            >
+              {Icon && (
+                <Icon
+                  size={15}
+                  className={`shrink-0 ${isActive ? "text-ink dark:text-white" : "text-gray-500 dark:text-gray-500"}`}
+                  strokeWidth={1.75}
+                />
+              )}
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
 
-          <button
-            onClick={() => setExpanded(!expanded)}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            {expanded ? (
-              <>
-                <FiChevronUp size={16} />
-                Show Less
-              </>
-            ) : (
-              <>
-                <FiChevronDown size={16} />
-                Show More
-              </>
-            )}
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => setExpanded((value) => !value)}
+          className="mt-1 flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-medium leading-none text-gray-500 dark:text-gray-600 transition-colors hover:bg-gray-50 dark:hover:bg-gray-25/60 hover:text-ink dark:hover:text-gray-200"
+        >
+          {expanded ? (
+            <>
+              <ChevronUp size={15} strokeWidth={1.75} /> Show less
+            </>
+          ) : (
+            <>
+              <ChevronDown size={15} strokeWidth={1.75} /> Show more
+            </>
+          )}
+        </button>
       </div>
-    </div>
+    </nav>
   );
 }

@@ -23,6 +23,18 @@ jest.mock(
   { virtual: true }
 );
 
+/* The live auth flow starts with POST /api/auth/refresh when no access token
+   exists in memory. Seed a structurally valid in-memory token with a future
+   expiry so getCurrentUser uses the mocked /api/auth/me response instead of
+   hitting the real refresh path. */
+const { setAccessToken } = require("../utils/auth");
+function testAccessToken() {
+  const payload = Buffer.from(
+    JSON.stringify({ exp: Math.floor(Date.now() / 1000) + 3600 })
+  ).toString("base64url");
+  return `test-header.${payload}.test-signature`;
+}
+
 const PageProfile = require("../pages/page/PageProfile").default;
 const { ToastProvider } = require("../components/ui/ToastContext");
 
@@ -91,6 +103,7 @@ describe("PageProfile", () => {
     localStorage.clear();
     // Access tokens live in memory now; this flag is what marks a session.
     localStorage.setItem("isAuthenticated", "true");
+    setAccessToken(testAccessToken());
   });
 
   afterEach(() => {

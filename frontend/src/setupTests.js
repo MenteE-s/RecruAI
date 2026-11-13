@@ -13,3 +13,18 @@ if (typeof global.TextEncoder === 'undefined') {
 if (typeof global.TextDecoder === 'undefined') {
   global.TextDecoder = TextDecoder;
 }
+
+// sonner's <Toaster /> uses matchMedia to follow the OS color-scheme.
+// jsdom does not implement it; a silent mock keeps tests green.
+if (typeof window.matchMedia !== 'function') {
+  window.matchMedia = () => ({
+    matches: false,
+    media: '',
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  });
+}

@@ -75,36 +75,36 @@ export default function CompanySearchInput({
         placeholder={placeholder}
         required={required}
         autoComplete="off"
-        className="w-full p-2 pr-8 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
+        className="w-full p-2 pr-8 bg-surface border border-line rounded-lg text-ink placeholder-gray-400 focus:ring-2 focus:ring-brand/40 dark:bg-gray-25 dark:border-line dark:text-gray-0 dark:placeholder-gray-500"
       />
       <input type="hidden" name={orgIdName} value={selected?.id || ""} />
-      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400">
+      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500">
         {loading ? <FiLoader className="animate-spin" size={14} /> : selected ? (
           selected.profile_image ? (
-            <img src={getUploadUrl(selected.profile_image)} alt="" className="w-5 h-5 rounded object-cover border border-gray-200" />
+            <img src={getUploadUrl(selected.profile_image)} alt="" className="h-5 w-5 rounded object-cover border border-line" />
           ) : (
-            <FiBriefcase size={14} className="text-blue-600" />
+            <FiBriefcase size={14} className="text-brand-text" />
           )
         ) : null}
       </span>
       {open && results.length > 0 && (
-        <ul className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-56 overflow-auto">
+        <ul className="absolute z-20 w-full mt-1 bg-surface border border-line rounded-xl shadow-s15 max-h-56 overflow-auto dark:bg-gray-25">
           {results.map((org) => (
             <li key={org.id}>
               <button
                 type="button"
                 onClick={() => pick(org)}
-                className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-blue-50 text-left"
+                className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-25 text-left"
               >
                 {org.profile_image ? (
-                  <img src={getUploadUrl(org.profile_image)} alt="" className="w-8 h-8 rounded object-cover border border-gray-200 shrink-0" />
+                  <img src={getUploadUrl(org.profile_image)} alt="" className="h-8 w-8 rounded object-cover border border-line shrink-0" />
                 ) : (
-                  <span className="w-8 h-8 rounded bg-gray-100 flex items-center justify-center shrink-0">
-                    <FiBriefcase size={14} className="text-gray-400" />
+                  <span className="h-8 w-8 rounded bg-gray-100 dark:bg-gray-25 flex items-center justify-center shrink-0">
+                    <FiBriefcase size={14} className="text-gray-500" />
                   </span>
                 )}
                 <span className="min-w-0">
-                  <span className="block text-sm font-medium text-gray-900 truncate">{org.name}</span>
+                  <span className="block text-sm font-medium text-ink truncate">{org.name}</span>
                   <span className="block text-xs text-gray-500 truncate">
                     {[org.industry, org.location].filter(Boolean).join(" • ") || "Company"}
                   </span>

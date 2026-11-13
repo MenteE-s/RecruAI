@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import DashboardLayout from "../../components/layout/DashboardLayout";
+import { AppShell, CenterBar } from "../../components/layout/AppShell";
+import { RailSection } from "../../components/layout/RightRail";
 import { getBackendUrl, getAuthHeaders, getCurrentUser, clearLocalAuth } from "../../utils/auth";
 import TimezoneSelector from "../../components/ui/TimezoneSelector";
 import PaymentMethods from "../../components/ui/PaymentMethods";
@@ -39,29 +40,29 @@ const SECTIONS = [
   { id: "security", label: "Security", icon: FiShield },
 ];
 
-function Row({ icon: Icon, title, desc, right, onClick }) {
+function Row({ icon: Icon, title, desc, right, onClick, ariaLabel }) {
   const Inner = (
     <>
       <div className="flex gap-2.5 min-w-0 flex-1">
         {Icon && (
-          <div className="w-7 h-7 bg-gray-50 border border-gray-200 rounded-md flex items-center justify-center shrink-0">
-            <Icon className="w-3.5 h-3.5 text-gray-500" />
+          <div className="h-7 w-7 rounded-lg border border-line bg-gray-50 dark:bg-gray-25 flex items-center justify-center shrink-0">
+            <Icon className="h-3.5 w-3.5 text-gray-500" />
           </div>
         )}
         <div className="min-w-0">
-          <p className="text-[13px] font-semibold text-gray-900 leading-tight">{title}</p>
+          <p className="text-[13px] font-semibold text-ink leading-tight">{title}</p>
           {desc && <p className="text-xs text-gray-500 mt-0.5 leading-snug">{desc}</p>}
         </div>
       </div>
       <div className="flex items-center gap-2 shrink-0">
         {right}
-        {onClick && <FiChevronRight className="w-4 h-4 text-gray-300" />}
+        {onClick && <FiChevronRight className="h-4 w-4 text-gray-300" />}
       </div>
     </>
   );
   const cls = "w-full flex items-center justify-between gap-3 py-3 text-left";
   return onClick ? (
-    <button onClick={onClick} className={`${cls} hover:bg-gray-50 -mx-2 px-2 rounded-md transition-colors`}>
+    <button onClick={onClick} aria-label={ariaLabel} className={`${cls} hover:bg-gray-50 -mx-2 px-2 rounded-md transition-colors`}>
       {Inner}
     </button>
   ) : (
@@ -134,17 +135,17 @@ function ProfileSlugRow({ slug, onSaved }) {
       <Row
         icon={FiLink}
         title="Public profile link"
-        desc={slug ? `recruai.menteeai.org/in/${slug}` : "Your public profile address."}
+        desc={slug ? `${window.location.origin}/in/${slug}` : "Your public profile address."}
         onClick={() => setOpen((o) => !o)}
       />
       {open && (
         <div className="pb-4 space-y-2.5">
           <div>
-            <label className="block text-[11px] font-medium text-gray-500 mb-1">
+            <label className="mb-1.5 block text-xs font-medium text-gray-600">
               Your profile name
             </label>
             <div className="flex items-stretch gap-2">
-              <span className="inline-flex items-center px-2.5 rounded-md bg-gray-100 border border-gray-200 text-[12px] text-gray-500 shrink-0">
+              <span className="inline-flex items-center rounded-lg border border-line bg-gray-50 px-2.5 text-[12px] text-gray-500 shrink-0 dark:bg-gray-25">
                 recruai.menteeai.org/in/
               </span>
               <input
@@ -152,10 +153,10 @@ function ProfileSlugRow({ slug, onSaved }) {
                 onChange={(e) => setValue(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
                 maxLength={30}
                 placeholder="yourname"
-                className="w-full px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded-md text-[13px] text-gray-900 focus:outline-none focus:border-blue-500 focus:bg-white"
+                className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink outline-none transition-colors focus:border-brand focus:ring-4 focus:ring-gray-100/50 dark:focus:ring-gray-600/50"
               />
             </div>
-            <p className="mt-1 text-[10.5px] text-gray-400">
+            <p className="mt-1 text-[10.5px] text-gray-500">
               Lowercase letters, numbers and hyphens. 3–30 characters. Some names
               are reserved because they clash with app pages.
             </p>
@@ -172,7 +173,7 @@ function ProfileSlugRow({ slug, onSaved }) {
               type="button"
               onClick={save}
               disabled={saving || value.trim().toLowerCase() === (slug || "")}
-              className="px-3.5 py-1.5 bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 rounded-full disabled:opacity-50 transition-colors"
+              className="inline-flex h-9 items-center justify-center rounded-xl bg-gray-900 px-4 text-xs font-semibold text-white transition-colors hover:bg-gray-800 disabled:opacity-50"
             >
               {saving ? "Saving…" : "Save"}
             </button>
@@ -180,7 +181,7 @@ function ProfileSlugRow({ slug, onSaved }) {
               type="button"
               onClick={reroll}
               disabled={saving}
-              className="px-3.5 py-1.5 border border-gray-200 bg-white text-gray-700 text-xs font-semibold hover:bg-gray-50 rounded-full disabled:opacity-50 transition-colors"
+              className="inline-flex h-9 items-center justify-center rounded-xl border border-line bg-surface px-4 text-xs font-semibold text-ink transition-colors hover:bg-gray-50 disabled:opacity-50"
             >
               Generate random
             </button>
@@ -189,7 +190,7 @@ function ProfileSlugRow({ slug, onSaved }) {
                 href={`/in/${slug}`}
                 target="_blank"
                 rel="noreferrer"
-                className="text-[11.5px] font-semibold text-blue-600 hover:text-blue-800"
+                className="text-[11.5px] font-semibold text-ink hover:text-brand-text"
               >
                 View profile
               </a>
@@ -508,44 +509,67 @@ export default function Settings() {
     ? new Date(status.trial_end_date).toLocaleDateString()
     : null;
 
-  const inputCls = "w-full px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded-md text-[13px] text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:bg-white";
-  const labelCls = "block text-[11px] font-medium text-gray-500 mb-1";
+  const inputCls = "w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink placeholder:text-gray-500 outline-none transition-colors focus:border-brand focus:ring-4 focus:ring-gray-100/50 dark:focus:ring-gray-600/50";
+  const labelCls = "mb-1.5 block text-xs font-medium text-gray-600";
 
   return (
-    <DashboardLayout >
-      <div className="w-full max-w-3xl mx-auto">
-        <h1 className="text-base font-bold text-gray-900 tracking-tight">Settings</h1>
-        <p className="text-[11px] text-gray-500 mt-0.5 mb-3">Manage your account, plan, and preferences.</p>
+    <AppShell rail={<RailSection />}>
+      <CenterBar title="Settings" />
 
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
-          {/* Left category nav */}
-          <nav className="md:col-span-4 bg-white border border-gray-200 rounded-lg shadow-sm p-1.5 h-fit md:sticky md:top-14">
+      <div className="px-4 pb-1 pt-3">
+        <p className="text-[11px] text-gray-500">Manage your account, plan, and preferences.</p>
+      </div>
+
+      <div className="px-4 py-4 lg:grid lg:grid-cols-12 lg:gap-3">
+        {/* Desktop section nav */}
+        <nav className="hidden h-fit lg:col-span-4 lg:sticky lg:top-16 lg:block xl:col-span-3">
+          <div className="rounded-xl border border-line bg-surface p-1.5">
             {SECTIONS.map((s) => {
               const Icon = s.icon;
               const isActive = active === s.id;
               return (
                 <button
                   key={s.id}
+                  type="button"
                   onClick={() => setActive(s.id)}
-                  className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-[13px] transition-colors ${
-                    isActive ? "bg-blue-50 text-blue-700 font-semibold" : "text-gray-600 hover:bg-gray-50"
+                  className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] transition-colors ${
+                    isActive ? "bg-gray-50 font-semibold text-ink" : "text-gray-600 hover:bg-gray-50 hover:text-ink"
                   }`}>
-                  <Icon className={`w-4 h-4 shrink-0 ${isActive ? "text-blue-600" : "text-gray-400"}`} />
+                  <Icon className={`h-4 w-4 shrink-0 ${isActive ? "text-ink" : "text-gray-500"}`} strokeWidth={isActive ? 2 : 1.6} />
                   {s.label}
                   {s.id === "plan" && (
-                    <span className={`ml-auto text-[10px] font-bold px-1.5 py-px rounded ${isPaid ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>
+                    <span className={`ml-auto shrink-0 whitespace-nowrap rounded px-1.5 py-px text-[10px] font-bold ${isPaid ? "bg-brand/10 text-brand-text" : "bg-gray-100 text-gray-600"}`}>
                       {isPaid ? "PRO" : isTrial ? "TRIAL" : "FREE"}
                     </span>
                   )}
                 </button>
               );
             })}
-          </nav>
+          </div>
+        </nav>
 
-          {/* Right content panel */}
-          <div className="md:col-span-8 bg-white border border-gray-200 rounded-lg shadow-sm px-4 py-1.5 h-fit">
+        {/* Mobile section chips */}
+        <div className="mb-3 flex gap-1.5 overflow-x-auto pb-1 lg:hidden">
+          {SECTIONS.map((s) => {
+            const isActive = active === s.id;
+            return (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => setActive(s.id)}
+                className={`inline-flex h-7 shrink-0 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-medium transition-colors ${
+                  isActive ? "border-gray-900 bg-gray-900 text-white dark:border-gray-50 dark:bg-gray-50 dark:text-ink" : "border-line bg-surface text-ink hover:bg-gray-50"
+                }`}>
+                {s.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Right content panel */}
+        <div className="h-fit rounded-xl border border-line bg-surface px-4 py-1.5 lg:col-span-8 xl:col-span-9">
             {active === "account" && (
-              <div className="divide-y divide-gray-100">
+              <div className="divide-y divide-line">
                 <Row
                   icon={FiMail}
                   title="Contact info"
@@ -565,12 +589,12 @@ export default function Settings() {
                       <p className={labelCls} style={{ marginTop: 4 }}>Changing it sends a verification code to the new address first.</p>
                     </div>
                     {pendingEmail && (
-                      <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                      <div className="rounded-xl border border-line bg-gray-50 p-3 dark:bg-gray-25">
                         <OtpVerify
                           email={userData?.email}
                           displayEmail={pendingEmail}
                           headline="Confirm your new email"
-                          subline={<>Enter the 6-digit code sent to <span className="font-semibold text-neutral-900">{pendingEmail}</span>. Your current address keeps working until then.</>}
+                          subline={<>Enter the 6-digit code sent to <span className="font-semibold text-ink">{pendingEmail}</span>. Your current address keeps working until then.</>}
                           verifyPath="/api/auth/email/change-verify"
                           requestPath="/api/auth/email/change-request"
                           getVerifyBody={(code) => ({ new_email: pendingEmail, code })}
@@ -594,7 +618,7 @@ export default function Settings() {
                       <label className={labelCls}>Location</label>
                       <input type="text" value={emailForm.location} onChange={(e) => setEmailForm((p) => ({ ...p, location: e.target.value }))} placeholder="City, Country" className={inputCls} />
                     </div>
-                    <button type="submit" disabled={emailSaving} className="px-3.5 py-1.5 bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 disabled:opacity-50 rounded-full transition-colors">
+                    <button type="submit" disabled={emailSaving} className="px-3.5 py-1.5 inline-flex h-9 items-center justify-center rounded-xl bg-gray-900 px-4 text-xs font-semibold text-white transition-colors hover:bg-gray-800 disabled:opacity-50">
                       {emailSaving ? "Saving…" : "Save changes"}
                     </button>
                   </form>
@@ -614,7 +638,7 @@ export default function Settings() {
                   icon={FiUser}
                   title="Profile"
                   desc="Edit your public candidate profile."
-                  right={<span className="text-xs font-semibold text-blue-600">Open</span>}
+                  right={<span className="text-xs font-semibold text-ink">Open</span>}
                   onClick={() => (window.location.href = "/in/profile")}
                 />
                 <ProfileSlugRow
@@ -628,9 +652,9 @@ export default function Settings() {
             )}
 
             {active === "page" && (
-              <div className="divide-y divide-gray-100">
+              <div className="divide-y divide-line">
                 <div className="py-3">
-                  <p className="text-[13px] font-semibold text-gray-900">Company pages</p>
+                  <p className="text-[13px] font-semibold text-ink">Company pages</p>
                   <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
                     Your account is personal. A company page is a separate presence on
                     RecruAI for your business — you administer it as the first Admin, and
@@ -640,9 +664,9 @@ export default function Settings() {
                   {myPages.length > 0 && (
                     <button
                       onClick={() => navigate("/page")}
-                      className="mt-3 w-full inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-gray-900 text-white text-xs font-semibold hover:bg-black rounded-full transition-colors"
+                      className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-gray-900 px-4 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-gray-800"
                     >
-                      <FiBriefcase className="w-3.5 h-3.5" /> Manage your page
+                      <FiBriefcase className="h-3.5 w-3.5" /> Manage your page
                     </button>
                   )}
 
@@ -653,20 +677,20 @@ export default function Settings() {
                   )}
 
                   {pagesLoading ? (
-                    <div className="mt-3 text-xs text-gray-400">Loading your pages…</div>
+                    <div className="mt-3 text-xs text-gray-500">Loading your pages…</div>
                   ) : myPages.length > 0 ? (
                     <ul className="mt-3 space-y-1.5">
                       {myPages.map((p) => (
                         <li key={p.id}>
                           <button
                             onClick={() => navigate("/page")}
-                            className="w-full flex items-center gap-3 rounded-lg border border-gray-200 px-3 py-2.5 text-left transition-colors hover:bg-gray-50"
+                            className="w-full flex items-center gap-3 rounded-xl border border-line px-3 py-2.5 text-left transition-colors hover:bg-gray-50"
                           >
-                            <div className="w-8 h-8 shrink-0 rounded-md bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-white text-[11px] font-bold uppercase">
+                            <div className="h-8 w-8 shrink-0 rounded-md bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center text-white text-[11px] font-bold uppercase">
                               {p.name.charAt(0)}
                             </div>
                             <div className="min-w-0 flex-1">
-                              <p className="text-[13px] font-semibold text-gray-900 truncate">
+                              <p className="text-[13px] font-semibold text-ink truncate">
                                 {p.name}
                               </p>
                               {(p.industry || p.location) && (
@@ -676,19 +700,19 @@ export default function Settings() {
                               )}
                             </div>
                             {p.is_primary && (
-                              <span className="text-[10px] font-bold bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded shrink-0">
+                              <span className="text-[10px] font-bold bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded shrink-0">
                                 PRIMARY
                               </span>
                             )}
-                            <FiChevronRight className="w-4 h-4 text-gray-300 shrink-0" />
+                            <FiChevronRight className="h-4 w-4 text-gray-300 shrink-0" />
                           </button>
                         </li>
                       ))}
                     </ul>
                   ) : (
-                    <div className="mt-3 rounded-lg border border-dashed border-gray-300 px-3.5 py-5 text-center">
-                      <FiBriefcase className="w-6 h-6 mx-auto text-gray-300" />
-                      <p className="mt-2 text-[13px] font-semibold text-gray-900">
+                    <div className="mt-3 rounded-lg border border-dashed border-line px-3.5 py-5 text-center">
+                      <FiBriefcase className="h-6 w-6 mx-auto text-gray-300" />
+                      <p className="mt-2 text-[13px] font-semibold text-ink">
                         No company page yet
                       </p>
                       <p className="mt-1 text-xs text-gray-500 leading-relaxed">
@@ -699,16 +723,16 @@ export default function Settings() {
 
                   <button
                     onClick={() => navigate("/page/create")}
-                    className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 rounded-full transition-colors"
+                    className="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-gray-900 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-gray-800"
                   >
-                    <FiBriefcase className="w-3.5 h-3.5" />
+                    <FiBriefcase className="h-3.5 w-3.5" />
                     {myPages.length > 0 ? "Create another page" : "Create a company page"}
                   </button>
                 </div>
 
                 {myPages.length > 0 && (
                   <div className="py-3">
-                    <p className="text-[13px] font-semibold text-gray-900 mb-1.5">
+                    <p className="text-[13px] font-semibold text-ink mb-1.5">
                       Admin tools
                     </p>
                     <div className="space-y-1">
@@ -716,21 +740,24 @@ export default function Settings() {
                         icon={FiBriefcase}
                         title="Post jobs"
                         desc="Create and manage job posts on your page."
-                        right={<span className="text-xs font-semibold text-blue-600">Open</span>}
+                        right={<span className="text-xs font-semibold text-ink">Open</span>}
+                        ariaLabel="Open Post jobs"
                         onClick={() => navigate("/page/posts")}
                       />
                       <Row
                         icon={FiUsers}
                         title="Team members"
                         desc="Invite colleagues and manage their access."
-                        right={<span className="text-xs font-semibold text-blue-600">Open</span>}
+                        right={<span className="text-xs font-semibold text-ink">Open</span>}
+                        ariaLabel="Open Team members"
                         onClick={() => navigate("/page/team")}
                       />
                       <Row
                         icon={FiSliders}
                         title="Visibility"
                         desc="Decide who can find this page and apply."
-                        right={<span className="text-xs font-semibold text-blue-600">Open</span>}
+                        right={<span className="text-xs font-semibold text-ink">Open</span>}
+                        ariaLabel="Open Visibility"
                         onClick={() => navigate("/page/visibility")}
                       />
                     </div>
@@ -740,14 +767,14 @@ export default function Settings() {
             )}
 
             {active === "plan" && (
-              <div className="divide-y divide-gray-100">
+              <div className="divide-y divide-line">
                 <Row
                   icon={FiAward}
                   title="Current plan"
                   desc={`${isPaid ? "Pro — full access" : isTrial ? "Trial — full access" : "Free — basic tools"} · ${status?.tokens_used?.toLocaleString() || "0"} tokens used${isTrial && trialEnd ? ` · expires ${trialEnd}` : ""}`}
                   right={
                     isPaid ? (
-                      <span className="text-[10px] font-bold bg-green-100 text-green-700 px-1.5 py-0.5 rounded">ACTIVE</span>
+                      <span className="text-[10px] font-bold bg-brand/10 text-brand-text px-1.5 py-0.5 rounded">ACTIVE</span>
                     ) : isTrial ? (
                       <span className="text-[10px] font-bold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">TRIAL</span>
                     ) : (
@@ -756,55 +783,55 @@ export default function Settings() {
                   }
                 />
                 <div className="py-3 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  <div className={`border rounded-lg p-3 ${!isPaid ? "border-amber-400 bg-amber-50/40" : "border-gray-200"}`}>
+                  <div className={`border rounded-lg p-3 ${!isPaid ? "border-amber-400 bg-amber-50/40" : "border-line"}`}>
                     <div className="flex items-center justify-between">
-                      <p className="text-[13px] font-semibold text-gray-900">Trial</p>
+                      <p className="text-[13px] font-semibold text-ink">Trial</p>
                       {!isPaid && <span className="text-[10px] font-bold bg-amber-500 text-white px-1.5 py-px rounded">Current</span>}
                     </div>
-                    <p className="text-lg font-bold text-gray-900 mt-1">Free</p>
+                    <p className="text-lg font-bold text-ink mt-1">Free</p>
                     <ul className="mt-2 space-y-1 text-xs text-gray-600">
-                      <li className="flex gap-1.5"><FiCheckCircle className="w-3.5 h-3.5 text-gray-400 shrink-0 mt-px" /> Profile management</li>
-                      <li className="flex gap-1.5"><FiCheckCircle className="w-3.5 h-3.5 text-gray-400 shrink-0 mt-px" /> Interview scheduling</li>
-                      <li className="flex gap-1.5"><FiCheckCircle className="w-3.5 h-3.5 text-gray-400 shrink-0 mt-px" /> Basic job tracking</li>
-                      <li className="flex gap-1.5"><FiXCircle className="w-3.5 h-3.5 text-gray-300 shrink-0 mt-px" /> Limited analytics</li>
+                      <li className="flex gap-1.5"><FiCheckCircle className="h-3.5 w-3.5 text-gray-500 shrink-0 mt-px" /> Profile management</li>
+                      <li className="flex gap-1.5"><FiCheckCircle className="h-3.5 w-3.5 text-gray-500 shrink-0 mt-px" /> Interview scheduling</li>
+                      <li className="flex gap-1.5"><FiCheckCircle className="h-3.5 w-3.5 text-gray-500 shrink-0 mt-px" /> Basic job tracking</li>
+                      <li className="flex gap-1.5"><FiXCircle className="h-3.5 w-3.5 text-gray-300 shrink-0 mt-px" /> Limited analytics</li>
                     </ul>
                   </div>
-                  <div className={`border rounded-lg p-3 ${isPaid ? "border-green-500 bg-green-50/40" : "border-gray-200"}`}>
+                  <div className={`border rounded-lg p-3 ${isPaid ? "border-green-500 bg-green-50/40" : "border-line"}`}>
                     <div className="flex items-center justify-between">
-                      <p className="text-[13px] font-semibold text-gray-900">Pro</p>
+                      <p className="text-[13px] font-semibold text-ink">Pro</p>
                       {isPaid
                         ? <span className="text-[10px] font-bold bg-green-600 text-white px-1.5 py-px rounded">Active</span>
-                        : <span className="text-[10px] text-gray-400">Most popular</span>}
+                        : <span className="text-[10px] text-gray-500">Most popular</span>}
                     </div>
-                    <p className="text-lg font-bold text-gray-900 mt-1">
+                    <p className="text-lg font-bold text-ink mt-1">
                       {BILLING_ENABLED ? <>$9.99<span className="text-xs font-normal text-gray-500">/mo</span></> : "Included during beta"}
                     </p>
                     <ul className="mt-2 space-y-1 text-xs text-gray-600">
-                      <li className="flex gap-1.5"><FiCheckCircle className="w-3.5 h-3.5 text-green-600 shrink-0 mt-px" /> Everything in Trial</li>
-                      <li className="flex gap-1.5"><FiCheckCircle className="w-3.5 h-3.5 text-green-600 shrink-0 mt-px" /> Advanced analytics</li>
-                      <li className="flex gap-1.5"><FiCheckCircle className="w-3.5 h-3.5 text-green-600 shrink-0 mt-px" /> Resume builder & job alerts</li>
-                      <li className="flex gap-1.5"><FiCheckCircle className="w-3.5 h-3.5 text-green-600 shrink-0 mt-px" /> Coaching & unlimited interviews</li>
+                      <li className="flex gap-1.5"><FiCheckCircle className="h-3.5 w-3.5 text-green-600 shrink-0 mt-px" /> Everything in Trial</li>
+                      <li className="flex gap-1.5"><FiCheckCircle className="h-3.5 w-3.5 text-green-600 shrink-0 mt-px" /> Advanced analytics</li>
+                      <li className="flex gap-1.5"><FiCheckCircle className="h-3.5 w-3.5 text-green-600 shrink-0 mt-px" /> Resume builder & job alerts</li>
+                      <li className="flex gap-1.5"><FiCheckCircle className="h-3.5 w-3.5 text-green-600 shrink-0 mt-px" /> Coaching & unlimited interviews</li>
                     </ul>
                     {isPaid ? (
                       <span className="inline-block mt-2.5 text-[11px] font-semibold bg-green-600 text-white px-2.5 py-1 rounded-full">Current plan</span>
                     ) : BILLING_ENABLED ? (
-                      <button className="mt-2.5 inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 rounded-full transition-colors">Upgrade <FiArrowRight className="w-3.5 h-3.5" /></button>
+                      <button className="mt-2.5 inline-flex items-center gap-1 rounded-xl bg-brand-action px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-brand/90">Upgrade <FiArrowRight className="h-3.5 w-3.5" /></button>
                     ) : (
                       <span className="inline-block mt-2.5 text-[11px] text-gray-500">Paid upgrades are closed during the beta.</span>
                     )}
                   </div>
                 </div>
                 <div className="py-3 flex items-center gap-1.5 text-xs text-gray-500">
-                  <FiZap className="w-3.5 h-3.5 text-blue-500" />
-                  Tokens used: <span className="font-semibold text-gray-700">{status?.tokens_used?.toLocaleString() || "0"}</span>
+                  <FiZap className="h-3.5 w-3.5 text-brand-text" />
+                  Tokens used: <span className="font-mono tabular-nums font-semibold text-gray-700">{status?.tokens_used?.toLocaleString() || "0"}</span>
                 </div>
               </div>
             )}
 
             {active === "billing" && (
-              <div className="divide-y divide-gray-100">
+              <div className="divide-y divide-line">
                 <div className="py-3">
-                  <p className="text-[13px] font-semibold text-gray-900 mb-2">Payment methods</p>
+                  <p className="text-[13px] font-semibold text-ink mb-2">Payment methods</p>
                   {BILLING_ENABLED ? (
                     <PaymentMethods storageKey="recruai_cards_individual" />
                   ) : (
@@ -814,9 +841,9 @@ export default function Settings() {
                   )}
                 </div>
                 <div className="py-3">
-                  <p className="text-[13px] font-semibold text-gray-900">Billing history</p>
-                  <div className="mt-2 text-center py-5 border border-dashed border-gray-200 rounded-lg">
-                    <FiClock className="w-6 h-6 text-gray-300 mx-auto mb-1.5" />
+                  <p className="text-[13px] font-semibold text-ink">Billing history</p>
+                  <div className="mt-2 text-center py-5 border border-dashed border-line rounded-xl">
+                    <FiClock className="h-6 w-6 text-gray-300 mx-auto mb-1.5" />
                     <p className="text-xs text-gray-500">
                       {BILLING_ENABLED ? "No invoices yet" : "Billing is not active during the beta"}
                     </p>
@@ -826,7 +853,11 @@ export default function Settings() {
             )}
 
             {active === "notifications" && (
-              <div className="divide-y divide-gray-100">
+              <div>
+                <p className="mb-2 text-xs leading-5 text-gray-500">
+                  Preview-only — these preferences are not saved yet.
+                </p>
+                <div className="divide-y divide-line">
                 {[
                   { title: "Email notifications", desc: "Account and interview updates", on: true, icon: FiMail },
                   { title: "Job alerts", desc: "New openings matching your profile", on: true, icon: FiBell },
@@ -836,45 +867,46 @@ export default function Settings() {
                   return (
                     <div key={pref.title} className="flex items-center justify-between gap-3 py-3">
                       <div className="flex gap-2.5 min-w-0">
-                        <div className="w-7 h-7 bg-gray-50 border border-gray-200 rounded-md flex items-center justify-center shrink-0">
-                          <Icon className="w-3.5 h-3.5 text-gray-500" />
+                        <div className="h-7 w-7 rounded-lg border border-line bg-gray-50 dark:bg-gray-25 flex items-center justify-center shrink-0">
+                          <Icon className="h-3.5 w-3.5 text-gray-500" />
                         </div>
                         <div className="min-w-0">
-                          <p className="text-[13px] font-semibold text-gray-900 leading-tight">{pref.title}</p>
+                          <p className="text-[13px] font-semibold text-ink leading-tight">{pref.title}</p>
                           <p className="text-xs text-gray-500 mt-0.5">{pref.desc}</p>
                         </div>
                       </div>
                       <label className="relative inline-flex items-center cursor-pointer shrink-0">
                         <input type="checkbox" defaultChecked={pref.on} className="sr-only peer" />
-                        <div className="w-9 h-5 rounded-full bg-gray-200 peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:w-4 after:h-4 after:transition-all peer-checked:after:translate-x-4"></div>
+                        <div className="peer h-5 w-9 rounded-full bg-gray-200 transition-colors after:absolute after:left-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:bg-white after:shadow-sm after:transition-transform peer-checked:bg-brand peer-checked:after:translate-x-4 dark:bg-gray-25"></div>
                       </label>
                     </div>
                   );
                 })}
+                </div>
               </div>
             )}
 
             {active === "preferences" && (
-              <div className="divide-y divide-gray-100">
+              <div className="divide-y divide-line">
                 <div className="py-3">
-                  <p className="text-[13px] font-semibold text-gray-900">Timezone</p>
+                  <p className="text-[13px] font-semibold text-ink">Timezone</p>
                   <p className="text-xs text-gray-500 mt-0.5 mb-2">Interview times display in this timezone.</p>
                   <TimezoneSelector userId={userId} value={userData?.timezone} showCurrentTime={true} />
                 </div>
                 <div className="flex items-center justify-between gap-3 py-3">
                   <div className="min-w-0">
-                    <p className="text-[13px] font-semibold text-gray-900 leading-tight">Data analytics</p>
-                    <p className="text-xs text-gray-500 mt-0.5">Help improve the service with usage analytics</p>
+                    <p className="text-[13px] font-semibold text-ink leading-tight">Data analytics</p>
+                    <p className="text-xs text-gray-500 mt-0.5">Help improve the service with usage analytics · preview-only, not saved</p>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer shrink-0">
                     <input type="checkbox" defaultChecked className="sr-only peer" />
-                    <div className="w-9 h-5 rounded-full bg-gray-200 peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:w-4 after:h-4 after:transition-all peer-checked:after:translate-x-4"></div>
+                    <div className="peer h-5 w-9 rounded-full bg-gray-200 transition-colors after:absolute after:left-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:bg-white after:shadow-sm after:transition-transform peer-checked:bg-brand peer-checked:after:translate-x-4 dark:bg-gray-25"></div>
                   </label>
                 </div>
 
-                <div className="flex items-center justify-between gap-3 py-3 border-t border-gray-100">
+                <div className="flex items-center justify-between gap-3 py-3 border-t border-line">
                   <div className="min-w-0">
-                    <p className="text-[13px] font-semibold text-gray-900 leading-tight">Findable in search</p>
+                    <p className="text-[13px] font-semibold text-ink leading-tight">Findable in search</p>
                     <p className="text-xs text-gray-500 mt-0.5 leading-snug">
                       Lets other people find you by name, headline or company in global search.
                       Turning this off hides you from results but keeps your profile link working.
@@ -886,11 +918,11 @@ export default function Settings() {
                     aria-checked={discoverable}
                     onClick={toggleDiscoverable}
                     disabled={savingDiscoverable}
-                    className={`relative inline-flex items-center w-9 h-5 rounded-full transition-colors shrink-0 disabled:opacity-50 ${
-                      discoverable ? "bg-blue-600" : "bg-gray-300"
+                    className={`relative inline-flex items-center h-5 w-9 rounded-full transition-colors shrink-0 disabled:opacity-50 ${
+                      discoverable ? "bg-brand" : "bg-gray-200 dark:bg-gray-25"
                     }`}>
                     <span
-                      className={`absolute w-4 h-4 rounded-full bg-white shadow transition-all ${
+                      className={`absolute h-4 w-4 rounded-full bg-white shadow transition-all ${
                         discoverable ? "left-[18px]" : "left-[2px]"
                       }`}
                     />
@@ -900,9 +932,9 @@ export default function Settings() {
             )}
 
             {active === "security" && (
-              <div className="divide-y divide-gray-100">
+              <div className="divide-y divide-line">
                 <div className="py-3">
-                  <p className="text-[13px] font-semibold text-gray-900">Your data</p>
+                  <p className="text-[13px] font-semibold text-ink">Your data</p>
                   <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
                     Download a JSON copy of your profile, applications, interviews,
                     messages and account history. This is the same export we provide
@@ -911,14 +943,14 @@ export default function Settings() {
                   <button
                     type="button"
                     onClick={() => { setExportOpen((o) => !o); setExportMsg(null); }}
-                    className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 bg-white text-gray-700 text-xs font-semibold hover:bg-gray-50 rounded-full transition-colors"
+                    className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1.5 inline-flex h-9 items-center justify-center rounded-xl border border-line bg-surface px-4 text-xs font-semibold text-ink transition-colors hover:bg-gray-50"
                   >
-                    <FiDownload className="w-3.5 h-3.5" />
+                    <FiDownload className="h-3.5 w-3.5" />
                     Export my data
                   </button>
 
                   {exportOpen && (
-                    <form onSubmit={handleExport} className="mt-3 rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-2.5">
+                    <form onSubmit={handleExport} className="mt-3 rounded-xl border border-line bg-gray-50 p-3 dark:bg-gray-25 space-y-2.5">
                       <div>
                         <label className={labelCls}>Confirm your password</label>
                         <input
@@ -940,9 +972,9 @@ export default function Settings() {
                         <button
                           type="submit"
                           disabled={exporting || !exportPassword}
-                          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 disabled:opacity-50 rounded-full transition-colors"
+                          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 inline-flex h-9 items-center justify-center rounded-xl bg-gray-900 px-4 text-xs font-semibold text-white transition-colors hover:bg-gray-800 disabled:opacity-50"
                         >
-                          <FiDownload className="w-3.5 h-3.5" />
+                          <FiDownload className="h-3.5 w-3.5" />
                           {exporting ? "Preparing…" : "Download JSON"}
                         </button>
                         <button
@@ -953,7 +985,7 @@ export default function Settings() {
                           Cancel
                         </button>
                       </div>
-                      <p className="text-[10.5px] text-gray-400">
+                      <p className="text-[10.5px] text-gray-500">
                         Password hashes, session tokens and one-time codes are never included.
                       </p>
                     </form>
@@ -962,11 +994,11 @@ export default function Settings() {
 
                 <div className="py-3">
                   <div className="flex items-center gap-3 p-3 border border-red-200 bg-red-50/60 rounded-lg">
-                    <div className="w-7 h-7 bg-white border border-red-200 rounded-md flex items-center justify-center shrink-0">
-                      <FiTrash2 className="w-3.5 h-3.5 text-red-600" />
+                    <div className="h-7 w-7 bg-surface border border-red-200 rounded-lg flex items-center justify-center shrink-0">
+                      <FiTrash2 className="h-3.5 w-3.5 text-red-600" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-semibold text-gray-900 leading-tight">Delete account</p>
+                      <p className="text-[13px] font-semibold text-ink leading-tight">Delete account</p>
                       <p className="text-xs text-gray-500 mt-0.5">
                         Schedule permanent deletion after a 30-day grace period.
                       </p>
@@ -976,7 +1008,7 @@ export default function Settings() {
                       onClick={() => { setDeleteOpen((o) => !o); setDeleteMsg(null); }}
                       className="px-3 py-1 bg-red-600 text-white text-xs font-semibold hover:bg-red-700 rounded-full shrink-0 transition-colors"
                     >
-                      {deleteOpen ? "Close" : "Delete"}
+                      {deleteOpen ? "Close" : "Delete account"}
                     </button>
                   </div>
 
@@ -993,7 +1025,7 @@ export default function Settings() {
                   )}
 
                   {deleteOpen && (
-                    <form onSubmit={handleDelete} className="mt-3 rounded-lg border border-red-200 bg-white p-3 space-y-2.5">
+                    <form onSubmit={handleDelete} className="mt-3 rounded-lg border border-red-200 bg-surface p-3 space-y-2.5">
                       <div className="rounded-md bg-red-50 border border-red-100 px-3 py-2">
                         <p className="text-[12px] font-semibold text-red-800">This cannot be undone after 30 days</p>
                         <p className="mt-1 text-[11.5px] leading-relaxed text-red-700">
@@ -1077,7 +1109,6 @@ export default function Settings() {
             )}
           </div>
         </div>
-      </div>
-    </DashboardLayout>
+    </AppShell>
   );
 }

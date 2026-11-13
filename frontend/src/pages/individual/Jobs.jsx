@@ -1,60 +1,55 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import DashboardLayout from "../../components/layout/DashboardLayout";
-import MenteeLoader from "../../components/ui/MenteeLoader";
-import { getBackendUrl, getAuthHeaders, getCurrentUserId, postPath } from "../../utils/auth";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { AppShell, CenterBar } from "../../components/layout/AppShell";
+import { RailSection } from "../../components/layout/RightRail";
+import { Button, ButtonLink } from "../../components/ui/Button";
+import { Input } from "../../components/ui/Input";
+import EmptyState from "../../components/ui/EmptyState";
+import AnimatedTabBar from "../../components/motion/AnimatedTabBar";
+import AnimatedNumber from "../../components/motion/AnimatedNumber";
+import { StaggerList, StaggerItem } from "../../components/motion/Stagger";
+import { SkeletonJobList } from "../../components/motion/SmartSkeleton";
+import { getBackendUrl, getAuthHeaders, getCurrentUserId, postPath, getUploadUrl } from "../../utils/auth";
 import { formatDate } from "../../utils/timezone";
 import socketService from "../../utils/socket";
+import { FilterChip, JobRow, OrgMark, StatusTag } from "../../components/jobs/JobBits";
+import { formatSalaryRange as formatSalary } from "../../utils/jobMeta";
 import {
-  FiBookmark,
-  FiCheckCircle,
-  FiSearch,
-  FiX,
-  FiMapPin,
-  FiBriefcase,
-  FiDollarSign,
-  FiCalendar,
-  FiTrash2,
-  FiArrowRight,
-  FiEye,
-  FiFilter,
-  FiClock,
-  FiFileText,
-  FiLayers,
-} from "react-icons/fi";
+  Bookmark,
+  Briefcase,
+  CheckCircle2,
+  Search,
+  X,
+  ArrowUpRight,
+  Trash2,
+  Eye,
+  Bell,
+} from "lucide-react";
 
 const getStatusMeta = (status) => {
   switch (status) {
     case "pending":
-      return { label: "Pending review", color: "bg-amber-50 text-amber-700 border-amber-200", icon: FiClock };
+      return { label: "Pending review", status: "pending" };
     case "reviewed":
-      return { label: "Under review", color: "bg-blue-50 text-blue-700 border-blue-200", icon: FiEye };
+      return { label: "Under review", status: "reviewed" };
     case "accepted":
-      return { label: "Accepted", color: "bg-green-50 text-green-700 border-green-200", icon: FiCheckCircle };
+      return { label: "Accepted", status: "accepted" };
     case "rejected":
-      return { label: "Rejected", color: "bg-red-50 text-red-700 border-red-200", icon: FiX };
+      return { label: "Rejected", status: "rejected" };
     case "withdrawn":
-      return { label: "Withdrawn", color: "bg-gray-100 text-gray-600 border-gray-200", icon: FiTrash2 };
+      return { label: "Withdrawn", status: "withdrawn" };
+    case "screening":
+      return { label: "Screening", status: "screening" };
+    case "offer":
+      return { label: "Offer", status: "offer" };
     default:
-      return { label: status, color: "bg-gray-50 text-gray-700 border-gray-200", icon: FiFileText };
+      return { label: status, status };
   }
-};
-
-const getCompanyInitials = (name) => {
-  if (!name) return "CO";
-  return name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
-};
-
-const formatSalary = (min, max, currency) => {
-  if (!min && !max) return null;
-  const cur = currency || "$";
-  if (min && max) return `${cur}${Number(min).toLocaleString()} - ${cur}${Number(max).toLocaleString()}`;
-  return `${cur}${Number(min || max).toLocaleString()}`;
 };
 
 export default function Jobs() {
   const navigate = useNavigate();
-  const [params, setParams] = useSearchParams();
+  const [params] = useSearchParams();
   const tab = params.get("tab") === "applied" ? "applied" : "saved";
   const [savedJobs, setSavedJobs] = useState([]);
   const [appliedJobs, setAppliedJobs] = useState([]);
@@ -63,6 +58,12 @@ export default function Jobs() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [cancelling, setCancelling] = useState(null);
+  const [page, setPage] = useState(1);
+  const PER_PAGE = 10;
+
+  useEffect(() => {
+    setPage(1);
+  }, [tab, search, statusFilter]);
 
   useEffect(() => {
     const load = async () => {
@@ -97,8 +98,6 @@ export default function Jobs() {
     socketService.on("application_stage_changed", handleStageChange);
     return () => socketService.off("application_stage_changed", handleStageChange);
   }, []);
-
-  const setTab = (t) => setParams(t === "applied" ? { tab: "applied" } : {});
 
   const handleUnsaveJob = async (savedId) => {
     try {
@@ -155,7 +154,11 @@ export default function Jobs() {
     return savedJobs.filter((sj) => {
       const job = sj.post;
       if (!job) return false;
-      return job.title?.toLowerCase().includes(q) || job.organization?.name?.toLowerCase().includes(q) || job.location?.toLowerCase().includes(q);
+      return (
+        job.title?.toLowerCase().includes(q) ||
+        job.organization?.name?.toLowerCase().includes(q) ||
+        job.location?.toLowerCase().includes(q)
+      );
     });
   }, [savedJobs, search]);
 
@@ -163,11 +166,55 @@ export default function Jobs() {
     return appliedJobs.filter((app) => {
       const job = app.post;
       if (!job) return false;
-      const matchesSearch = !search || job.title?.toLowerCase().includes(search.toLowerCase()) || job.organization?.name?.toLowerCase().includes(search.toLowerCase()) || app.pipeline_stage?.toLowerCase().includes(search.toLowerCase());
+      const matchesSearch =
+        !search ||
+        job.title?.toLowerCase().includes(search.toLowerCase()) ||
+        job.organization?.name?.toLowerCase().includes(search.toLowerCase()) ||
+        app.pipeline_stage?.toLowerCase().includes(search.toLowerCase());
       const matchesStatus = !statusFilter || app.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
   }, [appliedJobs, search, statusFilter]);
+
+  const savedPage = useMemo(
+    () => savedFiltered.slice((page - 1) * PER_PAGE, page * PER_PAGE),
+    [savedFiltered, page, PER_PAGE]
+  );
+  const appliedPage = useMemo(
+    () => appliedFiltered.slice((page - 1) * PER_PAGE, page * PER_PAGE),
+    [appliedFiltered, page, PER_PAGE]
+  );
+
+  const paginationFooter = (total) => {
+    const pages = Math.ceil(total / PER_PAGE);
+    if (pages <= 1) return null;
+    return (
+      <div className="mt-3 flex items-center justify-between rounded-xl border border-line bg-surface dark:border-line dark:bg-gray-25/80 px-4 py-3">
+        <p className="text-xs text-gray-500 dark:text-gray-500">
+          Page <span className="font-mono tabular-nums">{page}</span> of{" "}
+          <span className="font-mono tabular-nums">{pages}</span>
+        </p>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={page <= 1}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+          >
+            Prev
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={page >= pages}
+            onClick={() => setPage((p) => Math.min(pages, p + 1))}
+          >
+            Next
+          </Button>
+        </div>
+      </div>
+    );
+  };
 
   const stats = {
     total: appliedJobs.length,
@@ -178,224 +225,262 @@ export default function Jobs() {
 
   const statuses = ["pending", "reviewed", "accepted", "rejected", "withdrawn"];
 
+  const clearFilters = () => {
+    setSearch("");
+    setStatusFilter("");
+  };
+
+  const railContent = (
+    <>
+      <RailSection title="Application overview">
+        <div className="rounded-xl border border-line bg-surface dark:border-line dark:bg-gray-25/80 p-3.5">
+          <div className="flex flex-col gap-2.5">
+            {[
+              { label: "Total", value: stats.total },
+              { label: "Pending", value: stats.pending },
+              { label: "Under review", value: stats.reviewed },
+              { label: "Accepted", value: stats.accepted },
+            ].map((row) => (
+              <div key={row.label} className="flex items-center justify-between">
+                <span className="text-xs text-gray-500 dark:text-gray-500">{row.label}</span>
+                <span className="font-mono tabular-nums text-[13px] font-medium text-ink">
+                  <AnimatedNumber value={row.value} />
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </RailSection>
+    </>
+  );
+
+  const savedRowActions = (savedJob) => {
+    const job = savedJob.post;
+    if (!job) return null;
+    const applied = appliedPostIds.has(job.id);
+    return (
+      <div className="flex items-center gap-2">
+        {applied ? (
+          <StatusTag status="accepted" className="gap-1">
+            <CheckCircle2 className="h-3.5 w-3.5 text-brand-text" strokeWidth={1.75} />
+            <span>Applied</span>
+          </StatusTag>
+        ) : (
+          <Button variant="primary" size="sm" onClick={() => handleApplyJob(job.id)}>
+            Apply <ArrowUpRight className="h-3.5 w-3.5" strokeWidth={2} />
+          </Button>
+        )}
+        <Button variant="secondary" size="sm" onClick={() => handleUnsaveJob(savedJob.id)}>
+          <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
+          <span>Remove</span>
+        </Button>
+      </div>
+    );
+  };
+
+  const appliedRowActions = (application) => {
+    const job = application.post;
+    if (!job) return null;
+    const meta = getStatusMeta(application.status);
+    const terminal =
+      application.status === "accepted" ||
+      application.status === "rejected" ||
+      application.status === "withdrawn";
+    return (
+      <div className="flex items-center gap-2">
+        <Button variant="secondary" size="sm" onClick={() => navigate(postPath(job))}>
+          <Eye className="h-3.5 w-3.5" strokeWidth={1.75} />
+          <span>View details</span>
+        </Button>
+        {terminal ? (
+          <StatusTag status={meta.status}>{meta.label}</StatusTag>
+        ) : (
+          <Button
+            variant="danger"
+            size="sm"
+            disabled={cancelling === application.id}
+            onClick={() => handleCancelApplication(application.id)}
+          >
+            <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
+            <span>{cancelling === application.id ? "Cancelling…" : "Cancel"}</span>
+          </Button>
+        )}
+      </div>
+    );
+  };
+
   return (
-    <DashboardLayout >
-      <div className="w-full max-w-3xl mx-auto space-y-2.5">
-        <div>
-          <h1 className="text-base font-bold text-gray-900 tracking-tight">Jobs</h1>
-          <p className="text-[11px] text-gray-500 mt-0.5">
-            {savedJobs.length} saved · {appliedJobs.length} applied
-          </p>
-        </div>
+    <AppShell rail={railContent}>
+      <CenterBar
+        title="Jobs"
+        actions={
+          <div className="flex items-center gap-2">
+            <ButtonLink to="/in/jobs/alerts" variant="secondary" size="sm">
+              <Bell className="h-3.5 w-3.5" strokeWidth={1.75} />
+              <span>Job alerts</span>
+            </ButtonLink>
+            <ButtonLink to="/feed" variant="secondary" size="sm">
+              <span>Browse jobs</span>
+            </ButtonLink>
+          </div>
+        }
+      />
 
-        {/* Internal tabs — same pattern as Interviews */}
-        <div className="flex gap-1.5 bg-white border border-gray-200 rounded-lg p-1 shadow-sm">
-          {[
-            { id: "saved", label: `Saved (${savedJobs.length})`, icon: FiBookmark },
-            { id: "applied", label: `Applied (${appliedJobs.length})`, icon: FiCheckCircle },
-          ].map((t) => {
-            const Icon = t.icon;
-            const isActive = tab === t.id;
-            return (
-              <button
-                key={t.id}
-                onClick={() => setTab(t.id)}
-                className={`flex-1 inline-flex items-center justify-center gap-1.5 py-1.5 text-xs font-semibold rounded-md transition-colors ${
-                  isActive ? "bg-gray-900 text-white" : "text-gray-500 hover:bg-gray-50"
-                }`}>
-                <Icon className="w-3.5 h-3.5" /> {t.label}
-              </button>
-            );
-          })}
-        </div>
+      <div className="px-4 pb-1 pt-3">
+        <p className="text-[11px] leading-4 text-gray-500 dark:text-gray-500">
+          <span className="font-mono tabular-nums"><AnimatedNumber value={savedJobs.length} /></span> saved ·{" "}
+          <span className="font-mono tabular-nums"><AnimatedNumber value={appliedJobs.length} /></span> applied
+        </p>
+      </div>
 
-        {/* Search */}
+      {/* Saved / Applied tabs with sliding indicator */}
+      <div className="px-4 pt-2">
+        <AnimatedTabBar
+          id="jobs-saved-applied"
+          options={[
+            { to: "/in/jobs", label: `Saved (${savedJobs.length})` },
+            { to: "/in/jobs?tab=applied", label: `Applied (${appliedJobs.length})` },
+          ]}
+          active={tab === "applied" ? "/in/jobs?tab=applied" : "/in/jobs"}
+        />
+      </div>
+
+      {/* Search Input with 8-12px clearance */}
+      <div className="px-4 pt-3">
         <div className="relative">
-          <FiSearch className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 w-3.5 h-3.5" />
-          <input
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-500 h-3.5 w-3.5" strokeWidth={1.75} />
+          <Input
             type="text"
-            placeholder={tab === "saved" ? "Filter by title, company, location…" : "Filter by title, company, stage…"}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-8 pr-8 py-1.5 bg-white border border-gray-200 rounded-lg text-xs text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-500 shadow-sm"
+            placeholder={tab === "saved" ? "Filter by title, company, location…" : "Filter by title, company, stage…"}
+            className="pl-8 pr-8 text-xs leading-4"
           />
           {search && (
-            <button onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 rounded text-gray-500">
-              <FiX className="w-3.5 h-3.5" />
+            <button
+              onClick={() => setSearch("")}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded-lg text-gray-500 hover:bg-gray-50 dark:bg-transparent dark:hover:bg-gray-25 hover:text-ink transition-colors"
+              aria-label="Clear search"
+            >
+              <X className="h-3.5 w-3.5" strokeWidth={1.75} />
             </button>
           )}
         </div>
-
-        {loading ? (
-          <div className="bg-white border border-gray-200 rounded-lg p-6 text-center shadow-sm">
-            <MenteeLoader size={52} text="Loading jobs…" />
-          </div>
-        ) : tab === "saved" ? (
-          savedFiltered.length === 0 ? (
-            <div className="bg-white border border-gray-200 p-12 text-center">
-              <div className="w-14 h-14 bg-gray-100 flex items-center justify-center mx-auto mb-4">
-                <FiBookmark className="w-7 h-7 text-gray-400" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900">{savedJobs.length === 0 ? "No saved jobs yet" : "No matches"}</h3>
-              <p className="text-sm text-gray-500 mt-1 max-w-md mx-auto">{savedJobs.length === 0 ? "Tap the bookmark on any job to save it here for later." : `No saved jobs match “${search}”. Try a different keyword.`}</p>
-              <div className="mt-6 flex justify-center gap-3">
-                {search ? (
-                  <button onClick={() => setSearch("")} className="inline-flex items-center gap-2 bg-gray-900 text-white px-5 py-2.5 text-sm font-medium hover:bg-black transition-colors"><FiX className="w-4 h-4" /> Clear search</button>
-                ) : (
-                  <button onClick={() => navigate("/feed")} className="inline-flex items-center gap-2 bg-gray-900 text-white px-5 py-2.5 text-sm font-medium hover:bg-black transition-colors">Browse jobs <FiArrowRight className="w-4 h-4" /></button>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {savedFiltered.map((savedJob) => {
-                const job = savedJob.post;
-                if (!job) return null;
-                const salary = formatSalary(job.salary_min, job.salary_max, job.salary_currency);
-                const applied = appliedPostIds.has(job.id);
-                return (
-                  <div key={savedJob.id} className="group bg-white border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all">
-                    <div className="p-5">
-                      <div className="flex gap-4">
-                        <div className="hidden sm:flex w-11 h-11 bg-gray-900 text-white items-center justify-center text-sm font-bold shrink-0">{getCompanyInitials(job.organization?.name)}</div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex flex-wrap items-start justify-between gap-2">
-                            <div className="min-w-0">
-                              <Link to={postPath(job)} className="text-[15px] font-semibold text-gray-900 hover:text-blue-600 leading-tight">{job.title}</Link>
-                              <p className="text-sm text-gray-600 mt-0.5 flex items-center gap-1.5"><FiBriefcase className="w-3.5 h-3.5 text-gray-400" />{job.organization?.name || "Unknown"} {job.location && <><span className="text-gray-300">•</span><span className="flex items-center gap-1"><FiMapPin className="w-3 h-3 text-gray-400" />{job.location}</span></>}</p>
-                            </div>
-                            <span className="hidden sm:inline-flex items-center gap-1.5 text-xs bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-1 shrink-0"><FiCalendar className="w-3 h-3" /> Saved {formatDate(savedJob.saved_at)}</span>
-                          </div>
-                          <div className="mt-3 flex flex-wrap gap-1.5">
-                            {job.employment_type && <span className="inline-flex items-center gap-1.5 text-xs bg-gray-50 text-gray-700 border border-gray-200 px-2.5 py-1"><FiBriefcase className="w-3 h-3 text-gray-400" />{job.employment_type}</span>}
-                            {job.category && <span className="inline-flex items-center gap-1.5 text-xs bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-1">{job.category}</span>}
-                            {salary && <span className="inline-flex items-center gap-1.5 text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1"><FiDollarSign className="w-3 h-3" />{salary}</span>}
-                            <span className="sm:hidden inline-flex items-center gap-1.5 text-xs bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-1"><FiCalendar className="w-3 h-3" />{formatDate(savedJob.saved_at)}</span>
-                          </div>
-                        </div>
-                        <div className="hidden lg:flex flex-col gap-2 shrink-0 w-[148px]">
-                          {applied ? (
-                            <span className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-green-50 text-green-700 border border-green-200 text-sm font-medium"><FiCheckCircle className="w-4 h-4" /> Applied</span>
-                          ) : (
-                            <button onClick={() => handleApplyJob(job.id)} className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors">Apply now</button>
-                          )}
-                          <button onClick={() => handleUnsaveJob(savedJob.id)} className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white text-gray-700 border border-gray-200 text-sm font-medium hover:bg-gray-50"><FiTrash2 className="w-4 h-4" /> Remove</button>
-                          <Link to={postPath(job)} className="text-center text-xs font-medium text-blue-600 hover:text-blue-700">View details →</Link>
-                        </div>
-                      </div>
-                      <div className="mt-4 flex lg:hidden gap-2">
-                        {applied ? (
-                          <span className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-green-50 text-green-700 border border-green-200 text-sm font-medium"><FiCheckCircle className="w-4 h-4" /> Applied</span>
-                        ) : (
-                          <button onClick={() => handleApplyJob(job.id)} className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700">Apply</button>
-                        )}
-                        <button onClick={() => handleUnsaveJob(savedJob.id)} className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white border border-gray-200 text-gray-700 text-sm font-medium"><FiTrash2 className="w-4 h-4" /> Remove</button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )
-        ) : (
-          <>
-            {/* Status filter — only on Applied tab */}
-            <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-              <div className="flex items-center gap-2 mb-3">
-                <FiFilter className="w-4 h-4 text-gray-500" />
-                <span className="text-sm font-semibold text-gray-900">Filter by status</span>
-                {statusFilter && <button onClick={() => setStatusFilter("")} className="ml-auto text-xs text-blue-600 hover:text-blue-700 font-medium">Clear</button>}
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <button onClick={() => setStatusFilter("")} className={`px-3.5 py-1.5 text-xs font-medium border transition-colors ${!statusFilter ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"}`}>
-                  All • {stats.total}
-                </button>
-                {statuses.map((s) => {
-                  const meta = getStatusMeta(s);
-                  const count = appliedJobs.filter((a) => a.status === s).length;
-                  if (count === 0) return null;
-                  return (
-                    <button key={s} onClick={() => setStatusFilter(statusFilter === s ? "" : s)} className={`px-3.5 py-1.5 text-xs font-medium border transition-colors ${statusFilter === s ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"}`}>
-                      {meta.label} • {count}
-                    </button>
-                  );
-                })}
-              </div>
-              {(search || statusFilter) && <p className="text-xs text-gray-500 mt-3">Showing {appliedFiltered.length} of {appliedJobs.length} • {search && `“${search}”`} {statusFilter && `status: ${statusFilter}`}</p>}
-            </div>
-
-            {appliedFiltered.length === 0 ? (
-              <div className="bg-white border border-gray-200 p-12 text-center">
-                <div className="w-14 h-14 bg-gray-100 flex items-center justify-center mx-auto mb-4">
-                  <FiBriefcase className="w-7 h-7 text-gray-400" />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900">{appliedJobs.length === 0 ? "No applications yet" : "No matches"}</h3>
-                <p className="text-sm text-gray-500 mt-1 max-w-md mx-auto">{appliedJobs.length === 0 ? "Once you apply to jobs, they will appear here with real-time status updates." : "Try adjusting your search or status filter."}</p>
-                <div className="mt-6 flex justify-center gap-3">
-                  {appliedJobs.length === 0 ? (
-                    <button onClick={() => navigate("/feed")} className="inline-flex items-center gap-2 bg-gray-900 text-white px-5 py-2.5 text-sm font-medium hover:bg-black transition-colors">Browse jobs <FiArrowRight className="w-4 h-4" /></button>
-                  ) : (
-                    <button onClick={() => { setSearch(""); setStatusFilter(""); }} className="inline-flex items-center gap-2 bg-gray-900 text-white px-5 py-2.5 text-sm font-medium hover:bg-black"><FiX className="w-4 h-4" /> Clear filters</button>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {appliedFiltered.map((application) => {
-                  const job = application.post;
-                  if (!job) return null;
-                  const meta = getStatusMeta(application.status);
-                  const StatusIcon = meta.icon;
-                  const salary = formatSalary(job.salary_min, job.salary_max, job.salary_currency);
-                  return (
-                    <div key={application.id} className="group bg-white border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all">
-                      <div className="p-5">
-                        <div className="flex gap-4">
-                          <div className="hidden sm:flex w-11 h-11 bg-gray-900 text-white items-center justify-center text-sm font-bold shrink-0">{getCompanyInitials(job.organization?.name)}</div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex flex-wrap items-start justify-between gap-2">
-                              <div className="min-w-0">
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <Link to={postPath(job)} className="text-[15px] font-semibold text-gray-900 hover:text-blue-600 leading-tight">{job.title}</Link>
-                                  <span className={`inline-flex items-center gap-1.5 text-xs font-medium border px-2.5 py-1 ${meta.color}`}><StatusIcon className="w-3.5 h-3.5" />{meta.label}</span>
-                                </div>
-                                <p className="text-sm text-gray-600 mt-1 flex flex-wrap items-center gap-1.5">
-                                  <span className="flex items-center gap-1"><FiBriefcase className="w-3.5 h-3.5 text-gray-400" />{job.organization?.name || "Unknown"}</span>
-                                  {job.location && <><span className="text-gray-300">•</span><span className="flex items-center gap-1"><FiMapPin className="w-3 h-3 text-gray-400" />{job.location}</span></>}
-                                </p>
-                              </div>
-                              <span className="hidden sm:inline-flex items-center gap-1.5 text-xs bg-gray-50 text-gray-600 border border-gray-200 px-2.5 py-1 shrink-0"><FiCalendar className="w-3 h-3" /> Applied {formatDate(application.applied_at)}</span>
-                            </div>
-                            <div className="mt-3 flex flex-wrap gap-1.5">
-                              {application.pipeline_stage && <span className="inline-flex items-center gap-1.5 text-xs bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-1"><FiLayers className="w-3 h-3" />{application.pipeline_stage.replace("_", " ")}</span>}
-                              {salary && <span className="inline-flex items-center gap-1.5 text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1"><FiDollarSign className="w-3 h-3" />{salary}</span>}
-                              <span className="sm:hidden inline-flex items-center gap-1.5 text-xs bg-gray-50 text-gray-600 border border-gray-200 px-2.5 py-1"><FiCalendar className="w-3 h-3" />{formatDate(application.applied_at)}</span>
-                            </div>
-                          </div>
-                          <div className="hidden lg:flex flex-col gap-2 shrink-0 w-[160px]">
-                            <button onClick={() => navigate(postPath(job))} className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors"><FiEye className="w-4 h-4" /> View details</button>
-                            {application.status !== "accepted" && application.status !== "rejected" && application.status !== "withdrawn" ? (
-                              <button onClick={() => handleCancelApplication(application.id)} disabled={cancelling === application.id} className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white text-red-600 border border-red-200 text-sm font-medium hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"><FiTrash2 className="w-4 h-4" />{cancelling === application.id ? "Cancelling…" : "Cancel"}</button>
-                            ) : (
-                              <span className="w-full inline-flex items-center justify-center px-4 py-2.5 bg-gray-50 text-gray-500 border border-gray-200 text-xs font-medium">{meta.label}</span>
-                            )}
-                          </div>
-                        </div>
-                        <div className="mt-4 flex lg:hidden gap-2">
-                          <button onClick={() => navigate(postPath(job))} className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700"><FiEye className="w-4 h-4" /> View</button>
-                          {application.status !== "accepted" && application.status !== "rejected" && application.status !== "withdrawn" && (
-                            <button onClick={() => handleCancelApplication(application.id)} disabled={cancelling === application.id} className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white text-red-600 border border-red-200 text-sm font-medium disabled:opacity-50"><FiTrash2 className="w-4 h-4" />{cancelling === application.id ? "…" : "Cancel"}</button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </>
-        )}
       </div>
-    </DashboardLayout>
+
+      {/* Status filter — only on Applied tab */}
+      {tab === "applied" && (
+        <div className="flex flex-wrap items-center gap-2 px-4 pt-3">
+          <FilterChip selected={!statusFilter} onClick={() => setStatusFilter("")}>
+            All · <span className="font-mono tabular-nums">{stats.total}</span>
+          </FilterChip>
+          {statuses.map((s) => {
+            const meta = getStatusMeta(s);
+            const count = appliedJobs.filter((a) => a.status === s).length;
+            if (count === 0) return null;
+            return (
+              <FilterChip key={s} selected={statusFilter === s} onClick={() => setStatusFilter(statusFilter === s ? "" : s)}>
+                {meta.label} · <span className="font-mono tabular-nums">{count}</span>
+              </FilterChip>
+            );
+          })}
+          {(search || statusFilter) && (
+            <button onClick={clearFilters} className="ml-1 text-xs font-semibold text-ink hover:text-brand-text transition-colors">
+              Clear
+            </button>
+          )}
+        </div>
+      )}
+
+      {loading ? (
+        <SkeletonJobList count={5} className="p-4" />
+      ) : tab === "saved" ? (
+        savedFiltered.length === 0 ? (
+          <EmptyState
+            icon={Bookmark}
+            title={savedJobs.length === 0 ? "No saved jobs yet" : "No matches"}
+            body={savedJobs.length === 0 ? "Tap the bookmark on any job to save it here for later." : `No saved jobs match “${search}”. Try a different keyword.`}
+            action={
+              search ? (
+                <Button variant="secondary" onClick={() => setSearch("")}>
+                  <X className="h-4 w-4" strokeWidth={1.75} /> Clear search
+                </Button>
+              ) : (
+                <ButtonLink to="/feed" variant="secondary">
+                  Browse jobs <ArrowUpRight className="h-4 w-4" strokeWidth={2} />
+                </ButtonLink>
+              )
+            }
+          />
+        ) : (
+          <StaggerList className="mt-2" step={0.03}>
+            {savedPage.map((savedJob) => {
+              const job = savedJob.post;
+              if (!job) return null;
+              const salary = formatSalary(job.salary_min, job.salary_max, job.salary_currency);
+              const meta = [job.location, job.employment_type, salary].filter(Boolean).join(" · ");
+              return (
+                <StaggerItem key={savedJob.id}>
+                  <JobRow
+                    avatar={<OrgMark name={job.organization?.name || "Unknown"} image={job.organization?.profile_image ? getUploadUrl(job.organization.profile_image) : null} />}
+                    title={job.title}
+                    titleSuffix={job.organization?.name ? `at ${job.organization.name}` : null}
+                    meta={meta}
+                    time={`Saved ${formatDate(savedJob.saved_at)}`}
+                    to={postPath(job)}
+                    actions={savedRowActions(savedJob)}
+                    mobileActions={savedRowActions(savedJob)}
+                  />
+                </StaggerItem>
+              );
+            })}
+            {paginationFooter(savedFiltered.length)}
+          </StaggerList>
+        )
+      ) : (
+        appliedFiltered.length === 0 ? (
+          <EmptyState
+            icon={Briefcase}
+            title={appliedJobs.length === 0 ? "No applications yet" : "No matches"}
+            body={appliedJobs.length === 0 ? "Once you apply to jobs, they will appear here with real-time status updates." : "Try adjusting your search or status filter."}
+            action={
+              appliedJobs.length === 0 ? (
+                <ButtonLink to="/feed" variant="secondary">
+                  Browse jobs <ArrowUpRight className="h-4 w-4" strokeWidth={2} />
+                </ButtonLink>
+              ) : (
+                <Button variant="secondary" onClick={clearFilters}>
+                  <X className="h-4 w-4" strokeWidth={1.75} /> Clear filters
+                </Button>
+              )
+            }
+          />
+        ) : (
+          <StaggerList className="mt-2" step={0.03}>
+            {appliedPage.map((application) => {
+              const job = application.post;
+              if (!job) return null;
+              const salary = formatSalary(job.salary_min, job.salary_max, job.salary_currency);
+              const metaLine = [job.location, job.employment_type, salary].filter(Boolean).join(" · ");
+              return (
+                <StaggerItem key={application.id}>
+                  <JobRow
+                    avatar={<OrgMark name={job.organization?.name || "Unknown"} image={job.organization?.profile_image ? getUploadUrl(job.organization.profile_image) : null} />}
+                    title={job.title}
+                    titleSuffix={job.organization?.name ? `at ${job.organization.name}` : null}
+                    meta={metaLine}
+                    time={`Applied ${formatDate(application.applied_at)}`}
+                    to={postPath(job)}
+                    actions={appliedRowActions(application)}
+                    mobileActions={appliedRowActions(application)}
+                  />
+                </StaggerItem>
+              );
+            })}
+            {paginationFooter(appliedFiltered.length)}
+          </StaggerList>
+        )
+      )}
+    </AppShell>
   );
 }

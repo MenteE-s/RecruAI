@@ -67,22 +67,22 @@ function Avatar({ kind, item }) {
   const image = kind === "person" ? item.profile_picture : item.profile_image;
   const url = image ? getUploadUrl(image) : null;
   if (url) {
-    return <img src={url} alt="" className="w-7 h-7 rounded-full object-cover border border-gray-200 shrink-0" />;
+    return <img src={url} alt="" className="w-7 h-7 rounded-full object-cover border border-line shrink-0" />;
   }
   const glyph = kind === "person" ? (item.name || "?").charAt(0).toUpperCase()
     : kind === "company" ? (item.name || "?").charAt(0).toUpperCase()
     : null;
   if (kind === "job") {
     return (
-      <div className="w-7 h-7 rounded bg-gray-100 flex items-center justify-center shrink-0">
-        <FiFileText className="w-3.5 h-3.5 text-gray-400" />
+      <div className="w-7 h-7 rounded bg-gray-50 dark:bg-gray-25 border border-line flex items-center justify-center shrink-0">
+        <FiFileText className="w-3.5 h-3.5 text-gray-500 dark:text-gray-500" />
       </div>
     );
   }
   return (
     <div
       className={`w-7 h-7 rounded-full flex items-center justify-center text-white text-[11px] font-bold shrink-0 ${
-        kind === "person" ? "bg-gradient-to-br from-blue-600 to-indigo-700" : "bg-gray-800"
+        kind === "person" ? "bg-brand-action text-white" : "bg-gray-800 text-white dark:bg-gray-700"
       }`}>
       {glyph}
     </div>
@@ -199,7 +199,7 @@ export default function GlobalSearch({ placeholder = "Search people, companies, 
 
   return (
     <div ref={wrapRef} className="relative flex-1 min-w-0">
-      <FiSearch className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 w-3.5 h-3.5 pointer-events-none" />
+      <FiSearch className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 w-3.5 h-3.5 pointer-events-none" />
       <input
         ref={inputRef}
         type="search"
@@ -213,13 +213,13 @@ export default function GlobalSearch({ placeholder = "Search people, companies, 
         aria-expanded={open}
         aria-controls="global-search-results"
         aria-autocomplete="list"
-        className="w-full h-7 pl-8 pr-7 bg-[#f5f5f5] border border-transparent rounded-md text-xs text-gray-800 placeholder-gray-500 focus:outline-none focus:bg-white focus:border-blue-400 focus:ring-1 focus:ring-blue-100 transition-all"
+        className="w-full h-8 pl-8 pr-7 bg-gray-50 dark:bg-gray-25 border border-line rounded-lg text-xs text-ink placeholder:text-gray-500 focus:outline-none focus:bg-surface focus:border-brand focus:ring-4 focus:ring-[#E1E4E8]/50 transition-all"
       />
       {term && (
         <button
           type="button"
           onClick={() => { setTerm(""); setData(null); inputRef.current?.focus(); }}
-          className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700"
+          className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-ink dark:text-gray-500"
           aria-label="Clear search"
         >
           <FiX className="w-3 h-3" />
@@ -229,20 +229,20 @@ export default function GlobalSearch({ placeholder = "Search people, companies, 
       {open && (
         <div
             id="global-search-results"
-            className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-gray-200 rounded-lg shadow-xl shadow-gray-200/50 overflow-hidden z-50"
+            className="absolute left-0 right-0 top-full mt-1.5 bg-surface border border-line rounded-xl shadow-s15 overflow-hidden z-50"
           >
           {loading && !data ? (
-            <p className="px-3.5 py-3 text-xs text-gray-400">Searching…</p>
+            <p className="px-3.5 py-3 text-xs text-gray-500 dark:text-gray-500">Searching…</p>
           ) : total === 0 ? (
-            <p className="px-3.5 py-3 text-xs text-gray-500">
-              No results for <span className="font-semibold text-gray-800">{term.trim()}</span>
+            <p className="px-3.5 py-3 text-xs text-gray-500 dark:text-gray-500">
+              No results for <span className="font-semibold text-ink">{term.trim()}</span>
             </p>
           ) : (
             <ul className="max-h-[60vh] overflow-y-auto py-1" role="listbox">
               {rows.map((row, i) => {
                 if (row.kind === "header") {
                   return (
-                    <li key={`h-${row.label}`} className="px-3.5 pt-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                    <li key={`h-${row.label}`} className="px-3.5 pt-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-500">
                       {row.label}
                     </li>
                   );
@@ -259,14 +259,14 @@ export default function GlobalSearch({ placeholder = "Search people, companies, 
                       onMouseEnter={() => setActive(selIndex)}
                       onClick={() => go(row.kind, row.item)}
                       className={`w-full text-left flex items-center gap-2.5 px-3.5 py-1.5 transition-colors ${
-                        isActive ? "bg-blue-50" : "hover:bg-gray-50"
+                        isActive ? "bg-brand/10 text-brand-text" : "hover:bg-gray-50 dark:hover:bg-gray-25"
                       }`}>
                       <Avatar kind={row.kind} item={row.item} />
                       <div className="min-w-0 flex-1">
-                        <p className="text-xs font-semibold text-gray-900 truncate">
+                        <p className="text-xs font-semibold text-ink truncate">
                           {row.kind === "job" ? row.item.title : row.item.name}
                         </p>
-                        {sub && <p className="text-[11px] text-gray-500 truncate">{sub}</p>}
+                        {sub && <p className="text-[11px] text-gray-500 dark:text-gray-500 truncate">{sub}</p>}
                       </div>
                     </button>
                   </li>
@@ -282,7 +282,7 @@ export default function GlobalSearch({ placeholder = "Search people, companies, 
                 setOpen(false);
                 navigate(`/search?q=${encodeURIComponent(term.trim())}`);
               }}
-              className="w-full flex items-center justify-between gap-2 px-3.5 py-2 border-t border-gray-100 text-[11.5px] font-semibold text-blue-700 hover:bg-blue-50 transition-colors"
+              className="w-full flex items-center justify-between gap-2 px-3.5 py-2 border-t border-line text-[11.5px] font-semibold text-brand-text hover:bg-brand/10 transition-colors"
             >
               <span>See all results for “{term.trim()}”</span>
               <FiArrowRight className="w-3.5 h-3.5" />
@@ -290,7 +290,7 @@ export default function GlobalSearch({ placeholder = "Search people, companies, 
           )}
 
           {selectable.length > 0 && (
-            <p className="px-3.5 py-1.5 border-t border-gray-100 text-[10px] text-gray-400 flex items-center gap-1">
+            <p className="px-3.5 py-1.5 border-t border-line text-[10px] text-gray-500 dark:text-gray-500 flex items-center gap-1">
               <FiCornerDownLeft className="w-3 h-3" />
               ↑↓ to navigate · Enter to open · Esc to close
             </p>

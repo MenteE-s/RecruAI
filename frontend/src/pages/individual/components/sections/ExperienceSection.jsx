@@ -1,5 +1,5 @@
 import { FiBriefcase, FiMapPin, FiEdit2, FiTrash2 } from "react-icons/fi";
-import Card from "../../../../components/ui/Card";
+import { ProfileSection as Card } from "../../../../components/profile/ProfileSection";
 import SectionHeader from "../SectionHeader";
 import { formatDate } from "../utils";
 import { getUploadUrl } from "../../../../utils/auth";
@@ -17,17 +17,17 @@ export default function ExperienceSection({ experiences, onAdd, onEdit, onRemove
       ) : (
         <div className="space-y-4">
           {(experiences || []).map((exp, index) => (
-            <div key={exp.id || index} className="flex items-start justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors">
+            <div key={exp.id || index} className="flex items-start justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-25 transition-colors">
               <div className="flex gap-3 flex-1 min-w-0">
                 {exp.organization?.profile_image ? (
-                  <img src={getUploadUrl(exp.organization.profile_image)} alt="" className="w-10 h-10 rounded object-cover border border-gray-200 shrink-0" />
+                  <img src={getUploadUrl(exp.organization.profile_image)} alt="" className="h-10 w-10 rounded object-cover border border-line shrink-0" />
                 ) : (
-                  <span className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center shrink-0">
-                    <FiBriefcase size={16} className="text-gray-400" />
+                  <span className="h-10 w-10 rounded bg-gray-100 flex items-center justify-center shrink-0">
+                    <FiBriefcase size={16} className="text-gray-500" />
                   </span>
                 )}
                 <div className="flex-1 min-w-0">
-                  <h4 className="font-medium text-gray-900">{exp.title}</h4>
+                  <h4 className="font-medium text-ink">{exp.title}</h4>
                   <p className="text-sm text-gray-600">{exp.company}</p>
                 {exp.location && (
                   <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
@@ -46,10 +46,10 @@ export default function ExperienceSection({ experiences, onAdd, onEdit, onRemove
                 </div>
               </div>
               <div className="flex gap-2 ml-4">
-                <button onClick={() => onEdit("experiences", exp, index)} className="text-gray-400 hover:text-blue-600 transition-colors">
+                <button onClick={() => onEdit("experiences", exp, index)} aria-label={`Edit ${exp.title || "experience"}`} className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 hover:text-brand-text hover:bg-gray-100 transition-colors">
                   <FiEdit2 size={14} />
                 </button>
-                <button onClick={() => onRemove("experiences", index)} className="text-gray-400 hover:text-red-600 transition-colors">
+                <button onClick={() => onRemove("experiences", index)} aria-label={`Delete ${exp.title || "experience"}`} className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 hover:text-red-600 hover:bg-red-50 transition-colors">
                   <FiTrash2 size={14} />
                 </button>
               </div>

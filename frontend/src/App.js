@@ -11,12 +11,14 @@ import {
   useLocation,
   useParams,
 } from "react-router-dom";
-import "./App.css";
 import { ToastProvider, useToast } from "./components/ui/ToastContext";
+import { ThemeProvider } from "./components/theme/ThemeContext";
 import ProtectedRoute from "./components/ProtectedRoute";
+import RequireOrganization from "./components/RequireOrganization";
 import PageManagerLayout from "./components/page/PageManagerLayout";
-import { verifyTokenWithServer } from "./utils/auth";
-import { getBackendUrl, getAuthHeaders, getSafeNextPath } from "./utils/auth";
+import { AppShell, CenterBar } from "./components/layout/AppShell";
+import { OrgAppShell } from "./components/layout/OrgAppShell";
+import { verifyTokenWithServer, getBackendUrl, getAuthHeaders, getSafeNextPath, orgPath } from "./utils/auth";
 import MenteeLoader from "./components/ui/MenteeLoader";
 import socketService from "./utils/socket";
 
@@ -28,6 +30,7 @@ const ForgotPassword = React.lazy(() => import("./pages/ForgotPassword"));
 const ResetPassword = React.lazy(() => import("./pages/ResetPassword"));
 const AcceptInvite = React.lazy(() => import("./pages/AcceptInvite"));
 const ContactUs = React.lazy(() => import("./pages/ContactUs"));
+const AboutUs = React.lazy(() => import("./pages/AboutUs"));
 const TermsAndConditions = React.lazy(() => import("./pages/TermsAndConditions"));
 const PrivacyPolicy = React.lazy(() => import("./pages/PrivacyPolicy"));
 const Blog = React.lazy(() => import("./pages/Blog"));
@@ -36,15 +39,12 @@ const SystemStatus = React.lazy(() => import("./pages/SystemStatus"));
 const Community = React.lazy(() => import("./pages/Community"));
 const CookiesPolicy = React.lazy(() => import("./pages/CookiesPolicy"));
 const NotFound = React.lazy(() => import("./pages/NotFound"));
-const PublicProfile = React.lazy(() => import("./pages/PublicProfile"));
 const SearchResults = React.lazy(() => import("./pages/SearchResults"));
 const PublicProfileBySlug = React.lazy(() => import("./pages/PublicProfileBySlug"));
 // Dashboard Pages
 const DashboardSwitcher = React.lazy(() => import("./pages/DashboardSwitcher"));
 const SettingsSwitcher = React.lazy(() => import("./pages/SettingsSwitcher"));
 const Profile = React.lazy(() => import("./pages/individual/Profile"));
-const UpcomingInterviews = React.lazy(() => import("./pages/individual/UpcomingInterviews"));
-const InterviewHistory = React.lazy(() => import("./pages/individual/InterviewHistory"));
 const Jobs = React.lazy(() => import("./pages/individual/Jobs"));
 const Analytics = React.lazy(() => import("./pages/individual/Analytics"));
 const ResumeBuilder = React.lazy(() => import("./pages/individual/ResumeBuilder"));
@@ -96,6 +96,35 @@ const PageOverview = React.lazy(() => import("./pages/page/Overview"));
 const PageProfileEditor = React.lazy(() => import("./pages/page/PageProfile"));
 const PageVisibility = React.lazy(() => import("./pages/page/Visibility"));
 const PageSettings = React.lazy(() => import("./pages/page/Settings"));
+
+function RoleAwareWorkspaceRoute({ org, individual, fallback = null }) {
+  const [role, setRole] = useState(
+    typeof window !== "undefined" ? localStorage.getItem("authRole") : null
+  );
+  const [loading, setLoading] = useState(!role);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (role) return undefined;
+    (async () => {
+      try {
+        const user = await verifyTokenWithServer();
+        if (!cancelled) setRole(user?.role || localStorage.getItem("authRole") || null);
+      } catch {
+        if (!cancelled) setRole(localStorage.getItem("authRole") || null);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [role]);
+
+  if (loading) return fallback;
+  if (role === "organization") return org;
+  return individual;
+}
 
 
 function InterviewAnalysisRedirect() {
@@ -154,29 +183,33 @@ function LegacyOrgIdRedirect() {
 
   useEffect(() => {
     let cancelled = false;
-    if (!orgId) return;
-    fetch(`${getBackendUrl()}/api/organizations/${orgId}`, {
-      credentials: "include",
-      headers: getAuthHeaders(),
-    })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
+    const controller = new AbortController();
+    if (!orgId) return undefined;
+    (async () => {
+      try {
+        const res = await fetch(`${getBackendUrl()}/api/organizations/${orgId}`, {
+          credentials: "include",
+          headers: getAuthHeaders(),
+          signal: controller.signal,
+        });
+        if (!res.ok) throw new Error("not found");
+        const data = await res.json().catch(() => null);
         if (cancelled) return;
-        if (d?.slug) setSlug(d.slug);
+        if (data?.slug) setSlug(data.slug);
         else setFailed(true);
-      })
-      .catch(() => !cancelled && setFailed(true))
-    return () => { cancelled = true; };
+      } catch (err) {
+        if (cancelled || err?.name === "AbortError") return;
+        setFailed(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
   }, [orgId]);
 
-  if (slug) return <Navigate to={`/org/${slug}`} replace />;
-  if (failed) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-        <p className="text-sm text-gray-600">That company page could not be found.</p>
-      </div>
-    );
-  }
+  if (failed) return <Navigate to="/org/jobs" replace />;
+  if (slug) return <Navigate to={orgPath({ slug, id: orgId })} replace />;
   return (
     <div className="min-h-[40vh] flex items-center justify-center">
       <MenteeLoader size={48} />
@@ -304,18 +337,19 @@ function App() {
   return (
     <Router>
       <ToastProvider>
-        <AuthVerifier />
-        <AuthExpiryRedirect />
-        <RateLimitNotifier />
-        <ScrollToTop />
-        <Suspense
-          fallback={
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-              <MenteeLoader size={48} />
-            </div>
-          }
-        >
-        <Routes>
+        <ThemeProvider>
+          <AuthVerifier />
+          <AuthExpiryRedirect />
+          <RateLimitNotifier />
+          <ScrollToTop />
+          <Suspense
+            fallback={
+              <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <MenteeLoader size={48} />
+              </div>
+            }
+          >
+          <Routes>
           {/* Public Routes */}
           <Route path="/" element={<RecruAILanding />} />
           <Route path="/register" element={<Register />} />
@@ -332,6 +366,7 @@ function App() {
             }
           />
           <Route path="/contact" element={<ContactUs />} />
+          <Route path="/about" element={<AboutUs />} />
           <Route path="/terms" element={<TermsAndConditions />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/blog" element={<Blog />} />
@@ -381,22 +416,9 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/in/interviews/upcoming"
-            element={
-              <ProtectedRoute>
-                <UpcomingInterviews />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/in/interviews/history"
-            element={
-              <ProtectedRoute>
-                <InterviewHistory />
-              </ProtectedRoute>
-            }
-          />
+          {/* One interviews surface: legacy sub-routes land on the index tabs. */}
+          <Route path="/in/interviews/upcoming" element={<Navigate to="/in/interviews" replace />} />
+          <Route path="/in/interviews/history" element={<Navigate to="/in/interviews?tab=history" replace />} />
           <Route
             path="/in/jobs"
             element={
@@ -509,7 +531,11 @@ function App() {
             path="/billing"
             element={
               <ProtectedRoute>
-                <Billing />
+                <RoleAwareWorkspaceRoute
+                  org={<Navigate to="/org/billing" replace />}
+                  individual={<Billing audience="individual" />}
+                  fallback={<div className="min-h-[40vh] flex items-center justify-center"><MenteeLoader size={48} /></div>}
+                />
               </ProtectedRoute>
             }
           />
@@ -525,7 +551,9 @@ function App() {
             path="/org/interviews"
             element={
               <ProtectedRoute>
-                <InterviewManagement />
+                <RequireOrganization>
+                  <InterviewManagement />
+                </RequireOrganization>
               </ProtectedRoute>
             }
           />
@@ -533,7 +561,11 @@ function App() {
             path="/org/browse"
             element={
               <ProtectedRoute>
-                <BrowseOrganizations />
+                <RoleAwareWorkspaceRoute
+                  org={<RequireOrganization><BrowseOrganizations audience="organization" /></RequireOrganization>}
+                  individual={<BrowseOrganizations audience="individual" />}
+                  fallback={<div className="min-h-[40vh] flex items-center justify-center"><MenteeLoader size={48} /></div>}
+                />
               </ProtectedRoute>
             }
           />
@@ -541,7 +573,9 @@ function App() {
             path="/org/hire"
             element={
               <ProtectedRoute>
-                <HirePeople />
+                <RequireOrganization>
+                  <HirePeople />
+                </RequireOrganization>
               </ProtectedRoute>
             }
           />
@@ -549,7 +583,9 @@ function App() {
             path="/org/pipeline"
             element={
               <ProtectedRoute>
-                <Pipeline />
+                <RequireOrganization>
+                  <Pipeline />
+                </RequireOrganization>
               </ProtectedRoute>
             }
           />
@@ -557,7 +593,9 @@ function App() {
             path="/org/reports"
             element={
               <ProtectedRoute>
-                <Reports />
+                <RequireOrganization>
+                  <Reports />
+                </RequireOrganization>
               </ProtectedRoute>
             }
           />
@@ -565,7 +603,9 @@ function App() {
             path="/org/integrations"
             element={
               <ProtectedRoute>
-                <Integrations />
+                <RequireOrganization>
+                  <Integrations />
+                </RequireOrganization>
               </ProtectedRoute>
             }
           />
@@ -573,7 +613,9 @@ function App() {
             path="/org/insights"
             element={
               <ProtectedRoute>
-                <Insights />
+                <RequireOrganization>
+                  <Insights />
+                </RequireOrganization>
               </ProtectedRoute>
             }
           />
@@ -581,7 +623,9 @@ function App() {
             path="/org/team"
             element={
               <ProtectedRoute>
-                <TeamMembers />
+                <RequireOrganization>
+                  <TeamMembers />
+                </RequireOrganization>
               </ProtectedRoute>
             }
           />
@@ -589,7 +633,9 @@ function App() {
             path="/org/user/:userId"
             element={
               <ProtectedRoute>
-                <UserProfile />
+                <RequireOrganization>
+                  <UserProfile />
+                </RequireOrganization>
               </ProtectedRoute>
             }
           />
@@ -597,7 +643,9 @@ function App() {
             path="/org/candidate-analysis"
             element={
               <ProtectedRoute>
-                <CandidateAnalysis />
+                <RequireOrganization>
+                  <CandidateAnalysis />
+                </RequireOrganization>
               </ProtectedRoute>
             }
           />
@@ -605,7 +653,9 @@ function App() {
             path="/org/candidate-analysis/:userId"
             element={
               <ProtectedRoute>
-                <CandidateAnalysis />
+                <RequireOrganization>
+                  <CandidateAnalysis />
+                </RequireOrganization>
               </ProtectedRoute>
             }
           />
@@ -613,7 +663,9 @@ function App() {
             path="/org/jobs"
             element={
               <ProtectedRoute>
-                <JobPosts />
+                <RequireOrganization>
+                  <JobPosts />
+                </RequireOrganization>
               </ProtectedRoute>
             }
           />
@@ -621,7 +673,9 @@ function App() {
             path="/org/jobs/:id"
             element={
               <ProtectedRoute>
-                <JobPostDetails />
+                <RequireOrganization>
+                  <JobPostDetails />
+                </RequireOrganization>
               </ProtectedRoute>
             }
           />
@@ -629,7 +683,9 @@ function App() {
             path="/org/ai-agents"
             element={
               <ProtectedRoute>
-                <AIAgents />
+                <RequireOrganization>
+                  <AIAgents />
+                </RequireOrganization>
               </ProtectedRoute>
             }
           />
@@ -637,7 +693,9 @@ function App() {
             path="/org/candidates"
             element={
               <ProtectedRoute>
-                <Candidates />
+                <RequireOrganization>
+                  <Candidates />
+                </RequireOrganization>
               </ProtectedRoute>
             }
           />
@@ -645,7 +703,9 @@ function App() {
             path="/org/billing"
             element={
               <ProtectedRoute>
-                <Billing />
+                <RequireOrganization>
+                  <Billing />
+                </RequireOrganization>
               </ProtectedRoute>
             }
           />
@@ -653,7 +713,9 @@ function App() {
             path="/org/analytics"
             element={
               <ProtectedRoute>
-                <OrganizationAnalytics />
+                <RequireOrganization>
+                  <OrganizationAnalytics />
+                </RequireOrganization>
               </ProtectedRoute>
             }
           />
@@ -750,7 +812,22 @@ function App() {
             path="/org/:slug"
             element={
               <ProtectedRoute>
-                <OrganizationProfile />
+                <RoleAwareWorkspaceRoute
+                  org={
+                    <RequireOrganization>
+                      <OrgAppShell title="Organization">
+                        <OrganizationProfile embedded />
+                      </OrgAppShell>
+                    </RequireOrganization>
+                  }
+                  individual={
+                    <AppShell>
+                      <CenterBar title="Organization" backTo="/org/browse" backLabel="Back to organizations" />
+                      <OrganizationProfile embedded backTo="/org/browse" backLabel="Back to organizations" />
+                    </AppShell>
+                  }
+                  fallback={<div className="min-h-[40vh] flex items-center justify-center"><MenteeLoader size={48} /></div>}
+                />
               </ProtectedRoute>
             }
           />
@@ -811,7 +888,7 @@ function App() {
             path="/page/posts"
             element={
               <ProtectedRoute>
-                <PageManagerLayout title="Job posts" subtitle="Every role you've published.">
+                <PageManagerLayout>
                   <JobPosts />
                 </PageManagerLayout>
               </ProtectedRoute>
@@ -831,7 +908,7 @@ function App() {
             path="/page/candidates"
             element={
               <ProtectedRoute>
-                <PageManagerLayout title="Candidates" subtitle="People you can hire.">
+                <PageManagerLayout>
                   <Candidates />
                 </PageManagerLayout>
               </ProtectedRoute>
@@ -841,7 +918,7 @@ function App() {
             path="/page/interviews"
             element={
               <ProtectedRoute>
-                <PageManagerLayout title="Interviews" subtitle="Scheduled and completed sessions.">
+                <PageManagerLayout>
                   <InterviewManagement />
                 </PageManagerLayout>
               </ProtectedRoute>
@@ -851,7 +928,7 @@ function App() {
             path="/page/pipeline"
             element={
               <ProtectedRoute>
-                <PageManagerLayout title="Pipeline" subtitle="Applications from applied to hired.">
+                <PageManagerLayout>
                   <Pipeline />
                 </PageManagerLayout>
               </ProtectedRoute>
@@ -861,7 +938,7 @@ function App() {
             path="/page/analytics"
             element={
               <ProtectedRoute>
-                <PageManagerLayout title="Analytics" subtitle="How your hiring is performing.">
+                <PageManagerLayout>
                   <OrganizationAnalytics />
                 </PageManagerLayout>
               </ProtectedRoute>
@@ -871,7 +948,7 @@ function App() {
             path="/page/agents"
             element={
               <ProtectedRoute>
-                <PageManagerLayout title="AI agents" subtitle="Automations for your hiring process.">
+                <PageManagerLayout>
                   <AIAgents />
                 </PageManagerLayout>
               </ProtectedRoute>
@@ -881,7 +958,7 @@ function App() {
             path="/page/team"
             element={
               <ProtectedRoute>
-                <PageManagerLayout title="Team members" subtitle="Who can administer this page.">
+                <PageManagerLayout>
                   <TeamMembers />
                 </PageManagerLayout>
               </ProtectedRoute>
@@ -891,7 +968,7 @@ function App() {
             path="/page/billing"
             element={
               <ProtectedRoute>
-                <PageManagerLayout title="Billing" subtitle="Payment methods and invoices.">
+                <PageManagerLayout>
                   <Billing />
                 </PageManagerLayout>
               </ProtectedRoute>
@@ -901,11 +978,12 @@ function App() {
               segment above wins, so a slug can never shadow a real page. */}
           <Route path="/in/:slug" element={<PublicProfileBySlug />} />
           {/* Public profile by slug — kept last so static routes win. */}
-          <Route path="/:slug" element={<PublicProfile />} />
+          <Route path="/:slug" element={<PublicProfileBySlug />} />
           {/* 404 Route - must be last */}
           <Route path="*" element={<NotFound />} />
         </Routes>
         </Suspense>
+        </ThemeProvider>
       </ToastProvider>
     </Router>
   );

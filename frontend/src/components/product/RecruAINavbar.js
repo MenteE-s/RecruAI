@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import SignOutButton from "../ui/SignOutButton";
+import { Menu, X } from "lucide-react";
+import SignedInAccountBar from "../layout/SignedInAccountBar";
 
 const RecruAINavbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [signedIn, setSignedIn] = useState(false);
+  const [signedIn, setSignedIn] = useState(
+    typeof window !== "undefined" && localStorage.getItem("isAuthenticated") === "true"
+  );
 
   useEffect(() => {
     let mounted = true;
@@ -14,9 +17,16 @@ const RecruAINavbar = () => {
         const { verifyTokenWithServer } = await import("../../utils/auth");
         const user = await verifyTokenWithServer();
         if (!mounted) return;
-        setSignedIn(!!user);
-      } catch (e) {
-        if (mounted) setSignedIn(false);
+        const ok = !!user;
+        setSignedIn(ok);
+        try {
+          if (ok) localStorage.setItem("isAuthenticated", "true");
+          else localStorage.removeItem("isAuthenticated");
+        } catch {}
+      } catch {
+        if (mounted) {
+          setSignedIn(localStorage.getItem("isAuthenticated") === "true");
+        }
       }
     }
     verify();
@@ -30,48 +40,60 @@ const RecruAINavbar = () => {
   }, []);
 
   return (
-    <nav className={`bg-white fixed w-full z-50 transition-all duration-300 ${scrolled ? "shadow-md" : "shadow-sm"}`}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+    <nav className={`fixed w-full z-50 transition-all duration-300 border-b border-line bg-surface/95 backdrop-blur-[6px] ${scrolled ? "shadow-s5" : ""}`}>
+      <div className="max-w-[1120px] mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-14">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 shrink-0">
-            <img src="/mentee-logo.png" alt="MenteE" className="h-8 w-8" />
-            <span className="text-xl font-bold text-gray-900">RecruAI</span>
+          <Link to="/" className="t-min inline-flex items-center gap-2 shrink-0">
+            <img src="/mentee-logo.png" alt="RecruAI" width={28} height={28} className="h-7 w-7" />
+            <span className="text-base font-bold tracking-tight text-ink">RecruAI</span>
           </Link>
 
           {/* Desktop Nav Links */}
           <div className="hidden lg:flex items-center gap-6 xl:gap-8 whitespace-nowrap">
-            <a href="#features" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors">
+            <a href="/#features" className="t-min inline-flex items-center text-sm font-medium text-gray-600 transition-colors hover:text-brand-text dark:text-gray-500 dark:hover:text-brand-text">
               Features
             </a>
-            <a href="#how-it-works" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors">
-              How it Works
+            <a href="/#how-it-works" className="t-min inline-flex items-center text-sm font-medium text-gray-600 transition-colors hover:text-brand-text dark:text-gray-500 dark:hover:text-brand-text">
+              How it works
             </a>
-            <a href="#pricing" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors">
+            <a href="/#pricing" className="t-min inline-flex items-center text-sm font-medium text-gray-600 transition-colors hover:text-brand-text dark:text-gray-500 dark:hover:text-brand-text">
               Pricing
             </a>
-            <a href="#testimonials" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors">
+            <a href="/#testimonials" className="t-min inline-flex items-center text-sm font-medium text-gray-600 transition-colors hover:text-brand-text dark:text-gray-500 dark:hover:text-brand-text">
               Testimonials
             </a>
+            <Link to="/in/jobs" className="t-min inline-flex items-center text-sm font-medium text-gray-600 transition-colors hover:text-brand-text dark:text-gray-500 dark:hover:text-brand-text">
+              Browse jobs
+            </Link>
           </div>
 
           {/* Desktop Auth Buttons */}
-          <div className="hidden lg:flex items-center gap-3 shrink-0">
+          <div className="hidden lg:flex items-center gap-2.5 shrink-0">
             {!signedIn ? (
               <>
-                <Link to="/signin" className="text-sm font-medium text-gray-700 hover:text-gray-900 px-4 py-2 transition-colors whitespace-nowrap">
-                  Sign In
+                <Link
+                  to="/signin"
+                  className="rounded-xl border border-line bg-surface px-3.5 py-1.5 text-sm font-medium text-ink transition-colors hover:bg-gray-100 dark:hover:bg-gray-25 whitespace-nowrap shadow-s5"
+                >
+                  Sign in
                 </Link>
-                <Link to="/register" className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded text-sm font-medium transition-colors whitespace-nowrap">
-                  Get Started
+                <Link
+                  to="/register"
+                  className="rounded-xl bg-brand px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-brand/90 shadow-s5 whitespace-nowrap"
+                >
+                  Get started
                 </Link>
               </>
             ) : (
               <>
-                <Link to="/feed" className="text-sm font-medium text-gray-700 hover:text-gray-900 px-4 py-2 transition-colors whitespace-nowrap">
+                <Link
+                  to="/feed"
+                  className="rounded-xl border border-line bg-surface px-3.5 py-1.5 text-sm font-medium text-ink transition-colors hover:bg-gray-100 dark:hover:bg-gray-25 whitespace-nowrap shadow-s5"
+                >
                   Dashboard
                 </Link>
-                <SignOutButton variant="solid" onSignedOut={() => setSignedIn(false)} />
+                <SignedInAccountBar compact onSignedOut={() => setSignedIn(false)} />
               </>
             )}
           </div>
@@ -82,52 +104,53 @@ const RecruAINavbar = () => {
             onClick={() => setIsOpen(!isOpen)}
             aria-label={isOpen ? "Close navigation menu" : "Open navigation menu"}
             aria-expanded={isOpen}
-            className="lg:hidden p-2 text-gray-600 hover:text-gray-900"
+            className="lg:hidden p-2 rounded-xl text-gray-600 hover:text-ink hover:bg-gray-100 dark:text-gray-500 dark:hover:text-ink dark:hover:bg-gray-25 transition-colors"
           >
-            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              {isOpen ? (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              ) : (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              )}
-            </svg>
+            {isOpen ? (
+              <X className="h-4 w-4" strokeWidth={1.75} />
+            ) : (
+              <Menu className="h-4 w-4" strokeWidth={1.75} />
+            )}
           </button>
         </div>
       </div>
 
       {/* Mobile Menu */}
       {isOpen && (
-        <div className="lg:hidden bg-white border-t border-gray-100 shadow-lg">
+        <div className="lg:hidden border-t border-line bg-surface shadow-pop">
           <div className="px-4 py-3 space-y-1">
-            <a href="#features" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded">
+            <a href="/#features" className="block rounded-xl px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-ink dark:text-gray-600 dark:hover:bg-gray-25 dark:hover:text-ink transition-colors">
               Features
             </a>
-            <a href="#how-it-works" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded">
-              How it Works
+            <a href="/#how-it-works" className="block rounded-xl px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-ink dark:text-gray-600 dark:hover:bg-gray-25 dark:hover:text-ink transition-colors">
+              How it works
             </a>
-            <a href="#pricing" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded">
+            <a href="/#pricing" className="block rounded-xl px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-ink dark:text-gray-600 dark:hover:bg-gray-25 dark:hover:text-ink transition-colors">
               Pricing
             </a>
-            <a href="#testimonials" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded">
+            <a href="/#testimonials" className="block rounded-xl px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-ink dark:text-gray-600 dark:hover:bg-gray-25 dark:hover:text-ink transition-colors">
               Testimonials
             </a>
+            <Link to="/in/jobs" className="block rounded-xl px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-ink dark:text-gray-600 dark:hover:bg-gray-25 dark:hover:text-ink transition-colors">
+              Browse jobs
+            </Link>
           </div>
-          <div className="px-4 py-3 border-t border-gray-100">
+          <div className="border-t border-line px-4 py-3">
             {!signedIn ? (
               <div className="space-y-2">
-                <Link to="/signin" className="block w-full text-center px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded transition-colors">
-                  Sign In
+                <Link to="/signin" className="block w-full rounded-xl border border-line bg-surface px-4 py-2.5 text-center text-sm font-medium text-ink transition-colors hover:bg-gray-100 dark:hover:bg-gray-25 shadow-s5">
+                  Sign in
                 </Link>
-                <Link to="/register" className="block w-full text-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded transition-colors">
-                  Get Started
+                <Link to="/register" className="block w-full rounded-xl bg-brand px-4 py-2.5 text-center text-sm font-medium text-white transition-colors hover:bg-brand/90 shadow-s5">
+                  Get started
                 </Link>
               </div>
             ) : (
               <div className="space-y-2">
-                <Link to="/feed" className="block w-full text-center px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded transition-colors">
+                <Link to="/feed" className="block w-full rounded-xl border border-line bg-surface px-4 py-2.5 text-center text-sm font-medium text-ink transition-colors hover:bg-gray-100 dark:hover:bg-gray-25 shadow-s5">
                   Dashboard
                 </Link>
-                <SignOutButton variant="solid" onSignedOut={() => setSignedIn(false)} />
+                <div className="flex justify-center"><SignedInAccountBar compact onSignedOut={() => setSignedIn(false)} /></div>
               </div>
             )}
           </div>

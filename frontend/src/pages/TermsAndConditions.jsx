@@ -1,224 +1,328 @@
-import React from "react";
+import React, { useState } from "react";
+import { Link } from "react-router-dom";
+import {
+  Scale,
+  Clock,
+  Printer,
+  ChevronRight,
+  CheckCircle2,
+  Building2,
+  Mail,
+  ExternalLink,
+  FileCheck,
+} from "lucide-react";
 import RecruAINavbar from "../components/product/RecruAINavbar";
 import Footer from "../components/Footer";
 
+const sections = [
+  { id: "acceptance", title: "1. Acceptance of terms" },
+  { id: "description", title: "2. Description of service" },
+  { id: "accounts", title: "3. User accounts & security" },
+  { id: "acceptable-use", title: "4. Acceptable use policy" },
+  { id: "intellectual-prop", title: "5. Intellectual property" },
+  { id: "candidate-data", title: "6. Candidate data & interview rights" },
+  { id: "billing", title: "7. Free beta & subscription terms" },
+  { id: "termination", title: "8. Termination & suspension" },
+  { id: "warranty", title: "9. Disclaimer of warranties" },
+  { id: "liability", title: "10. Limitation of liability" },
+  { id: "governing-law", title: "11. Governing law & dispute resolution" },
+  { id: "changes", title: "12. Changes to terms" },
+  { id: "contact", title: "13. Legal contact information" },
+];
+
 const TermsAndConditions = () => {
+  const [activeSection, setActiveSection] = useState("acceptance");
+
+  const scrollTo = (id) => {
+    setActiveSection(id);
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-surface text-ink transition-colors">
       <RecruAINavbar />
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="bg-white shadow-lg rounded-lg overflow-hidden">
-          <div className="px-6 py-8 sm:px-10">
-            <h1 className="text-3xl font-bold text-gray-900 mb-8 text-center">
-              Terms and Conditions
-            </h1>
-
-            <div className="prose prose-gray max-w-none">
-              <p className="text-sm text-gray-600 mb-8">
-                Last updated: November 30, 2025
+      {/* Header */}
+      <section className="border-b border-line bg-surface py-12 sm:py-16">
+        <div className="max-w-[1120px] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <div className="inline-flex items-center gap-2 rounded-full px-3 py-1 bg-brand/10 border border-brand/20 text-xs font-semibold text-brand-text mb-3">
+                <Scale className="h-3.5 w-3.5" strokeWidth={1.8} />
+                <span>Legal terms &amp; agreements</span>
+              </div>
+              <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-ink">
+                Terms and conditions
+              </h1>
+              <p className="mt-2 text-sm text-gray-600 dark:text-gray-500 max-w-2xl leading-relaxed">
+                Rules, guidelines, and legal rights governing the use of RecruAI by job seekers, candidates, and hiring organizations.
               </p>
+            </div>
 
-              <section className="mb-8">
-                <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-                  1. Acceptance of Terms
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-line bg-gray-100 dark:bg-gray-25 text-xs text-gray-600 dark:text-gray-600">
+                <Clock className="h-3.5 w-3.5 text-brand-text" strokeWidth={1.8} />
+                <span>Last updated: <span className="font-mono tabular-nums font-semibold text-ink">Nov 30, 2025</span></span>
+              </div>
+              <button
+                type="button"
+                onClick={handlePrint}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-line bg-surface hover:bg-gray-100 dark:hover:bg-gray-25 text-xs font-medium text-ink transition-colors shadow-s5"
+              >
+                <Printer className="h-3.5 w-3.5" strokeWidth={1.8} />
+                <span>Print terms</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-6 flex flex-wrap items-center gap-2">
+            <span className="font-mono text-xs text-gray-500 dark:text-gray-500">Doc ID: TC-2025-V2</span>
+            <span className="text-gray-300 dark:text-gray-600">·</span>
+            <span className="text-xs text-gray-500 dark:text-gray-500">Pakistan &amp; GCC compliant</span>
+            <span className="text-gray-300 dark:text-gray-600">·</span>
+            <span className="text-xs text-gray-500 dark:text-gray-500">Estimated read: <span className="font-mono tabular-nums">6 min</span></span>
+          </div>
+        </div>
+      </section>
+
+      {/* Main Content with Table of Contents */}
+      <div className="max-w-[1120px] mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          {/* Sticky Table of Contents Sidebar */}
+          <aside className="lg:col-span-4 sticky top-6 hidden lg:block">
+            <div className="rounded-xl border border-line bg-surface p-5 shadow-s5">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-500 mb-3">
+                Contents
+              </h2>
+              <nav className="space-y-1">
+                {sections.map((sec) => (
+                  <button
+                    key={sec.id}
+                    type="button"
+                    onClick={() => scrollTo(sec.id)}
+                    className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium transition-colors flex items-center justify-between ${
+                      activeSection === sec.id
+                        ? "bg-brand/10 text-brand-text font-semibold"
+                        : "text-gray-600 dark:text-gray-500 hover:text-ink hover:bg-gray-100 dark:hover:bg-gray-25"
+                    }`}
+                  >
+                    <span className="truncate">{sec.title}</span>
+                    <ChevronRight className="h-3.5 w-3.5 shrink-0 opacity-60" strokeWidth={1.8} />
+                  </button>
+                ))}
+              </nav>
+
+              <div className="mt-5 pt-4 border-t border-line space-y-2">
+                <Link
+                  to="/privacy"
+                  className="t-min inline-flex items-center text-xs font-medium text-brand-text hover:underline gap-1"
+                >
+                  <span>View privacy policy</span>
+                  <ExternalLink className="h-3 w-3" strokeWidth={1.8} />
+                </Link>
+                <Link
+                  to="/cookies"
+                  className="t-min inline-flex items-center text-xs font-medium text-brand-text hover:underline gap-1"
+                >
+                  <span>View cookies policy</span>
+                  <ExternalLink className="h-3 w-3" strokeWidth={1.8} />
+                </Link>
+              </div>
+            </div>
+          </aside>
+
+          {/* Legal Body */}
+          <main className="lg:col-span-8 rounded-xl border border-line bg-surface p-6 sm:p-10 shadow-s5">
+            <div className="space-y-10 text-sm leading-relaxed text-gray-600 dark:text-gray-500">
+              <section id="acceptance" className="scroll-mt-8">
+                <h2 className="text-xl font-bold text-ink mb-3">
+                  1. Acceptance of terms
                 </h2>
-                <p className="text-gray-700 mb-4">
-                  By accessing and using RecruAI ("the Service"), you accept and
-                  agree to be bound by the terms and provision of this
-                  agreement. If you do not agree to abide by the above, please
-                  do not use this service.
+                <p className="mb-3">
+                  By accessing, browsing, or creating an account on RecruAI ("the Service"), provided by MenteE ("MenteE," "we," or "us"), you agree to be bound by these Terms and conditions and all applicable regulations.
+                </p>
+                <p>
+                  If you do not agree with any provision set forth in these terms, you must discontinue using the Service immediately.
                 </p>
               </section>
 
-              <section className="mb-8">
-                <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-                  2. Description of Service
+              <section id="description" className="scroll-mt-8">
+                <h2 className="text-xl font-bold text-ink mb-3">
+                  2. Description of service
                 </h2>
-                <p className="text-gray-700 mb-4">
-                  RecruAI is an AI-powered recruitment platform that provides:
+                <p className="mb-3">
+                  RecruAI is an integrated AI-powered talent acquisition and career growth platform offering:
                 </p>
-                <ul className="list-disc pl-6 text-gray-700 mb-4">
-                  <li>AI-assisted interview scheduling and management</li>
-                  <li>Candidate screening and evaluation tools</li>
-                  <li>Automated interview analysis and feedback</li>
-                  <li>Job posting and application management</li>
-                  <li>Analytics and reporting features</li>
-                </ul>
-              </section>
-
-              <section className="mb-8">
-                <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-                  3. User Accounts
-                </h2>
-                <div className="space-y-4">
-                  <p className="text-gray-700">
-                    To use certain features of the Service, you must register
-                    for an account. When you register, you agree to:
-                  </p>
-                  <ul className="list-disc pl-6 text-gray-700">
-                    <li>Provide accurate and complete information</li>
-                    <li>Maintain the security of your password and account</li>
-                    <li>
-                      Accept responsibility for all activities under your
-                      account
-                    </li>
-                    <li>Notify us immediately of any unauthorized use</li>
-                  </ul>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div className="p-3.5 rounded-lg border border-line bg-gray-100/50 dark:bg-gray-25/50">
+                    <span className="font-semibold text-ink block mb-1">Semantic vector matching</span>
+                    <span>Dense embedding matching between candidate profiles and job requirements using pgvector.</span>
+                  </div>
+                  <div className="p-3.5 rounded-lg border border-line bg-gray-100/50 dark:bg-gray-25/50">
+                    <span className="font-semibold text-ink block mb-1">ATS resume diagnostics</span>
+                    <span>Objective natural language scoring, section audits, and quantified impact analysis.</span>
+                  </div>
+                  <div className="p-3.5 rounded-lg border border-line bg-gray-100/50 dark:bg-gray-25/50">
+                    <span className="font-semibold text-ink block mb-1">AI practice interviews</span>
+                    <span>Realistic WebRTC mock interview simulations with automated transcription and feedback.</span>
+                  </div>
+                  <div className="p-3.5 rounded-lg border border-line bg-gray-100/50 dark:bg-gray-25/50">
+                    <span className="font-semibold text-ink block mb-1">CVAI career roadmaps</span>
+                    <span>12-week customized skill acquisition plans mapped to regional job market requirements.</span>
+                  </div>
                 </div>
               </section>
 
-              <section className="mb-8">
-                <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-                  4. Acceptable Use Policy
+              <section id="accounts" className="scroll-mt-8">
+                <h2 className="text-xl font-bold text-ink mb-3">
+                  3. User accounts &amp; security
                 </h2>
-                <p className="text-gray-700 mb-4">
-                  You agree not to use the Service to:
+                <p className="mb-3">
+                  To utilize certain features, you must register for an account. By creating an account, you represent and warrant that:
                 </p>
-                <ul className="list-disc pl-6 text-gray-700 mb-4">
-                  <li>Violate any applicable laws or regulations</li>
-                  <li>Infringe on intellectual property rights</li>
-                  <li>Transmit harmful or malicious code</li>
-                  <li>Harass, abuse, or harm others</li>
-                  <li>Impersonate any person or entity</li>
-                  <li>Interfere with the Service's operations</li>
+                <ul className="space-y-2 list-none pl-0 text-xs">
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-brand-text shrink-0 mt-0.5" strokeWidth={1.8} />
+                    <span>You provide truthful, accurate, and complete information regarding your identity and background.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-brand-text shrink-0 mt-0.5" strokeWidth={1.8} />
+                    <span>You are solely responsible for maintaining the confidentiality of your account credentials.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-brand-text shrink-0 mt-0.5" strokeWidth={1.8} />
+                    <span>You will notify our security team immediately of any suspected unauthorized account access.</span>
+                  </li>
                 </ul>
               </section>
 
-              <section className="mb-8">
-                <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-                  5. Intellectual Property
+              <section id="acceptable-use" className="scroll-mt-8">
+                <h2 className="text-xl font-bold text-ink mb-3">
+                  4. Acceptable use policy
                 </h2>
-                <p className="text-gray-700 mb-4">
-                  The Service and its original content, features, and
-                  functionality are and will remain the exclusive property of
-                  MenteE and its licensors. The Service is protected by
-                  copyright, trademark, and other laws.
+                <p className="mb-3">
+                  Users agree not to misuse the RecruAI platform or facilitate prohibited activities, including:
                 </p>
-                <p className="text-gray-700">
-                  You retain ownership of content you submit to the Service, but
-                  grant us a license to use, display, and distribute such
-                  content in connection with providing the Service.
-                </p>
-              </section>
-
-              <section className="mb-8">
-                <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-                  6. Privacy and Data Protection
-                </h2>
-                <p className="text-gray-700 mb-4">
-                  Your privacy is important to us. Please review our Privacy
-                  Policy, which also governs your use of the Service, to
-                  understand our practices.
-                </p>
-              </section>
-
-              <section className="mb-8">
-                <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-                  7. Payment Terms
-                </h2>
-                <div className="space-y-4">
-                  <p className="text-gray-700">For paid services:</p>
-                  <ul className="list-disc pl-6 text-gray-700">
-                    <li>
-                      Payments are processed securely through our payment
-                      providers
-                    </li>
-                    <li>
-                      Subscription fees are billed in advance on a recurring
-                      basis
-                    </li>
-                    <li>You may cancel your subscription at any time</li>
-                    <li>Refunds are provided according to our refund policy</li>
-                  </ul>
+                <div className="rounded-xl border border-line bg-gray-100/50 dark:bg-gray-25/50 p-4 space-y-2 text-xs">
+                  <p>• Submitting fraudulent credentials, impersonating others, or falsifying verified skill assessments.</p>
+                  <p>• Attempting to reverse engineer, scrape, or extract dense vector models or proprietary question banks.</p>
+                  <p>• Circumventing rate limits, trial periods, token allocations, or security controls.</p>
+                  <p>• Uploading malicious payloads, malicious scripts, or harassing candidates or recruiters.</p>
                 </div>
               </section>
 
-              <section className="mb-8">
-                <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-                  8. Termination
+              <section id="intellectual-prop" className="scroll-mt-8">
+                <h2 className="text-xl font-bold text-ink mb-3">
+                  5. Intellectual property
                 </h2>
-                <p className="text-gray-700 mb-4">
-                  We may terminate or suspend your account and access to the
-                  Service immediately, without prior notice or liability, for
-                  any reason, including breach of these Terms.
+                <p className="mb-3">
+                  The Service, including software architecture, recommendation algorithms, user interfaces, branding, and proprietary skill taxonomies, is the exclusive property of MenteE and its licensors.
                 </p>
-                <p className="text-gray-700">
-                  Upon termination, your right to use the Service will cease
-                  immediately.
+                <p>
+                  You retain ownership over candidate resumes and text submissions you upload to RecruAI, granting us a limited license to process and score such content to deliver the Service.
                 </p>
               </section>
 
-              <section className="mb-8">
-                <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-                  9. Disclaimer of Warranties
+              <section id="candidate-data" className="scroll-mt-8">
+                <h2 className="text-xl font-bold text-ink mb-3">
+                  6. Candidate data &amp; interview rights
                 </h2>
-                <p className="text-gray-700 mb-4">
-                  The Service is provided on an "AS IS" and "AS AVAILABLE"
-                  basis. We make no representations or warranties of any kind,
-                  express or implied, as to the operation of the Service or the
-                  information, content, or materials included therein.
+                <p>
+                  Interview video and audio streams recorded during practice simulations or official recruiter assessments are processed securely. Candidates retain the right to delete practice recordings from their candidate history at any time.
                 </p>
               </section>
 
-              <section className="mb-8">
-                <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-                  10. Limitation of Liability
+              <section id="billing" className="scroll-mt-8">
+                <h2 className="text-xl font-bold text-ink mb-3">
+                  7. Free beta &amp; subscription terms
                 </h2>
-                <p className="text-gray-700 mb-4">
-                  In no event shall MenteE, its directors, employees, or agents
-                  be liable for any indirect, incidental, special,
-                  consequential, or punitive damages arising out of or related
-                  to your use of the Service.
-                </p>
-              </section>
-
-              <section className="mb-8">
-                <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-                  11. Governing Law
-                </h2>
-                <p className="text-gray-700 mb-4">
-                  These Terms shall be interpreted and governed by the laws of
-                  the State of California, United States, without regard to
-                  conflict of law provisions.
-                </p>
-              </section>
-
-              <section className="mb-8">
-                <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-                  12. Changes to Terms
-                </h2>
-                <p className="text-gray-700 mb-4">
-                  We reserve the right to modify these Terms at any time. We
-                  will notify users of any changes by posting the new Terms on
-                  this page and updating the "Last updated" date.
-                </p>
-                <p className="text-gray-700">
-                  Your continued use of the Service after any such changes
-                  constitutes your acceptance of the new Terms.
-                </p>
-              </section>
-
-              <section className="mb-8">
-                <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-                  13. Contact Information
-                </h2>
-                <p className="text-gray-700">
-                  If you have any questions about these Terms, please contact us
-                  at:
-                </p>
-                <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-                  <p className="text-gray-700">
-                    <strong>Email:</strong> legal@mentee.ai
+                <div className="rounded-xl border border-brand/20 bg-brand/10 p-4 mb-3">
+                  <div className="flex items-center gap-2 font-semibold text-xs text-brand-text mb-1">
+                    <FileCheck className="h-4 w-4" strokeWidth={1.8} />
+                    <span>Free beta period policy</span>
+                  </div>
+                  <p className="text-xs text-gray-700 dark:text-gray-600">
+                    RecruAI is currently operating under a controlled free beta. New individual and organization accounts receive full 30-day access to AI features with generous token allowances without immediate payment requirements.
                   </p>
-                  <p className="text-gray-700">
-                    <strong>Address:</strong> 123 Innovation Drive, Tech Valley,
-                    CA 94043, United States
-                  </p>
+                </div>
+                <p className="text-xs">
+                  Any future commercial subscriptions or premium tier activations will be communicated with advance notification.
+                </p>
+              </section>
+
+              <section id="termination" className="scroll-mt-8">
+                <h2 className="text-xl font-bold text-ink mb-3">
+                  8. Termination &amp; suspension
+                </h2>
+                <p>
+                  We reserve the right to suspend or terminate accounts that violate our acceptable use policy or compromise platform integrity, without prior notice or liability.
+                </p>
+              </section>
+
+              <section id="warranty" className="scroll-mt-8">
+                <h2 className="text-xl font-bold text-ink mb-3">
+                  9. Disclaimer of warranties
+                </h2>
+                <p>
+                  The Service is provided on an "as is" and "as available" basis without express or implied warranties of any kind. While our models are designed with high precision, RecruAI does not guarantee hiring offers or candidate placement outcomes.
+                </p>
+              </section>
+
+              <section id="liability" className="scroll-mt-8">
+                <h2 className="text-xl font-bold text-ink mb-3">
+                  10. Limitation of liability
+                </h2>
+                <p>
+                  To the maximum extent permitted under applicable law, MenteE and its directors, employees, or partners shall not be liable for indirect, incidental, special, or consequential damages resulting from platform use.
+                </p>
+              </section>
+
+              <section id="governing-law" className="scroll-mt-8">
+                <h2 className="text-xl font-bold text-ink mb-3">
+                  11. Governing law &amp; dispute resolution
+                </h2>
+                <p>
+                  These Terms shall be governed by and construed in accordance with the laws of Pakistan, with regional dispute resolution procedures applying to cross-border users across the GCC.
+                </p>
+              </section>
+
+              <section id="changes" className="scroll-mt-8">
+                <h2 className="text-xl font-bold text-ink mb-3">
+                  12. Changes to terms
+                </h2>
+                <p>
+                  We reserve the right to modify or replace these Terms at any time. Material revisions will be posted on this page with an updated modification timestamp.
+                </p>
+              </section>
+
+              <section id="contact" className="scroll-mt-8 pt-4 border-t border-line">
+                <h2 className="text-xl font-bold text-ink mb-3">
+                  13. Legal contact information
+                </h2>
+                <p className="mb-4">
+                  For formal legal notices, contract inquiries, or regulatory compliance:
+                </p>
+                <div className="rounded-xl border border-line bg-gray-100/50 dark:bg-gray-25/50 p-5 space-y-2 text-xs">
+                  <div className="flex items-center gap-2 text-ink font-semibold">
+                    <Building2 className="h-4 w-4 text-brand-text" strokeWidth={1.8} />
+                    <span>MenteE Inc. — Legal &amp; Corporate Affairs</span>
+                  </div>
+                  <p>Lahore, Pakistan · Serving Pakistan &amp; the Gulf</p>
+                  <div className="flex items-center gap-2 pt-1 text-gray-600 dark:text-gray-600">
+                    <Mail className="h-3.5 w-3.5 text-brand-text" strokeWidth={1.8} />
+                    <span>Email: <a href="mailto:legal@menteeai.org" className="text-brand-text hover:underline">legal@menteeai.org</a></span>
+                  </div>
                 </div>
               </section>
             </div>
-          </div>
+          </main>
         </div>
       </div>
 

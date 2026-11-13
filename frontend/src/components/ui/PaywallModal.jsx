@@ -35,22 +35,22 @@ export default function PaywallModal({ open, feature, onClose, onUpgrade }) {
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-md bg-white p-6 shadow-xl"
+        className="relative w-full max-w-md rounded-xl border border-line bg-surface p-6 shadow-s15 animate-popIn"
         onClick={(e) => e.stopPropagation()}
       >
         <button
           onClick={onClose}
-          className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+          className="absolute right-3 top-3 text-gray-500 hover:text-gray-600"
           aria-label="Close"
         >
           <FiX className="h-5 w-5" />
         </button>
 
-        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
-          <FiLock className="h-6 w-6 text-blue-600" />
+        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-brand/10">
+          <FiLock className="h-6 w-6 text-brand-text" />
         </div>
 
-        <h2 className="text-lg font-bold text-gray-900">
+        <h2 className="text-lg font-bold text-ink">
           {BILLING_ENABLED ? `${label} is a paid feature` : `${label} is included in your trial`}
         </h2>
         <p className="mt-2 text-sm text-gray-600">
@@ -71,17 +71,17 @@ export default function PaywallModal({ open, feature, onClose, onUpgrade }) {
 
         <ul className="mt-4 space-y-2 text-sm text-gray-600">
           <li className="flex items-center gap-2">
-            <FiCheckCircle className="h-4 w-4 text-green-600" />
+            <FiCheckCircle className="h-4 w-4 text-brand-text" />
             Free trial: 30 days of full access, no card needed
           </li>
           <li className="flex items-center gap-2">
-            <FiCheckCircle className="h-4 w-4 text-green-600" />
+            <FiCheckCircle className="h-4 w-4 text-brand-text" />
             {BILLING_ENABLED
               ? "After trial: subscribe to keep using paid features"
               : "After trial: your account stays on the free plan"}
           </li>
           <li className="flex items-center gap-2">
-            <FiLock className="h-4 w-4 text-gray-400" />
+            <FiLock className="h-4 w-4 text-gray-500" />
             Free previews of quizzes & projects always available
           </li>
         </ul>
@@ -96,14 +96,14 @@ export default function PaywallModal({ open, feature, onClose, onUpgrade }) {
           {BILLING_ENABLED && (
             <button
               onClick={handleSubscribe}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700"
+              className="w-full flex items-center justify-center gap-2 rounded-xl border border-brand bg-brand-action px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand/90"
             >
               <FiCreditCard className="h-4 w-4" /> Subscribe now
             </button>
           )}
           <button
             onClick={onClose}
-            className="w-full px-4 py-2 text-sm text-gray-600 hover:text-gray-900"
+            className="w-full rounded-xl px-4 py-2 text-sm text-gray-600 transition-colors hover:text-ink"
           >
             {BILLING_ENABLED ? "Maybe later" : "Close"}
           </button>

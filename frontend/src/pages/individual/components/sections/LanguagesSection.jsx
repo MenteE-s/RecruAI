@@ -1,5 +1,5 @@
 import { FiGlobe, FiX } from "react-icons/fi";
-import Card from "../../../../components/ui/Card";
+import { ProfileSection as Card } from "../../../../components/profile/ProfileSection";
 import SectionHeader from "../SectionHeader";
 
 export default function LanguagesSection({ languages, onAdd, onRemove }) {
