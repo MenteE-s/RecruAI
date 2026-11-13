@@ -1,28 +1,33 @@
+import { OrgAppShell } from "../../components/layout/OrgAppShell";
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import DashboardLayout from "../../components/layout/DashboardLayout";
-import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
 import {
-
   getBackendUrl,
   getUploadUrl,
   getAuthHeaders,
 } from "../../utils/auth";
+import { Button, ButtonLink } from "../../components/ui/Button";
+import { Avatar } from "../../components/ui/Avatar";
+import { ProfileSkillChip } from "../../components/profile/ProfileBits";
+import EmptyState from "../../components/ui/EmptyState";
 import {
-  FiArrowLeft,
-  FiBriefcase,
-  FiCheck,
-  FiX,
-  FiLoader,
-  FiStar,
-  FiCalendar,
-  FiBookOpen,
-  FiMapPin,
-  FiExternalLink,
-  FiCode,
-  FiAward,
-  FiGlobe,
-} from "react-icons/fi";
+  ArrowLeft,
+  Briefcase,
+  Check,
+  X,
+  Loader2,
+  Star,
+  Calendar,
+  BookOpen,
+  MapPin,
+  ExternalLink,
+  Code,
+  Award,
+  Globe,
+} from "lucide-react";
+
+const cardCls = "rounded-xl border border-line dark:border-line bg-surface dark:bg-gray-25 p-5 shadow-s5";
+const headingCls = "mb-4 flex items-center gap-2 text-xs font-semibold text-gray-500 dark:text-gray-600";
 
 export default function CandidateAnalysis() {
   const { userId } = useParams();
@@ -44,7 +49,6 @@ export default function CandidateAnalysis() {
   useEffect(() => {
     const load = async () => {
       if (!userId) {
-        // No candidate selected - just load org context for job selector
         try {
           const meRes = await fetch(`${getBackendUrl()}/api/auth/me`, { credentials: "include", headers: getAuthHeaders() });
           if (meRes.ok) setOrgId((await meRes.json()).user?.organization_id);
@@ -94,7 +98,6 @@ export default function CandidateAnalysis() {
         setJobsList(Array.isArray(data) ? data : []);
       }
     } catch {
-      // silently fail
     } finally {
       setJobsLoading(false);
     }
@@ -138,65 +141,61 @@ export default function CandidateAnalysis() {
 
   if (loading) {
     return (
-      <DashboardLayout
-        NavbarComponent={OrganizationNavbar}>
-        <div className="flex justify-center items-center py-20">
-          <div className="text-center animate-pulse">
-            <div className="w-8 h-8 mx-auto mb-4 rounded-full bg-gray-300" />
-            <div className="text-gray-500">Loading candidate data...</div>
+      <OrgAppShell>
+        <div className="flex items-center justify-center py-20">
+          <div className="animate-pulse text-center">
+            <div className="mx-auto mb-4 h-8 w-8 rounded-full bg-gray-300 dark:bg-gray-25" />
+            <div className="text-sm text-gray-500 dark:text-gray-500">Loading candidate data…</div>
           </div>
         </div>
-      </DashboardLayout>
+      </OrgAppShell>
     );
   }
 
   if (!userId) {
     return (
-      <DashboardLayout >
-        <div className="space-y-6">
-          <div className="relative overflow-hidden rounded-2xl bg-gray-900 text-white">
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-transparent to-indigo-600/20" />
-            <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3" />
-            <div className="relative p-6 md:p-8">
-              <h1 className="text-2xl md:text-3xl font-bold">Candidate analysis</h1>
-              <p className="text-gray-300 mt-2 max-w-xl text-sm">Select a candidate from Hire to see AI-powered skill comparison.</p>
-              <button onClick={() => navigate("/org/hire")} className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 bg-white text-gray-900 text-sm font-medium hover:bg-gray-100">
-                <FiBriefcase className="w-4 h-4" /> Go to Hire People
-              </button>
-            </div>
+      <OrgAppShell>
+        <div className="space-y-4 px-4 py-4">
+          <div className="rounded-xl border border-line dark:border-line bg-surface dark:bg-gray-25 p-5 shadow-s5">
+            <h1 className="text-[20px] font-semibold leading-7 text-ink">Candidate analysis</h1>
+            <p className="mt-0.5 text-[13px] text-gray-500 dark:text-gray-500">Select a candidate from Hire to see AI-powered skill comparison.</p>
+            <Button variant="secondary" size="sm" className="mt-3" onClick={() => navigate("/org/hire")}>
+              <Briefcase className="h-3.5 w-3.5" strokeWidth={1.75} /> Go to hire people
+            </Button>
           </div>
-          <div className="bg-white border border-gray-200 p-12 text-center">
-            <div className="w-14 h-14 bg-gray-100 flex items-center justify-center mx-auto mb-4"><FiBriefcase className="w-7 h-7 text-gray-400" /></div>
-            <h3 className="text-lg font-semibold text-gray-900">No candidate selected</h3>
-            <p className="text-sm text-gray-500 mt-1 max-w-md mx-auto">Go to <span className="font-medium text-gray-700">Hire People</span>, search for a candidate, and click the briefcase icon to view their analysis. Or open <span className="font-mono text-xs bg-gray-100 border border-gray-200 px-1.5 py-0.5">/organization/candidate-analysis/:userId</span> directly.</p>
-            <button onClick={() => navigate("/org/hire")} className="mt-6 inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700">Browse candidates</button>
-          </div>
+          <EmptyState
+            icon={Briefcase}
+            title="No candidate selected"
+            body="Go to hire people, search for a candidate, and click the briefcase icon to view their analysis. Or open /org/candidate-analysis/:userId directly."
+            action={
+              <Button variant="secondary" size="sm" onClick={() => navigate("/org/hire")}>
+                Browse candidates
+              </Button>
+            }
+          />
         </div>
-      </DashboardLayout>
+      </OrgAppShell>
     );
   }
 
   if (error || !candidate) {
     return (
-      <DashboardLayout >
-        <div className="p-4 md:p-8">
-          <div className="rounded-2xl p-6 bg-white border border-gray-200 shadow-sm">
-            <div className="text-center py-12">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
-                <FiBriefcase size={28} className="text-gray-400" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Candidate Not Found</h3>
-              <p className="text-gray-500 text-sm mb-6">{error}</p>
-              <button
-                onClick={() => navigate("/org/hire")}
-                className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Back to Hire People
-              </button>
-            </div>
+      <OrgAppShell>
+        <div className="px-4 py-8">
+          <div className="rounded-xl border border-line dark:border-line bg-surface dark:bg-gray-25 p-6 shadow-s5">
+            <EmptyState
+              icon={Briefcase}
+              title="Candidate not found"
+              body={error || ""}
+              action={
+                <Button variant="secondary" size="sm" onClick={() => navigate("/org/hire")}>
+                  Back to hire people
+                </Button>
+              }
+            />
           </div>
         </div>
-      </DashboardLayout>
+      </OrgAppShell>
     );
   }
 
@@ -204,163 +203,123 @@ export default function CandidateAnalysis() {
   const matchPct = comparison ? comparison.comparison.skill_match_ratio * 100 : 0;
 
   return (
-    <DashboardLayout
-      NavbarComponent={OrganizationNavbar}>
-      <div className="space-y-6">
-        {/* Hero */}
-        <div className="relative overflow-hidden rounded-2xl bg-gray-900 text-white">
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-transparent to-indigo-600/20" />
-          <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3" />
-          <div className="relative p-6 md:p-8">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <div>
-                <button onClick={() => navigate("/org/hire")} className="inline-flex items-center gap-1.5 text-sm text-blue-200 hover:text-white mb-2">
-                  <FiArrowLeft className="w-4 h-4" /> Back to hire
-                </button>
-                <h1 className="text-2xl md:text-3xl font-bold">Candidate analysis</h1>
-                <p className="text-gray-300 mt-1 text-sm max-w-xl">AI-powered comparison of candidate skills vs job requirements.</p>
-              </div>
-              <button onClick={() => navigate(`/org/user/${userId}`)} className="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-gray-900 text-sm font-medium hover:bg-gray-100 self-start md:self-auto">
-                <FiExternalLink className="w-4 h-4" /> View full profile
-              </button>
-            </div>
+    <OrgAppShell>
+      <div className="space-y-4 px-4 py-4">
+        {/* Header */}
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <button
+              onClick={() => navigate("/org/hire")}
+              className="inline-flex items-center gap-1.5 text-sm text-gray-600 transition-colors hover:text-ink dark:text-gray-500 dark:hover:text-ink"
+            >
+              <ArrowLeft className="h-4 w-4" strokeWidth={1.75} /> Back to hire
+            </button>
+            <h1 className="mt-1 text-[20px] font-semibold leading-7 text-ink">Candidate analysis</h1>
+            <p className="text-[13px] text-gray-500 dark:text-gray-500">AI-powered comparison of candidate skills vs job requirements.</p>
           </div>
+          <ButtonLink to={`/org/user/${userId}`} variant="secondary" size="sm" className="self-start md:self-auto">
+            <ExternalLink className="h-3.5 w-3.5" strokeWidth={1.75} /> View full profile
+          </ButtonLink>
         </div>
 
-        {/* Profile Card */}
-        <div className="rounded-2xl bg-white border border-gray-200 shadow-sm overflow-hidden">
-          <div className="bg-gradient-to-r from-green-700 to-green-600 px-6 py-8">
-            <div className="flex items-center gap-5">
-              {candidate.profile_picture ? (
-                <img
-                  src={getUploadUrl(candidate.profile_picture)}
-                  alt=""
-                  className="w-20 h-20 rounded-full object-cover border-4 border-white/30"
-                />
-              ) : (
-                <div className="w-20 h-20 rounded-full bg-white/20 border-4 border-white/30 flex items-center justify-center">
-                  <span className="text-white font-bold text-3xl">
-                    {(candidate.name || "?").charAt(0).toUpperCase()}
+        {/* Profile card */}
+        <div className="rounded-xl border border-line dark:border-line bg-surface dark:bg-gray-25 shadow-s5">
+          <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center">
+            {candidate.profile_picture ? (
+              <img
+                src={getUploadUrl(candidate.profile_picture)}
+                alt=""
+                className="h-20 w-20 shrink-0 rounded-full border-4 border-surface dark:border-line object-cover shadow-s5"
+              />
+            ) : (
+              <Avatar name={candidate.name || "?"} size="3xl" />
+            )}
+            <div className="min-w-0 flex-1">
+              <h2 className="text-[20px] font-semibold leading-7 text-ink">{candidate.name || "Anonymous"}</h2>
+              <p className="mt-0.5 text-[13px] text-gray-600 dark:text-gray-500">
+                {candidate.headline || candidate.current_position || "No current position"}
+                {!candidate.headline && candidate.current_company && ` at ${candidate.current_company}`}
+              </p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {candidate.employment_status && (
+                  <span className="inline-flex items-center rounded-full border border-line dark:border-line bg-gray-50 dark:bg-gray-25 px-2.5 py-0.5 text-xs font-medium text-gray-600 dark:text-gray-700">
+                    {candidate.employment_status.charAt(0).toUpperCase() + candidate.employment_status.slice(1)}
                   </span>
-                </div>
-              )}
-              <div className="text-white">
-                <h1 className="text-2xl font-bold font-display">
-                  {candidate.name || "Anonymous"}
-                </h1>
-                <p className="text-green-100 text-sm mt-1">
-                  {candidate.headline || candidate.current_position || "No current position"}
-                  {!candidate.headline && candidate.current_company && ` at ${candidate.current_company}`}
-                </p>
-                <div className="flex flex-wrap gap-2 mt-3">
-                  {candidate.employment_status && (
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/20 text-white">
-                      {candidate.employment_status}
-                    </span>
-                  )}
-                  {candidate.location && (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/20 text-white">
-                      <FiMapPin size={10} />
-                      {candidate.location}
-                    </span>
-                  )}
-                </div>
+                )}
+                {candidate.location && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-line dark:border-line bg-gray-50 dark:bg-gray-25 px-2.5 py-0.5 text-xs font-medium text-gray-600 dark:text-gray-700">
+                    <MapPin className="h-3 w-3" strokeWidth={1.75} /> {candidate.location}
+                  </span>
+                )}
               </div>
             </div>
           </div>
-          <div className="grid grid-cols-3 divide-x divide-gray-100">
-            <div className="px-6 py-4 text-center">
-              <div className="text-2xl font-bold text-gray-900">
-                {candidate.skills_count || 0}
-              </div>
-              <div className="text-xs text-gray-500 uppercase tracking-wider mt-1">
-                Skills
-              </div>
+          <div className="grid grid-cols-3 divide-x divide-line dark:divide-line border-t border-line dark:border-line">
+            <div className="px-4 py-4 text-center">
+              <div className="font-mono tabular-nums text-2xl font-bold text-ink">{candidate.skills_count || 0}</div>
+              <div className="mt-1 text-xs text-gray-500 dark:text-gray-500">Skills</div>
             </div>
-            <div className="px-6 py-4 text-center">
-              <div className="text-2xl font-bold text-gray-900">
+            <div className="px-4 py-4 text-center">
+              <div className="font-mono tabular-nums text-2xl font-bold text-ink">
                 {candidate.experience_years ? `${candidate.experience_years}` : "—"}
               </div>
-              <div className="text-xs text-gray-500 uppercase tracking-wider mt-1">
-                Years Exp
-              </div>
+              <div className="mt-1 text-xs text-gray-500 dark:text-gray-500">Years experience</div>
             </div>
-            <div className="px-6 py-4 text-center">
-              <div className="text-sm font-bold text-gray-900 truncate px-2">
-                {candidate.education_level || "—"}
-              </div>
-              <div className="text-xs text-gray-500 uppercase tracking-wider mt-1">
-                Education
-              </div>
+            <div className="px-4 py-4 text-center">
+              <div className="truncate px-2 text-sm font-bold text-ink">{candidate.education_level || "—"}</div>
+              <div className="mt-1 text-xs text-gray-500 dark:text-gray-500">Education</div>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           {/* Skills */}
-          <div className="rounded-2xl bg-white border border-gray-200 shadow-sm p-6">
-            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4 flex items-center gap-2">
-              <FiStar size={14} className="text-yellow-500" />
-              Skills
+          <div className={cardCls}>
+            <h2 className={headingCls}>
+              <Star className="h-3.5 w-3.5 text-gray-500 dark:text-gray-600" strokeWidth={1.75} /> Skills
             </h2>
             {candidate.skills && candidate.skills.length > 0 ? (
-              <div className="flex flex-wrap">
+              <div className="flex flex-wrap gap-1.5">
                 {candidate.skills.map((skill, i) => (
-                  <span
-                    key={i}
-                    className="inline-flex items-center px-2.5 py-1 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200 mr-1.5 mb-1.5"
-                  >
-                    {skill}
-                  </span>
+                  <ProfileSkillChip key={i} label={skill} />
                 ))}
               </div>
             ) : (
-              <div className="text-center py-8">
-                <div className="w-10 h-10 mx-auto mb-3 rounded-full bg-gray-100 flex items-center justify-center">
-                  <FiStar size={16} className="text-gray-300" />
+              <div className="py-8 text-center">
+                <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-25">
+                  <Star className="h-4 w-4 text-gray-500 dark:text-gray-600" strokeWidth={1.75} />
                 </div>
-                <p className="text-sm text-gray-400">No skills listed yet</p>
+                <p className="text-sm text-gray-500 dark:text-gray-500">No skills listed yet</p>
               </div>
             )}
           </div>
 
-          {/* Experience Timeline */}
-          <div className="rounded-2xl bg-white border border-gray-200 shadow-sm p-6">
-            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4 flex items-center gap-2">
-              <FiCalendar size={14} className="text-purple-500" />
-              Experience
+          {/* Experience */}
+          <div className={cardCls}>
+            <h2 className={headingCls}>
+              <Calendar className="h-3.5 w-3.5 text-gray-500 dark:text-gray-600" strokeWidth={1.75} /> Experience
             </h2>
             {candidate.experiences && candidate.experiences.length > 0 ? (
               <div className="space-y-4">
                 {candidate.experiences.map((exp, i) => (
                   <div key={i} className="flex gap-3">
                     <div className="flex flex-col items-center">
-                      <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5" />
-                      {i < candidate.experiences.length - 1 && (
-                        <div className="w-px flex-1 bg-gray-200" />
-                      )}
+                      <div className="mt-1.5 h-2 w-2 rounded-full bg-brand" />
+                      {i < candidate.experiences.length - 1 && <div className="w-px flex-1 bg-gray-100 dark:bg-gray-50" />}
                     </div>
                     <div className="pb-4">
-                      <div className="text-sm font-medium text-gray-900">{exp.title}</div>
-                      {exp.company && (
-                        <div className="text-xs text-gray-500">{exp.company}</div>
-                      )}
+                      <div className="text-sm font-medium text-ink">{exp.title}</div>
+                      {exp.company && <div className="text-xs text-gray-500 dark:text-gray-500">{exp.company}</div>}
                       {exp.start_date && (
-                        <div className="text-xs text-gray-400 mt-1">
-                          {new Date(exp.start_date).toLocaleDateString("en-US", {
-                            year: "numeric",
-                            month: "short",
-                          })}
+                        <div className="mt-1 font-mono tabular-nums text-xs text-gray-500 dark:text-gray-500">
+                          {new Date(exp.start_date).toLocaleDateString("en-US", { year: "numeric", month: "short" })}
                           {exp.end_date
-                            ? ` — ${new Date(exp.end_date).toLocaleDateString("en-US", {
-                                year: "numeric",
-                                month: "short",
-                              })}`
+                            ? ` — ${new Date(exp.end_date).toLocaleDateString("en-US", { year: "numeric", month: "short" })}`
                             : " — Present"}
                         </div>
                       )}
                       {exp.description && (
-                        <div className="text-xs text-gray-500 mt-1.5 leading-relaxed line-clamp-2">
+                        <div className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-gray-500 dark:text-gray-500">
                           {exp.description}
                         </div>
                       )}
@@ -369,29 +328,29 @@ export default function CandidateAnalysis() {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-8">
-                <div className="w-10 h-10 mx-auto mb-3 rounded-full bg-gray-100 flex items-center justify-center">
-                  <FiCalendar size={16} className="text-gray-300" />
+              <div className="py-8 text-center">
+                <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-25">
+                  <Calendar className="h-4 w-4 text-gray-500 dark:text-gray-600" strokeWidth={1.75} />
                 </div>
-                <p className="text-sm text-gray-400">No experience data</p>
+                <p className="text-sm text-gray-500 dark:text-gray-500">No experience data</p>
               </div>
             )}
           </div>
 
-          {/* Compare with Job */}
-          <div className="rounded-2xl bg-white border border-gray-200 shadow-sm p-6">
-            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4 flex items-center gap-2">
-              <FiBriefcase size={14} className="text-blue-500" />
-              Compare with Job
+          {/* Compare */}
+          <div className={cardCls}>
+            <h2 className={headingCls}>
+              <Briefcase className="h-3.5 w-3.5 text-gray-500 dark:text-gray-600" strokeWidth={1.75} /> Compare with job posting
             </h2>
             <select
+              aria-label="Compare with job posting"
               value={selectedJobId}
               onChange={(e) => {
                 setSelectedJobId(e.target.value);
                 setComparison(null);
                 setCompareError(null);
               }}
-              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-3"
+              className="mb-3 h-9 w-full rounded-lg border border-line dark:border-line bg-surface dark:bg-gray-900/60 px-3 text-sm text-ink outline-none transition-colors focus:border-brand focus:ring-4 focus:ring-brand/10"
             >
               <option value="">Select a job posting...</option>
               {jobsLoading ? (
@@ -404,23 +363,24 @@ export default function CandidateAnalysis() {
                 ))
               )}
             </select>
-            <button
+            <Button
+              variant="dark"
+              className="flex w-full items-center justify-center gap-2"
               onClick={runCompare}
               disabled={!selectedJobId || comparing}
-              className="w-full px-4 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
             >
               {comparing ? (
-                <FiLoader className="animate-spin" size={14} />
+                <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={1.75} />
               ) : (
-                <FiBriefcase size={14} />
+                <Briefcase className="h-3.5 w-3.5" strokeWidth={1.75} />
               )}
-              {comparing ? "Comparing..." : "Run Comparison"}
-            </button>
+              {comparing ? "Comparing…" : "Run comparison"}
+            </Button>
             {candidate.education_level && (
-              <div className="mt-4 pt-4 border-t border-gray-100">
-                <div className="flex items-center gap-2 text-xs text-gray-500">
-                  <FiBookOpen size={12} />
-                  <span>Education: <span className="font-medium text-gray-700">{candidate.education_level}</span></span>
+              <div className="mt-4 border-t border-line dark:border-line pt-4">
+                <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-500">
+                  <BookOpen className="h-3.5 w-3.5" strokeWidth={1.75} />
+                  <span>Education: <span className="font-medium text-ink">{candidate.education_level}</span></span>
                 </div>
               </div>
             )}
@@ -429,18 +389,15 @@ export default function CandidateAnalysis() {
 
         {/* Projects */}
         {candidate.projects && candidate.projects.length > 0 && (
-          <div className="rounded-2xl bg-white border border-gray-200 shadow-sm p-6">
-            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4 flex items-center gap-2">
-              <FiCode size={14} className="text-indigo-500" />
-              Projects ({candidate.projects.length})
+          <div className={cardCls}>
+            <h2 className={headingCls}>
+              <Code className="h-3.5 w-3.5 text-gray-500 dark:text-gray-600" strokeWidth={1.75} /> Projects (<span className="font-mono tabular-nums">{candidate.projects.length}</span>)
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
               {candidate.projects.map((proj, i) => (
-                <div key={i} className="rounded-xl bg-gray-50 border border-gray-200 p-4">
-                  <div className="text-sm font-semibold text-gray-900 mb-1">{proj.name}</div>
-                  {proj.description && (
-                    <p className="text-xs text-gray-500 mb-2">{proj.description}</p>
-                  )}
+                <div key={i} className="rounded-xl border border-line dark:border-line bg-gray-50 dark:bg-gray-25 p-4">
+                  <div className="mb-1 text-sm font-semibold text-ink">{proj.name}</div>
+                  {proj.description && <p className="mb-2 text-xs text-gray-500 dark:text-gray-500">{proj.description}</p>}
                   {proj.technologies && (
                     <div className="flex flex-wrap gap-1">
                       {(typeof proj.technologies === 'string'
@@ -449,7 +406,7 @@ export default function CandidateAnalysis() {
                           ? proj.technologies
                           : []
                       ).filter(Boolean).map((tech, j) => (
-                        <span key={j} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
+                        <span key={j} className="inline-flex rounded-lg border border-line dark:border-line bg-surface dark:bg-gray-25 px-2 py-0.5 text-xs text-gray-600 dark:text-gray-700">
                           {tech}
                         </span>
                       ))}
@@ -463,18 +420,15 @@ export default function CandidateAnalysis() {
 
         {/* Certifications */}
         {candidate.certifications && candidate.certifications.length > 0 && (
-          <div className="rounded-2xl bg-white border border-gray-200 shadow-sm p-6">
-            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4 flex items-center gap-2">
-              <FiAward size={14} className="text-yellow-600" />
-              Certifications ({candidate.certifications.length})
+          <div className={cardCls}>
+            <h2 className={headingCls}>
+              <Award className="h-3.5 w-3.5 text-gray-500 dark:text-gray-600" strokeWidth={1.75} /> Certifications (<span className="font-mono tabular-nums">{candidate.certifications.length}</span>)
             </h2>
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-2">
               {candidate.certifications.map((cert, i) => (
-                <div key={i} className="rounded-xl bg-yellow-50 border border-yellow-200 px-4 py-3">
-                  <div className="text-sm font-medium text-gray-900">{cert.name}</div>
-                  {cert.issuer && (
-                    <div className="text-xs text-gray-500 mt-0.5">{cert.issuer}</div>
-                  )}
+                <div key={i} className="rounded-xl border border-line dark:border-line bg-gray-50 dark:bg-gray-25 px-4 py-3">
+                  <div className="text-sm font-medium text-ink">{cert.name}</div>
+                  {cert.issuer && <div className="mt-0.5 text-xs text-gray-500 dark:text-gray-500">{cert.issuer}</div>}
                 </div>
               ))}
             </div>
@@ -483,156 +437,120 @@ export default function CandidateAnalysis() {
 
         {/* Languages */}
         {candidate.languages && candidate.languages.length > 0 && (
-          <div className="rounded-2xl bg-white border border-gray-200 shadow-sm p-6">
-            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4 flex items-center gap-2">
-              <FiGlobe size={14} className="text-teal-500" />
-              Languages ({candidate.languages.length})
+          <div className={cardCls}>
+            <h2 className={headingCls}>
+              <Globe className="h-3.5 w-3.5 text-gray-500 dark:text-gray-600" strokeWidth={1.75} /> Languages (<span className="font-mono tabular-nums">{candidate.languages.length}</span>)
             </h2>
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-2">
               {candidate.languages.map((lang, i) => (
-                <div key={i} className="rounded-xl bg-teal-50 border border-teal-200 px-4 py-3">
-                  <div className="text-sm font-medium text-gray-900">{lang.name}</div>
-                  {lang.proficiency && (
-                    <div className="text-xs text-gray-500 mt-0.5">{lang.proficiency}</div>
-                  )}
+                <div key={i} className="rounded-xl border border-line dark:border-line bg-gray-50 dark:bg-gray-25 px-4 py-3">
+                  <div className="text-sm font-medium text-ink">{lang.name}</div>
+                  {lang.proficiency && <div className="mt-0.5 text-xs text-gray-500 dark:text-gray-500">{lang.proficiency}</div>}
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {/* Comparison Results */}
+        {/* Comparison error */}
         {compareError && (
-          <div className="rounded-2xl p-4 bg-red-50 border border-red-200 text-sm text-red-700">
+          <div className="rounded-xl border border-red-200 dark:border-red-500/20 bg-red-50 dark:bg-red-500/10 p-4 text-sm text-red-700 dark:text-red-400">
             {compareError}
           </div>
         )}
 
+        {/* Comparison results */}
         {comparison && (
-          <div className="rounded-2xl bg-white border border-gray-200 shadow-sm overflow-hidden">
-            <div className="bg-gradient-to-r from-blue-600 to-blue-500 px-6 py-4">
+          <div className="overflow-hidden rounded-xl border border-line dark:border-line bg-surface dark:bg-gray-25 shadow-s5">
+            <div className="border-b border-line dark:border-line bg-gray-50 dark:bg-gray-25 px-5 py-4">
               <div className="flex items-center gap-3">
-                <FiBriefcase size={20} className="text-white" />
+                <Briefcase className="h-5 w-5 text-gray-500 dark:text-gray-600" strokeWidth={1.75} />
                 <div>
-                  <h2 className="text-white font-semibold">
-                    {candidate.name} vs {selectedJob?.title || "Job"}
-                  </h2>
-                  <p className="text-blue-100 text-xs mt-0.5">Skills & experience comparison</p>
+                  <h2 className="font-semibold text-ink">{candidate.name} vs {selectedJob?.title || "Job"}</h2>
+                  <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-500">Skills and experience comparison</p>
                 </div>
               </div>
             </div>
 
-            <div className="p-6 space-y-6">
-              {/* Skills Match Bar */}
+            <div className="space-y-6 p-5">
               <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-semibold text-gray-700">Skills Match</span>
-                  <span
-                    className={`text-lg font-bold ${
-                      matchPct >= 50 ? "text-green-600" : matchPct > 0 ? "text-yellow-600" : "text-red-600"
-                    }`}>
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="text-sm font-semibold text-gray-700 dark:text-gray-700">Skills match</span>
+                  <span className={`font-mono tabular-nums text-lg font-bold ${matchPct >= 50 ? "text-brand-text" : matchPct > 0 ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400"}`}>
                     {matchPct.toFixed(0)}%
                   </span>
                 </div>
-                <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+                <div className="h-2.5 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-25">
                   <div
-                    className={`h-full rounded-full transition-all duration-500 ${
-                      matchPct >= 50 ? "bg-green-500" : matchPct > 0 ? "bg-yellow-500" : "bg-red-400"
-                    }`}
+                    className={`h-full rounded-full transition-all duration-500 ${matchPct >= 50 ? "bg-brand" : matchPct > 0 ? "bg-amber-500" : "bg-red-500"}`}
                     style={{ width: `${matchPct}%` }}
                   />
                 </div>
-                <div className="text-xs text-gray-400 mt-1">
-                  {comparison.comparison.total_required_skills} required skills
+                <div className="mt-1.5 text-xs text-gray-500 dark:text-gray-500">
+                  <span className="font-mono tabular-nums">{comparison.comparison.total_required_skills}</span> required skills
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Matched */}
-                <div className="rounded-xl bg-green-50 border border-green-200 p-4">
-                  <h3 className="text-sm font-semibold text-green-800 mb-3 flex items-center gap-1.5">
-                    <FiCheck size={16} />
-                    Matched ({comparison.comparison.matched_skill_count})
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="rounded-xl border border-brand/20 bg-brand/5 dark:bg-brand/10 p-4">
+                  <h3 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-brand-text">
+                    <Check className="h-4 w-4" strokeWidth={1.75} /> Matched (<span className="font-mono tabular-nums">{comparison.comparison.matched_skill_count}</span>)
                   </h3>
                   {comparison.comparison.skill_match.length > 0 ? (
-                    <div className="flex flex-wrap">
+                    <div className="flex flex-wrap gap-1.5">
                       {comparison.comparison.skill_match.map((s, i) => (
-                        <span
-                          key={i}
-                          className="inline-flex items-center px-2.5 py-1 rounded text-xs font-medium bg-white text-green-700 border border-green-300 mr-1.5 mb-1.5"
-                        >
-                          <FiCheck size={12} className="mr-1" />
-                          {s}
+                        <span key={i} className="inline-flex items-center rounded-lg border border-brand/20 bg-surface dark:bg-gray-25 px-2.5 py-1 text-xs font-medium text-brand-text">
+                          <Check className="mr-1 h-3 w-3" strokeWidth={1.75} /> {s}
                         </span>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm text-green-600 italic">No skills matched</p>
+                    <p className="text-sm italic text-gray-500 dark:text-gray-500">No skills matched</p>
                   )}
                 </div>
 
-                {/* Missing */}
-                <div className="rounded-xl bg-red-50 border border-red-200 p-4">
-                  <h3 className="text-sm font-semibold text-red-800 mb-3 flex items-center gap-1.5">
-                    <FiX size={16} />
-                    Missing ({comparison.comparison.missing_skill_count})
+                <div className="rounded-xl border border-red-200 dark:border-red-500/20 bg-red-50 dark:bg-red-500/10 p-4">
+                  <h3 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-red-800 dark:text-red-400">
+                    <X className="h-4 w-4" strokeWidth={1.75} /> Missing (<span className="font-mono tabular-nums">{comparison.comparison.missing_skill_count}</span>)
                   </h3>
                   {comparison.comparison.missing_skills.length > 0 ? (
-                    <div className="flex flex-wrap">
+                    <div className="flex flex-wrap gap-1.5">
                       {comparison.comparison.missing_skills.map((s, i) => (
-                        <span
-                          key={i}
-                          className="inline-flex items-center px-2.5 py-1 rounded text-xs font-medium bg-white text-red-700 border border-red-300 mr-1.5 mb-1.5"
-                        >
-                          <FiX size={12} className="mr-1" />
-                          {s}
+                        <span key={i} className="inline-flex items-center rounded-lg border border-red-200 dark:border-red-500/30 bg-surface dark:bg-gray-25 px-2.5 py-1 text-xs font-medium text-red-700 dark:text-red-300">
+                          <X className="mr-1 h-3 w-3" strokeWidth={1.75} /> {s}
                         </span>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm text-red-600 italic">All required skills matched!</p>
+                    <p className="text-sm italic text-gray-500 dark:text-gray-500">All required skills matched!</p>
                   )}
                 </div>
               </div>
 
-              {/* Experience + Details row */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
-                  <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                    Experience
-                  </div>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="rounded-xl border border-line dark:border-line bg-gray-50 dark:bg-gray-25 p-4">
+                  <div className="mb-2 text-xs font-semibold text-gray-500 dark:text-gray-500">Experience</div>
                   <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-bold text-gray-900">
-                      {comparison.comparison.candidate_experience_years}
-                    </span>
-                    <span className="text-sm text-gray-500">years</span>
+                    <span className="font-mono tabular-nums text-2xl font-bold text-ink">{comparison.comparison.candidate_experience_years}</span>
+                    <span className="text-sm text-gray-500 dark:text-gray-500">years</span>
                   </div>
                 </div>
-                <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
-                  <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                    Education
-                  </div>
-                  <div className="text-sm font-medium text-gray-900">
-                    {candidate.education_level || "Not specified"}
-                  </div>
+                <div className="rounded-xl border border-line dark:border-line bg-gray-50 dark:bg-gray-25 p-4">
+                  <div className="mb-2 text-xs font-semibold text-gray-500 dark:text-gray-500">Education</div>
+                  <div className="text-sm font-medium text-ink">{candidate.education_level || "Not specified"}</div>
                 </div>
               </div>
 
-              {/* Job Description */}
               {comparison.job.description && (
-                <div className="pt-4 border-t border-gray-100">
-                  <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                    Job Description
-                  </div>
-                  <p className="text-sm text-gray-600 leading-relaxed">
-                    {comparison.job.description}
-                  </p>
+                <div className="border-t border-line dark:border-line pt-4">
+                  <div className="mb-2 text-xs font-semibold text-gray-500 dark:text-gray-500">Job description</div>
+                  <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-500">{comparison.job.description}</p>
                 </div>
               )}
             </div>
           </div>
         )}
       </div>
-    </DashboardLayout>
+    </OrgAppShell>
   );
 }

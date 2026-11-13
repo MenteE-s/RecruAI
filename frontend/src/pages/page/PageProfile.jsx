@@ -7,12 +7,17 @@ import PageManagerLayout from "../../components/page/PageManagerLayout";
 import { getCurrentUser, getBackendUrl, getAuthHeaders, getUploadUrl } from "../../utils/auth";
 import { useToast } from "../../components/ui/ToastContext";
 import {
-  FiImage, FiTrash2, FiUpload, FiGlobe, FiMapPin, FiAlertTriangle,
-} from "react-icons/fi";
+  Image,
+  Trash2,
+  Upload,
+  Globe,
+  MapPin,
+  AlertTriangle,
+} from "lucide-react";
 
 const inputCls =
-  "w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-[13px] text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-colors";
-const labelCls = "block text-[11px] font-semibold text-gray-600 mb-1.5";
+  "w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink outline-none transition-colors placeholder:text-gray-500 focus:border-brand focus:ring-4 focus:ring-brand/10 dark:focus:ring-brand/20 shadow-s5";
+const labelCls = "block text-xs font-semibold text-gray-700 dark:text-gray-600 mb-1.5";
 
 // Mirrors COMPANY_SIZE_OPTIONS / COMPANY_TYPE_OPTIONS in
 // backend/api/org/organizations.py.
@@ -83,17 +88,12 @@ export default function PageProfile() {
 
   // Mirrors slugify_company() in backend/utils/slug.py: lowercase, non
   // alphanumeric runs collapse to a single hyphen, trimmed.
-  // Optional chaining matters here: this runs on the first render, before the
-  // async load has populated `form`, and `form.name` on a null form throws.
   const slugifyHint = (form?.name || "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 60);
 
-  // The page address is edited here but saved by save(), not by its own
-  // button: two buttons on one form invites saving half of it. A separate
-  // endpoint on the server is fine; a separate save on the client is not.
   const slugDirty = Boolean(org?.slug) && slugValue.trim().toLowerCase() !== org.slug;
 
   async function save(e) {
@@ -113,8 +113,6 @@ export default function PageProfile() {
 
     setSaving(true);
     try {
-      // Basic fields then extended fields — two endpoints, each validating
-      // its own set. The page name is unique, so a conflict surfaces here.
       const basicRes = await fetch(`${getBackendUrl()}/api/organizations/${org.id}`, {
         method: "PUT",
         headers: getAuthHeaders({ "Content-Type": "application/json" }),
@@ -154,8 +152,6 @@ export default function PageProfile() {
         return;
       }
 
-      // Address last, and only when it actually changed, so a taken or
-      // reserved slug can't silently undo the details that just saved.
       let addressChanged = false;
       if (slugDirty) {
         const slugRes = await fetch(`${getBackendUrl()}/api/organizations/${org.id}/slug`, {
@@ -243,8 +239,6 @@ export default function PageProfile() {
     );
   }
 
-  // `org` arrives with the same async load as `form`, so treat it as nullable
-  // here too rather than relying on them always landing together.
   const logoUrl = org?.profile_image ? getUploadUrl(org.profile_image) : null;
   const bannerUrl = bannerPreview || (org?.banner_image ? getUploadUrl(org.banner_image) : null);
 
@@ -253,22 +247,22 @@ export default function PageProfile() {
       title="Page profile"
       subtitle="What candidates see on your page."
     >
-      <form onSubmit={save} className="space-y-4 pb-6">
+      <form onSubmit={save} className="space-y-5 pb-8 max-w-4xl">
         {/* Logo + cover */}
-        <section className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-          <div className="px-4 py-3 border-b border-gray-100">
-            <h2 className="text-[13px] font-semibold text-gray-900">Logo &amp; cover</h2>
-            <p className="text-[11px] text-gray-500 mt-0.5">Square logo, wide cover. PNG or JPG, up to 2 MB.</p>
+        <section className="bg-surface border border-line rounded-xl shadow-s5 overflow-hidden">
+          <div className="px-5 py-3.5 border-b border-line">
+            <h2 className="text-[13.5px] font-semibold text-ink">Logo &amp; cover</h2>
+            <p className="text-[11.5px] text-gray-500 mt-0.5">Square logo, wide cover. PNG or JPG, up to 2 MB.</p>
           </div>
-          <div className="p-4 space-y-4">
+          <div className="p-5 space-y-5">
             <div>
               <label className={labelCls}>Logo</label>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3.5">
                 {logoUrl ? (
-                  <img src={logoUrl} alt="" className="w-16 h-16 rounded-lg object-cover border border-gray-200" />
+                  <img src={logoUrl} alt="" className="h-16 w-16 rounded-xl object-cover border border-line shadow-s5" />
                 ) : (
-                  <div className="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center">
-                    <FiImage className="w-5 h-5 text-gray-300" />
+                  <div className="h-16 w-16 rounded-xl bg-gray-50 border border-line flex items-center justify-center dark:bg-gray-25 shadow-s5">
+                    <Image className="h-5 w-5 text-gray-500" strokeWidth={1.75} />
                   </div>
                 )}
                 <div className="flex flex-wrap gap-2">
@@ -276,18 +270,18 @@ export default function PageProfile() {
                     type="button"
                     onClick={() => logoInput.current?.click()}
                     disabled={uploading}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-gray-200 text-[12px] font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-line bg-surface text-xs font-semibold text-ink hover:bg-gray-100 dark:hover:bg-gray-25 shadow-s5 disabled:opacity-50 transition-colors"
                   >
-                    <FiUpload className="w-3.5 h-3.5" /> {logoUrl ? "Replace" : "Upload"}
+                    <Upload className="h-4 w-4" strokeWidth={1.75} /> {logoUrl ? "Replace logo" : "Upload logo"}
                   </button>
                   {logoUrl && (
                     <button
                       type="button"
                       onClick={() => clearImage("profile")}
                       disabled={uploading}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-gray-200 text-[12px] font-semibold text-gray-500 hover:bg-gray-50 hover:text-red-600 disabled:opacity-50"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-line bg-surface text-xs font-semibold text-gray-500 hover:bg-gray-100 hover:text-red-600 dark:hover:bg-gray-25 shadow-s5 disabled:opacity-50 transition-colors"
                     >
-                      <FiTrash2 className="w-3.5 h-3.5" /> Remove
+                      <Trash2 className="h-4 w-4" strokeWidth={1.75} /> Remove
                     </button>
                   )}
                 </div>
@@ -304,25 +298,25 @@ export default function PageProfile() {
             <div>
               <label className={labelCls}>Cover image</label>
               {bannerUrl && (
-                <img src={bannerUrl} alt="" className="w-full h-24 object-cover rounded-lg border border-gray-200 mb-2" />
+                <img src={bannerUrl} alt="" className="w-full h-28 object-cover rounded-xl border border-line mb-2.5 shadow-s5" />
               )}
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
                   onClick={() => bannerInput.current?.click()}
                   disabled={uploading}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-gray-200 text-[12px] font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-line bg-surface text-xs font-semibold text-ink hover:bg-gray-100 dark:hover:bg-gray-25 shadow-s5 disabled:opacity-50 transition-colors"
                 >
-                  <FiUpload className="w-3.5 h-3.5" /> {bannerUrl ? "Replace cover" : "Upload cover"}
+                  <Upload className="h-4 w-4" strokeWidth={1.75} /> {bannerUrl ? "Replace cover" : "Upload cover"}
                 </button>
                 {org?.banner_image && !bannerPreview && (
                   <button
                     type="button"
                     onClick={() => clearImage("banner")}
                     disabled={uploading}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-gray-200 text-[12px] font-semibold text-gray-500 hover:bg-gray-50 hover:text-red-600 disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-line bg-surface text-xs font-semibold text-gray-500 hover:bg-gray-100 hover:text-red-600 dark:hover:bg-gray-25 shadow-s5 disabled:opacity-50 transition-colors"
                   >
-                    <FiTrash2 className="w-3.5 h-3.5" /> Remove
+                    <Trash2 className="h-4 w-4" strokeWidth={1.75} /> Remove
                   </button>
                 )}
               </div>
@@ -350,49 +344,48 @@ export default function PageProfile() {
         </section>
 
         {/* Basics */}
-        <section className="bg-white border border-gray-200 rounded-lg shadow-sm">
-          <div className="px-4 py-3 border-b border-gray-100">
-            <h2 className="text-[13px] font-semibold text-gray-900">About</h2>
+        <section className="bg-surface border border-line rounded-xl shadow-s5 overflow-hidden">
+          <div className="px-5 py-3.5 border-b border-line">
+            <h2 className="text-[13.5px] font-semibold text-ink">About</h2>
+            <p className="text-[11.5px] text-gray-500 mt-0.5">Core company identification visible across the platform.</p>
           </div>
-          <div className="p-4 space-y-3.5">
+          <div className="p-5 space-y-4">
             <div>
               <label htmlFor="pp-name" className={labelCls}>
                 Company name <span className="text-red-500">*</span>
               </label>
               <input id="pp-name" className={inputCls} value={form.name} onChange={set("name")} required maxLength={255} />
-              <p className="mt-1 text-[11px] text-gray-400">
+              <p className="mt-1 text-[11px] text-gray-500">
                 Must be unique across RecruAI.
               </p>
             </div>
 
-            {/* Page URL is separate from the name on purpose: the name is a
-                display label, the address is a permanent link. Renaming should
-                not silently break a URL already shared. */}
+            {/* Page URL is separate from the name on purpose */}
             <div>
               <label htmlFor="pp-slug" className={labelCls}>
                 Page address
               </label>
               <div className="flex items-stretch gap-2">
-                <span className="inline-flex items-center px-2.5 rounded-lg bg-gray-100 border border-gray-200 text-[12px] text-gray-500 shrink-0">
+                <span className="inline-flex items-center px-3 rounded-xl bg-gray-50 border border-line text-[12px] text-gray-500 shrink-0 dark:bg-gray-25 font-mono">
                   recruai.menteeai.org/org/
                 </span>
                 <input
                   id="pp-slug"
-                  className={inputCls}
+                  className={`${inputCls} font-mono`}
                   value={slugValue}
                   onChange={(e) => setSlugValue(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
                   maxLength={60}
                   placeholder={slugifyHint}
                 />
               </div>
-              <p className="mt-1 text-[11px] text-gray-400">
+              <p className="mt-1 text-[11px] text-gray-500">
                 Lowercase letters, numbers and hyphens. Leave it alone to keep your
                 current address even if you rename the company — saved with the
                 rest of this page.
               </p>
               {slugDirty && (
-                <p className="mt-1.5 inline-flex items-center gap-1.5 rounded-md bg-amber-50 border border-amber-200 px-2 py-1 text-[11.5px] font-medium text-amber-900">
-                  <FiAlertTriangle className="w-3 h-3 shrink-0 text-amber-600" />
+                <p className="mt-1.5 inline-flex items-center gap-1.5 rounded-lg bg-amber-50 border border-amber-200 px-2.5 py-1 text-[11.5px] font-medium text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-400 shadow-s5">
+                  <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-600" strokeWidth={1.75} />
                   Your address will change to /org/{slugValue} when you save
                 </p>
               )}
@@ -409,7 +402,7 @@ export default function PageProfile() {
                 placeholder="What does your company do?"
               />
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <div>
                 <label htmlFor="pp-industry" className={labelCls}>Industry</label>
                 <select id="pp-industry" className={inputCls} value={form.industry} onChange={set("industry")}>
@@ -420,28 +413,28 @@ export default function PageProfile() {
               <div>
                 <label htmlFor="pp-website" className={labelCls}>Website</label>
                 <div className="relative">
-                  <FiGlobe className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
-                  <input id="pp-website" className={`${inputCls} pl-9`} value={form.website} onChange={set("website")} placeholder="acme.com" maxLength={255} />
+                  <Globe className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 pointer-events-none" strokeWidth={1.75} />
+                  <input id="pp-website" className={`${inputCls} pl-10`} value={form.website} onChange={set("website")} placeholder="acme.com" maxLength={255} />
                 </div>
               </div>
             </div>
             <div>
               <label htmlFor="pp-location" className={labelCls}>Address</label>
               <div className="relative">
-                <FiMapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
-                <input id="pp-location" className={`${inputCls} pl-9`} value={form.location} onChange={set("location")} placeholder="Karachi, Pakistan" maxLength={255} />
+                <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 pointer-events-none" strokeWidth={1.75} />
+                <input id="pp-location" className={`${inputCls} pl-10`} value={form.location} onChange={set("location")} placeholder="Karachi, Pakistan" maxLength={255} />
               </div>
             </div>
           </div>
         </section>
 
         {/* Contact */}
-        <section className="bg-white border border-gray-200 rounded-lg shadow-sm">
-          <div className="px-4 py-3 border-b border-gray-100">
-            <h2 className="text-[13px] font-semibold text-gray-900">Contact</h2>
-            <p className="text-[11px] text-gray-500 mt-0.5">Private — never shown on your public page.</p>
+        <section className="bg-surface border border-line rounded-xl shadow-s5 overflow-hidden">
+          <div className="px-5 py-3.5 border-b border-line">
+            <h2 className="text-[13.5px] font-semibold text-ink">Contact</h2>
+            <p className="text-[11.5px] text-gray-500 mt-0.5">Private — never shown on your public page.</p>
           </div>
-          <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div>
               <label htmlFor="pp-cname" className={labelCls}>Contact person</label>
               <input id="pp-cname" className={inputCls} value={form.contact_name} onChange={set("contact_name")} maxLength={255} />
@@ -462,12 +455,13 @@ export default function PageProfile() {
         </section>
 
         {/* Company facts */}
-        <section className="bg-white border border-gray-200 rounded-lg shadow-sm">
-          <div className="px-4 py-3 border-b border-gray-100">
-            <h2 className="text-[13px] font-semibold text-gray-900">Company details</h2>
+        <section className="bg-surface border border-line rounded-xl shadow-s5 overflow-hidden">
+          <div className="px-5 py-3.5 border-b border-line">
+            <h2 className="text-[13.5px] font-semibold text-ink">Company details</h2>
+            <p className="text-[11.5px] text-gray-500 mt-0.5">Additional context for candidates reviewing your open roles.</p>
           </div>
-          <div className="p-4 space-y-3.5">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="p-5 space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <div>
                 <label htmlFor="pp-size" className={labelCls}>Company size</label>
                 <select id="pp-size" className={inputCls} value={form.company_size} onChange={set("company_size")}>
@@ -483,10 +477,10 @@ export default function PageProfile() {
                 </select>
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <div>
                 <label htmlFor="pp-employees" className={labelCls}>Exact employee count</label>
-                <input id="pp-employees" type="number" min="1" className={inputCls} value={form.employee_count} onChange={set("employee_count")} placeholder="e.g. 24" />
+                <input id="pp-employees" type="number" min="1" className={`${inputCls} font-mono tabular-nums`} value={form.employee_count} onChange={set("employee_count")} placeholder="e.g. 24" />
               </div>
               <div>
                 <label htmlFor="pp-founded" className={labelCls}>Date of foundation</label>
@@ -495,7 +489,7 @@ export default function PageProfile() {
                   type="number"
                   min="1800"
                   max={new Date().getFullYear()}
-                  className={inputCls}
+                  className={`${inputCls} font-mono tabular-nums`}
                   value={form.founded_year}
                   onChange={set("founded_year")}
                   placeholder={`e.g. ${new Date().getFullYear() - 5}`}
@@ -514,17 +508,17 @@ export default function PageProfile() {
         </section>
 
         {error && (
-          <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-[12.5px] font-medium text-red-700">
-            <FiAlertTriangle className="w-4 h-4 mt-px shrink-0" />
-            {error}
+          <div className="flex items-start gap-2.5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[12.5px] font-medium text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-400 shadow-s5">
+            <AlertTriangle className="h-4 w-4 mt-px shrink-0 text-red-600 dark:text-red-400" strokeWidth={1.75} />
+            <span>{error}</span>
           </div>
         )}
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5 pt-2">
           <button
             type="submit"
             disabled={saving || uploading}
-            className="px-4 py-2 rounded-full bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            className="px-5 py-2.5 rounded-xl bg-brand text-white text-xs font-semibold hover:bg-brand/90 shadow-s5 disabled:opacity-50 transition-colors"
           >
             {saving ? "Saving…" : "Save changes"}
           </button>
@@ -532,7 +526,7 @@ export default function PageProfile() {
             type="button"
             onClick={() => load().catch(() => {})}
             disabled={saving}
-            className="px-4 py-2 rounded-full border border-gray-200 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            className="px-5 py-2.5 rounded-xl border border-line bg-surface text-xs font-semibold text-ink hover:bg-gray-100 dark:hover:bg-gray-25 shadow-s5 disabled:opacity-50 transition-colors"
           >
             Reset
           </button>

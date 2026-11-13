@@ -3,7 +3,15 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import ThinkingDisplay from "./ThinkingDisplay";
 import { formatTime as formatTimeTz } from "../../utils/timezone";
-import { getBackendUrl } from "../../utils/auth";
+import { getBackendUrl, getAuthHeaders } from "../../utils/auth";
+import {
+  FiCheckCircle,
+  FiMessageSquare,
+  FiSend,
+  FiUser,
+  FiCpu,
+  FiClock,
+} from "react-icons/fi";
 
 const TextInterview = ({
   interviewId,
@@ -19,7 +27,6 @@ const TextInterview = ({
   setShowThinking = () => {},
 }) => {
   const [newMessage, setNewMessage] = useState("");
-  const [isTyping] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(null);
   const [isInterviewCompleted, setIsInterviewCompleted] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
@@ -52,7 +59,6 @@ const TextInterview = ({
         setTimeRemaining(`${minutes}:${seconds.toString().padStart(2, "0")}`);
       } else {
         setTimeRemaining("00:00");
-        // Interview time is up - mark as completed
         if (!isInterviewCompleted) {
           setIsInterviewCompleted(true);
         }
@@ -70,14 +76,11 @@ const TextInterview = ({
     const message = newMessage.trim();
     setNewMessage("");
 
-    // Determine which handler to use based on user role and mode
     if (isInterviewer && interviewMode === "manual") {
-      // Interviewer sending manual response
       if (onInterviewerResponse) {
         await onInterviewerResponse(message);
       }
     } else if (!isInterviewer) {
-      // Candidate sending message
       if (onSendMessage) {
         await onSendMessage(message);
       }
@@ -98,13 +101,15 @@ const TextInterview = ({
         `${getBackendUrl()}/api/interviews/${interviewId}/complete`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            ...getAuthHeaders(),
+          },
           credentials: "include",
         }
       );
 
       if (response.ok) {
-        // Redirect to analysis page after completion
         window.location.href = `/in/interviews/${interviewId}/analysis`;
       } else {
         throw new Error("Failed to complete interview");
@@ -124,50 +129,43 @@ const TextInterview = ({
   // Show completion screen if interview is completed
   if (isInterviewCompleted) {
     return (
-      <div className="flex flex-col h-full max-h-screen">
-        {/* Interview Header */}
-        <div className="bg-white border-b border-gray-200 p-4">
+      <div className="flex flex-col h-full bg-surface text-ink">
+        <div className="bg-surface border-b border-line p-4">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">
+              <h2 className="text-sm font-semibold text-ink">
                 {interviewData?.title || "Text Interview"}
               </h2>
-              <p className="text-sm text-gray-600">
-                {isInterviewer ? "Interviewer" : "Candidate"} • Interview
-                Completed
+              <p className="text-[11.5px] text-gray-500 mt-0.5">
+                {isInterviewer ? "Interviewer" : "Candidate"} • Interview Completed
               </p>
             </div>
-            <div className="flex items-center space-x-1">
-              <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-              <span className="text-sm text-gray-600">Completed</span>
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-brand/10 text-brand-text border border-brand/20">
+              <FiCheckCircle className="w-3.5 h-3.5" />
+              <span>Completed</span>
             </div>
           </div>
         </div>
 
         {/* Completion Message */}
-        <div className="flex-1 flex items-center justify-center p-8">
+        <div className="flex-1 flex items-center justify-center p-8 py-16">
           <div className="text-center max-w-md">
-            <div className="text-6xl mb-6">🎉</div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-4">
+            <div className="w-14 h-14 rounded-2xl bg-brand/10 text-brand-text flex items-center justify-center mx-auto mb-4">
+              <FiCheckCircle className="w-7 h-7" />
+            </div>
+            <h3 className="text-lg font-bold text-ink mb-2">
               Interview Completed!
             </h3>
-            <p className="text-gray-600 mb-8">
-              Thank you for participating in this interview. Your responses have
-              been recorded and will be reviewed.
+            <p className="text-xs text-gray-500 mb-6 leading-relaxed">
+              Thank you for participating. Your responses have been recorded and your
+              performance analysis is being prepared.
             </p>
             <button
               onClick={handleCompleteInterview}
               disabled={isCompleting}
-              className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+              className="px-6 py-2.5 bg-brand-action text-white rounded-xl hover:bg-brand/90 disabled:opacity-50 disabled:cursor-not-allowed text-xs font-semibold shadow-s5 transition-colors"
             >
-              {isCompleting ? (
-                <div className="flex items-center space-x-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  <span>Processing...</span>
-                </div>
-              ) : (
-                "Proceed to Dashboard"
-              )}
+              {isCompleting ? "Processing…" : "Proceed to Analysis"}
             </button>
           </div>
         </div>
@@ -176,53 +174,46 @@ const TextInterview = ({
   }
 
   return (
-    <div className="flex flex-col h-full max-h-screen">
+    <div className="flex flex-col h-full bg-surface text-ink">
       {/* Interview Header */}
-      <div className="bg-white border-b border-gray-200 p-4">
+      <div className="bg-surface border-b border-line p-4">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">
+            <h2 className="text-sm font-semibold text-ink">
               {interviewData?.title || "Text Interview"}
             </h2>
-            <p className="text-sm text-gray-600">
+            <p className="text-[11.5px] text-gray-500 mt-0.5">
               {isInterviewer ? "Interviewer" : "Candidate"} • Text Chat
             </p>
           </div>
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center gap-3">
             {timeRemaining && (
-              <div className="flex items-center space-x-2">
-                <div className="text-sm font-medium text-gray-700">
-                  Time Left:
-                </div>
-                <div
-                  className={`px-3 py-1 rounded-full text-sm font-mono ${
-                    timeRemaining === "00:00"
-                      ? "bg-red-100 text-red-800"
-                      : timeRemaining.startsWith("0")
-                      ? "bg-yellow-100 text-yellow-800"
-                      : "bg-green-100 text-green-800"
-                  }`}>
+              <div className="flex items-center gap-1.5">
+                <FiClock className="w-3.5 h-3.5 text-gray-500" />
+                <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded-full border border-line bg-surface text-ink">
                   {timeRemaining}
-                </div>
+                </span>
               </div>
             )}
-            <div className="flex items-center space-x-1">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <span className="text-sm text-gray-600">Live</span>
+            <div className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-brand/10 text-brand-text border border-brand/20">
+              <span className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse" />
+              <span>Live</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
+      <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/50 dark:bg-gray-900/40 min-h-[380px] max-h-[560px]">
         {messages.length === 0 ? (
           <div className="text-center py-12">
-            <div className="text-4xl mb-4">💬</div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
+            <div className="w-10 h-10 rounded-xl bg-brand/10 text-brand-text flex items-center justify-center mx-auto mb-2.5">
+              <FiMessageSquare className="w-5 h-5" />
+            </div>
+            <h3 className="text-xs font-bold text-ink mb-1">
               Interview Started
             </h3>
-            <p className="text-gray-600">
+            <p className="text-xs text-gray-500">
               {isInterviewer
                 ? "Begin the conversation with the candidate."
                 : "The interviewer will start the conversation soon."}
@@ -230,51 +221,45 @@ const TextInterview = ({
           </div>
         ) : (
           messages.map((message, index) => {
-            // Updated logic to match backend sender types: 'user' vs 'agent'
             const isAI =
               message.type === "agent" || message.type === "ai_response";
 
-            // Simplified: User's own messages on right, others on left
-            // For Candidates (isInterviewer=false): 'user' messages are MINE (Right), 'agent'/'interviewer' on LEFT
-            // For Interviewers (isInterviewer=true): 'interviewer' messages are MINE (Right), 'user' (candidate) on LEFT
             let shouldShowOnRight = false;
             if (isInterviewer) {
-              // I am the interviewer - show my manual responses or AI responses (if auto) on right
               shouldShowOnRight =
                 message.type === "interviewer_response" ||
                 (interviewMode === "auto" && isAI);
             } else {
-              // I am the candidate - show my 'user' messages on right
               shouldShowOnRight = message.type === "user";
             }
 
             return (
               <div
                 key={message.id || index}
-                className={`flex items-start mb-4 ${
+                className={`flex items-start mb-3 ${
                   shouldShowOnRight ? "flex-row-reverse" : "flex-row"
                 }`}>
-                {/* Avatar */}
                 <div
-                  className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-medium ${
-                    shouldShowOnRight ? "bg-blue-600 ml-2" : "bg-gray-400 mr-2"
+                  className={`flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-xs font-semibold ${
+                    shouldShowOnRight
+                      ? "bg-brand-action text-white ml-2"
+                      : "bg-gray-100 dark:bg-gray-800 text-ink border border-line mr-2"
                   }`}>
-                  {shouldShowOnRight
-                    ? isInterviewer
-                      ? "👤"
-                      : "👨"
-                    : isAI
-                    ? "🤖"
-                    : "👤"}
+                  {shouldShowOnRight ? (
+                    <FiUser className="w-3.5 h-3.5" />
+                  ) : isAI ? (
+                    <FiCpu className="w-3.5 h-3.5 text-brand-text" />
+                  ) : (
+                    <FiUser className="w-3.5 h-3.5" />
+                  )}
                 </div>
 
                 <div
                   className={`flex flex-col ${
                     shouldShowOnRight ? "items-end" : "items-start"
-                  } max-w-[75%]`}>
-                  {/* Sender name for received messages */}
+                  } max-w-[80%]`}>
                   {!shouldShowOnRight && (
-                    <div className="text-xs text-gray-500 mb-1 px-1">
+                    <div className="text-[10.5px] font-medium text-gray-500 mb-1 px-1">
                       {isAI
                         ? message.sender || "AI Assistant"
                         : message.sender || "Interviewer"}
@@ -282,13 +267,13 @@ const TextInterview = ({
                   )}
 
                   <div
-                    className={`px-4 py-2 rounded-2xl shadow-sm ${
+                    className={`px-3.5 py-2.5 rounded-2xl shadow-s5 text-xs leading-relaxed ${
                       shouldShowOnRight
-                        ? "bg-indigo-600 text-white rounded-tr-none"
-                        : "bg-white text-gray-800 border border-gray-200 rounded-tl-none"
+                        ? "bg-brand-action text-white rounded-tr-none"
+                        : "bg-surface text-ink border border-line rounded-tl-none"
                     }`}>
                     <div
-                      className={`text-[15px] leading-relaxed markdown-content ${
+                      className={`markdown-content ${
                         shouldShowOnRight ? "prose-invert" : ""
                       }`}>
                       <ReactMarkdown remarkPlugins={[remarkGfm]}>
@@ -297,7 +282,7 @@ const TextInterview = ({
                     </div>
                   </div>
 
-                  <div className="text-[10px] text-gray-400 mt-1 px-1">
+                  <div className="text-[10px] text-gray-500 mt-1 px-1">
                     {formatTime(message.created_at || message.timestamp)}
                   </div>
                 </div>
@@ -306,40 +291,19 @@ const TextInterview = ({
           })
         )}
 
-        {/* Typing Indicator */}
-        {isTyping && (
-          <div className="flex justify-start">
-            <div className="bg-white border border-gray-200 px-4 py-2 rounded-lg">
-              <div className="flex space-x-1">
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                <div
-                  className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                  style={{ animationDelay: "0.1s" }}
-                ></div>
-                <div
-                  className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                  style={{ animationDelay: "0.2s" }}
-                ></div>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Loading indicator */}
         {isLoading && (
           <div className="flex justify-start">
-            <div className="bg-white border border-gray-200 px-4 py-2 rounded-lg">
-              <div className="flex items-center space-x-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                <span className="text-sm text-gray-600">AI is thinking...</span>
-              </div>
+            <div className="bg-surface border border-line px-3.5 py-2 rounded-xl flex items-center gap-2 shadow-s5">
+              <span className="w-2 h-2 rounded-full bg-brand animate-ping" />
+              <span className="text-xs text-gray-500">AI is thinking…</span>
             </div>
           </div>
         )}
 
-        {/* Thinking Process Display - Only visible to interviewers/organization */}
+        {/* Thinking Process Display */}
         {isInterviewer && currentThinking && (
-          <div className="mt-4">
+          <div className="mt-3">
             <ThinkingDisplay
               thinkingStep={currentThinking}
               isVisible={showThinking}
@@ -352,46 +316,22 @@ const TextInterview = ({
       </div>
 
       {/* Message Input */}
-      <div className="bg-white border-t border-gray-200 p-4">
-        {isInterviewer && interviewMode === "manual" ? (
-          <div className="mb-2">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-700">
-                Manual Response Mode
-              </span>
-              <span className="text-xs text-gray-500">
-                You control the conversation
-              </span>
-            </div>
-          </div>
-        ) : isInterviewer && interviewMode === "auto" ? (
-          <div className="mb-2">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-700">
-                Auto Mode
-              </span>
-              <span className="text-xs text-gray-500">
-                AI handles responses automatically
-              </span>
-            </div>
-          </div>
-        ) : null}
-
-        <div className="flex space-x-2">
+      <div className="bg-surface border-t border-line p-3.5">
+        <div className="flex items-end gap-2">
           <textarea
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyPress={handleKeyPress}
             placeholder={
               isInterviewer && interviewMode === "manual"
-                ? "Type your response to the candidate..."
+                ? "Type your response to the candidate…"
                 : isInterviewer && interviewMode === "auto"
-                ? "Input disabled - AI handles responses"
-                : "Type your message to the interviewer..."
+                ? "Input disabled — AI handles responses automatically"
+                : "Type your message to the interviewer…"
             }
-            className="flex-1 resize-none border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="flex-1 resize-none border border-line bg-surface rounded-xl px-3 py-2 text-xs text-ink focus:outline-none focus:border-brand shadow-s5 transition-colors"
             rows={1}
-            style={{ minHeight: "40px", maxHeight: "120px" }}
+            style={{ minHeight: "38px", maxHeight: "110px" }}
             disabled={
               isLoading ||
               (isInterviewer && interviewMode === "auto") ||
@@ -406,26 +346,15 @@ const TextInterview = ({
               (isInterviewer && interviewMode === "auto") ||
               isInterviewCompleted
             }
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+            className="p-2.5 bg-brand-action text-white rounded-xl hover:bg-brand/90 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center transition-colors shadow-s5 shrink-0"
+            aria-label="Send message"
           >
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
-              />
-            </svg>
+            <FiSend className="h-4 w-4" />
           </button>
         </div>
-        <div className="flex justify-between items-center mt-2 text-xs text-gray-500">
-          <span>Press Enter to send, Shift+Enter for new line</span>
-          <span>{newMessage.length} characters</span>
+        <div className="flex justify-between items-center mt-1.5 text-[10.5px] text-gray-500">
+          <span>Enter to send · Shift+Enter for new line</span>
+          <span>{newMessage.length} chars</span>
         </div>
       </div>
     </div>

@@ -1,21 +1,26 @@
+import { OrgAppShell } from "../../components/layout/OrgAppShell";
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
-import DashboardLayout from "../../components/layout/DashboardLayout";
+import { useParams, useNavigate } from "react-router-dom";
 import { getBackendUrl, getAuthHeaders } from "../../utils/auth";
 import { useToast } from "../../components/ui/ToastContext";
+import { Button, ButtonLink } from "../../components/ui/Button";
 import { COUNTRIES, CURRENCIES, formatSalaryRange, splitLocation, joinLocation } from "../../utils/jobMeta";
 import {
-  FiBriefcase,
-  FiMapPin,
-  FiTag,
-  FiDollarSign,
-  FiCalendar,
-  FiEdit2,
-  FiTrash2,
-  FiArrowLeft,
-  FiUsers,
-  FiEye,
-} from "react-icons/fi";
+  Briefcase,
+  MapPin,
+  Tag,
+  CreditCard,
+  Calendar,
+  Edit2,
+  Trash2,
+  ArrowLeft,
+  Users,
+  X,
+  Copy,
+} from "lucide-react";
+
+const inputCls =
+  "w-full rounded-xl border border-line dark:border-line bg-surface dark:bg-gray-900/60 px-3 py-2 text-sm text-ink outline-none transition-colors placeholder:text-gray-500 focus:border-brand focus:ring-4 focus:ring-brand/10";
 
 export default function JobPostDetails() {
   const { id } = useParams();
@@ -43,7 +48,7 @@ export default function JobPostDetails() {
 
   useEffect(() => {
     fetchPost();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const fetchPost = async () => {
@@ -86,7 +91,11 @@ export default function JobPostDetails() {
     e.preventDefault();
     setSaving(true);
     try {
-      const payload = { ...formData, location: joinLocation({ city: locCity, country: locCountry, remote: locRemote }), requirements: formData.requirements.filter((r) => r.trim()) };
+      const payload = {
+        ...formData,
+        location: joinLocation({ city: locCity, country: locCountry, remote: locRemote }),
+        requirements: formData.requirements.filter((r) => r.trim()),
+      };
       const res = await fetch(`${getBackendUrl()}/api/posts/${id}`, {
         method: "PUT",
         headers: getAuthHeaders({ "Content-Type": "application/json" }),
@@ -125,183 +134,291 @@ export default function JobPostDetails() {
 
   if (loading) {
     return (
-      <DashboardLayout >
-        <div className="space-y-4">
-          <div className="h-8 bg-gray-100 w-32 animate-pulse" />
-          <div className="rounded-2xl bg-gray-900 h-48 animate-pulse" />
-          <div className="bg-white border border-gray-200 h-64 animate-pulse" />
+      <OrgAppShell>
+        <div className="space-y-4 px-4 py-4">
+          <div className="h-8 w-32 animate-pulse rounded-xl bg-gray-200 dark:bg-gray-25" />
+          <div className="h-48 animate-pulse rounded-xl border border-line dark:border-line bg-surface dark:bg-gray-25" />
+          <div className="h-64 animate-pulse rounded-xl border border-line dark:border-line bg-surface dark:bg-gray-25" />
         </div>
-      </DashboardLayout>
+      </OrgAppShell>
     );
   }
 
   if (!post) {
     return (
-      <DashboardLayout >
-        <div className="bg-white border border-gray-200 p-12 text-center">
-          <p className="text-sm text-gray-500">Job post not found</p>
-          <button onClick={() => navigate("/org/jobs")} className="mt-4 text-sm text-blue-600 hover:text-blue-700">
+      <OrgAppShell>
+        <div className="mx-4 mt-4 rounded-xl border border-line dark:border-line bg-surface dark:bg-gray-25 p-12 text-center shadow-s5">
+          <h1 className="text-lg font-semibold text-ink">Job post not found</h1>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-500">
+            This post may have been deleted, or it belongs to another organization.
+          </p>
+          <ButtonLink to="/org/jobs" variant="secondary" size="sm" className="mt-4">
             Back to jobs
-          </button>
+          </ButtonLink>
         </div>
-      </DashboardLayout>
+      </OrgAppShell>
     );
   }
 
-  return (
-    <DashboardLayout >
-      <button onClick={() => navigate("/org/jobs")} className="inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900 mb-4">
-        <FiArrowLeft className="w-4 h-4" /> Back to job posts
-      </button>
+  const statusChip = (status) => {
+    const base = "inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold";
+    if (status === "active") return `${base} bg-brand/10 text-brand-text border border-brand/20`;
+    if (status === "inactive")
+      return `${base} bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20`;
+    return `${base} bg-red-50 text-red-700 border border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20`;
+  };
 
-      {/* Hero */}
-      <div className="relative overflow-hidden bg-gray-900 text-white mb-6">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-transparent to-indigo-600/20" />
-        <div className="relative p-6 md:p-8">
-          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-            <div className="flex-1 min-w-0">
-              <div className="flex flex-wrap items-center gap-2 mb-2">
-                <h1 className="text-2xl md:text-3xl font-bold leading-tight">{post.title}</h1>
-                <span className={`text-xs font-medium border px-2 py-1 ${post.status === "active" ? "bg-green-500 text-white border-green-500" : post.status === "inactive" ? "bg-amber-500 text-white border-amber-500" : "bg-red-500 text-white border-red-500"}`}>
-                  {post.status}
+  const metaChip =
+    "inline-flex items-center gap-1.5 rounded-lg border border-line dark:border-line bg-gray-50 dark:bg-gray-25/80 px-2.5 py-1 text-[11px] font-medium text-gray-600 dark:text-gray-700";
+
+  return (
+    <OrgAppShell>
+      <div className="px-4 pt-4">
+        <button
+          type="button"
+          onClick={() => navigate("/org/jobs")}
+          className="inline-flex items-center gap-1.5 text-sm text-gray-600 transition-colors hover:text-ink dark:text-gray-500 dark:hover:text-ink"
+        >
+          <ArrowLeft className="h-4 w-4" strokeWidth={1.75} /> Back to job posts
+        </button>
+      </div>
+
+      {/* Header card */}
+      <div className="px-4 pb-4 pt-4">
+        <div className="rounded-xl border border-line dark:border-line bg-surface dark:bg-gray-25 p-5 shadow-s5">
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <h1 className="text-[20px] font-semibold leading-7 text-ink">{post.title}</h1>
+                <span className={statusChip(post.status)}>
+                  {post.status.charAt(0).toUpperCase() + post.status.slice(1)}
                 </span>
               </div>
-              <div className="flex flex-wrap gap-1.5 mt-3">
-                {post.location && <span className="inline-flex items-center gap-1 text-xs bg-white/10 border border-white/20 px-2.5 py-1"><FiMapPin className="w-3 h-3" />{post.location}</span>}
-                {post.employment_type && <span className="inline-flex items-center gap-1 text-xs bg-white/10 border border-white/20 px-2.5 py-1"><FiBriefcase className="w-3 h-3" />{post.employment_type}</span>}
-                {post.category && <span className="inline-flex items-center gap-1 text-xs bg-blue-500/20 border border-blue-400/30 px-2.5 py-1 text-blue-200"><FiTag className="w-3 h-3" />{post.category}</span>}
-                {(() => { const range = formatSalaryRange(post.salary_min, post.salary_max, post.salary_currency); return range && <span className="inline-flex items-center gap-1 text-xs bg-emerald-500/20 border border-emerald-400/30 px-2.5 py-1 text-emerald-200"><FiDollarSign className="w-3 h-3" />{range}</span>; })()}
-                {post.application_deadline && <span className="inline-flex items-center gap-1 text-xs bg-white/10 border border-white/20 px-2.5 py-1"><FiCalendar className="w-3 h-3" />Deadline {new Date(post.application_deadline).toLocaleDateString()}</span>}
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {post.location && (
+                  <span className={metaChip}>
+                    <MapPin className="h-3 w-3 shrink-0" strokeWidth={1.75} />
+                    {post.location}
+                  </span>
+                )}
+                {post.employment_type && (
+                  <span className={metaChip}>
+                    <Briefcase className="h-3 w-3 shrink-0" strokeWidth={1.75} />
+                    {post.employment_type}
+                  </span>
+                )}
+                {post.category && (
+                  <span className={metaChip}>
+                    <Tag className="h-3 w-3 shrink-0" strokeWidth={1.75} />
+                    {post.category}
+                  </span>
+                )}
+                {(() => {
+                  const range = formatSalaryRange(post.salary_min, post.salary_max, post.salary_currency);
+                  return (
+                    range && (
+                      <span className={metaChip}>
+                        <CreditCard className="h-3 w-3 shrink-0" strokeWidth={1.75} />
+                        <span className="font-mono tabular-nums">{range}</span>
+                      </span>
+                    )
+                  );
+                })()}
+                {post.application_deadline && (
+                  <span className={metaChip}>
+                    <Calendar className="h-3 w-3 shrink-0" strokeWidth={1.75} />
+                    <span>Deadline</span>{" "}
+                    <span className="font-mono tabular-nums">
+                      {new Date(post.application_deadline).toLocaleDateString()}
+                    </span>
+                  </span>
+                )}
               </div>
-              <p className="text-sm text-gray-300 mt-4 max-w-2xl line-clamp-3">{post.description}</p>
+              <p className="mt-4 line-clamp-3 text-[13px] leading-relaxed text-gray-600 dark:text-gray-500">
+                {post.description}
+              </p>
             </div>
-            <div className="flex flex-col gap-2 shrink-0">
-              <button onClick={() => setEditing(!editing)} className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-white text-gray-900 text-sm font-medium hover:bg-gray-100">
-                <FiEdit2 className="w-4 h-4" /> {editing ? "Cancel edit" : "Edit"}
-              </button>
-              <button onClick={handleDelete} className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-red-600 text-white text-sm font-medium hover:bg-red-700">
-                <FiTrash2 className="w-4 h-4" /> Delete
-              </button>
-              <Link to={`/org/candidates`} className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-white/10 border border-white/20 text-white text-sm font-medium hover:bg-white/15 text-center">
-                <FiUsers className="w-4 h-4" /> View applicants
-              </Link>
+            <div className="flex shrink-0 flex-col gap-2.5 md:w-[200px]">
+              <Button variant="secondary" onClick={() => setEditing(!editing)}>
+                <Edit2 className="h-3.5 w-3.5" strokeWidth={1.75} /> {editing ? "Cancel edit" : "Edit post"}
+              </Button>
+              <Button variant="danger" onClick={handleDelete}>
+                <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} /> Delete post
+              </Button>
+              <ButtonLink to="/org/candidates" variant="secondary">
+                <Users className="h-3.5 w-3.5" strokeWidth={1.75} /> View applicants
+              </ButtonLink>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white border border-gray-200 p-6">
-            <h3 className="text-sm font-semibold text-gray-900">Description</h3>
-            <p className="text-sm text-gray-700 mt-3 leading-relaxed whitespace-pre-wrap">{post.description || "No description"}</p>
-          </div>
-          <div className="bg-white border border-gray-200 p-6">
-            <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2"><FiEye className="w-4 h-4 text-gray-500" /> Details</h3>
-            <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
-              <div><p className="text-xs text-gray-500 uppercase tracking-wider">Location</p><p className="font-medium text-gray-900 mt-1">{post.location || "—"}</p></div>
-              <div><p className="text-xs text-gray-500 uppercase tracking-wider">Employment type</p><p className="font-medium text-gray-900 mt-1">{post.employment_type || "—"}</p></div>
-              <div><p className="text-xs text-gray-500 uppercase tracking-wider">Category</p><p className="font-medium text-gray-900 mt-1">{post.category || "—"}</p></div>
-              <div><p className="text-xs text-gray-500 uppercase tracking-wider">Salary</p><p className="font-medium text-gray-900 mt-1">{formatSalaryRange(post.salary_min, post.salary_max, post.salary_currency) || "—"}</p></div>
-              <div><p className="text-xs text-gray-500 uppercase tracking-wider">Deadline</p><p className="font-medium text-gray-900 mt-1 flex items-center gap-1"><FiCalendar className="w-3.5 h-3.5 text-gray-400" />{post.application_deadline ? new Date(post.application_deadline).toLocaleDateString() : "—"}</p></div>
-              <div><p className="text-xs text-gray-500 uppercase tracking-wider">Status</p><p className="font-medium mt-1"><span className={`inline-flex px-2 py-1 text-xs border ${post.status === "active" ? "bg-green-50 text-green-700 border-green-200" : "bg-gray-50 text-gray-600 border-gray-200"}`}>{post.status}</span></p></div>
-            </div>
-          </div>
-          {post.requirements && post.requirements.length > 0 && (
-            <div className="bg-white border border-gray-200 p-6">
-              <h3 className="text-sm font-semibold text-gray-900">Requirements</h3>
-              <ul className="mt-3 space-y-2">
-                {post.requirements.map((r, i) => (
-                  <li key={i} className="flex gap-2 text-sm text-gray-700"><span className="w-1.5 h-1.5 bg-blue-600 rounded-full mt-2 shrink-0" />{r}</li>
-                ))}
-              </ul>
-            </div>
-          )}
+      <div className="space-y-4 px-4 pb-4">
+        <div className="rounded-xl border border-line dark:border-line bg-surface dark:bg-gray-25 p-5 shadow-s5">
+          <h3 className="text-sm font-semibold text-ink">Description</h3>
+          <p className="mt-3 whitespace-pre-wrap text-[15px] leading-relaxed text-ink">
+            {post.description || "No description provided."}
+          </p>
         </div>
-
-        <div className="space-y-6">
-          <div className="bg-white border border-gray-200 p-6">
-            <h3 className="text-sm font-semibold text-gray-900">Quick actions</h3>
-            <div className="mt-4 space-y-2">
-              <button onClick={() => setEditing(true)} className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700"><FiEdit2 className="w-4 h-4" /> Edit job</button>
-              <button onClick={handleDelete} className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-red-200 text-sm font-medium text-red-600 hover:bg-red-50"><FiTrash2 className="w-4 h-4" /> Delete post</button>
-              <Link to="/org/pipeline" className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 text-center"><FiUsers className="w-4 h-4" /> View pipeline</Link>
-            </div>
+        {post.requirements && post.requirements.length > 0 && (
+          <div className="rounded-xl border border-line dark:border-line bg-surface dark:bg-gray-25 p-5 shadow-s5">
+            <h3 className="text-sm font-semibold text-ink">Requirements</h3>
+            <ul className="mt-3 space-y-2">
+              {post.requirements.map((r, i) => (
+                <li key={i} className="flex gap-2 text-[15px] leading-relaxed text-gray-700 dark:text-gray-600">
+                  <span className="mt-2.5 h-1.5 w-1.5 shrink-0 rounded-full bg-brand" />
+                  <span>{r}</span>
+                </li>
+              ))}
+            </ul>
           </div>
-          <div className="bg-blue-600 text-white p-6">
-            <h3 className="text-sm font-semibold">Need more applicants?</h3>
-            <p className="text-sm text-blue-50 mt-1">Share this post or boost visibility to reach more candidates.</p>
-            <button onClick={() => navigator.clipboard.writeText(window.location.href)} className="mt-3 w-full bg-white text-blue-600 py-2.5 text-sm font-medium hover:bg-blue-50">Copy link</button>
+        )}
+        <div className="rounded-xl border border-line dark:border-line bg-surface dark:bg-gray-25 p-5 shadow-s5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-medium text-ink">Share this opportunity</p>
+              <p className="mt-0.5 text-[13px] text-gray-500 dark:text-gray-500">
+                Share this link directly with candidates or across job boards.
+              </p>
+            </div>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                navigator.clipboard.writeText(window.location.href);
+                showToast({ message: "Link copied to clipboard!", type: "success" });
+              }}
+            >
+              <Copy className="h-3.5 w-3.5" strokeWidth={1.75} /> Copy link
+            </Button>
           </div>
         </div>
       </div>
 
       {editing && (
-        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white w-full max-w-2xl max-h-[90vh] overflow-hidden border border-gray-200 flex flex-col">
-            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-gray-900">Edit job post</h3>
-              <button onClick={() => setEditing(false)} className="p-1.5 hover:bg-gray-100 text-gray-500"><FiX className="w-4 h-4" /></button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 p-4 backdrop-blur-sm">
+          <div className="flex w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-line dark:border-line bg-surface dark:bg-gray-25 shadow-s15">
+            <div className="flex items-center justify-between border-b border-line dark:border-line px-5 py-4">
+              <h3 className="text-sm font-semibold text-ink">Edit job post</h3>
+              <button
+                type="button"
+                onClick={() => setEditing(false)}
+                className="rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-ink dark:bg-transparent dark:hover:bg-gray-25"
+                aria-label="Close edit modal"
+              >
+                <X className="h-4 w-4" strokeWidth={1.75} />
+              </button>
             </div>
-            <form onSubmit={handleSave} className="p-6 space-y-4 overflow-y-auto">
+            <form onSubmit={handleSave} className="space-y-4 overflow-y-auto p-5">
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1.5">Title *</label>
-                <input type="text" required value={formData.title} onChange={(e) => setFormData((p) => ({ ...p, title: e.target.value }))} className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white" />
+                <label className="mb-1.5 block text-xs font-medium text-gray-600 dark:text-gray-500">Job title *</label>
+                <input
+                  type="text"
+                  required
+                  value={formData.title}
+                  onChange={(e) => setFormData((p) => ({ ...p, title: e.target.value }))}
+                  className={inputCls}
+                />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1.5">Description</label>
-                <textarea rows={4} value={formData.description} onChange={(e) => setFormData((p) => ({ ...p, description: e.target.value }))} className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white resize-none" />
+                <label className="mb-1.5 block text-xs font-medium text-gray-600 dark:text-gray-500">Description</label>
+                <textarea
+                  rows={4}
+                  value={formData.description}
+                  onChange={(e) => setFormData((p) => ({ ...p, description: e.target.value }))}
+                  className={`${inputCls} min-h-[96px] resize-y`}
+                />
               </div>
-              <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1.5">Location</label>
-                <label className="flex items-center gap-2 text-sm text-gray-700 mb-2 cursor-pointer select-none">
-                  <input type="checkbox" checked={locRemote} onChange={(e) => setLocRemote(e.target.checked)} className="w-4 h-4 accent-blue-600" />
-                  Remote position
-                </label>
-                <input type="text" value={locCity} disabled={locRemote} onChange={(e) => setLocCity(e.target.value)} placeholder="City (optional)" className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white disabled:opacity-50 mb-2" />
-                <select value={locCountry} disabled={locRemote} onChange={(e) => setLocCountry(e.target.value)} className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white disabled:opacity-50">
-                  <option value="">Select country…</option>
-                  {COUNTRIES.map((c) => <option key={c.code} value={c.name}>{c.name}</option>)}
-                </select>
-              </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1.5">Category</label>
-                  <input type="text" value={formData.category} onChange={(e) => setFormData((p) => ({ ...p, category: e.target.value }))} className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white" />
+                  <label className="mb-1.5 block text-xs font-medium text-gray-600 dark:text-gray-500">Location</label>
+                  <label className="mb-2 flex cursor-pointer select-none items-center gap-2 text-sm text-gray-700 dark:text-gray-600">
+                    <input
+                      type="checkbox"
+                      checked={locRemote}
+                      onChange={(e) => setLocRemote(e.target.checked)}
+                      className="h-4 w-4 rounded accent-brand"
+                    />
+                    Remote position
+                  </label>
+                  <input
+                    type="text"
+                    value={locCity}
+                    disabled={locRemote}
+                    onChange={(e) => setLocCity(e.target.value)}
+                    placeholder="City (optional)"
+                    className={`${inputCls} mb-2 disabled:opacity-50`}
+                  />
+                  <select
+                    value={locCountry}
+                    disabled={locRemote}
+                    onChange={(e) => setLocCountry(e.target.value)}
+                    className={`${inputCls} disabled:opacity-50`}
+                  >
+                    <option value="">Select country…</option>
+                    {COUNTRIES.map((c) => (
+                      <option key={c.code} value={c.name}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-gray-600 dark:text-gray-500">Category</label>
+                  <input
+                    type="text"
+                    value={formData.category}
+                    onChange={(e) => setFormData((p) => ({ ...p, category: e.target.value }))}
+                    className={inputCls}
+                  />
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1.5">Salary min</label>
-                  <input type="number" value={formData.salary_min} onChange={(e) => setFormData((p) => ({ ...p, salary_min: e.target.value }))} className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 text-sm" />
+                  <label className="mb-1.5 block text-xs font-medium text-gray-600 dark:text-gray-500">Salary min</label>
+                  <input
+                    type="number"
+                    value={formData.salary_min}
+                    onChange={(e) => setFormData((p) => ({ ...p, salary_min: e.target.value }))}
+                    className={`${inputCls} font-mono tabular-nums`}
+                  />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1.5">Salary max</label>
-                  <input type="number" value={formData.salary_max} onChange={(e) => setFormData((p) => ({ ...p, salary_max: e.target.value }))} className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 text-sm" />
+                  <label className="mb-1.5 block text-xs font-medium text-gray-600 dark:text-gray-500">Salary max</label>
+                  <input
+                    type="number"
+                    value={formData.salary_max}
+                    onChange={(e) => setFormData((p) => ({ ...p, salary_max: e.target.value }))}
+                    className={`${inputCls} font-mono tabular-nums`}
+                  />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1.5">Currency</label>
-                  <select value={formData.salary_currency} onChange={(e) => setFormData((p) => ({ ...p, salary_currency: e.target.value }))} className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 text-sm">
-                    {CURRENCIES.map((c) => <option key={c.code} value={c.code}>{c.code} — {c.name} ({c.symbol})</option>)}
+                  <label className="mb-1.5 block text-xs font-medium text-gray-600 dark:text-gray-500">Currency</label>
+                  <select
+                    value={formData.salary_currency}
+                    onChange={(e) => setFormData((p) => ({ ...p, salary_currency: e.target.value }))}
+                    className={inputCls}
+                  >
+                    {CURRENCIES.map((c) => (
+                      <option key={c.code} value={c.code}>
+                        {c.code} — {c.name} ({c.symbol})
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
-              <div className="flex gap-3 pt-2">
-                <button type="submit" disabled={saving} className="flex-1 bg-blue-600 text-white py-2.5 text-sm font-medium hover:bg-blue-700 disabled:opacity-50">{saving ? "Saving…" : "Save changes"}</button>
-                <button type="button" onClick={() => setEditing(false)} className="px-5 py-2.5 bg-white border border-gray-200 text-sm font-medium hover:bg-gray-50">Cancel</button>
+              <div className="flex gap-3 pt-3">
+                <Button variant="primary" type="submit" disabled={saving} className="flex-1">
+                  {saving ? "Saving…" : "Save changes"}
+                </Button>
+                <Button variant="secondary" type="button" onClick={() => setEditing(false)}>
+                  Cancel
+                </Button>
               </div>
             </form>
           </div>
         </div>
       )}
-    </DashboardLayout>
-  );
-}
-
-function FiX(props) {
-  return (
-    <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M18 6L6 18M6 6l12 12" />
-    </svg>
+    </OrgAppShell>
   );
 }

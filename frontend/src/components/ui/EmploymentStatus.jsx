@@ -49,7 +49,7 @@ export default function EmploymentBadge({ status, className = "" }) {
     <span
       title={meta.verified ? "Verified by hiring organization" : "Looking for opportunities"}
       className={`inline-flex items-center gap-1 text-xs font-semibold border px-2 py-0.5 rounded-full ${meta.chip} ${className}`}>
-      {meta.verified && <FiCheckCircle className="w-3 h-3" />}
+      {meta.verified && <FiCheckCircle className="h-3 w-3" />}
       {meta.label}
       {meta.verified && <span className="font-normal opacity-75">· Verified</span>}
     </span>
@@ -61,7 +61,7 @@ export function EmploymentFrame({ status, company }) {
   const meta = employmentMeta(status);
   return (
     <div className={`w-full rounded-lg ${meta.banner} text-white px-3 py-2 flex items-center justify-center gap-1.5 shadow-sm`}>
-      {meta.verified && <FiCheckCircle className="w-4 h-4 shrink-0" />}
+      {meta.verified && <FiCheckCircle className="h-4 w-4 shrink-0" />}
       <span className="text-xs font-bold tracking-wide uppercase">
         {meta.verified ? `${meta.label}${company ? ` · ${company}` : ""}` : meta.label}
       </span>

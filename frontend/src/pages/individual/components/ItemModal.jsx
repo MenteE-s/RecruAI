@@ -174,10 +174,10 @@ export default function ItemModal({ isOpen, onClose, itemType, itemData, onSave,
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold text-gray-900">
+        <h2 className="text-base font-semibold text-ink">
           {itemData ? `Edit ${config.title}` : `Add ${config.title}`}
         </h2>
-        <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+        <button onClick={onClose} className="text-gray-500 hover:text-gray-600">
           <FiX size={20} />
         </button>
       </div>
@@ -216,7 +216,7 @@ export default function ItemModal({ isOpen, onClose, itemType, itemData, onSave,
                 <textarea
                   name={field.name}
                   defaultValue={itemData?.[field.name] || ""}
-                  className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
+                  className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink placeholder:text-gray-500 outline-none transition-colors focus:border-brand focus:ring-4 focus:ring-gray-100/50 dark:focus:ring-gray-600/50"
                   rows={3}
                   required={field.required}
                 />
@@ -224,7 +224,7 @@ export default function ItemModal({ isOpen, onClose, itemType, itemData, onSave,
                 <select
                   name={field.name}
                   defaultValue={itemData?.[field.name] || ""}
-                  className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 focus:ring-2 focus:ring-blue-500"
+                  className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink outline-none transition-colors focus:border-brand focus:ring-4 focus:ring-gray-100/50 dark:focus:ring-gray-600/50"
                   required={field.required}>
                   <option value="">Select...</option>
                   {field.options.map((opt) => (
@@ -236,14 +236,14 @@ export default function ItemModal({ isOpen, onClose, itemType, itemData, onSave,
                   type="checkbox"
                   name={field.name}
                   defaultChecked={itemData?.[field.name] || false}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  className="h-4 w-4 rounded border-line accent-brand focus:ring-brand"
                 />
               ) : (
                 <input
                   type={field.type || "text"}
                   name={field.name}
                   defaultValue={itemData?.[field.name] || ""}
-                  className="w-full p-2 bg-white border border-gray-300 rounded text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
+                  className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink placeholder:text-gray-500 outline-none transition-colors focus:border-brand focus:ring-4 focus:ring-gray-100/50 dark:focus:ring-gray-600/50"
                   required={field.required}
                 />
               )}
@@ -251,10 +251,10 @@ export default function ItemModal({ isOpen, onClose, itemType, itemData, onSave,
           ))}
         </div>
         <div className="flex gap-3 justify-end mt-6">
-          <button type="button" onClick={onClose} className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
+          <button type="button" onClick={onClose} className="inline-flex h-9 items-center justify-center rounded-xl border border-line bg-surface px-4 text-sm font-semibold text-ink transition-colors hover:bg-gray-50 dark:hover:bg-gray-25">
             Cancel
           </button>
-          <button type="submit" disabled={saving} className="px-4 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed">
+          <button type="submit" disabled={saving} className="inline-flex h-9 items-center justify-center gap-2 rounded-xl bg-gray-900 px-4 text-sm font-semibold text-white transition-colors hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed">
             {saving ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div> : itemData ? "Update" : "Add"}
           </button>
         </div>

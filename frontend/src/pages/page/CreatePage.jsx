@@ -12,21 +12,35 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import {
-  FiX, FiBriefcase, FiGlobe, FiMapPin, FiInfo, FiAlertTriangle,
-  FiCheck, FiArrowRight, FiArrowLeft, FiUpload, FiTrash2, FiMail,
-  FiUsers, FiCalendar, FiHome, FiImage, FiLoader,
-} from "react-icons/fi";
+  X,
+  Briefcase,
+  Globe,
+  MapPin,
+  Info,
+  AlertTriangle,
+  Check,
+  ArrowRight,
+  ArrowLeft,
+  Upload,
+  Trash2,
+  Mail,
+  Users,
+  Calendar,
+  Home,
+  Image,
+  Loader2,
+} from "lucide-react";
 import { useToast } from "../../components/ui/ToastContext";
 import { getBackendUrl, getAuthHeaders, getCurrentUser, orgPath } from "../../utils/auth";
 
 const inputCls =
-  "w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-[13px] text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-colors";
-const labelCls = "block text-[11px] font-semibold text-gray-600 mb-1.5";
+  "w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink outline-none transition-colors placeholder:text-gray-500 focus:border-brand focus:ring-4 focus:ring-brand/10 dark:focus:ring-brand/20 shadow-s5";
+const labelCls = "block text-xs font-semibold text-gray-700 dark:text-gray-600 mb-1.5";
 const optCls = (sel) =>
-  `px-3 py-2 rounded-lg border text-[12.5px] font-medium transition-colors ${
+  `px-3.5 py-2 rounded-xl border text-[12.5px] font-medium transition-colors shadow-s5 ${
     sel
-      ? "border-blue-600 bg-blue-50 text-blue-700"
-      : "border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50"
+      ? "border-brand bg-brand/10 text-brand-text dark:border-brand/40 dark:bg-brand/20 dark:text-brand-text"
+      : "border-line bg-surface text-ink hover:border-gray-300 hover:bg-gray-100 dark:hover:bg-gray-25"
   }`;
 
 /** Mirrors backend/utils/free_email.py so the hint appears as you type. */
@@ -72,10 +86,10 @@ const INDUSTRIES = [
 ];
 
 const STEPS = [
-  { id: 1, label: "Basics", icon: FiBriefcase },
-  { id: 2, label: "Contact", icon: FiMail },
-  { id: 3, label: "Details", icon: FiHome },
-  { id: 4, label: "Review", icon: FiCheck },
+  { id: 1, label: "Basics", icon: Briefcase },
+  { id: 2, label: "Contact", icon: Mail },
+  { id: 3, label: "Details", icon: Home },
+  { id: 4, label: "Review", icon: Check },
 ];
 
 const EMPTY = {
@@ -247,19 +261,19 @@ export default function CreatePage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-surface flex flex-col">
       {/* Page chrome: a real top bar, not a dialog header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
+      <header className="bg-surface border-b border-line sticky top-0 z-10">
         <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 py-3.5 flex items-center gap-3">
           <Link
             to={created ? "/page" : "/feed"}
-            className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-gray-500 hover:text-gray-900 transition-colors shrink-0"
+            className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-gray-500 hover:text-ink transition-colors shrink-0"
           >
-            <FiArrowLeft className="w-3.5 h-3.5" />
+            <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.75} />
             <span className="hidden sm:inline">{created ? "Back to page" : "Back"}</span>
           </Link>
           <div className="min-w-0 flex-1 text-center">
-            <h1 className="text-[14px] font-bold text-gray-900 leading-tight truncate">
+            <h1 className="text-[14px] font-bold text-ink leading-tight truncate">
               {created ? "Your page is live" : "Create a company page"}
             </h1>
             <p className="text-[11px] text-gray-500 mt-0.5 hidden sm:block truncate">
@@ -268,18 +282,18 @@ export default function CreatePage() {
                 : "Post jobs, hire talent and manage a team — all under your own account."}
             </p>
           </div>
-          <span className="text-[12px] font-semibold text-gray-400 shrink-0 w-[52px] text-right">
+          <span className="text-[12px] font-semibold font-mono tabular-nums text-gray-500 shrink-0 w-[52px] text-right">
             Step {Math.min(step, 4)}/4
           </span>
         </div>
       </header>
 
       <main className="flex-1 w-full max-w-3xl mx-auto px-4 sm:px-6 py-5 sm:py-7">
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="bg-surface rounded-xl border border-line shadow-s5 overflow-hidden">
 
         {/* Stepper */}
         {!created && (
-          <div className="px-6 py-3 border-b border-gray-100 shrink-0">
+          <div className="px-6 py-3.5 border-b border-line shrink-0">
             <ol className="flex items-center gap-1.5">
               {STEPS.map((s, i) => {
                 const done = step > s.id;
@@ -291,20 +305,20 @@ export default function CreatePage() {
                       onClick={() => (done ? setStep(s.id) : null)}
                       disabled={!done}
                       className={`flex items-center gap-1.5 text-[11.5px] font-semibold transition-colors ${
-                        active ? "text-blue-700" : done ? "text-gray-600 hover:text-blue-700" : "text-gray-300"
+                        active ? "text-brand-text" : done ? "text-gray-600 hover:text-brand-text dark:text-gray-500" : "text-gray-300"
                       }`}>
                       <span
-                        className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${
-                          active ? "bg-blue-600 text-white"
-                            : done ? "bg-green-100 text-green-700"
-                            : "bg-gray-100 text-gray-400"
+                        className={`h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-bold font-mono ${
+                          active ? "bg-brand text-white shadow-s5"
+                            : done ? "bg-brand/10 text-brand-text"
+                            : "bg-gray-50 text-gray-500 border border-line dark:bg-gray-25"
                         }`}>
-                        {done ? <FiCheck className="w-3 h-3" /> : s.id}
+                        {done ? <Check className="h-3 w-3" strokeWidth={1.75} /> : s.id}
                       </span>
                       <span className="hidden sm:inline">{s.label}</span>
                     </button>
                     {i < STEPS.length - 1 && (
-                      <span className={`h-px flex-1 min-w-[8px] ${done ? "bg-green-300" : "bg-gray-200"}`} />
+                      <span className={`h-px flex-1 min-w-[8px] ${done ? "bg-brand/40" : "bg-line"}`} />
                     )}
                   </li>
                 );
@@ -317,15 +331,15 @@ export default function CreatePage() {
         <div className="px-4 sm:px-7 py-5 sm:py-6">
           {created ? (
             <div className="space-y-4">
-              <div className="flex items-center gap-3 rounded-xl border border-green-200 bg-green-50 px-4 py-3.5">
-                <div className="w-10 h-10 rounded-full bg-green-600 text-white flex items-center justify-center shrink-0">
-                  <FiCheck className="w-5 h-5" />
+              <div className="flex items-center gap-3 rounded-xl border border-brand/20 bg-brand/10 px-4 py-3.5 shadow-s5">
+                <div className="h-10 w-10 rounded-full bg-brand-action text-white flex items-center justify-center shrink-0">
+                  <Check className="h-5 w-5" strokeWidth={1.75} />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[13.5px] font-semibold text-green-900">
+                  <p className="text-[13.5px] font-semibold text-brand-text">
                     {created.name} is ready
                   </p>
-                  <p className="text-[12px] text-green-800 mt-0.5">
+                  <p className="text-[12px] text-gray-600 dark:text-gray-500 mt-0.5">
                     You&rsquo;re the first admin. Add teammates any time.
                   </p>
                 </div>
@@ -334,9 +348,9 @@ export default function CreatePage() {
               {created.warnings.map((w, i) => (
                 <div
                   key={i}
-                  className="flex items-start gap-2.5 rounded-lg border border-amber-300 bg-amber-50 px-3.5 py-3 text-[12px] leading-relaxed text-amber-900"
+                  className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3 text-[12px] leading-relaxed text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-400 shadow-s5"
                 >
-                  <FiAlertTriangle className="w-4 h-4 mt-px shrink-0 text-amber-600" />
+                  <AlertTriangle className="h-4 w-4 mt-px shrink-0 text-amber-600" strokeWidth={1.75} />
                   <span>
                     <strong className="font-semibold">Heads up:</strong> {w.message}
                   </span>
@@ -359,45 +373,45 @@ export default function CreatePage() {
                           <img
                             src={logoPreview}
                             alt="Logo preview"
-                            className="w-20 h-20 rounded-xl object-cover border border-gray-200"
+                            className="h-20 w-20 rounded-xl object-cover border border-line shadow-s5"
                           />
                           <button
                             type="button"
                             onClick={clearLogo}
-                            className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-gray-800 text-white flex items-center justify-center hover:bg-red-600 transition-colors"
+                            className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-gray-900 text-white flex items-center justify-center hover:bg-red-600 transition-colors"
                             aria-label="Remove logo"
                           >
-                            <FiX className="w-3 h-3" />
+                            <X className="h-3 w-3" strokeWidth={1.75} />
                           </button>
                         </div>
                       ) : (
                         <button
                           type="button"
                           onClick={() => fileRef.current?.click()}
-                          className="w-20 h-20 rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center gap-1 text-gray-400 hover:border-blue-400 hover:text-blue-500 transition-colors"
+                          className="h-20 w-20 rounded-xl border-2 border-dashed border-line flex flex-col items-center justify-center gap-1 text-gray-500 hover:border-brand hover:text-brand-text transition-colors"
                         >
-                          <FiUpload className="w-4 h-4" />
+                          <Upload className="h-4 w-4" strokeWidth={1.75} />
                           <span className="text-[9px] font-semibold uppercase tracking-wide">Logo</span>
                         </button>
                       )}
                     </div>
                     <div className="min-w-0 pt-1">
-                      <p className="text-[13px] font-semibold text-gray-900">Company logo</p>
+                      <p className="text-[13px] font-semibold text-ink">Company logo</p>
                       <p className="text-[11.5px] text-gray-500 mt-0.5 leading-relaxed">
                         Square images work best. PNG or JPG, up to 2 MB.
                         {logo && (
                           <button
                             type="button"
                             onClick={clearLogo}
-                            className="ml-1.5 inline-flex items-center gap-0.5 text-gray-400 hover:text-red-600"
+                            className="ml-1.5 inline-flex items-center gap-0.5 text-gray-500 hover:text-red-600"
                           >
-                            <FiTrash2 className="w-3 h-3" /> Remove
+                            <Trash2 className="h-3 w-3" strokeWidth={1.75} /> Remove
                           </button>
                         )}
                       </p>
                       {logo && (
-                        <p className="mt-1 inline-flex items-center gap-1 text-[11px] text-green-700 bg-green-50 border border-green-200 rounded px-1.5 py-0.5">
-                          <FiImage className="w-3 h-3" /> {logo.name}
+                        <p className="mt-1 inline-flex items-center gap-1 text-[11px] text-brand-text bg-brand/10 border border-brand/20 rounded px-1.5 py-0.5">
+                          <Image className="h-3 w-3" strokeWidth={1.75} /> {logo.name}
                         </p>
                       )}
                     </div>
@@ -424,7 +438,7 @@ export default function CreatePage() {
                       maxLength={255}
                       autoFocus
                     />
-                    <p className="mt-1 text-[11px] text-gray-400">
+                    <p className="mt-1 text-[11px] text-gray-500">
                       This is the public page name candidates see on job listings.
                     </p>
                   </div>
@@ -446,7 +460,7 @@ export default function CreatePage() {
                     <div>
                       <label htmlFor="page-website" className={labelCls}>Website</label>
                       <div className="relative">
-                        <FiGlobe className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+                        <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-500 pointer-events-none" strokeWidth={1.75} />
                         <input
                           id="page-website"
                           className={`${inputCls} pl-9`}
@@ -478,8 +492,8 @@ export default function CreatePage() {
 
               {step === 2 && (
                 <div className="space-y-4">
-                  <div className="flex items-start gap-2 rounded-lg bg-blue-50 px-3.5 py-2.5 text-[11.5px] leading-relaxed text-blue-800">
-                    <FiInfo className="w-3.5 h-3.5 mt-px shrink-0" />
+                  <div className="flex items-start gap-2 rounded-xl bg-gray-50 border border-line px-3.5 py-2.5 text-[11.5px] leading-relaxed text-gray-600 dark:bg-gray-25 dark:text-gray-500 shadow-s5">
+                    <Info className="h-3.5 w-3.5 mt-px shrink-0" strokeWidth={1.75} />
                     <span>
                       Candidates use this address to reach you about your jobs. It stays
                       private — it is never shown on your public page.
@@ -506,11 +520,11 @@ export default function CreatePage() {
                       Company email
                     </label>
                     <div className="relative">
-                      <FiMail className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-500 pointer-events-none" strokeWidth={1.75} />
                       <input
                         id="page-contact-email"
                         type="email"
-                        className={`${inputCls} pl-9 ${emailHint ? "border-amber-300 bg-amber-50/40" : ""}`}
+                        className={`${inputCls} pl-9 ${emailHint ? "border-amber-300 bg-amber-50/40 dark:border-amber-500/30 dark:bg-amber-500/10" : ""}`}
                         value={form.contact_email}
                         onChange={set("contact_email")}
                         placeholder="jobs@acme.com"
@@ -518,9 +532,9 @@ export default function CreatePage() {
                       />
                     </div>
                     {emailHint && (
-                      <div className="mt-2 flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2.5 text-[11.5px] leading-relaxed text-amber-900">
-                        <FiAlertTriangle className="w-3.5 h-3.5 mt-px shrink-0 text-amber-600" />
-                        <span>{emailHint} <span className="text-amber-700">You can still continue — this is only a suggestion.</span></span>
+                      <div className="mt-2 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-[11.5px] leading-relaxed text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-400 shadow-s5">
+                        <AlertTriangle className="h-3.5 w-3.5 mt-px shrink-0 text-amber-600" strokeWidth={1.75} />
+                        <span>{emailHint} <span className="text-amber-700 dark:text-amber-400">You can still continue — this is only a suggestion.</span></span>
                       </div>
                     )}
                   </div>
@@ -542,22 +556,22 @@ export default function CreatePage() {
                         </button>
                       ))}
                     </div>
-                    <p className="mt-1.5 text-[11px] text-gray-400">
+                    <p className="mt-1.5 text-[11px] text-gray-500">
                       Pick the closest range — candidates filter jobs on this.
                     </p>
                   </div>
 
                   <div>
                     <label htmlFor="page-employees" className={labelCls}>
-                      Exact employee count <span className="text-gray-400 font-normal">(optional)</span>
+                      Exact employee count <span className="text-gray-500 font-normal">(optional)</span>
                     </label>
                     <div className="relative">
-                      <FiUsers className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+                      <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-500 pointer-events-none" strokeWidth={1.75} />
                       <input
                         id="page-employees"
                         type="number"
                         min="1"
-                        className={`${inputCls} pl-9`}
+                        className={`${inputCls} pl-9 font-mono tabular-nums`}
                         value={form.employee_count}
                         onChange={set("employee_count")}
                         placeholder="e.g. 24"
@@ -583,16 +597,16 @@ export default function CreatePage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label htmlFor="page-founded" className={labelCls}>
-                        Date of foundation <span className="text-gray-400 font-normal">(optional)</span>
+                        Date of foundation <span className="text-gray-500 font-normal">(optional)</span>
                       </label>
                       <div className="relative">
-                        <FiCalendar className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-500 pointer-events-none" strokeWidth={1.75} />
                         <input
                           id="page-founded"
                           type="number"
                           min="1800"
                           max={currentYear}
-                          className={`${inputCls} pl-9`}
+                          className={`${inputCls} pl-9 font-mono tabular-nums`}
                           value={form.founded_year}
                           onChange={set("founded_year")}
                           placeholder={`e.g. ${currentYear - 5}`}
@@ -601,10 +615,10 @@ export default function CreatePage() {
                     </div>
                     <div>
                       <label htmlFor="page-location" className={labelCls}>
-                        Address <span className="text-gray-400 font-normal">(optional)</span>
+                        Address <span className="text-gray-500 font-normal">(optional)</span>
                       </label>
                       <div className="relative">
-                        <FiMapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+                        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-500 pointer-events-none" strokeWidth={1.75} />
                         <input
                           id="page-location"
                           className={`${inputCls} pl-9`}
@@ -622,8 +636,8 @@ export default function CreatePage() {
               {step === 4 && (
                 <div className="space-y-4">
                   {emailHint && (
-                    <div className="flex items-start gap-2.5 rounded-lg border border-amber-300 bg-amber-50 px-3.5 py-3 text-[12px] leading-relaxed text-amber-900">
-                      <FiAlertTriangle className="w-4 h-4 mt-px shrink-0 text-amber-600" />
+                    <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3 text-[12px] leading-relaxed text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-400 shadow-s5">
+                      <AlertTriangle className="h-4 w-4 mt-px shrink-0 text-amber-600" strokeWidth={1.75} />
                       <span>
                         <strong className="font-semibold">Free mailbox detected:</strong>{" "}
                         {emailHint} You can change this later in page settings.
@@ -631,16 +645,16 @@ export default function CreatePage() {
                     </div>
                   )}
 
-                  <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-gray-50 px-4 py-4">
+                  <div className="flex items-center gap-4 rounded-xl border border-line bg-gray-50 px-4 py-4 dark:bg-gray-25 shadow-s5">
                     {logoPreview ? (
-                      <img src={logoPreview} alt="" className="w-14 h-14 rounded-lg object-cover border border-gray-200 shrink-0" />
+                      <img src={logoPreview} alt="" className="h-14 w-14 rounded-xl object-cover border border-line shrink-0 shadow-s5" />
                     ) : (
-                      <div className="w-14 h-14 rounded-lg bg-gray-200 flex items-center justify-center shrink-0">
-                        <FiBriefcase className="w-5 h-5 text-gray-400" />
+                      <div className="h-14 w-14 rounded-xl bg-surface border border-line flex items-center justify-center shrink-0 shadow-s5">
+                        <Briefcase className="h-5 w-5 text-gray-500" strokeWidth={1.75} />
                       </div>
                     )}
                     <div className="min-w-0">
-                      <p className="text-[14px] font-bold text-gray-900 truncate">{form.name}</p>
+                      <p className="text-[14px] font-bold text-ink truncate">{form.name}</p>
                       <p className="text-[12px] text-gray-500 truncate">
                         {[form.industry, form.location].filter(Boolean).join(" · ") || "Add details to stand out"}
                       </p>
@@ -648,23 +662,23 @@ export default function CreatePage() {
                     <button
                       type="button"
                       onClick={() => setStep(1)}
-                      className="ml-auto text-[11.5px] font-semibold text-blue-600 hover:text-blue-800 shrink-0"
+                      className="ml-auto text-[11.5px] font-semibold text-brand-text hover:text-brand-text shrink-0"
                     >
                       Edit
                     </button>
                   </div>
 
-                  <dl className="divide-y divide-gray-100 rounded-lg border border-gray-200">
+                  <dl className="divide-y divide-line rounded-xl border border-line shadow-s5 bg-surface">
                     {reviewRows.map(([k, v]) => (
-                      <div key={k} className="flex items-start justify-between gap-4 px-3.5 py-2">
+                      <div key={k} className="flex items-start justify-between gap-4 px-4 py-2.5">
                         <dt className="text-[11.5px] text-gray-500 shrink-0">{k}</dt>
-                        <dd className="text-[12.5px] font-medium text-gray-900 text-right break-all min-w-0">{v}</dd>
+                        <dd className="text-[12.5px] font-medium text-ink text-right break-all min-w-0">{v}</dd>
                       </div>
                     ))}
                   </dl>
 
-                  <div className="flex items-start gap-2 rounded-lg bg-neutral-50 px-3.5 py-2.5 text-[11.5px] leading-relaxed text-gray-600">
-                    <FiInfo className="w-3.5 h-3.5 mt-px shrink-0" />
+                  <div className="flex items-start gap-2 rounded-xl bg-gray-50 border border-line px-3.5 py-2.5 text-[11.5px] leading-relaxed text-gray-600 dark:bg-gray-25 dark:text-gray-500 shadow-s5">
+                    <Info className="h-3.5 w-3.5 mt-px shrink-0" strokeWidth={1.75} />
                     <span>
                       Your page name is permanent and unique across RecruAI. You can edit
                       everything else later.
@@ -674,7 +688,7 @@ export default function CreatePage() {
               )}
 
               {error && (
-                <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-[12.5px] font-medium text-red-700">
+                <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-[12.5px] font-medium text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-400 shadow-s5">
                   {error}
                 </div>
               )}
@@ -683,22 +697,22 @@ export default function CreatePage() {
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between gap-3 shrink-0">
+        <div className="px-6 py-4 border-t border-line flex items-center justify-between gap-3 shrink-0">
           {created ? (
             <>
               <button
                 type="button"
                 onClick={() => navigate(orgPath(created))}
-                className="px-3.5 py-2 rounded-lg text-[13px] font-semibold text-gray-600 hover:bg-gray-100 transition-colors"
+                className="px-4 py-2.5 rounded-xl border border-line bg-surface text-xs font-semibold text-ink hover:bg-gray-100 dark:hover:bg-gray-25 shadow-s5 transition-colors"
               >
                 View page
               </button>
               <button
                 type="button"
                 onClick={() => navigate("/page/posts?new=1")}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-blue-600 text-[13px] font-semibold text-white hover:bg-blue-700 transition-colors"
+                className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-brand text-xs font-semibold text-white hover:bg-brand/90 shadow-s5 transition-colors"
               >
-                Post your first job <FiArrowRight className="w-3.5 h-3.5" />
+                Post your first job <ArrowRight className="h-4 w-4" strokeWidth={1.75} />
               </button>
             </>
           ) : (
@@ -707,9 +721,9 @@ export default function CreatePage() {
                 type="button"
                 onClick={step === 1 ? leave : () => setStep((s) => s - 1)}
                 disabled={saving}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[13px] font-semibold text-gray-600 hover:bg-gray-100 transition-colors disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-line bg-surface text-xs font-semibold text-ink hover:bg-gray-100 dark:hover:bg-gray-25 shadow-s5 transition-colors disabled:opacity-50"
               >
-                {step > 1 && <FiArrowLeft className="w-3.5 h-3.5" />}
+                {step > 1 && <ArrowLeft className="h-4 w-4" strokeWidth={1.75} />}
                 {step === 1 ? "Cancel" : "Back"}
               </button>
 
@@ -717,24 +731,24 @@ export default function CreatePage() {
                 <button
                   type="button"
                   onClick={next}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-blue-600 text-[13px] font-semibold text-white hover:bg-blue-700 transition-colors"
+                  className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-brand text-xs font-semibold text-white hover:bg-brand/90 shadow-s5 transition-colors"
                 >
-                  Continue <FiArrowRight className="w-3.5 h-3.5" />
+                  Continue <ArrowRight className="h-4 w-4" strokeWidth={1.75} />
                 </button>
               ) : (
                 <button
                   type="button"
                   onClick={submit}
                   disabled={saving}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-blue-600 text-[13px] font-semibold text-white hover:bg-blue-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-brand text-xs font-semibold text-white hover:bg-brand/90 shadow-s5 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {saving ? (
                     <>
-                      <FiLoader className="w-3.5 h-3.5 animate-spin" /> Creating…
+                      <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.75} /> Creating…
                     </>
                   ) : (
                     <>
-                      <FiCheck className="w-3.5 h-3.5" /> Create page
+                      <Check className="h-4 w-4" strokeWidth={1.75} /> Create page
                     </>
                   )}
                 </button>

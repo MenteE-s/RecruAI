@@ -15,22 +15,22 @@ export function timeAgo(dateString) {
 
 export function getStatusMeta(status) {
   switch (status) {
-    case "pending": return { label: "Pending", color: "bg-amber-50 text-amber-700 border-amber-200" };
-    case "reviewed": return { label: "Reviewed", color: "bg-blue-50 text-blue-700 border-blue-200" };
-    case "accepted": return { label: "Accepted", color: "bg-green-50 text-green-700 border-green-200" };
-    case "rejected": return { label: "Rejected", color: "bg-red-50 text-red-700 border-red-200" };
-    default: return { label: status, color: "bg-gray-50 text-gray-600 border-gray-200" };
+    case "pending": return { label: "Pending", color: "bg-amber-50 text-amber-700 border-amber-200 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-400" };
+    case "reviewed": return { label: "Reviewed", color: "bg-gray-100 text-gray-600 border-line dark:bg-gray-25 dark:text-gray-500 dark:border-line" };
+    case "accepted": return { label: "Accepted", color: "bg-brand/10 text-brand-text border-transparent" };
+    case "rejected": return { label: "Rejected", color: "bg-red-50 text-red-700 border-red-200 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-400" };
+    default: return { label: status, color: "bg-gray-50 text-gray-600 border-line dark:bg-gray-25 dark:text-gray-500" };
   }
 }
 
 export function ClearFiltersButton({ onClear }) {
   return (
-    <button onClick={onClear} className="inline-flex items-center gap-1.5 bg-gray-900 text-white px-4 py-2 text-xs font-semibold hover:bg-black rounded-md">
-      <FiX className="w-3.5 h-3.5" /> Clear filters
+    <button onClick={onClear} className="inline-flex items-center gap-1.5 rounded-xl border border-line bg-surface px-3.5 py-1.5 text-xs font-semibold text-ink transition-colors hover:bg-gray-50 dark:hover:bg-gray-25">
+      <FiX className="h-3.5 w-3.5" /> Clear filters
     </button>
   );
 }
 
 export function HiredTick() {
-  return <FiCheckCircle className="w-3.5 h-3.5" />;
+  return <FiCheckCircle className="h-3.5 w-3.5" />;
 }

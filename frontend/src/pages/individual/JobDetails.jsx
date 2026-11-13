@@ -1,23 +1,27 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import DashboardLayout from "../../components/layout/DashboardLayout";
-import IndividualNavbar from "../../components/layout/IndividualNavbar";
+import { AppShell, CenterBar } from "../../components/layout/AppShell";
+import { RailSection } from "../../components/layout/RightRail";
+import { Button, ButtonLink, IconButton } from "../../components/ui/Button";
+import MenteeLoader from "../../components/ui/MenteeLoader";
 import { getBackendUrl, getUploadUrl, getCurrentUserId, orgPath, postPath, getAuthHeaders } from "../../utils/auth";
 import { useToast } from "../../components/ui/ToastContext";
-import MenteeLoader from "../../components/ui/MenteeLoader";
 import { formatDate } from "../../utils/timezone";
+import { ApplyButton, JobMetaGrid, OrgMark, SkillGroup } from "../../components/jobs/JobBits";
+import { formatSalaryRange } from "../../utils/jobMeta";
 import {
-  FiArrowLeft,
-  FiMapPin,
-  FiBriefcase,
-  FiClock,
-  FiDollarSign,
-  FiCalendar,
-  FiBookmark,
-  FiCheckCircle,
-  FiEye,
-  FiUsers,
-} from "react-icons/fi";
+  Bookmark,
+  Share2,
+  MapPin,
+  Briefcase,
+  CreditCard,
+  Calendar,
+  Layers,
+  Eye,
+  Users,
+  CheckCircle2,
+  ExternalLink,
+} from "lucide-react";
 
 function timeAgo(dateString) {
   if (!dateString) return "Recently";
@@ -33,15 +37,13 @@ function timeAgo(dateString) {
 }
 
 export default function JobDetails() {
-  // The route segment is the job slug (e.g. "software-engineer"). Numeric ids
-// still work because the backend resolves both.
   const { slug } = useParams();
   const navigate = useNavigate();
   const { showToast } = useToast();
 
-
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
   const [saved, setSaved] = useState(false);
   const [applied, setApplied] = useState(false);
   const [showApplyConfirm, setShowApplyConfirm] = useState(false);
@@ -49,41 +51,73 @@ export default function JobDetails() {
   const [recommendedJobs, setRecommendedJobs] = useState([]);
 
   useEffect(() => {
+    if (!slug || slug === "undefined" || slug === "null") {
+      setLoading(false);
+      setJob(null);
+      return;
+    }
+    setJob(null);
+    setLoadError(null);
+    setSaved(false);
+    setApplied(false);
+    setRecommendedJobs([]);
     fetchJobDetails();
-    checkSavedStatus();
-    checkAppliedStatus();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
 
   useEffect(() => {
-    if (job) {
-      fetchRecommendedJobs();
-    }
+    if (!job?.id) return;
+    checkSavedStatus(job.id);
+    checkAppliedStatus(job.id);
+    fetchRecommendedJobs(job.id);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [job]);
+  }, [job?.id]);
 
   const fetchJobDetails = async () => {
+    if (!slug || slug === "undefined" || slug === "null") {
+      setLoading(false);
+      setJob(null);
+      return;
+    }
+    setLoadError(null);
     try {
-      // by-slug resolves the title slug and also accepts a numeric id, so both
-      // the canonical URL and any older id link work through one call.
-      const response = await fetch(`${getBackendUrl()}/api/posts/by-slug/${encodeURIComponent(slug)}`);
+      setLoading(true);
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
+      const response = await fetch(`${getBackendUrl()}/api/posts/by-slug/${encodeURIComponent(slug)}`, {
+        credentials: "include",
+        headers: getAuthHeaders(),
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
       if (response.ok) {
         const data = await response.json();
         setJob(data);
-        // Record this detail view (fire-and-forget). Use the resolved id, not
-        // the URL segment, which may be a slug.
-        if (data.id) {
-          fetch(`${getBackendUrl()}/api/posts/${data.id}/view`, { method: "POST" }).catch(() => {});
+        if (data?.id) {
+          fetch(`${getBackendUrl()}/api/posts/${data.id}/view`, {
+            method: "POST",
+            credentials: "include",
+            headers: getAuthHeaders(),
+          }).catch(() => {});
         }
       } else {
-        showToast({
-          message: "Job not found",
-          type: "error",
-        });
-        navigate("/feed");
+        setJob(null);
+        if (response.status !== 404) {
+          setLoadError(
+            response.status >= 500
+              ? "The jobs service is temporarily unavailable."
+              : "We couldn't load this job. Please try again."
+          );
+        }
       }
     } catch (error) {
       console.error("Error fetching job details:", error);
+      setJob(null);
+      setLoadError(
+        error?.name === "AbortError"
+          ? "This job took too long to load."
+          : "We couldn't reach the jobs service."
+      );
       showToast({
         message: "Failed to load job details",
         type: "error",
@@ -93,46 +127,53 @@ export default function JobDetails() {
     }
   };
 
-  const checkSavedStatus = async () => {
+  const checkSavedStatus = async (targetPostId) => {
+    const id = targetPostId || job?.id;
+    if (!id || id === "undefined" || id === "null") return;
     try {
       const response = await fetch(
-        `${getBackendUrl()}/api/saved-jobs/check?post_id=${job?.id}`
+        `${getBackendUrl()}/api/saved-jobs/check?post_id=${encodeURIComponent(id)}`,
+        {
+          credentials: "include",
+          headers: getAuthHeaders(),
+        }
       );
       if (response.ok) {
         const data = await response.json();
-        setSaved(data.saved);
+        setSaved(Boolean(data.saved));
       }
     } catch (error) {
       console.error("Error checking saved status:", error);
     }
   };
 
-  const checkAppliedStatus = async () => {
+  const checkAppliedStatus = async (targetPostId) => {
+    const id = targetPostId || job?.id;
+    if (!id || id === "undefined" || id === "null") return;
     try {
       const userId = await getCurrentUserId();
       if (!userId) return;
-      // Filter server-side to this post: returns 0-1 rows instead of the
-      // user's whole application history.
       const response = await fetch(
-        `${getBackendUrl()}/api/applications/user/${userId}?post_id=${job?.id}`
+        `${getBackendUrl()}/api/applications/user/${userId}?post_id=${encodeURIComponent(id)}`,
+        {
+          credentials: "include",
+          headers: getAuthHeaders(),
+        }
       );
       if (response.ok) {
         const data = await response.json();
         const applications = data.data || data;
-        setApplied(
-          Array.isArray(applications) ? applications.length > 0 : false
-        );
+        setApplied(Array.isArray(applications) ? applications.length > 0 : false);
       }
     } catch (error) {
       console.error("Error checking applied status:", error);
     }
   };
 
-  const fetchRecommendedJobs = async () => {
+  const fetchRecommendedJobs = async (targetPostId) => {
+    const id = targetPostId || job?.id;
+    if (!id || id === "undefined" || id === "null") return;
     try {
-      // Real, personalized recommendations from the supervisor (skill-aware,
-      // not just category filtering). Falls back silently so a recommendation
-      // failure never breaks the job page.
       const params = new URLSearchParams({ top_k: "6", explanations: "true" });
       const response = await fetch(
         `${getBackendUrl()}/api/recommendations/jobs?${params.toString()}`,
@@ -142,7 +183,7 @@ export default function JobDetails() {
         const data = await response.json();
         const recommended = (data?.recommendations || [])
           .map((item) => item?.job || item)
-          .filter((j) => j && j.id !== job?.id)
+          .filter((j) => j && j.id !== id)
           .slice(0, 5);
         setRecommendedJobs(recommended);
       }
@@ -152,12 +193,13 @@ export default function JobDetails() {
   };
 
   const handleSaveJob = async () => {
+    if (!job?.id) return;
     try {
       const response = await fetch(`${getBackendUrl()}/api/saved-jobs`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         credentials: "include",
-        body: JSON.stringify({ post_id: job?.id }),
+        body: JSON.stringify({ post_id: job.id }),
       });
 
       if (response.ok) {
@@ -182,9 +224,14 @@ export default function JobDetails() {
   };
 
   const handleUnsaveJob = async () => {
+    if (!job?.id) return;
     try {
       const response = await fetch(
-        `${getBackendUrl()}/api/saved-jobs/check?post_id=${job?.id}`
+        `${getBackendUrl()}/api/saved-jobs/check?post_id=${encodeURIComponent(job.id)}`,
+        {
+          credentials: "include",
+          headers: getAuthHeaders(),
+        }
       );
       if (response.ok) {
         const data = await response.json();
@@ -194,6 +241,7 @@ export default function JobDetails() {
             {
               method: "DELETE",
               credentials: "include",
+              headers: getAuthHeaders(),
             }
           );
 
@@ -215,16 +263,30 @@ export default function JobDetails() {
     }
   };
 
+  const handleShare = async () => {
+    const url = window.location.href;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: job?.title || "Job", url });
+        return;
+      }
+      await navigator.clipboard.writeText(url);
+    } catch {
+      // share cancelled / unavailable
+    }
+    showToast({ message: "Link copied to clipboard", type: "success" });
+  };
+
   const handleApplyJob = async () => {
-    if (applying) return;
+    if (applying || !job?.id) return;
     setApplying(true);
     try {
       const response = await fetch(`${getBackendUrl()}/api/applications`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         credentials: "include",
         body: JSON.stringify({
-          post_id: job?.id,
+          post_id: job.id,
           cover_letter: "",
           resume_url: "",
         }),
@@ -257,308 +319,278 @@ export default function JobDetails() {
 
   if (loading) {
     return (
-      <DashboardLayout
-        NavbarComponent={IndividualNavbar}>
-        <div className="flex justify-center items-center h-64">
+      <AppShell rail={<RailSection />}>
+        <CenterBar title="Job" backTo="/in/jobs" backLabel="Jobs" />
+        <div className="rounded-xl border border-line bg-surface dark:border-line dark:bg-gray-25/80 p-6 m-4 text-center">
           <MenteeLoader size={60} text="Loading job…" />
         </div>
-      </DashboardLayout>
+      </AppShell>
     );
   }
 
   if (!job) {
     return (
-      <DashboardLayout
-        NavbarComponent={IndividualNavbar}>
-        <div className="text-center py-12">
-          <p className="text-sm text-gray-500">Job not found</p>
+      <AppShell rail={<RailSection />}>
+        <CenterBar title="Job" backTo="/in/jobs" backLabel="Jobs" />
+        <div className="px-4 py-6">
+          <div className="rounded-xl border border-line bg-surface dark:border-line dark:bg-gray-25/80 p-8 sm:p-10 text-center">
+            <h2 className="text-lg font-semibold text-ink">
+              {loadError ? "Couldn't load this job" : "This role is no longer available"}
+            </h2>
+            <p className="mx-auto mt-2 max-w-sm text-sm leading-5 text-gray-500 dark:text-gray-500">
+              {loadError ||
+                "The job may have been closed or removed by the organization. Browse the latest openings instead."}
+            </p>
+            <div className="mt-5 flex justify-center items-center gap-2">
+              {loadError ? (
+                <Button variant="primary" size="sm" onClick={fetchJobDetails}>
+                  Try again
+                </Button>
+              ) : null}
+              <ButtonLink to="/in/jobs" variant={loadError ? "secondary" : "primary"} size="sm">
+                Browse jobs
+              </ButtonLink>
+              <ButtonLink to="/feed" variant="secondary" size="sm">
+                Back to feed
+              </ButtonLink>
+            </div>
+          </div>
         </div>
-      </DashboardLayout>
+      </AppShell>
     );
   }
 
   const orgName = job.organization?.name || "Unknown organization";
-  const orgInitial = (job.organization?.name || job.title || "?")[0].toUpperCase();
-  const salary =
-    job.salary_min || job.salary_max
-      ? job.salary_min && job.salary_max
-        ? `${job.salary_currency || "$"}${Number(job.salary_min).toLocaleString()} - ${job.salary_currency || "$"}${Number(job.salary_max).toLocaleString()}`
-        : `${job.salary_currency || "$"}${Number(job.salary_min || job.salary_max).toLocaleString()}`
-      : null;
+  const salary = formatSalaryRange(job.salary_min, job.salary_max, job.salary_currency);
 
-  return (
-    <DashboardLayout
-      NavbarComponent={IndividualNavbar}>
-      {/* Centered narrow column, LinkedIn-style */}
-      <div className="w-full max-w-3xl mx-auto">
-        <button
-          onClick={() => navigate("/feed")}
-          className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-gray-900 mb-2"
-        >
-          <FiArrowLeft className="w-3.5 h-3.5" /> Back to dashboard
-        </button>
+  const metaItems = [
+    { icon: MapPin, label: "Location", value: job.location || "Not specified" },
+    { icon: Briefcase, label: "Employment", value: job.employment_type || "Not specified" },
+    ...(job.category ? [{ icon: Layers, label: "Category", value: job.category }] : []),
+    ...(salary ? [{ icon: CreditCard, label: "Compensation", value: salary, mono: true }] : []),
+    ...(job.application_deadline ? [{ icon: Calendar, label: "Apply by", value: formatDate(job.application_deadline), mono: true }] : []),
+  ];
 
-        {/* Job header card */}
-        <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
-          <div className="flex gap-3">
-            {job.organization?.profile_image ? (
-              <img
-                src={getUploadUrl(job.organization.profile_image)}
-                alt={orgName}
-                className="w-12 h-12 rounded object-cover border border-gray-200 shrink-0"
-              />
-            ) : (
-              <div className="w-12 h-12 rounded bg-gray-800 text-white flex items-center justify-center text-lg font-bold shrink-0">
-                {orgInitial}
+  const descriptionParagraphs = (job.description || "No description provided.")
+    .split(/\n{2,}/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+
+  const railContent = (
+    <>
+      {recommendedJobs.length > 0 && (
+        <RailSection title="Similar jobs">
+          <div className="rounded-xl border border-line bg-surface dark:border-line dark:bg-gray-25/80 p-2 flex flex-col gap-1">
+            {recommendedJobs.slice(0, 3).map((recJob) => (
+              <button
+                key={recJob.id}
+                type="button"
+                onClick={() => navigate(postPath(recJob))}
+                className="w-full text-left rounded-lg p-2.5 transition-colors hover:bg-gray-50 dark:bg-transparent dark:hover:bg-gray-25/60"
+              >
+                <p className="truncate text-[13px] font-semibold leading-5 text-ink">{recJob.title}</p>
+                <p className="truncate text-[11px] leading-4 text-gray-500 dark:text-gray-500">
+                  {recJob.organization?.name || "Unknown"} · {recJob.location || "—"}
+                </p>
+              </button>
+            ))}
+          </div>
+        </RailSection>
+      )}
+      <RailSection title="Job details">
+        <div className="rounded-xl border border-line bg-surface dark:border-line dark:bg-gray-25/80 p-4">
+          <div className="flex flex-col gap-2.5">
+            <div className="flex items-center gap-2 text-xs leading-4 text-gray-600 dark:text-gray-600">
+              <Calendar className="h-3.5 w-3.5 text-gray-500 dark:text-gray-500 shrink-0" strokeWidth={1.75} />
+              <span>
+                Posted <span className="font-mono tabular-nums">{formatDate(job.created_at)}</span>
+              </span>
+            </div>
+            <div className="flex items-center gap-2 text-xs leading-4 text-gray-600 dark:text-gray-600">
+              <MapPin className="h-3.5 w-3.5 text-gray-500 dark:text-gray-500 shrink-0" strokeWidth={1.75} />
+              <span className="truncate">{job.location || "Not specified"}</span>
+            </div>
+            <div className="flex items-center gap-2 text-xs leading-4 text-gray-600 dark:text-gray-600">
+              <Briefcase className="h-3.5 w-3.5 text-gray-500 dark:text-gray-500 shrink-0" strokeWidth={1.75} />
+              <span>{job.employment_type || "Not specified"}</span>
+            </div>
+            {salary && (
+              <div className="flex items-center gap-2 text-xs leading-4 text-gray-600 dark:text-gray-600">
+                <CreditCard className="h-3.5 w-3.5 text-gray-500 dark:text-gray-500 shrink-0" strokeWidth={1.75} />
+                <span className="font-mono tabular-nums">{salary}</span>
               </div>
             )}
-            <div className="flex-1 min-w-0">
-              <h1 className="text-[17px] font-semibold text-gray-900 leading-snug">{job.title}</h1>
+            <div className="flex items-center gap-2 text-xs leading-4 text-gray-600 dark:text-gray-600">
+              <Eye className="h-3.5 w-3.5 text-gray-500 dark:text-gray-500 shrink-0" strokeWidth={1.75} />
+              <span>
+                <span className="font-mono tabular-nums">{job.view_count ?? 0}</span> view{(job.view_count ?? 0) === 1 ? "" : "s"}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 text-xs leading-4 text-gray-600 dark:text-gray-600">
+              <Users className="h-3.5 w-3.5 text-gray-500 dark:text-gray-500 shrink-0" strokeWidth={1.75} />
+              <span>
+                <span className="font-mono tabular-nums">{job.application_count ?? 0}</span> applicant{(job.application_count ?? 0) === 1 ? "" : "s"}
+              </span>
+            </div>
+          </div>
+        </div>
+      </RailSection>
+      <RailSection>
+        <div className="rounded-xl border border-line bg-surface dark:border-line dark:bg-gray-25/80 p-4">
+          <p className="text-sm font-semibold leading-5 text-ink">Looking for a new job?</p>
+          <p className="mt-1 text-xs leading-5 text-gray-500 dark:text-gray-500">
+            Browse open roles and apply with your RecruAI profile.
+          </p>
+          <ButtonLink to="/feed" variant="secondary" size="sm" className="mt-3 w-full">
+            Browse jobs
+          </ButtonLink>
+        </div>
+      </RailSection>
+    </>
+  );
+
+  return (
+    <AppShell rail={railContent}>
+      <CenterBar
+        backTo="/in/jobs"
+        backLabel="Jobs"
+        title={<span className="truncate text-sm font-semibold text-ink">{orgName}</span>}
+        actions={
+          <div className="flex items-center gap-2">
+            <IconButton
+              label={saved ? "Unsave job" : "Save job"}
+              onClick={saved ? handleUnsaveJob : handleSaveJob}
+              active={saved}
+            >
+              <Bookmark
+                className={`h-4 w-4 ${saved ? "fill-brand text-brand-text" : "text-gray-500 dark:text-gray-500"}`}
+                strokeWidth={1.75}
+              />
+            </IconButton>
+            <IconButton label="Share job" onClick={handleShare}>
+              <Share2 className="h-4 w-4 text-gray-500 dark:text-gray-500" strokeWidth={1.75} />
+            </IconButton>
+          </div>
+        }
+      />
+
+      <div className="px-4 py-5">
+        <div className="flex items-start gap-3.5">
+          <OrgMark
+            name={orgName}
+            image={job.organization?.profile_image ? getUploadUrl(job.organization.profile_image) : null}
+            size="2xl"
+          />
+          <div className="min-w-0 flex-1">
+            <h1 className="text-[20px] font-semibold leading-7 text-ink">{job.title}</h1>
+            <p className="mt-1 text-[13px] leading-5 text-gray-600 dark:text-gray-500">
               {job.organization?.id ? (
-                <Link
-                  to={orgPath(job.organization)}
-                  className="text-sm text-blue-600 hover:underline"
-                >
+                <Link to={orgPath(job.organization)} className="font-medium text-ink hover:underline">
                   {orgName}
                 </Link>
               ) : (
-                <p className="text-sm text-blue-600">{orgName}</p>
-              )}
-              <p className="text-xs text-gray-500 mt-0.5">
-                {job.location || "Location not specified"}
-                {job.employment_type ? ` · ${job.employment_type}` : ""}
-              </p>
-              <p className="text-[11px] text-gray-400 mt-0.5">
-                {job.category ? `${job.category} · ` : ""}Posted {timeAgo(job.created_at)}
-                {job.status === "active" ? " · Actively hiring" : ` · ${job.status}`}
-              </p>
-              <p className="text-[11px] text-gray-400 mt-0.5 flex items-center gap-3">
-                <span className="inline-flex items-center gap-1">
-                  <FiEye className="w-3 h-3" /> {job.view_count ?? 0} view{(job.view_count ?? 0) === 1 ? "" : "s"}
-                </span>
-                <span className="inline-flex items-center gap-1">
-                  <FiUsers className="w-3 h-3" /> {job.application_count ?? 0} applicant{(job.application_count ?? 0) === 1 ? "" : "s"}
-                </span>
-              </p>
-            </div>
+                <span className="font-medium text-ink">{orgName}</span>
+              )}{" "}
+              {job.employment_type && <>· {job.employment_type}</>}
+            </p>
+            <p className="mt-1 text-[11px] leading-4 text-gray-500 dark:text-gray-500">
+              Posted <span className="font-mono tabular-nums">{timeAgo(job.created_at)}</span> ·{" "}
+              <span className="font-mono tabular-nums">{job.view_count ?? 0}</span> view{(job.view_count ?? 0) === 1 ? "" : "s"} ·{" "}
+              <span className="font-mono tabular-nums">{job.application_count ?? 0}</span> applicant{(job.application_count ?? 0) === 1 ? "" : "s"}
+            </p>
           </div>
+        </div>
 
-          {(salary || job.application_deadline) && (
-            <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2.5 text-xs text-gray-600">
-              {salary && (
-                <span className="inline-flex items-center gap-1">
-                  <FiDollarSign className="w-3.5 h-3.5 text-gray-400" />{salary}
-                </span>
-              )}
-              {job.application_deadline && (
-                <span className="inline-flex items-center gap-1">
-                  <FiCalendar className="w-3.5 h-3.5 text-gray-400" />Apply by {formatDate(job.application_deadline)}
-                </span>
-              )}
-            </div>
+        <JobMetaGrid items={metaItems} />
+
+        <div className="mt-5 flex flex-col gap-2.5 sm:flex-row sm:items-center">
+          {applied ? (
+            <span className="inline-flex h-9 items-center justify-center gap-2 rounded-xl border border-line bg-gray-50 px-4 text-sm font-medium text-gray-600 dark:border-line dark:bg-gray-25/50 dark:text-gray-600 w-full sm:w-auto">
+              <CheckCircle2 className="h-4 w-4 text-brand-text" strokeWidth={1.75} /> Applied
+            </span>
+          ) : (
+            <ApplyButton onClick={() => setShowApplyConfirm(true)}>Apply</ApplyButton>
           )}
+          <p className="text-[11px] leading-4 text-gray-500 dark:text-gray-500">
+            Applications use your RecruAI profile — no forms to re-type.
+          </p>
+        </div>
 
-          {/* LinkedIn-style pill actions */}
-          <div className="flex items-center gap-2 mt-3">
-            {applied ? (
-              <span className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-green-50 text-green-700 border border-green-200 rounded-full text-sm font-semibold">
-                <FiCheckCircle className="w-4 h-4" /> Applied
-              </span>
-            ) : (
-              <button
-                onClick={() => setShowApplyConfirm(true)}
-                className="px-4 py-1.5 bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors rounded-full"
-              >
-                MenteE Apply
-              </button>
-            )}
-            <button
-              onClick={saved ? handleUnsaveJob : handleSaveJob}
-              className={`inline-flex items-center gap-1.5 px-4 py-1.5 text-sm font-semibold rounded-full border transition-colors ${
-                saved
-                  ? "bg-gray-100 text-gray-600 border-gray-300"
-                  : "bg-white text-blue-600 border-blue-600 hover:bg-blue-50"
-              }`}>
-              <FiBookmark className={`w-4 h-4 ${saved ? "fill-gray-400" : ""}`} /> {saved ? "Saved" : "Save"}
-            </button>
+        {job.requirements && job.requirements.length > 0 && (
+          <div className="mt-6 border-t border-line dark:border-line pt-5">
+            <SkillGroup title="Must-have skills" skills={job.requirements} />
+          </div>
+        )}
+
+        <div className="mt-6 border-t border-line dark:border-line pt-5">
+          <h2 className="text-[15px] font-semibold leading-5 text-ink">About the role</h2>
+          <div className="mt-2.5 flex flex-col gap-3.5">
+            {descriptionParagraphs.map((paragraph, index) => (
+              <p key={index} className="text-[15px] leading-6 text-ink">
+                {paragraph}
+              </p>
+            ))}
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mt-3">
-          {/* Main column */}
-          <div className="lg:col-span-2 space-y-3">
-            {/* About the job */}
-            <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
-              <h2 className="text-[15px] font-semibold text-gray-900">About the job</h2>
-              <p className="text-sm text-gray-700 whitespace-pre-line leading-relaxed mt-2">
-                {job.description || "No description provided."}
-              </p>
-            </div>
-
-            {/* Requirements */}
-            {job.requirements && job.requirements.length > 0 && (
-              <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
-                <h2 className="text-[15px] font-semibold text-gray-900">
-                  Requirements <span className="text-xs font-normal text-gray-400">({job.requirements.length})</span>
-                </h2>
-                <ul className="list-disc pl-5 mt-2 space-y-1">
-                  {job.requirements.map((req, index) => (
-                    <li key={index} className="text-sm text-gray-700 leading-relaxed">{req}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {/* About the company */}
-            {job.organization_details && (
-              <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
-                <h2 className="text-[15px] font-semibold text-gray-900">About the company</h2>
-                <button
-                  onClick={() => job.organization?.id && navigate(orgPath(job.organization))}
-                  disabled={!job.organization?.id}
-                  className="w-full flex items-center gap-2.5 mt-2.5 text-left group"
+        {job.organization_details && (
+          <div className="mt-6 border-t border-line dark:border-line pt-5">
+            <h2 className="text-[15px] font-semibold leading-5 text-ink">About the company</h2>
+            <div className="mt-2.5 flex flex-col gap-2">
+              {(job.organization_details.industry || job.organization_details.location || job.organization_details.company_size) && (
+                <p className="text-[13px] leading-5 text-gray-600 dark:text-gray-500">
+                  {[job.organization_details.industry, job.organization_details.location, job.organization_details.company_size].filter(Boolean).join(" · ")}
+                </p>
+              )}
+              {job.organization_details.description && (
+                <p className="text-[15px] leading-6 text-ink">{job.organization_details.description}</p>
+              )}
+              {job.organization_details.website && (
+                <a
+                  href={job.organization_details.website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs font-semibold text-ink hover:text-brand-text break-all transition-colors inline-flex items-center gap-1.5"
                 >
-                  {job.organization?.profile_image ? (
-                    <img
-                      src={getUploadUrl(job.organization.profile_image)}
-                      alt={orgName}
-                      className="w-10 h-10 rounded object-cover border border-gray-200 shrink-0"
-                    />
-                  ) : (
-                    <div className="w-10 h-10 rounded bg-gray-800 text-white flex items-center justify-center text-base font-bold shrink-0">
-                      {orgInitial}
-                    </div>
-                  )}
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-gray-900 group-hover:text-blue-600 group-hover:underline truncate">{orgName}</p>
-                    {(job.organization_details.industry || job.organization_details.location) && (
-                      <p className="text-xs text-gray-500 truncate">
-                        {job.organization_details.industry || ""}
-                        {job.organization_details.industry && job.organization_details.location ? " · " : ""}
-                        {job.organization_details.location || ""}
-                        {job.organization_details.company_size ? ` · ${job.organization_details.company_size}` : ""}
-                      </p>
-                    )}
-                  </div>
-                </button>
-                {job.organization_details.description && (
-                  <p className="text-sm text-gray-700 leading-relaxed mt-2.5">
-                    {job.organization_details.description}
-                  </p>
-                )}
-                {job.organization_details.website && (
-                  <a
-                    href={job.organization_details.website}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-blue-600 hover:underline mt-2 inline-block break-all"
-                  >
-                    {job.organization_details.website}
-                  </a>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Right rail */}
-          <div className="space-y-3">
-            {/* What is MenteE Apply */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg shadow-sm p-4">
-              <h2 className="text-[13px] font-semibold text-blue-900">What is MenteE Apply?</h2>
-              <p className="text-xs text-blue-800 leading-relaxed mt-1.5">
-                One-click apply with your RecruAI profile — no forms, no re-typing. Your profile,
-                resume, and contact details go straight to the hiring team, and you can track the
-                application under Applied jobs.
-              </p>
+                  <span>{job.organization_details.website}</span>
+                  <ExternalLink className="h-3.5 w-3.5" strokeWidth={1.75} />
+                </a>
+              )}
             </div>
-
-            {/* Job overview */}
-            <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
-              <h2 className="text-[13px] font-semibold text-gray-900">Job details</h2>
-              <div className="mt-2 space-y-1.5 text-xs">
-                <div className="flex items-center gap-1.5 text-gray-600">
-                  <FiClock className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                  <span>Posted {formatDate(job.created_at)}</span>
-                </div>
-                {job.location && (
-                  <div className="flex items-center gap-1.5 text-gray-600">
-                    <FiMapPin className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                    <span className="truncate">{job.location}</span>
-                  </div>
-                )}
-                {job.employment_type && (
-                  <div className="flex items-center gap-1.5 text-gray-600">
-                    <FiBriefcase className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                    <span>{job.employment_type}</span>
-                  </div>
-                )}
-                {job.application_deadline && (
-                  <div className="flex items-center gap-1.5 text-gray-600">
-                    <FiCalendar className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                    <span>Apply by {formatDate(job.application_deadline)}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Similar jobs */}
-            {recommendedJobs.length > 0 && (
-              <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
-                <h2 className="text-[13px] font-semibold text-gray-900">Similar jobs</h2>
-                <div className="mt-1 divide-y divide-gray-100">
-                  {recommendedJobs.map((recJob) => (
-                    <button
-                      key={recJob.id}
-                      onClick={() => navigate(postPath(recJob))}
-                      className="w-full flex gap-2.5 py-2.5 text-left group"
-                    >
-                      <div className="w-9 h-9 rounded bg-gray-800 text-white flex items-center justify-center text-xs font-bold shrink-0">
-                        {(recJob.organization?.name || recJob.title || "?")[0].toUpperCase()}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-[13px] font-semibold text-gray-900 group-hover:text-blue-600 group-hover:underline leading-tight line-clamp-2">
-                          {recJob.title}
-                        </p>
-                        <p className="text-[11px] text-gray-500 truncate mt-0.5">
-                          {recJob.organization?.name || ""}
-                          {recJob.location ? ` · ${recJob.location}` : ""}
-                        </p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
-        </div>
+        )}
+
+        <p className="mt-6 text-[11px] leading-5 text-gray-500 dark:text-gray-500">
+          This listing is managed by the organization and may change at any time.
+        </p>
       </div>
 
-      {/* Apply Confirmation Modal */}
+      {/* Apply Confirmation Modal with >=12px insets and sentence case */}
       {showApplyConfirm && (
-        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white p-4 max-w-sm w-full border border-gray-200 rounded-lg shadow-xl">
-            <h3 className="text-sm font-semibold text-gray-900">Apply to {orgName}?</h3>
-            <p className="text-xs text-gray-600 mt-1.5">
-              You're applying for <strong className="text-gray-900">{job.title}</strong>.
-            </p>
-            <div className="flex gap-2 mt-4">
-              <button
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 p-4 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-sm overflow-hidden rounded-2xl border border-line bg-surface dark:border-line dark:bg-gray-25 shadow-s15 p-5 animate-popIn">
+            <div>
+              <h3 className="text-base font-semibold leading-6 text-ink">Apply to {orgName}?</h3>
+              <p className="mt-1.5 text-xs leading-5 text-gray-600 dark:text-gray-500">
+                You're applying for <span className="font-semibold text-ink">{job.title}</span> using your RecruAI profile.
+              </p>
+            </div>
+            <div className="mt-5 flex gap-2.5">
+              <Button
+                variant="primary"
+                className="flex-1"
                 onClick={handleApplyJob}
                 disabled={applying}
-                className="flex-1 px-4 py-1.5 bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors rounded-full disabled:opacity-70 inline-flex items-center justify-center gap-2"
               >
-                {applying ? (<><MenteeLoader size={22} text={null} inline /> Applying…</>) : "Submit application"}
-              </button>
-              <button
-                onClick={() => setShowApplyConfirm(false)}
-                className="px-4 py-1.5 bg-white border border-gray-300 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors rounded-full"
-              >
+                {applying ? (<><MenteeLoader size={18} text={null} inline /> Applying…</>) : "Submit application"}
+              </Button>
+              <Button variant="secondary" onClick={() => setShowApplyConfirm(false)}>
                 Cancel
-              </button>
+              </Button>
             </div>
           </div>
         </div>
       )}
-    </DashboardLayout>
+    </AppShell>
   );
 }

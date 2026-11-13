@@ -3,7 +3,7 @@ import CvaiShell, { Panel, Stat, Badge, Button, Loading, ErrorNote, LockedNote, 
 import {
   cvai, isLocked, messageOf, PRIORITY_TONE,
 } from "../../utils/cvai";
-import { FiCheckCircle, FiClock, FiPlusCircle } from "react-icons/fi";
+import { CheckCircle2, Clock, PlusCircle } from "lucide-react";
 
 /**
  * Your plan: what you are working towards, how far through it you are, and what
@@ -95,7 +95,7 @@ export default function CvaiPlan() {
 
   return (
     <CvaiShell
-      title="Your plan"
+      title="My plan"
       subtitle="Built from what has actually been measured on your profile, then fitted to your timeline. The starter plan comes first; later work is shown as your full path."
     >
       {locked ? (
@@ -115,7 +115,7 @@ export default function CvaiPlan() {
                   <Stat
                     value={progress.behind_count || 0}
                     label="Behind schedule"
-                    tone={progress.behind_count ? "text-amber-700" : "text-gray-900"}
+                    tone={progress.behind_count ? "text-amber-700 dark:text-amber-400" : "text-ink"}
                   />
                   <Stat value={progress.skills_assessed || 0} label="Skills measured" />
                 </div>
@@ -123,18 +123,18 @@ export default function CvaiPlan() {
 
               {suggestions.length ? (
                 <Panel title="Do this next" hint="Ranked, and every one states its reason.">
-                  <div className="space-y-2">
+                  <div className="space-y-2.5">
                     {suggestions.slice(0, 3).map((s, i) => (
-                      <div key={`${s.kind}-${i}`} className={`border p-4 ${PRIORITY_TONE[s.priority] || PRIORITY_TONE.normal}`}>
+                      <div key={`${s.kind}-${i}`} className={`rounded-xl border p-4 shadow-s5 ${PRIORITY_TONE[s.priority] || PRIORITY_TONE.normal}`}>
                         <div className="flex flex-wrap items-center justify-between gap-2">
-                          <p className="text-sm font-semibold text-gray-900">{s.title}</p>
+                          <p className="text-sm font-semibold text-ink">{s.title}</p>
                           {s.priority === "urgent" || s.priority === "high" ? (
-                            <Badge className="border-gray-300 bg-white text-gray-700 uppercase">
+                            <Badge className="border-line dark:border-line bg-surface dark:bg-gray-25 text-ink uppercase">
                               {s.priority}
                             </Badge>
                           ) : null}
                         </div>
-                        <p className="mt-1 text-xs text-gray-600">{s.reason}</p>
+                        <p className="mt-1 text-xs leading-relaxed text-secondary">{s.reason}</p>
                       </div>
                     ))}
                   </div>
@@ -144,18 +144,18 @@ export default function CvaiPlan() {
               <Panel title="Build a plan" hint="Costs AI tokens. The starter plan fits your timeline; later steps stay visible as your full path.">
                 <form onSubmit={createPlan} className="grid gap-3 md:grid-cols-[2fr_1fr_1fr_auto] md:items-end">
                   <label className="block">
-                    <span className="text-xs font-medium text-gray-700">
+                    <span className="text-xs font-medium text-ink">
                       What are you aiming for?
                     </span>
                     <input
                       value={form.goal}
                       onChange={(e) => setForm({ ...form, goal: e.target.value })}
                       placeholder="Become interview-ready for a backend role"
-                      className="mt-1 w-full border border-gray-200 px-3 py-2 text-sm outline-none focus:border-blue-500"
+                      className="mt-1 w-full rounded-xl border border-line dark:border-line bg-surface dark:bg-gray-25 px-3.5 py-2 text-sm text-ink outline-none transition-colors placeholder:text-gray-500 dark:placeholder:text-gray-500 focus:border-brand focus:ring-2 focus:ring-brand/20"
                     />
                   </label>
                   <label className="block">
-                    <span className="text-xs font-medium text-gray-700">
+                    <span className="text-xs font-medium text-ink">
                       Hours each week
                     </span>
                     <input
@@ -164,17 +164,17 @@ export default function CvaiPlan() {
                       max="40"
                       value={form.weekly_hours}
                       onChange={(e) => setForm({ ...form, weekly_hours: e.target.value })}
-                      className="mt-1 w-full border border-gray-200 px-3 py-2 text-sm outline-none focus:border-blue-500"
+                      className="mt-1 w-full rounded-xl border border-line dark:border-line bg-surface dark:bg-gray-25 px-3.5 py-2 text-sm font-mono text-ink outline-none transition-colors placeholder:text-gray-500 dark:placeholder:text-gray-500 focus:border-brand focus:ring-2 focus:ring-brand/20"
                     />
                   </label>
                   <label className="block">
-                    <span className="text-xs font-medium text-gray-700">
+                    <span className="text-xs font-medium text-ink">
                       Starter plan length
                     </span>
                     <select
                       value={form.target_weeks}
                       onChange={(e) => setForm({ ...form, target_weeks: e.target.value })}
-                      className="mt-1 w-full border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
+                      className="mt-1 w-full rounded-xl border border-line dark:border-line bg-surface dark:bg-gray-25 px-3.5 py-2 text-sm text-ink outline-none transition-colors focus:border-brand focus:ring-2 focus:ring-brand/20"
                     >
                       <option value={8}>8 weeks</option>
                       <option value={12}>12 weeks</option>
@@ -185,11 +185,11 @@ export default function CvaiPlan() {
                     </select>
                   </label>
                   <Button type="submit" disabled={creating || !form.goal.trim()}>
-                    <FiPlusCircle className="h-4 w-4" /> {creating ? "Building…" : "Build plan"}
+                    <PlusCircle className="h-4 w-4" strokeWidth={1.75} /> {creating ? "Building…" : "Build plan"}
                   </Button>
                 </form>
                 {options?.levels ? (
-                  <p className="mt-2 text-xs text-gray-500">
+                  <p className="mt-2 text-xs leading-relaxed text-secondary">
                     Levels run {options.levels[0]} → {options.levels[options.levels.length - 1]}.
                     The starter plan is fitted to your timeline; work that does not fit is shown
                     separately as the full path. At 5h/week, a 12-week starter plan is about 60 hours.
@@ -235,46 +235,48 @@ function PlanCard({ plan, expanded, detail, busyStep, onExpand, onToggleStep }) 
   const deferred = detail?.deferred_steps || [];
 
   return (
-    <div className="border border-gray-200">
+    <div className="rounded-xl border border-line dark:border-line bg-surface dark:bg-gray-25/90 shadow-s5 overflow-hidden">
       <button
         type="button"
         onClick={onExpand}
-        className="flex w-full flex-wrap items-center justify-between gap-3 p-4 text-left transition-colors hover:bg-gray-50"
+        className="flex w-full flex-wrap items-center justify-between gap-3 p-4 text-left transition-colors hover:bg-gray-100 dark:hover:bg-gray-25/40"
       >
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-gray-900">{plan.goal}</p>
-          <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-gray-500">
+          <p className="text-sm font-semibold text-ink">{plan.goal}</p>
+          <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-secondary">
             <span className="inline-flex items-center gap-1">
-              <FiClock className="h-3 w-3" /> {plan.total_hours || 0}h over {plan.weeks || "?"}w
+              <Clock className="h-3.5 w-3.5" strokeWidth={1.75} /> <span className="font-mono">{plan.total_hours || 0}</span>h over <span className="font-mono">{plan.weeks || "?"}</span>w
             </span>
-            <span>{plan.weekly_hours}h/week</span>
+            <span>•</span>
+            <span><span className="font-mono">{plan.weekly_hours}</span>h/week</span>
+            <span>•</span>
             {plan.total_cost ? (
-              <span className="text-gray-400">{plan.total_cost} of paid resources</span>
+              <span className="text-secondary">{plan.total_cost} of paid resources</span>
             ) : (
               <span>free resources</span>
             )}
           </div>
         </div>
         <div className="w-full max-w-[200px]">
-          <div className="flex items-center justify-between text-xs text-gray-500">
-            <span>{done}/{total} steps</span>
-            <span>{pct}%</span>
+          <div className="flex items-center justify-between text-xs text-secondary">
+            <span><span className="font-mono">{done}/{total}</span> steps</span>
+            <span className="font-semibold font-mono text-ink">{pct}%</span>
           </div>
-          <div className="mt-1">
-            <Meter value={pct} tone={pct === 100 ? "bg-green-600" : "bg-blue-600"} />
+          <div className="mt-1.5">
+            <Meter value={pct} tone="bg-brand" />
           </div>
         </div>
       </button>
 
       {plan.trimmed ? (
-        <div className="border-t border-gray-100 bg-amber-50 px-4 py-2 text-xs text-amber-800">
+        <div className="border-t border-line dark:border-line bg-amber-50 dark:bg-amber-500/10 px-4 py-3 text-xs leading-relaxed text-amber-800 dark:text-amber-300">
           Starter plan fitted to your timeline. {plan.trim_reason}
         </div>
       ) : null}
 
       {plan.deferred_step_count ? (
-        <div className="border-t border-gray-100 bg-gray-50 px-4 py-2 text-xs text-gray-600">
-          Full path: {plan.full_total_hours}h over {plan.full_weeks}w · {plan.deferred_step_count} later
+        <div className="border-t border-line dark:border-line bg-gray-50 dark:bg-gray-25/80 px-4 py-3 text-xs leading-relaxed text-secondary dark:text-gray-700">
+          Full path: <span className="font-mono">{plan.full_total_hours}</span>h over <span className="font-mono">{plan.full_weeks}</span>w · <span className="font-mono">{plan.deferred_step_count}</span> later
           {plan.deferred_step_count === 1 ? " step" : " steps"} beyond the starter plan.
         </div>
       ) : null}
@@ -282,39 +284,39 @@ function PlanCard({ plan, expanded, detail, busyStep, onExpand, onToggleStep }) 
       {expanded ? (
         <>
           {steps.length ? (
-            <ol className="space-y-2 border-t border-gray-100 p-4">
+            <ol className="space-y-2.5 border-t border-line dark:border-line p-4">
               {steps.map((step, index) => {
                 const isDone = step.status === "done";
                 return (
-                  <li key={step.id} className="flex items-start gap-3 border border-gray-200 p-3">
+                  <li key={step.id} className="flex items-start gap-3 rounded-xl border border-line dark:border-line bg-surface dark:bg-gray-25 p-3.5 shadow-s5">
                     <button
                       type="button"
                       disabled={busyStep === step.id}
                       onClick={() => onToggleStep(step)}
-                      className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center border transition-colors ${
+                      className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border transition-colors ${
                         isDone
-                          ? "border-green-600 bg-green-600 text-white"
-                          : "border-gray-300 bg-white text-transparent hover:border-blue-500"
+                          ? "border-brand bg-brand text-white shadow-s5"
+                          : "border-line dark:border-line bg-surface dark:bg-gray-25 text-transparent hover:border-brand"
                       }`}
                       title={isDone ? "Mark not done" : "Mark done"}>
-                      <FiCheckCircle className="h-4 w-4" />
+                      <CheckCircle2 className="h-4 w-4" strokeWidth={2} />
                     </button>
                     <div className="min-w-0 flex-1">
-                      <p className={`text-sm font-medium ${isDone ? "text-gray-500 line-through" : "text-gray-900"}`}>
+                      <p className={`text-sm font-medium ${isDone ? "text-secondary line-through" : "text-ink"}`}>
                         {index + 1}. {step.title}
                       </p>
                       {step.description ? (
-                        <p className="mt-0.5 text-xs text-gray-600">{step.description}</p>
+                        <p className="mt-0.5 text-xs leading-relaxed text-secondary">{step.description}</p>
                       ) : null}
-                      <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px] text-gray-500">
+                      <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px] text-secondary">
                         {step.resource_name ? (
                           <Badge className="capitalize">{step.resource_type}</Badge>
                         ) : null}
                         {step.resource_name ? <span>{step.resource_name}</span> : null}
-                        <span>{step.hours_estimate}h</span>
+                        <span><span className="font-mono">{step.hours_estimate}</span>h</span>
                         {step.cost ? <span>{step.cost} cost</span> : null}
                         {step.optional ? <Badge>Optional</Badge> : null}
-                        {step.target_date ? <span>by {new Date(step.target_date).toLocaleDateString()}</span> : null}
+                        {step.target_date ? <span>by <span className="font-mono">{new Date(step.target_date).toLocaleDateString()}</span></span> : null}
                       </div>
                     </div>
                   </li>
@@ -324,21 +326,21 @@ function PlanCard({ plan, expanded, detail, busyStep, onExpand, onToggleStep }) 
           ) : null}
 
           {deferred.length ? (
-            <details className="border-t border-gray-100">
-              <summary className="cursor-pointer px-4 py-2 text-xs font-medium text-gray-700">
-                Full path · {deferred.length} later {deferred.length === 1 ? "step" : "steps"}
+            <details className="border-t border-line dark:border-line">
+              <summary className="cursor-pointer px-4 py-3 text-xs font-medium text-ink hover:text-brand-text">
+                Full path · <span className="font-mono">{deferred.length}</span> later {deferred.length === 1 ? "step" : "steps"}
               </summary>
-              <ol className="space-y-2 px-4 pb-4">
+              <ol className="space-y-2.5 px-4 pb-4">
                 {deferred.map((step, index) => (
-                  <li key={`${step.skill_slug || "later"}-${index}`} className="border border-gray-200 p-3">
-                    <p className="text-sm font-medium text-gray-900">{step.title}</p>
+                  <li key={`${step.skill_slug || "later"}-${index}`} className="rounded-xl border border-line dark:border-line bg-surface dark:bg-gray-25 p-3.5 shadow-s5">
+                    <p className="text-sm font-medium text-ink">{step.title}</p>
                     {step.description ? (
-                      <p className="mt-0.5 text-xs text-gray-600">{step.description}</p>
+                      <p className="mt-0.5 text-xs leading-relaxed text-secondary">{step.description}</p>
                     ) : null}
-                    <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px] text-gray-500">
+                    <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px] text-secondary">
                       <Badge>Later</Badge>
                       {step.resource_name ? <span>{step.resource_name}</span> : null}
-                      <span>{step.hours_estimate}h</span>
+                      <span><span className="font-mono">{step.hours_estimate}</span>h</span>
                       {step.cost ? <span>{step.cost} cost</span> : null}
                     </div>
                   </li>

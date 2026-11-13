@@ -139,7 +139,7 @@ export default function TimezoneSelector({
       <div className={`${className}`}>
         <select
           disabled
-          className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100"
+          className="w-full rounded-xl border border-line bg-surface px-3 py-2"
         >
           <option>Loading timezones...</option>
         </select>
@@ -150,14 +150,15 @@ export default function TimezoneSelector({
   return (
     <div className={`${className}`}>
       <div className="flex flex-col gap-2">
-        <label className="block text-sm font-medium text-gray-700">
+        <label htmlFor="recruai-timezone" className="block text-sm font-medium text-gray-700">
           Timezone
         </label>
         <select
+          id="recruai-timezone"
           value={selectedTz}
           onChange={handleChange}
           disabled={saving}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-100"
+          className="w-full rounded-xl border border-line bg-surface px-3 py-2 text-sm text-ink outline-none transition-colors focus:border-brand focus:ring-4 focus:ring-gray-100/50 dark:focus:ring-gray-600/50 disabled:bg-gray-100"
         >
           {Object.entries(groupedTimezones).map(([region, tzs]) => (
             <optgroup key={region} label={region}>
@@ -172,8 +173,8 @@ export default function TimezoneSelector({
 
         {showCurrentTime && (
           <p className="text-sm text-gray-500">
-            Current time: <span className="font-medium">{currentTime}</span>
-            {saving && <span className="ml-2 text-indigo-500">Saving...</span>}
+            Current time: <span className="font-medium font-mono tabular-nums">{currentTime}</span>
+            {saving && <span className="ml-2 text-brand-text">Saving...</span>}
           </p>
         )}
       </div>

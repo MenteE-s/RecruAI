@@ -8,10 +8,10 @@ const ThinkingDisplay = ({ thinkingStep, isVisible, onToggle }) => {
   const isValidationGood = validation?.is_acceptable;
 
   return (
-    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4">
-      <div className="flex items-center justify-between mb-3">
+    <div className="mb-4 rounded-xl border border-line bg-canvas/50 p-4 dark:bg-gray-25">
+      <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center space-x-2">
-          <FaBrain className="text-blue-500" />
+          <FaBrain className="text-brand-text" />
           <h3 className="text-lg font-semibold text-gray-800">
             AI Thinking Process
           </h3>
@@ -35,13 +35,13 @@ const ThinkingDisplay = ({ thinkingStep, isVisible, onToggle }) => {
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
             <span className="font-medium">Relevance Score:</span>
-            <span className="ml-2 text-blue-600">
+            <span className="ml-2 text-brand-text">
               {(analysis?.relevance_score || 0).toFixed(2)}
             </span>
           </div>
           <div>
             <span className="font-medium">Context Quality:</span>
-            <span className="ml-2 text-blue-600">
+            <span className="ml-2 text-brand-text">
               {analysis?.context_quality || "Unknown"}
             </span>
           </div>
@@ -67,13 +67,13 @@ const ThinkingDisplay = ({ thinkingStep, isVisible, onToggle }) => {
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
             <span className="font-medium">Tone:</span>
-            <span className="ml-2 text-blue-600 capitalize">
+            <span className="ml-2 text-brand-text capitalize">
               {reasoning?.tone_and_style || "Professional"}
             </span>
           </div>
           <div>
             <span className="font-medium">Confidence:</span>
-            <span className="ml-2 text-blue-600">
+            <span className="ml-2 text-brand-text">
               {(reasoning?.confidence_assessment || 0).toFixed(2)}
             </span>
           </div>
@@ -82,26 +82,26 @@ const ThinkingDisplay = ({ thinkingStep, isVisible, onToggle }) => {
 
       {/* Validation */}
       {validation && (
-        <div className="border-t border-gray-200 pt-3">
+        <div className="border-t border-line pt-3">
           <h4 className="font-medium text-gray-700 mb-2 text-xs uppercase tracking-wider">
             Quality Validation
           </h4>
           <div className="grid grid-cols-3 gap-2 text-xs">
-            <div className="bg-white p-2 rounded border border-gray-100 flex flex-col items-center">
-              <span className="text-gray-500 text-[10px]">Quality</span>
-              <span className="font-bold text-blue-600">
+            <div className="flex flex-col items-center rounded-xl border border-line bg-surface p-2">
+              <span className="text-[10px] text-gray-500">Quality</span>
+              <span className="font-bold text-brand-text">
                 {(validation.quality_score || 0).toFixed(2)}
               </span>
             </div>
-            <div className="bg-white p-2 rounded border border-gray-100 flex flex-col items-center">
-              <span className="text-gray-500 text-[10px]">Coherence</span>
-              <span className="font-bold text-blue-600">
+            <div className="flex flex-col items-center rounded-xl border border-line bg-surface p-2">
+              <span className="text-[10px] text-gray-500">Coherence</span>
+              <span className="font-bold text-brand-text">
                 {(validation.coherence_score || 0).toFixed(2)}
               </span>
             </div>
-            <div className="bg-white p-2 rounded border border-gray-100 flex flex-col items-center">
-              <span className="text-gray-500 text-[10px]">Completeness</span>
-              <span className="font-bold text-blue-600">
+            <div className="flex flex-col items-center rounded-xl border border-line bg-surface p-2">
+              <span className="text-[10px] text-gray-500">Completeness</span>
+              <span className="font-bold text-brand-text">
                 {(validation.completeness_score || 0).toFixed(2)}
               </span>
             </div>

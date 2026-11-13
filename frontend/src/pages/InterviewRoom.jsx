@@ -5,11 +5,22 @@ import MenteeLoader from "../components/ui/MenteeLoader";
 import { parseUTC } from "../utils/timezone";
 import DualTime from "../components/ui/DualTime";
 import socketService from "../utils/socket";
-import { getCurrentUser } from "../utils/auth";
+import { getCurrentUser, getAuthHeaders } from "../utils/auth";
 import { VIDEO_ENABLED } from "../utils/video";
+import {
+  Clock,
+  Video,
+  AlertCircle,
+  Cpu,
+  Edit3,
+  HelpCircle,
+  Calendar,
+  ArrowLeft,
+  MessageSquare,
+} from "lucide-react";
+
 // LiveKit is the heaviest vendor in the bundle: load it only when a video
-// interview actually renders, not on every dashboard visit. (Deliberately
-// not per-route splitting: that put a spinner on every first page visit.)
+// interview actually renders, not on every dashboard visit.
 const VideoRoom = React.lazy(() => import("../components/interviews/VideoRoom"));
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "";
@@ -23,39 +34,28 @@ const InterviewRoom = () => {
   const [error, setError] = useState(null);
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [interviewMode, setInterviewMode] = useState("auto"); // 'auto' or 'manual' - default to auto for AI responses
+  const [interviewMode, setInterviewMode] = useState("auto"); // 'auto' or 'manual'
   const [currentThinking, setCurrentThinking] = useState(null);
   const [showThinking, setShowThinking] = useState(false);
 
-  // Get user role and determine if they're interviewer or candidate
-  const userRole = localStorage.getItem("authRole");
+  const userRole = typeof window !== "undefined" ? localStorage.getItem("authRole") : null;
   const userId = me?.id || null;
 
   useEffect(() => {
     getCurrentUser().then(setMe);
   }, []);
 
-  // Determine if user is interviewer or candidate
-  // Organization users are interviewers, individual users are candidates
-  // If there's an AI agent, the AI is interviewer and human is candidate
   const isInterviewer = userRole === "organization";
-
-  // Debug: Log interviewId
-  useEffect(() => {
-    console.log("InterviewRoom: interviewId =", interviewId);
-  }, [interviewId]);
 
   useEffect(() => {
     if (interviewId && interviewId !== "undefined" && me) {
       fetchInterview();
       loadConversation();
 
-      // Listen for real-time messages
       const handleNewMessage = (payload) => {
         const msg = payload.data;
         if (msg && msg.interview_id === parseInt(interviewId)) {
           setMessages((prev) => {
-            // Avoid duplicates
             if (prev.find((m) => m.id === msg.id)) return prev;
             return [
               ...prev,
@@ -71,14 +71,12 @@ const InterviewRoom = () => {
             ];
           });
 
-          // If it was an agent response, turn off loading
           if (msg.sender_type === "agent") {
             setIsLoading(false);
           }
         }
       };
 
-      // Listen for AI thinking events
       const handleThinking = (payload) => {
         const data = payload.data;
         if (data && data.interview_id === parseInt(interviewId)) {
@@ -100,267 +98,175 @@ const InterviewRoom = () => {
       setError("Invalid interview ID");
       setLoading(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [interviewId, me]);
-
-  // Add exit confirmation for ongoing interviews
-  useEffect(() => {
-    const handleBeforeUnload = (e) => {
-      if (interview && !error) {
-        e.preventDefault();
-        e.returnValue = ""; // Chrome requires returnValue to be set
-        return ""; // Some browsers show this message
-      }
-    };
-
-    const handlePopState = (e) => {
-      if (interview && !error) {
-        const confirmLeave = window.confirm(
-          "Are you sure you want to leave the interview? Your progress may not be saved."
-        );
-        if (!confirmLeave) {
-          // Prevent navigation by pushing the current state back
-          window.history.pushState(null, "", window.location.pathname);
-        }
-      }
-    };
-
-    // Add event listeners
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    window.addEventListener("popstate", handlePopState);
-
-    // Push initial state for back button handling
-    window.history.pushState(null, "", window.location.pathname);
-
-    // Cleanup
-    return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-      window.removeEventListener("popstate", handlePopState);
-    };
-  }, [interview, error]);
-
-  const loadConversation = async () => {
-    try {
-      const response = await fetch(
-        `${API_BASE_URL}/api/interviews/${interviewId}/conversation`,
-        {
-          credentials: "include",
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        // Transform backend conversation to frontend format
-        const transformedMessages = data.conversation.map((msg) => ({
-          id: msg.id,
-          content: msg.content,
-          sender: msg.sender_name,
-          timestamp: msg.created_at,
-          type: msg.sender_type, // 'user' or 'agent'
-          userId: msg.sender_user_id,
-          agentId: msg.sender_agent_id,
-        }));
-        setMessages(transformedMessages);
-      }
-    } catch (error) {
-      console.error("Error loading conversation:", error);
-    }
-  };
-
-  // Poll for new messages every 30 seconds when interview is active and window is visible
-  useEffect(() => {
-    let intervalId;
-
-    const pollMessages = () => {
-      // Only poll if document is visible (user hasn't switched tabs)
-      if (document.visibilityState === "visible") {
-        loadConversation();
-      }
-    };
-
-    if (interview && isInterviewReady()) {
-      intervalId = setInterval(pollMessages, 30000); // Poll every 30 seconds
-    }
-
-    return () => {
-      if (intervalId) {
-        clearInterval(intervalId);
-      }
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [interview, interviewId]);
 
   const fetchInterview = async () => {
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/api/interviews/${interviewId}`,
-        {
-          credentials: "include",
-        }
-      );
+      setLoading(true);
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API_BASE_URL}/api/interviews/${interviewId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
 
-      if (response.ok) {
-        const data = await response.json();
-        setInterview(data);
-
-        // Check if user has access to this interview
-        if (userRole === "organization" && me && data.organization_id !== me.organization_id) {
-          setError("Access denied");
-          return;
-        }
-        if (userRole !== "organization" && data.user_id !== userId) {
-          setError("Access denied");
-          return;
-        }
-
-        // Load existing conversation
-        loadConversation();
-      } else {
-        setError("Interview not found");
+      if (!response.ok) {
+        throw new Error("Failed to fetch interview details");
       }
-    } catch (error) {
-      console.error("Error fetching interview:", error);
-      setError("Failed to load interview");
+
+      const data = await response.json();
+      setInterview(data);
+
+      if (data.status === "completed") {
+        navigate(`/in/interviews/${interviewId}/analysis`);
+        return;
+      }
+    } catch (err) {
+      console.error("Error fetching interview:", err);
+      setError(err.message || "Failed to load interview");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSendMessage = async (message) => {
-    if (!interviewId || interviewId === "undefined") {
-      console.error("Invalid interview ID");
-      return;
-    }
-
-    setIsLoading(true);
-    setCurrentThinking(null);
-    setShowThinking(false);
-
+  const loadConversation = async () => {
     try {
-      // Use the new unified chat endpoint
-      const response = await fetch(
-        `${API_BASE_URL}/api/interviews/${interviewId}/chat`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({
-            message: message,
-            enable_thinking: true, // Always enable for better AI
-          }),
-        }
-      );
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API_BASE_URL}/api/interviews/${interviewId}/conversation`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
 
       if (response.ok) {
         const data = await response.json();
+        const formattedMessages = (data.conversation || []).map((msg) => ({
+          id: msg.id,
+          content: msg.content,
+          sender: msg.sender_name,
+          timestamp: msg.created_at,
+          type: msg.sender_type,
+          userId: msg.sender_user_id,
+          agentId: msg.sender_agent_id,
+        }));
+        setMessages(formattedMessages);
+      }
+    } catch (err) {
+      console.error("Error loading conversation:", err);
+    }
+  };
 
-        // Handle thinking step if present
-        if (data.thinking_step) {
-          setCurrentThinking(data.thinking_step);
-          setShowThinking(true);
-        }
+  const handleSendMessage = async (content) => {
+    if (!content.trim() || isLoading) return;
 
-        // Add user message to local state
-        const userMessage = {
-          id: Date.now(),
-          content: message,
-          sender: "You", // Current user
-          timestamp: new Date().toISOString(),
-          type: "user",
-        };
+    const messageData = {
+      content: content.trim(),
+      sender_name: me?.name || (isInterviewer ? "Interviewer" : "Candidate"),
+      sender_type: isInterviewer ? "interviewer" : "candidate",
+      sender_user_id: userId,
+    };
 
-        // Add AI response to local state
-        const aiMessage = {
-          id: Date.now() + 1,
-          content: data.response,
-          sender: data.agent_name,
-          timestamp: new Date().toISOString(),
-          type: "agent",
-          agentId: data.agent_id,
-          thinking: data.thinking_step,
-        };
+    try {
+      setIsLoading(true);
+      const response = await fetch(`${API_BASE_URL}/api/interviews/${interviewId}/messages`, {
+        method: "POST",
+        headers: {
+          ...getAuthHeaders(),
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify(messageData),
+      });
 
-        setMessages((prev) => [...prev, userMessage, aiMessage]);
-      } else {
+      if (!response.ok) {
         throw new Error("Failed to send message");
       }
-    } catch (error) {
-      console.error("Error sending message:", error);
-      // Add error message to local state
-      const errorMessage = {
-        id: Date.now(),
-        content:
-          "Sorry, there was an error sending your message. Please try again.",
-        sender: "system",
-        timestamp: new Date().toISOString(),
-        type: "error",
-      };
-      setMessages((prev) => [...prev, errorMessage]);
-    } finally {
+
+      const sentMessage = await response.json();
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: sentMessage.id || Date.now(),
+          content: sentMessage.content || messageData.content,
+          sender: sentMessage.sender_name || messageData.sender_name,
+          timestamp: sentMessage.created_at || new Date().toISOString(),
+          type: sentMessage.sender_type || messageData.sender_type,
+          userId: sentMessage.sender_user_id || messageData.sender_user_id,
+        },
+      ]);
+    } catch (err) {
+      console.error("Error sending message:", err);
       setIsLoading(false);
     }
   };
 
-  const handleInterviewerResponse = async (message) => {
-    setIsLoading(true);
+  const handleInterviewerResponse = async (content) => {
+    if (!content.trim() || isLoading) return;
+
+    const messageData = {
+      content: content.trim(),
+      sender_name: me?.name || "Interviewer",
+      sender_type: "interviewer",
+      sender_user_id: userId,
+    };
 
     try {
-      // Save interviewer response to database
-      const response = await fetch(
-        `${API_BASE_URL}/api/interviews/${interviewId}/messages`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({
-            user_id: userId, // Interviewer user ID
-            content: message,
-            message_type: "interviewer_response",
-          }),
-        }
-      );
+      setIsLoading(true);
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API_BASE_URL}/api/interviews/${interviewId}/interviewer-response`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(messageData),
+      });
 
-      if (response.ok) {
-        await loadConversation();
-      } else {
+      if (!response.ok) {
         throw new Error("Failed to send response");
       }
-    } catch (error) {
-      console.error("Error sending interviewer response:", error);
-      const errorMessage = {
-        id: Date.now(),
-        content:
-          "Sorry, there was an error sending your response. Please try again.",
-        sender: "system",
-        timestamp: new Date().toISOString(),
-        type: "error",
-      };
-      setMessages((prev) => [...prev, errorMessage]);
-    } finally {
+
+      const sentMessage = await response.json();
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: sentMessage.id || Date.now(),
+          content: sentMessage.content || messageData.content,
+          sender: sentMessage.sender_name || messageData.sender_name,
+          timestamp: sentMessage.created_at || new Date().toISOString(),
+          type: sentMessage.sender_type || messageData.sender_type,
+          userId: sentMessage.sender_user_id || messageData.sender_user_id,
+        },
+      ]);
+      setIsLoading(false);
+    } catch (err) {
+      console.error("Error sending interviewer response:", err);
       setIsLoading(false);
     }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading interview...</p>
-        </div>
+      <div className="min-h-screen bg-surface flex items-center justify-center p-4 dark:bg-gray-25/40">
+        <MenteeLoader size={52} text="Loading interview room…" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full text-center">
-          <div className="text-red-500 text-4xl mb-4">⚠️</div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">
-            Access Denied
+      <div className="min-h-screen bg-surface flex items-center justify-center p-4 dark:bg-gray-25/40">
+        <div className="bg-surface border border-line rounded-2xl shadow-s15 p-8 max-w-md w-full text-center dark:bg-gray-25/60">
+          <div className="w-12 h-12 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/60 text-red-600 flex items-center justify-center mx-auto mb-3">
+            <AlertCircle className="w-6 h-6" strokeWidth={1.75} />
+          </div>
+          <h2 className="text-base font-bold text-ink mb-1.5">
+            Access denied
           </h2>
-          <p className="text-gray-600 mb-4">{error}</p>
+          <p className="text-xs text-secondary mb-5 leading-relaxed">{error}</p>
           <button
             onClick={() => {
               const confirmLeave = window.confirm(
@@ -370,28 +276,25 @@ const InterviewRoom = () => {
                 navigate("/feed");
               }
             }}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="px-5 py-2.5 bg-brand text-white text-xs font-semibold rounded-xl shadow-s5 hover:bg-brand/90 transition-colors inline-flex items-center gap-1.5"
           >
-            Return to Dashboard
+            <ArrowLeft className="w-3.5 h-3.5" strokeWidth={1.75} />
+            <span>Return to dashboard</span>
           </button>
         </div>
       </div>
     );
   }
 
-  // Check if interview is ready to start
   const isInterviewReady = () => {
     if (!interview) return false;
     const now = new Date();
     const scheduledTime = parseUTC(interview.scheduled_at_iso || interview.scheduled_at);
     const timeDiff = scheduledTime - now;
     const minutesDiff = timeDiff / (1000 * 60);
-
-    // Interview is ready only when scheduled time has arrived (no early joining)
     return minutesDiff <= 0;
   };
 
-  // Render waiting room
   const renderWaitingRoom = () => {
     const now = new Date();
     const scheduledTime = parseUTC(interview.scheduled_at_iso || interview.scheduled_at);
@@ -399,49 +302,62 @@ const InterviewRoom = () => {
     const minutesDiff = Math.ceil(timeDiff / (1000 * 60));
 
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full text-center">
-          <div className="text-blue-500 text-4xl mb-4">⏰</div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">
-            Interview Waiting Room
-          </h2>
-          <p className="text-gray-600 mb-4">
-            {minutesDiff > 0
-              ? `Your interview starts in ${minutesDiff} minute${
-                  minutesDiff !== 1 ? "s" : ""
-                }. You can join exactly at the scheduled time.`
-              : "Your interview is starting now! Click the button below to join."}
-          </p>
-          <div className="space-y-2 text-sm text-gray-500">
-            <p>📅 <DualTime
-              value={interview.scheduled_at_iso || interview.scheduled_at}
-              others={[
-                { timezone: interview.organization_timezone, label: interview.organization },
-                { timezone: interview.candidate_timezone, label: interview.user_name },
-              ]}
-            /></p>
-            <p>⏱️ Duration: {interview.duration_minutes} minutes</p>
-            <p>
-              💬 Interview Type:{" "}
-              {interview.interview_type === "text"
-                ? "Text Chat"
-                : interview.interview_type}
+      <div className="min-h-screen bg-surface flex items-center justify-center p-4 dark:bg-gray-25/40">
+        <div className="bg-surface border border-line rounded-2xl shadow-s15 p-6 sm:p-8 max-w-md w-full text-center space-y-4 dark:bg-gray-25/60">
+          <div className="w-12 h-12 rounded-xl bg-brand/10 text-brand-text flex items-center justify-center mx-auto dark:bg-brand/15">
+            <Clock className="w-6 h-6" strokeWidth={1.75} />
+          </div>
+          <div>
+            <h2 className="text-base font-bold text-ink leading-snug">
+              Interview waiting room
+            </h2>
+            <p className="text-xs text-secondary mt-1 leading-relaxed">
+              {minutesDiff > 0
+                ? `Your interview starts in ${minutesDiff} minute${minutesDiff !== 1 ? "s" : ""}. You can join exactly at the scheduled time.`
+                : "Your interview is ready to begin. Join the session below."}
             </p>
           </div>
-          <div className="mt-6">
+
+          <div className="rounded-xl border border-line bg-canvas p-4 space-y-2.5 text-xs text-secondary text-left dark:bg-gray-25/50">
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-brand-text shrink-0" strokeWidth={1.75} />
+              <div>
+                <DualTime
+                  value={interview.scheduled_at_iso || interview.scheduled_at}
+                  others={[
+                    { timezone: interview.organization_timezone, label: interview.organization },
+                    { timezone: interview.candidate_timezone, label: interview.user_name },
+                  ]}
+                />
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-brand-text shrink-0" strokeWidth={1.75} />
+              <span>Duration: <span className="font-mono">{interview.duration_minutes}</span> minutes</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <MessageSquare className="h-4 w-4 text-brand-text shrink-0" strokeWidth={1.75} />
+              <span className="capitalize">
+                Type: {interview.interview_type === "text" ? "Text chat" : interview.interview_type?.replace(/_/g, " ")}
+              </span>
+            </div>
+          </div>
+
+          <div className="pt-2">
             {minutesDiff <= 0 ? (
               <button
                 onClick={() => window.location.reload()}
-                className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 animate-pulse"
+                className="w-full px-4 py-2.5 bg-brand text-white text-xs font-semibold rounded-xl shadow-s5 hover:bg-brand/90 transition-colors animate-pulse"
               >
-                Join Interview Now
+                Join interview now
               </button>
             ) : (
-              <div className="animate-pulse bg-blue-100 text-blue-800 px-4 py-2 rounded-lg">
-                Waiting for interview to begin...
+              <div className="bg-brand/10 text-brand-text border border-brand/20 px-4 py-2.5 rounded-xl text-xs font-semibold dark:bg-brand/15 dark:border-brand/30">
+                Waiting for interview to begin…
               </div>
             )}
           </div>
+
           <button
             onClick={() => {
               const confirmLeave = window.confirm(
@@ -451,18 +367,16 @@ const InterviewRoom = () => {
                 navigate("/feed");
               }
             }}
-            className="mt-4 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+            className="w-full px-4 py-2.5 border border-line bg-surface text-ink text-xs font-semibold rounded-xl shadow-s5 hover:bg-gray-100 dark:hover:bg-gray-25 dark:bg-gray-25/50 transition-colors"
           >
-            Return to Dashboard
+            Return to dashboard
           </button>
         </div>
       </div>
     );
   };
 
-  // Render different interview types
   const renderInterview = () => {
-    // Show waiting room if interview hasn't started yet
     if (!isInterviewReady()) {
       return renderWaitingRoom();
     }
@@ -471,37 +385,40 @@ const InterviewRoom = () => {
       case "text":
       case "practice":
         return (
-          <div className="min-h-screen bg-gray-100">
-            {/* Interviewer Mode Selection */}
+          <div className="min-h-screen bg-surface dark:bg-gray-25/40">
             {isInterviewer && (
-              <div className="bg-white border-b border-gray-200 px-4 py-3">
-                <div className="max-w-4xl mx-auto flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <span className="text-sm font-medium text-gray-700">
-                      Interview Mode:
+              <div className="bg-surface border-b border-line px-4 py-3 dark:bg-gray-25/60">
+                <div className="max-w-4xl mx-auto flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs font-semibold text-ink">
+                      Interview mode:
                     </span>
-                    <div className="flex rounded-md shadow-sm">
+                    <div className="flex rounded-xl border border-line overflow-hidden shadow-s5 bg-surface p-0.5 dark:bg-gray-25">
                       <button
                         onClick={() => setInterviewMode("auto")}
-                        className={`px-4 py-2 text-sm font-medium rounded-l-md border ${
+                        className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 ${
                           interviewMode === "auto"
-                            ? "bg-indigo-600 text-white border-indigo-600"
-                            : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
-                        }`}>
-                        🤖 Auto (AI)
+                            ? "bg-brand text-white shadow-s5"
+                            : "text-ink hover:bg-gray-100 dark:hover:bg-gray-25"
+                        }`}
+                      >
+                        <Cpu className="w-3.5 h-3.5" strokeWidth={1.75} />
+                        <span>Auto (AI)</span>
                       </button>
                       <button
                         onClick={() => setInterviewMode("manual")}
-                        className={`px-4 py-2 text-sm font-medium rounded-r-md border-t border-r border-b ${
+                        className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 ${
                           interviewMode === "manual"
-                            ? "bg-indigo-600 text-white border-indigo-600"
-                            : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
-                        }`}>
-                        ✍️ Manual
+                            ? "bg-brand text-white shadow-s5"
+                            : "text-ink hover:bg-gray-100 dark:hover:bg-gray-25"
+                        }`}
+                      >
+                        <Edit3 className="w-3.5 h-3.5" strokeWidth={1.75} />
+                        <span>Manual</span>
                       </button>
                     </div>
                   </div>
-                  <div className="text-sm text-gray-500">
+                  <div className="text-[11px] text-secondary">
                     {interviewMode === "auto"
                       ? "AI will respond automatically to candidate messages"
                       : "You will manually respond to candidate messages"}
@@ -528,20 +445,22 @@ const InterviewRoom = () => {
 
       case "ai_video":
         return (
-          <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-            <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full text-center">
-              <div className="text-blue-500 text-4xl mb-4">🤖</div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                AI Video Interview
+          <div className="min-h-screen bg-surface flex items-center justify-center p-4 dark:bg-gray-25/40">
+            <div className="bg-surface border border-line rounded-2xl shadow-s15 p-6 sm:p-8 max-w-md w-full text-center dark:bg-gray-25/60">
+              <div className="w-12 h-12 rounded-xl bg-brand/10 text-brand-text flex items-center justify-center mx-auto mb-3 dark:bg-brand/15">
+                <Cpu className="w-6 h-6" strokeWidth={1.75} />
+              </div>
+              <h2 className="text-base font-bold text-ink mb-1">
+                AI video interview
               </h2>
-              <p className="text-gray-600 mb-4">
-                Coming soon! This feature is under development.
+              <p className="text-xs text-secondary mb-5 leading-relaxed">
+                Coming soon. This feature is actively under development. Please utilize text-based interviews for current sessions.
               </p>
               <button
                 onClick={() => navigate("/feed")}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                className="px-5 py-2.5 bg-brand text-white text-xs font-semibold rounded-xl hover:bg-brand/90 transition-colors shadow-s5"
               >
-                Return to Dashboard
+                Return to dashboard
               </button>
             </div>
           </div>
@@ -551,17 +470,20 @@ const InterviewRoom = () => {
       case "human_video":
         if (!VIDEO_ENABLED) {
           return (
-            <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-              <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full text-center">
-                <h2 className="text-xl font-semibold text-gray-900 mb-2">Video interviews are disabled</h2>
-                <p className="text-gray-600 mb-4">
-                  Video interviews are not available during this beta. Please use text or AI interviews instead.
+            <div className="min-h-screen bg-surface flex items-center justify-center p-4 dark:bg-gray-25/40">
+              <div className="bg-surface border border-line rounded-2xl shadow-s15 p-6 sm:p-8 max-w-md w-full text-center dark:bg-gray-25/60">
+                <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-500 flex items-center justify-center mx-auto mb-3">
+                  <Video className="w-6 h-6" strokeWidth={1.75} />
+                </div>
+                <h2 className="text-base font-bold text-ink mb-1">Video interviews are disabled</h2>
+                <p className="text-xs text-secondary mb-5 leading-relaxed">
+                  Video interviews are not enabled during this phase of the beta. Please use text or AI interviews instead.
                 </p>
                 <button
                   onClick={() => navigate("/feed")}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="px-5 py-2.5 bg-brand text-white text-xs font-semibold rounded-xl hover:bg-brand/90 transition-colors shadow-s5"
                 >
-                  Return to Dashboard
+                  Return to dashboard
                 </button>
               </div>
             </div>
@@ -569,7 +491,7 @@ const InterviewRoom = () => {
         }
         return (
           <Suspense fallback={
-            <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+            <div className="min-h-screen bg-surface flex items-center justify-center p-4 dark:bg-gray-25/40">
               <MenteeLoader size={56} text="Loading video room…" />
             </div>
           }>
@@ -579,20 +501,22 @@ const InterviewRoom = () => {
 
       default:
         return (
-          <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-            <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full text-center">
-              <div className="text-gray-500 text-4xl mb-4">❓</div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                Unknown Interview Type
+          <div className="min-h-screen bg-surface flex items-center justify-center p-4 dark:bg-gray-25/40">
+            <div className="bg-surface border border-line rounded-2xl shadow-s15 p-6 sm:p-8 max-w-md w-full text-center dark:bg-gray-25/60">
+              <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-500 flex items-center justify-center mx-auto mb-3">
+                <HelpCircle className="w-6 h-6" strokeWidth={1.75} />
+              </div>
+              <h2 className="text-base font-bold text-ink mb-1">
+                Unknown interview type
               </h2>
-              <p className="text-gray-600 mb-4">
-                This interview type is not supported.
+              <p className="text-xs text-secondary mb-5 leading-relaxed">
+                This interview type is not supported. Please check with your organizer.
               </p>
               <button
                 onClick={() => navigate("/feed")}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                className="px-5 py-2.5 bg-brand text-white text-xs font-semibold rounded-xl hover:bg-brand/90 transition-colors shadow-s5"
               >
-                Return to Dashboard
+                Return to dashboard
               </button>
             </div>
           </div>
@@ -600,7 +524,7 @@ const InterviewRoom = () => {
     }
   };
 
-  return <div className="min-h-screen bg-gray-100">{renderInterview()}</div>;
+  return <div className="min-h-screen bg-surface dark:bg-gray-25/40">{renderInterview()}</div>;
 };
 
 export default InterviewRoom;

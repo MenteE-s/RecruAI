@@ -1,17 +1,20 @@
 import { useState, useEffect } from "react";
-import { FiChevronDown } from "react-icons/fi";
-import DashboardLayout from "../../components/layout/DashboardLayout";
-import IndividualNavbar from "../../components/layout/IndividualNavbar";
+import { ChevronDown, Edit2, Camera, MapPin, X } from "lucide-react";
+import { AppShell } from "../../components/layout/AppShell";
+import { RailSection } from "../../components/layout/RightRail";
+import { Button } from "../../components/ui/Button";
+import { Avatar } from "../../components/ui/Avatar";
+import EmploymentBadge from "../../components/ui/EmploymentStatus";
+import { ProfileTopBar, ProfileHero } from "../../components/profile/ProfileBits";
 import {
-
   getBackendUrl,
   getAuthHeaders,
   getCurrentUser,
+  getUploadUrl,
 } from "../../utils/auth";
 
 
 import ProfileBanner from "./components/ProfileBanner";
-import ProfileSidebar from "./components/ProfileSidebar";
 import ProfileTabs, { profileSectionTabs, profileSectionIcons } from "./components/ProfileTabs";
 import AboutSection from "./components/sections/AboutSection";
 import ExperienceSection from "./components/sections/ExperienceSection";
@@ -454,15 +457,15 @@ export default function Profile() {
 
   if (loading) {
     return (
-      <DashboardLayout NavbarComponent={IndividualNavbar} >
-        <div className="flex justify-center items-center py-8">
-          <div className="animate-pulse">
-            <div className="text-gray-500 mb-2">Loading profile...</div>
-            <div className="w-48 h-3 bg-gray-200 rounded mb-1"></div>
-            <div className="w-40 h-3 bg-gray-200 rounded"></div>
+      <AppShell rail={<RailSection />}>
+        <div className="flex items-center justify-center py-16">
+          <div className="animate-pulse text-center">
+            <div className="mb-2 text-xs font-medium text-gray-500 dark:text-gray-600">Loading profile…</div>
+            <div className="mx-auto mb-1 h-3 w-48 rounded bg-gray-200 dark:bg-gray-25" />
+            <div className="mx-auto h-3 w-40 rounded bg-gray-200 dark:bg-gray-25" />
           </div>
         </div>
-      </DashboardLayout>
+      </AppShell>
     );
   }
 
@@ -489,65 +492,147 @@ export default function Profile() {
     licenses: <LicensesSection licenses={profileData.licenses} onAdd={() => addItem("licenses")} onEdit={editItem} onRemove={removeItem} />,
   };
 
+  const sectionNav = (
+    <ProfileTabs activeTab={activeTab} onTabChange={scrollToSection} />
+  );
+
   return (
-    <DashboardLayout NavbarComponent={IndividualNavbar} >
+    <AppShell
+      rail={
+        <>
+          <RailSection title="Sections">{sectionNav}</RailSection>
+          <RailSection>
+            <div className="rounded-xl border border-line dark:border-line bg-surface dark:bg-gray-25 p-4">
+              <p className="text-sm font-semibold text-ink dark:text-white">Profile tips</p>
+              <p className="mt-1 text-xs leading-5 text-gray-500 dark:text-gray-600">
+                Keep your experience, education, and skills up to date — they power
+                your matches and applications.
+              </p>
+            </div>
+          </RailSection>
+        </>
+      }
+    >
       {error && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg">
-          <div className="flex items-center justify-between">
-            <span>{error}</span>
-            <button onClick={() => setError(null)} className="text-red-700 hover:text-red-900">×</button>
-          </div>
+        <div className="mx-4 mt-4 flex items-center justify-between gap-3 rounded-xl border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/40 p-3.5 text-xs text-red-700 dark:text-red-300">
+          <span>{error}</span>
+          <button onClick={() => setError(null)} className="text-red-700 dark:text-red-300 hover:text-red-900 dark:hover:text-red-100" aria-label="Dismiss">
+            <X className="h-4 w-4 stroke-[1.75]" />
+          </button>
         </div>
       )}
 
-      <ProfileBanner userData={userData} onBannerUpload={handleBannerUpload} uploadingBanner={uploadingBanner} />
-
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <div className="lg:col-span-1">
-          <ProfileSidebar
-            userData={userData}
-            profileData={profileData}
-            onProfilePictureUpload={handleProfilePictureUpload}
-            uploadingProfilePicture={uploadingProfilePicture}
-            onEditProfile={() =>
+      <ProfileTopBar
+        backTo="/feed"
+        backLabel="Back"
+        avatar={<Avatar name={userData?.name || "You"} size="sm" />}
+        title={userData?.name || "Profile"}
+        subtitle={userData?.headline || "Member · RecruAI"}
+        actions={
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() =>
               setEditingItem({
                 type: "personal",
                 data: { name: userData?.name || "", headline: userData?.headline || "", email: userData?.email || "", phone: userData?.phone || "", location: userData?.location || "", website: userData?.website || "", linkedin: userData?.linkedin || "" },
               })
             }
-            onJoinPosition={handleJoinPosition}
-          />
+          >
+            <Edit2 className="h-3.5 w-3.5 stroke-[1.75]" /> Edit profile
+          </Button>
+        }
+      />
 
-          <ProfileTabs
-            activeTab={activeTab}
-            onTabChange={scrollToSection}
-          />
+      <ProfileBanner userData={userData} onBannerUpload={handleBannerUpload} uploadingBanner={uploadingBanner} />
+
+      <ProfileHero
+        avatar={
+          <div className="relative inline-block">
+            {userData?.profile_picture ? (
+              <img
+                src={getUploadUrl(userData.profile_picture)}
+                alt="Profile"
+                className="h-24 w-24 rounded-full border-4 border-surface dark:border-line object-cover shadow-s5"
+              />
+            ) : (
+              <Avatar name={userData?.name || "You"} size="3xl" />
+            )}
+            <label
+              htmlFor="profile-picture-upload"
+              aria-label="Upload profile photo"
+              className="absolute -bottom-1 -right-1 z-10 inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-line dark:border-line bg-surface dark:bg-gray-25 text-gray-600 dark:text-gray-700 shadow-s5 transition-colors hover:bg-gray-50 dark:hover:bg-gray-25"
+            >
+              <Camera className="h-3.5 w-3.5 stroke-[1.75]" />
+            </label>
+            <input
+              id="profile-picture-upload"
+              type="file"
+              accept="image/*"
+              onChange={handleProfilePictureUpload}
+              className="hidden"
+              disabled={uploadingProfilePicture}
+            />
+          </div>
+        }
+        name={userData?.name || "Guest"}
+        headline={userData?.headline}
+        meta={
+          <>
+            {userData?.location && (
+              <span className="inline-flex items-center gap-1">
+                <MapPin className="h-3.5 w-3.5 stroke-[1.75]" /> {userData.location}
+              </span>
+            )}
+            {userData?.employment_status && <EmploymentBadge status={userData.employment_status} />}
+            {userData?.current_position && (
+              <span>
+                {userData.current_position}
+                {userData.current_company ? ` at ${userData.current_company}` : ""}
+              </span>
+            )}
+          </>
+        }
+        skills={(profileData.skills || []).map((s) => s.name).filter(Boolean)}
+      />
+
+      {userData?.employment_status === "hired" && (
+        <div className="flex justify-center px-4 pb-2">
+          <Button variant="primary" size="sm" onClick={handleJoinPosition}>
+            Join position
+          </Button>
         </div>
+      )}
+      {uploadingProfilePicture && (
+        <p className="pb-1 text-center text-[11px] text-gray-500 dark:text-gray-600">Uploading profile picture…</p>
+      )}
 
-        <div className="lg:col-span-3 p-4 space-y-6">
-          {profileSectionTabs.map((t) => {
-            if (!openSections.has(t.id)) {
-              const Icon = profileSectionIcons[t.icon];
-              return (
-                <div key={t.id} id={`section-${t.id}`} className="scroll-mt-4">
-                  <button
-                    onClick={() => toggleSection(t.id)}
-                    className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 flex items-center gap-3 hover:border-blue-300 hover:shadow-sm transition-all text-left"
-                  >
-                    {Icon && <Icon size={16} className="text-gray-400 shrink-0" />}
-                    <span className="flex-1 text-sm font-semibold text-gray-700">{t.label}</span>
-                    <FiChevronDown size={16} className="text-gray-400 shrink-0" />
-                  </button>
-                </div>
-              );
-            }
+      <div className="px-4 pt-3 lg:hidden">{sectionNav}</div>
+
+      <div className="space-y-3 px-4 py-4">
+        {profileSectionTabs.map((t) => {
+          if (!openSections.has(t.id)) {
+            const Icon = profileSectionIcons[t.icon];
             return (
               <div key={t.id} id={`section-${t.id}`} className="scroll-mt-4">
-                {tabContent[t.id]}
+                <button
+                  type="button"
+                  onClick={() => toggleSection(t.id)}
+                  className="flex w-full items-center gap-3 rounded-xl border border-line dark:border-line bg-surface dark:bg-gray-25 px-4 py-3 text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-25/60"
+                >
+                  {Icon && <Icon size={15} className="shrink-0 text-gray-500 dark:text-gray-500" strokeWidth={1.75} />}
+                  <span className="flex-1 text-sm font-semibold text-ink dark:text-white">{t.label}</span>
+                  <ChevronDown size={15} className="shrink-0 text-gray-500 dark:text-gray-500" strokeWidth={1.75} />
+                </button>
               </div>
             );
-          })}
-        </div>
+          }
+          return (
+            <div key={t.id} id={`section-${t.id}`} className="scroll-mt-4">
+              {tabContent[t.id]}
+            </div>
+          );
+        })}
       </div>
 
       {editingItem && editingItem.type !== "about" && editingItem.type !== "personal" && (
@@ -571,13 +656,13 @@ export default function Profile() {
       />
 
       <Modal isOpen={!!showDeleteConfirm} onClose={() => setShowDeleteConfirm(null)}>
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Delete Item</h2>
-        <p className="text-gray-600 mb-6">Are you sure you want to delete this item? This action cannot be undone.</p>
-        <div className="flex gap-3 justify-end">
-          <button onClick={() => setShowDeleteConfirm(null)} className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">Cancel</button>
-          <button onClick={confirmDelete} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">Delete</button>
+        <h2 className="mb-2 text-base font-semibold text-ink dark:text-white">Delete item</h2>
+        <p className="mb-6 text-xs sm:text-sm leading-relaxed text-gray-600 dark:text-gray-600">Are you sure you want to delete this item? This action cannot be undone.</p>
+        <div className="flex justify-end gap-2.5 pt-2">
+          <Button variant="secondary" onClick={() => setShowDeleteConfirm(null)}>Cancel</Button>
+          <Button variant="danger" onClick={confirmDelete}>Delete</Button>
         </div>
       </Modal>
-    </DashboardLayout>
+    </AppShell>
   );
 }

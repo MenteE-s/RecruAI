@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import IndividualDashboard from "./dashboards/IndividualDashboard";
+import IndividualFeedContainer from "../components/feed/IndividualFeedContainer";
 import OrganizationDashboard from "./dashboards/OrganizationDashboard";
 import MenteeLoader from "../components/ui/MenteeLoader";
 
@@ -39,5 +39,5 @@ export default function DashboardSwitcher() {
       </div>
     );
   if (role === "organization") return <OrganizationDashboard />;
-  return <IndividualDashboard />;
+  return <IndividualFeedContainer />;
 }

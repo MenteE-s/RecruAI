@@ -1,8 +1,9 @@
+import { OrgAppShell } from "../../components/layout/OrgAppShell";
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import DashboardLayout from "../../components/layout/DashboardLayout";
-import OrganizationNavbar from "../../components/layout/OrganizationNavbar";
-import Card from "../../components/ui/Card";
+import { Button } from "../../components/ui/Button";
+import { Input } from "../../components/ui/Input";
+import { Avatar } from "../../components/ui/Avatar";
 import { FiPlayCircle, FiCalendar, FiCheckCircle, FiXCircle } from "react-icons/fi";
 import {
 
@@ -19,12 +20,13 @@ const Modal = ({ isOpen, onClose, children }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-2xl relative max-h-[90vh] overflow-y-auto rounded-2xl border border-line bg-surface p-5 shadow-s15 animate-popIn">
         {children}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+          className="absolute right-4 top-4 inline-flex h-8 w-8 items-center justify-center rounded-xl text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-600"
+          aria-label="Close"
         >
           ✕
         </button>
@@ -196,7 +198,7 @@ const ScheduleInterviewModal = ({
       scheduled_at: "",
       duration_minutes: 60,
       user_id: "",
-      organization_id: 1, // TODO: Get from user context
+      organization_id: organizationId || "",
       post_id: "",
       interview_type: "text",
       location: "",
@@ -214,13 +216,13 @@ const ScheduleInterviewModal = ({
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose}>
-      <h2 className="text-xl font-bold text-gray-900 mb-4">
+      <h2 className="mb-4 text-base font-semibold text-ink">
         Schedule Interview
       </h2>
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="mb-1.5 block text-xs font-medium text-gray-600">
               Interview Title
             </label>
             <input
@@ -229,14 +231,14 @@ const ScheduleInterviewModal = ({
               onChange={(e) =>
                 setFormData({ ...formData, title: e.target.value })
               }
-              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink outline-none transition-colors placeholder:text-gray-500 focus:border-brand focus:ring-4 focus:ring-[#E1E4E8]/50"
               placeholder="e.g., Software Engineer Interview - Round 1"
               required
             />
           </div>
 
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="mb-1.5 block text-xs font-medium text-gray-600">
               Description
             </label>
             <textarea
@@ -244,23 +246,23 @@ const ScheduleInterviewModal = ({
               onChange={(e) =>
                 setFormData({ ...formData, description: e.target.value })
               }
-              className="w-full p-2 border rounded resize-none focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink outline-none transition-colors placeholder:text-gray-500 focus:border-brand focus:ring-4 focus:ring-[#E1E4E8]/50 resize-none"
               rows={3}
               placeholder="Interview details, preparation instructions, etc."
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="mb-1.5 block text-xs font-medium text-gray-600">
               Candidate
             </label>
             <div className="relative">
               {selectedCandidate ? (
-                <div className="flex items-center gap-2 p-2 border rounded bg-blue-50">
+                <div className="flex items-center gap-2 p-2 rounded-xl border border-line bg-gray-50 dark:bg-gray-25">
                   {selectedCandidate.profile_picture ? (
                     <img src={getUploadUrl(selectedCandidate.profile_picture)} alt="" className="w-8 h-8 rounded-full object-cover" />
                   ) : (
-                    <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-semibold">
+                    <div className="w-8 h-8 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center text-xs font-semibold">
                       {(selectedCandidate.name || "U").charAt(0).toUpperCase()}
                     </div>
                   )}
@@ -268,7 +270,7 @@ const ScheduleInterviewModal = ({
                   <button
                     type="button"
                     onClick={() => { setSelectedCandidate(null); setFormData({ ...formData, user_id: "" }); setCandidateSearch(""); }}
-                    className="text-gray-400 hover:text-red-500 text-sm"
+                    className="text-gray-500 hover:text-red-500 text-sm"
                   >✕</button>
                 </div>
               ) : (
@@ -279,12 +281,12 @@ const ScheduleInterviewModal = ({
                     onChange={(e) => { setCandidateSearch(e.target.value); setShowCandidateDropdown(true); }}
                     onFocus={() => setShowCandidateDropdown(true)}
                     onBlur={() => setTimeout(() => setShowCandidateDropdown(false), 200)}
-                    className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+                    className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink outline-none transition-colors placeholder:text-gray-500 focus:border-brand focus:ring-4 focus:ring-[#E1E4E8]/50"
                     placeholder="Search candidate by name..."
                     autoComplete="off"
                   />
                   {showCandidateDropdown && candidateResults.length > 0 && (
-                    <div className="absolute z-10 w-full bg-white border rounded-lg shadow-lg mt-1 max-h-60 overflow-y-auto">
+                    <div className="absolute z-10 mt-1 w-full max-h-60 overflow-y-auto rounded-xl border border-line bg-surface shadow-s15">
                       {candidateResults.map((u) => (
                         <button
                           key={u.id}
@@ -296,12 +298,12 @@ const ScheduleInterviewModal = ({
                             setCandidateSearch("");
                             setShowCandidateDropdown(false);
                           }}
-                          className="w-full flex items-center gap-2 px-3 py-2 hover:bg-blue-50 text-left"
+                          className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left"
                         >
                           {u.profile_picture ? (
                             <img src={getUploadUrl(u.profile_picture)} alt="" className="w-7 h-7 rounded-full object-cover" />
                           ) : (
-                            <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-semibold">
+                            <div className="w-7 h-7 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center text-xs font-semibold">
                               {(u.name || "U").charAt(0).toUpperCase()}
                             </div>
                           )}
@@ -314,7 +316,7 @@ const ScheduleInterviewModal = ({
                     </div>
                   )}
                   {showCandidateDropdown && candidateSearch.length >= 2 && candidateResults.length === 0 && !searchingCandidates && (
-                    <div className="absolute z-10 w-full bg-white border rounded-lg shadow-lg mt-1 p-3 text-sm text-gray-500">
+                    <div className="absolute z-10 mt-1 w-full rounded-xl border border-line bg-surface p-3 text-sm text-gray-500 shadow-s15">
                       No candidates found
                     </div>
                   )}
@@ -327,15 +329,16 @@ const ScheduleInterviewModal = ({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="mb-1.5 block text-xs font-medium text-gray-600">
               Job Post
             </label>
             <select
+              aria-label="Job Post"
               value={formData.post_id}
               onChange={(e) =>
                 setFormData({ ...formData, post_id: e.target.value })
               }
-              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink outline-none transition-colors placeholder:text-gray-500 focus:border-brand focus:ring-4 focus:ring-[#E1E4E8]/50"
             >
               <option value="">Select Job Post (Optional)</option>
               {posts.map((post) => (
@@ -347,28 +350,29 @@ const ScheduleInterviewModal = ({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="mb-1.5 block text-xs font-medium text-gray-600">
               Interview Type
             </label>
             <select
+              aria-label="Interview Type"
               value={formData.interview_type}
               onChange={(e) =>
                 setFormData({ ...formData, interview_type: e.target.value })
               }
-              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink outline-none transition-colors placeholder:text-gray-500 focus:border-brand focus:ring-4 focus:ring-[#E1E4E8]/50"
             >
-              <option value="text">💬 Text Chat Interview</option>
+              <option value="text">Text Chat Interview</option>
               {VIDEO_ENABLED && (
                 <>
-                  <option value="ai_video">🤖 AI Video Interview</option>
-                  <option value="human_video">👥 Human Video Interview</option>
+                  <option value="ai_video">AI Video Interview</option>
+                  <option value="human_video">Human Video Interview</option>
                 </>
               )}
             </select>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="mb-1.5 block text-xs font-medium text-gray-600">
               Duration (minutes)
             </label>
             <input
@@ -380,7 +384,7 @@ const ScheduleInterviewModal = ({
                   duration_minutes: parseInt(e.target.value),
                 })
               }
-              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink outline-none transition-colors placeholder:text-gray-500 focus:border-brand focus:ring-4 focus:ring-[#E1E4E8]/50"
               min="15"
               max="480"
               required
@@ -388,7 +392,7 @@ const ScheduleInterviewModal = ({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="mb-1.5 block text-xs font-medium text-gray-600">
               Scheduled Date & Time
             </label>
             <input
@@ -397,7 +401,7 @@ const ScheduleInterviewModal = ({
               onChange={(e) =>
                 setFormData({ ...formData, scheduled_at: e.target.value })
               }
-              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink outline-none transition-colors placeholder:text-gray-500 focus:border-brand focus:ring-4 focus:ring-[#E1E4E8]/50"
               required
             />
           </div>
@@ -405,20 +409,20 @@ const ScheduleInterviewModal = ({
 
         {/* AI Agent Selection */}
         <div className="mt-6">
-          <label className="block text-sm font-medium text-gray-700 mb-3">
+          <label className="mb-3 block text-xs font-medium text-gray-600">
             AI Interview Agent (Optional)
           </label>
 
           {recommendedAgents.length > 0 && (
             <div className="mb-4">
-              <h4 className="text-sm font-medium text-gray-700 mb-2">
-                ⭐ Recommended Agents
+              <h4 className="mb-2 text-sm font-medium text-gray-600">
+                Recommended Agents
               </h4>
               <div className="grid grid-cols-1 gap-3 mb-4">
                 {recommendedAgents.slice(0, 3).map((agent) => (
                   <div
                     key={`rec-${agent.agent_id}`}
-                    className="border border-yellow-200 bg-yellow-50 rounded-lg p-3 cursor-pointer hover:bg-yellow-100 transition-colors"
+                    className="rounded-xl border border-line bg-gray-50 p-3 cursor-pointer transition-colors hover:bg-gray-25 dark:bg-gray-25"
                     onClick={() =>
                       setFormData({ ...formData, ai_agent_id: agent.agent_id })
                     }>
@@ -428,8 +432,8 @@ const ScheduleInterviewModal = ({
                           <span className="font-medium text-gray-900">
                             {agent.agent_name}
                           </span>
-                          <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">
-                            ⭐ Recommended
+                          <span className="rounded-full border border-line bg-surface px-2 py-0.5 text-xs text-gray-600">
+                            Recommended
                           </span>
                         </div>
                         <p className="text-sm text-gray-600">
@@ -452,7 +456,7 @@ const ScheduleInterviewModal = ({
                             ai_agent_id: agent.agent_id,
                           })
                         }
-                        className="w-4 h-4 text-blue-600"
+                        className="h-4 w-4 accent-brand"
                       />
                     </div>
                   </div>
@@ -462,15 +466,16 @@ const ScheduleInterviewModal = ({
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="mb-1.5 block text-xs font-medium text-gray-600">
               Select AI Agent
             </label>
             <select
+              aria-label="Select AI Agent"
               value={formData.ai_agent_id}
               onChange={(e) =>
                 setFormData({ ...formData, ai_agent_id: e.target.value })
               }
-              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink outline-none transition-colors placeholder:text-gray-500 focus:border-brand focus:ring-4 focus:ring-[#E1E4E8]/50"
             >
               <option value="">No AI Agent (Human Interview)</option>
               {aiAgents.map((agent) => (
@@ -489,14 +494,14 @@ const ScheduleInterviewModal = ({
           <button
             type="button"
             onClick={handleClose}
-            className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+            className="inline-flex h-9 items-center justify-center gap-2 rounded-xl border border-line bg-surface px-4 text-sm font-semibold text-ink transition-colors hover:bg-gray-50"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={saving}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex h-9 items-center justify-center gap-2 rounded-xl bg-brand-action px-4 text-sm font-semibold text-white transition-colors hover:bg-brand/90 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {saving ? "Scheduling..." : "Schedule Interview"}
           </button>
@@ -527,23 +532,23 @@ const MakeDecisionModal = ({ isOpen, onClose, onSave, saving, interview }) => {
   };
 
   const decisionOptions = [
-    { value: "passed", label: "✅ Pass - Hire the candidate", color: "green" },
+    { value: "passed", label: "Pass – Hire the candidate", color: "green" },
     {
       value: "second_round",
-      label: "🔄 Second Round - Invite for another interview",
+      label: "Second Round – Invite for another interview",
       color: "blue",
     },
     {
       value: "third_round",
-      label: "🎯 Third Round - Invite for final interview",
+      label: "Third Round – Invite for final interview",
       color: "purple",
     },
-    { value: "failed", label: "❌ Reject - Do not proceed", color: "red" },
+    { value: "failed", label: "Reject – Do not proceed", color: "red" },
   ];
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose}>
-      <h2 className="text-xl font-bold text-gray-900 mb-4">
+      <h2 className="mb-4 text-base font-semibold text-ink">
         Make Interview Decision - Round {interview?.current_round || 1}
       </h2>
       <p className="text-gray-600 mb-6">
@@ -552,8 +557,8 @@ const MakeDecisionModal = ({ isOpen, onClose, onSave, saving, interview }) => {
         <span className="font-semibold">{interview?.title}</span>
         {interview?.decision_history &&
           interview.decision_history.length > 0 && (
-            <span className="block text-sm mt-2 text-blue-600">
-              📋 Previous rounds completed: {interview.decision_history.length}
+            <span className="mt-2 block text-sm text-gray-500">
+              Previous rounds completed: {interview.decision_history.length}
             </span>
           )}
       </p>
@@ -561,17 +566,17 @@ const MakeDecisionModal = ({ isOpen, onClose, onSave, saving, interview }) => {
       <form onSubmit={handleSubmit}>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-3">
+            <label className="mb-3 block text-xs font-medium text-gray-600">
               Decision *
             </label>
             <div className="space-y-2">
               {decisionOptions.map((option) => (
                 <label
                   key={option.value}
-                  className={`block p-3 border rounded-lg cursor-pointer hover:bg-gray-50 ${
+                  className={`block p-3 border rounded-xl cursor-pointer transition-colors hover:bg-gray-50 ${
                     decision === option.value
-                      ? `border-${option.color}-500 bg-${option.color}-50`
-                      : "border-gray-200"
+                      ? "border-brand bg-brand/5"
+                      : "border-line bg-surface"
                   }`}>
                   <input
                     type="radio"
@@ -579,9 +584,9 @@ const MakeDecisionModal = ({ isOpen, onClose, onSave, saving, interview }) => {
                     value={option.value}
                     checked={decision === option.value}
                     onChange={(e) => setDecision(e.target.value)}
-                    className="mr-3"
+                    className="mr-3 accent-brand"
                   />
-                  <span className={`text-${option.color}-700 font-medium`}>
+                  <span className="font-medium text-ink">
                     {option.label}
                   </span>
                 </label>
@@ -590,31 +595,32 @@ const MakeDecisionModal = ({ isOpen, onClose, onSave, saving, interview }) => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="mb-1.5 block text-xs font-medium text-gray-600">
               Rating (1-5 stars)
             </label>
             <select
+              aria-label="Rating (1-5 stars)"
               value={rating}
               onChange={(e) => setRating(e.target.value)}
-              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink outline-none transition-colors placeholder:text-gray-500 focus:border-brand focus:ring-4 focus:ring-[#E1E4E8]/50"
             >
               <option value="">Select rating (optional)</option>
-              <option value="5">⭐⭐⭐⭐⭐ Excellent</option>
-              <option value="4">⭐⭐⭐⭐ Very Good</option>
-              <option value="3">⭐⭐⭐ Good</option>
-              <option value="2">⭐⭐ Fair</option>
-              <option value="1">⭐ Poor</option>
+              <option value="5">5 – Excellent</option>
+              <option value="4">4 – Very Good</option>
+              <option value="3">3 – Good</option>
+              <option value="2">2 – Fair</option>
+              <option value="1">1 – Poor</option>
             </select>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="mb-1.5 block text-xs font-medium text-gray-600">
               Feedback & Notes
             </label>
             <textarea
               value={feedback}
               onChange={(e) => setFeedback(e.target.value)}
-              className="w-full p-2 border rounded resize-none focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink outline-none transition-colors placeholder:text-gray-500 focus:border-brand focus:ring-4 focus:ring-[#E1E4E8]/50 resize-none"
               rows={4}
               placeholder="Provide feedback to the candidate and notes for your records..."
             />
@@ -625,14 +631,14 @@ const MakeDecisionModal = ({ isOpen, onClose, onSave, saving, interview }) => {
           <button
             type="button"
             onClick={handleClose}
-            className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+            className="inline-flex h-9 items-center justify-center gap-2 rounded-xl border border-line bg-surface px-4 text-sm font-semibold text-ink transition-colors hover:bg-gray-50"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={saving || !decision}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex h-9 items-center justify-center gap-2 rounded-xl bg-brand-action px-4 text-sm font-semibold text-white transition-colors hover:bg-brand/90 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {saving ? "Saving Decision..." : "Save Decision"}
           </button>
@@ -656,7 +662,7 @@ const CancelInterviewModal = ({
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
-      <h2 className="text-xl font-bold text-gray-900 mb-4">Cancel Interview</h2>
+      <h2 className="mb-4 text-base font-semibold text-ink">Cancel Interview</h2>
       <div className="mb-6">
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
           <div className="flex items-center">
@@ -689,7 +695,7 @@ const CancelInterviewModal = ({
 
         {interview && (
           <div className="bg-gray-50 rounded-lg p-4">
-            <h4 className="font-medium text-gray-900 mb-2">
+            <h4 className="mb-2 font-medium text-ink">
               Interview Details:
             </h4>
             <div className="text-sm text-gray-600 space-y-1">
@@ -721,7 +727,7 @@ const CancelInterviewModal = ({
         <button
           type="button"
           onClick={onClose}
-          className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+          className="rounded-xl border border-line bg-surface px-4 py-2 text-gray-700 transition-colors hover:bg-gray-50 dark:hover:bg-gray-25"
           disabled={saving}>
           Keep Interview
         </button>
@@ -729,7 +735,7 @@ const CancelInterviewModal = ({
           type="button"
           onClick={handleConfirm}
           disabled={saving}
-          className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="inline-flex h-9 items-center justify-center gap-2 rounded-xl bg-red-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {saving ? "Cancelling..." : "Yes, Cancel Interview"}
         </button>
@@ -756,7 +762,7 @@ const AssignAIAgentModal = ({ isOpen, onClose, onAssign, agents, saving }) => {
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose}>
-      <h2 className="text-xl font-bold text-gray-900 mb-4">
+      <h2 className="mb-4 text-base font-semibold text-ink">
         Assign AI Interview Agent
       </h2>
       <p className="text-gray-600 mb-4">
@@ -768,7 +774,7 @@ const AssignAIAgentModal = ({ isOpen, onClose, onAssign, agents, saving }) => {
           {agents.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-gray-500 mb-4">No AI agents available.</p>
-              <p className="text-sm text-gray-400">
+              <p className="text-sm text-gray-500">
                 Create AI agents in the AI Agents section first.
               </p>
             </div>
@@ -778,10 +784,10 @@ const AssignAIAgentModal = ({ isOpen, onClose, onAssign, agents, saving }) => {
               .map((agent) => (
                 <label
                   key={agent.id}
-                  className={`block p-4 border rounded-lg cursor-pointer hover:bg-gray-50 ${
+                  className={`block p-4 border rounded-xl cursor-pointer transition-colors hover:bg-gray-50 ${
                     selectedAgentId === agent.id.toString()
-                      ? "border-purple-500 bg-purple-50"
-                      : "border-gray-200"
+                      ? "border-brand bg-brand/5"
+                      : "border-line bg-surface"
                   }`}>
                   <input
                     type="radio"
@@ -789,14 +795,14 @@ const AssignAIAgentModal = ({ isOpen, onClose, onAssign, agents, saving }) => {
                     value={agent.id}
                     checked={selectedAgentId === agent.id.toString()}
                     onChange={(e) => setSelectedAgentId(e.target.value)}
-                    className="mr-3"
+                    className="mr-3 accent-brand"
                   />
                   <div className="flex-1">
                     <div className="flex items-center justify-between">
-                      <h3 className="font-semibold text-gray-900">
+                      <h3 className="font-semibold text-ink">
                         {agent.name}
                       </h3>
-                      <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded-full">
+                      <span className="rounded-full border border-line bg-surface px-2 py-1 text-xs text-gray-600">
                         {agent.industry}
                       </span>
                     </div>
@@ -815,14 +821,14 @@ const AssignAIAgentModal = ({ isOpen, onClose, onAssign, agents, saving }) => {
           <button
             type="button"
             onClick={handleClose}
-            className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+            className="inline-flex h-9 items-center justify-center gap-2 rounded-xl border border-line bg-surface px-4 text-sm font-semibold text-ink transition-colors hover:bg-gray-50"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={saving || !selectedAgentId || agents.length === 0}
-            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex h-9 items-center justify-center gap-2 rounded-xl bg-brand-action px-4 text-sm font-semibold text-white transition-colors hover:bg-brand/90 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {saving ? "Assigning..." : "Assign Agent"}
           </button>
@@ -904,11 +910,11 @@ const EditInterviewModal = ({ isOpen, onClose, onSave, saving, interview }) => {
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose}>
-      <h2 className="text-xl font-bold text-gray-900 mb-4">Edit Interview</h2>
+      <h2 className="mb-4 text-base font-semibold text-ink">Edit Interview</h2>
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="mb-1.5 block text-xs font-medium text-gray-600">
               Interview Title
             </label>
             <input
@@ -917,13 +923,13 @@ const EditInterviewModal = ({ isOpen, onClose, onSave, saving, interview }) => {
               onChange={(e) =>
                 setFormData({ ...formData, title: e.target.value })
               }
-              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink outline-none transition-colors placeholder:text-gray-500 focus:border-brand focus:ring-4 focus:ring-[#E1E4E8]/50"
               required
             />
           </div>
 
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="mb-1.5 block text-xs font-medium text-gray-600">
               Description
             </label>
             <textarea
@@ -931,37 +937,38 @@ const EditInterviewModal = ({ isOpen, onClose, onSave, saving, interview }) => {
               onChange={(e) =>
                 setFormData({ ...formData, description: e.target.value })
               }
-              className="w-full p-2 border rounded resize-none focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink outline-none transition-colors placeholder:text-gray-500 focus:border-brand focus:ring-4 focus:ring-[#E1E4E8]/50 resize-none"
               rows={3}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="mb-1.5 block text-xs font-medium text-gray-600">
               Interview Type
             </label>
             <select
+              aria-label="Interview Type"
               value={formData.interview_type}
               onChange={(e) =>
                 setFormData({ ...formData, interview_type: e.target.value })
               }
-              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink outline-none transition-colors placeholder:text-gray-500 focus:border-brand focus:ring-4 focus:ring-[#E1E4E8]/50"
             >
-              <option value="text">💬 Text Chat Interview</option>
+              <option value="text">Text Chat Interview</option>
               {VIDEO_ENABLED && (
                 <>
-                  <option value="ai_video">🤖 AI Video Interview</option>
-                  <option value="human_video">👥 Human Video Interview</option>
-                  <option value="video">📹 Video Call Interview</option>
+                  <option value="ai_video">AI Video Interview</option>
+                  <option value="human_video">Human Video Interview</option>
+                  <option value="video">Video Call Interview</option>
                 </>
               )}
-              <option value="phone">📞 Phone Call Interview</option>
-              <option value="in-person">🏢 In-Person Interview</option>
+              <option value="phone">Phone Call Interview</option>
+              <option value="in-person">In-Person Interview</option>
             </select>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="mb-1.5 block text-xs font-medium text-gray-600">
               Duration (minutes)
             </label>
             <input
@@ -973,7 +980,7 @@ const EditInterviewModal = ({ isOpen, onClose, onSave, saving, interview }) => {
                   duration_minutes: parseInt(e.target.value),
                 })
               }
-              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink outline-none transition-colors placeholder:text-gray-500 focus:border-brand focus:ring-4 focus:ring-[#E1E4E8]/50"
               min="15"
               max="480"
               required
@@ -981,7 +988,7 @@ const EditInterviewModal = ({ isOpen, onClose, onSave, saving, interview }) => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="mb-1.5 block text-xs font-medium text-gray-600">
               Scheduled Date & Time
             </label>
             <input
@@ -990,13 +997,13 @@ const EditInterviewModal = ({ isOpen, onClose, onSave, saving, interview }) => {
               onChange={(e) =>
                 setFormData({ ...formData, scheduled_at: e.target.value })
               }
-              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink outline-none transition-colors placeholder:text-gray-500 focus:border-brand focus:ring-4 focus:ring-[#E1E4E8]/50"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="mb-1.5 block text-xs font-medium text-gray-600">
               Location
             </label>
             <input
@@ -1005,13 +1012,13 @@ const EditInterviewModal = ({ isOpen, onClose, onSave, saving, interview }) => {
               onChange={(e) =>
                 setFormData({ ...formData, location: e.target.value })
               }
-              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink outline-none transition-colors placeholder:text-gray-500 focus:border-brand focus:ring-4 focus:ring-[#E1E4E8]/50"
               placeholder="Physical location or online platform"
             />
           </div>
 
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="mb-1.5 block text-xs font-medium text-gray-600">
               Meeting Link
             </label>
             <input
@@ -1020,7 +1027,7 @@ const EditInterviewModal = ({ isOpen, onClose, onSave, saving, interview }) => {
               onChange={(e) =>
                 setFormData({ ...formData, meeting_link: e.target.value })
               }
-              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink outline-none transition-colors placeholder:text-gray-500 focus:border-brand focus:ring-4 focus:ring-[#E1E4E8]/50"
               placeholder="Zoom, Google Meet, or other meeting link"
             />
           </div>
@@ -1030,14 +1037,14 @@ const EditInterviewModal = ({ isOpen, onClose, onSave, saving, interview }) => {
           <button
             type="button"
             onClick={handleClose}
-            className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+            className="inline-flex h-9 items-center justify-center gap-2 rounded-xl border border-line bg-surface px-4 text-sm font-semibold text-ink transition-colors hover:bg-gray-50"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={saving}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex h-9 items-center justify-center gap-2 rounded-xl bg-brand-action px-4 text-sm font-semibold text-white transition-colors hover:bg-brand/90 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {saving ? "Updating..." : "Update Interview"}
           </button>
@@ -1360,28 +1367,28 @@ export default function InterviewManagement() {
     if (interview.final_decision) {
       const decisionLabels = {
         passed: {
-          text: `✅ Passed${
+          text: `Passed${
             interview.current_round > 1
               ? ` (Round ${interview.current_round})`
               : ""
           }`,
-          color: "green",
+          cls: "bg-brand/10 text-brand-border",
         },
         failed: {
-          text: `❌ Rejected${
+          text: `Rejected${
             interview.current_round > 1
               ? ` (Round ${interview.current_round})`
               : ""
           }`,
-          color: "red",
+          cls: "bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400",
         },
-        second_round: { text: "🔄 Second Round Scheduled", color: "blue" },
-        third_round: { text: "🎯 Third Round Scheduled", color: "purple" },
+        second_round: { text: "Second round scheduled", cls: "bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400" },
+        third_round: { text: "Third round scheduled", cls: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-600" },
       };
       const decision = decisionLabels[interview.final_decision];
       return (
         <span
-          className={`px-2 py-1 bg-${decision.color}-100 text-${decision.color}-800 text-xs rounded-full`}>
+          className={`px-2 py-1 text-xs rounded-full ${decision.cls}`}>
           {decision.text}
         </span>
       );
@@ -1413,7 +1420,7 @@ export default function InterviewManagement() {
       );
     } else if (minutesDiff <= 15) {
       return (
-        <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full animate-pulse">
+        <span className="animate-pulse rounded-full border border-brand/20 bg-brand/10 px-2 py-1 text-xs font-medium text-brand-text">
           Starting Soon
         </span>
       );
@@ -1598,53 +1605,52 @@ export default function InterviewManagement() {
     const isSelected = selectedInterviews.includes(interview.id);
 
     return (
-      <div className="flex items-start justify-between">
+      <div className="flex items-start justify-between gap-4">
         {showCheckbox && (
-          <div className="mr-3 mt-1">
+          <div className="mt-1 shrink-0">
             <input
               type="checkbox"
+              aria-label={`Select ${interview.title || "interview"}`}
               checked={isSelected}
               onChange={(e) =>
                 handleSelectInterview(interview.id, e.target.checked)
               }
-              className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+              className="mt-1 h-6 w-6 rounded accent-brand focus:ring-brand"
             />
           </div>
         )}
-        <div className="flex-1">
-          <div className="flex items-center mb-2">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-3">
             {interview.user_profile_picture ? (
               <img
                 src={getUploadUrl(interview.user_profile_picture)}
                 alt={interview.user_name || "Candidate"}
-                className="w-10 h-10 rounded-full object-cover mr-3 border border-gray-200"
+                className="h-10 w-10 shrink-0 rounded-full border border-line object-cover"
               />
             ) : (
-              <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mr-3 text-sm font-semibold border border-gray-200">
-                {(interview.user_name || "U").charAt(0).toUpperCase()}
-              </div>
+              <Avatar name={interview.user_name || "U"} size="lg" />
             )}
-            <div>
-              <h3 className="font-semibold text-gray-800">{interview.title}</h3>
-              <p className="text-sm text-gray-600">
+            <div className="min-w-0">
+              <h3 className="truncate text-sm font-semibold text-ink">{interview.title}</h3>
+              <p className="mt-0.5 text-[13px] text-gray-500">
                 <DualTime
                   value={interview.scheduled_at_iso || interview.scheduled_at}
                   otherTimezone={interview.candidate_timezone}
                   otherLabel={interview.user_name}
                   variant="compact"
                 />{" "}
-                • {interview.duration_minutes} minutes
+                • {interview.duration_minutes} min
               </p>
               {interview.post_title && (
-                <p className="text-xs text-blue-600 mt-1">
+                <p className="mt-0.5 truncate text-xs font-medium text-gray-600">
                   Position: {interview.post_title}
                 </p>
               )}
             </div>
           </div>
-          <div className="flex items-center space-x-4 mb-3">
+          <div className="mt-3 flex flex-wrap items-center gap-1.5">
             {getStatusBadge(interview)}
-            <span className="text-sm text-gray-600">
+            <span className="inline-flex h-6 items-center rounded-lg border border-line bg-gray-50 px-2 text-xs font-medium text-gray-600 dark:bg-gray-25">
               {interview.interview_type === "text" && "Text Chat Interview"}
               {interview.interview_type === "ai_video" && "AI Video Interview"}
               {interview.interview_type === "human_video" &&
@@ -1655,27 +1661,26 @@ export default function InterviewManagement() {
                 "In-Person Interview"}
             </span>
             {interview.ai_agent && (
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                🤖 AI: {interview.ai_agent.name}
+              <span className="inline-flex h-6 items-center rounded-lg border border-line bg-gray-50 px-2 text-xs font-medium text-gray-600 dark:bg-gray-25">
+                AI: {interview.ai_agent.name}
               </span>
             )}
           </div>
           {interview.description && (
-            <p className="text-gray-700 text-sm mb-3">
+            <p className="mt-3 text-sm leading-relaxed text-gray-600">
               {interview.description}
             </p>
           )}
           {(interview.location || interview.meeting_link) && (
-            <div className="text-sm text-gray-600">
-              {interview.location && <p>📍 {interview.location}</p>}
+            <div className="mt-2 space-y-0.5 text-[13px] text-gray-600">
+              {interview.location && <p>{interview.location}</p>}
               {interview.meeting_link && (
                 <p>
-                  🔗{" "}
                   <a
                     href={interview.meeting_link}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-600 hover:text-blue-700"
+                    className="font-medium text-brand-text hover:underline"
                   >
                     Meeting Link
                   </a>
@@ -1684,21 +1689,21 @@ export default function InterviewManagement() {
             </div>
           )}
           {interview.feedback && (
-            <div className="bg-gray-50 p-3 rounded-lg mt-3">
-              <h4 className="text-sm font-medium text-gray-900 mb-1">
+            <div className="mt-3 rounded-xl border border-line bg-gray-50 p-3 dark:bg-gray-25">
+              <h4 className="text-[13px] font-semibold text-ink">
                 Interview Feedback
               </h4>
-              <p className="text-sm text-gray-700">{interview.feedback}</p>
+              <p className="mt-1 text-sm text-gray-700">{interview.feedback}</p>
               {interview.rating && (
-                <div className="flex items-center mt-2">
-                  <span className="text-sm text-gray-600 mr-2">Rating:</span>
+                <div className="mt-2 flex items-center">
+                  <span className="mr-2 text-xs text-gray-500">Rating:</span>
                   <div className="flex">
                     {[1, 2, 3, 4, 5].map((star) => (
                       <span
                         key={star}
                         className={`text-sm ${
                           star <= interview.rating
-                            ? "text-yellow-400"
+                            ? "text-amber-400"
                             : "text-gray-300"
                         }`}>
                         ★
@@ -1711,9 +1716,9 @@ export default function InterviewManagement() {
           )}
           {interview.decision_history &&
             interview.decision_history.length > 0 && (
-              <div className="bg-blue-50 p-3 rounded-lg mt-3">
-                <h4 className="text-sm font-medium text-gray-900 mb-2">
-                  📋 Interview Progress History
+              <div className="mt-3 rounded-xl border border-line bg-gray-50 p-3 dark:bg-gray-25">
+                <h4 className="mb-2 text-[13px] font-semibold text-ink">
+                  Interview Progress History
                 </h4>
                 <div className="space-y-2">
                   {interview.decision_history
@@ -1721,44 +1726,40 @@ export default function InterviewManagement() {
                     .map((decision, index) => (
                       <div
                         key={decision.id}
-                        className="flex items-start space-x-2"
+                        className="flex items-start gap-2"
                       >
-                        <div className="flex-shrink-0 w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-xs font-medium text-blue-800">
+                        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-line bg-surface text-xs font-medium text-gray-600">
                           {decision.round_number}
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center space-x-2">
-                            <span className="text-sm font-medium text-gray-900">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-sm font-medium text-ink">
                               Round {decision.round_number}
                             </span>
                             <span
-                              className={`px-2 py-0.5 text-xs rounded-full ${
+                              className={`inline-flex h-6 items-center rounded-lg border px-2 text-xs font-medium ${
                                 decision.decision === "passed"
-                                  ? "bg-green-100 text-green-800"
+                                  ? "border-transparent bg-brand/10 text-brand-text"
                                   : decision.decision === "failed"
-                                  ? "bg-red-100 text-red-800"
-                                  : decision.decision === "second_round"
-                                  ? "bg-blue-100 text-blue-800"
-                                  : decision.decision === "third_round"
-                                  ? "bg-purple-100 text-purple-800"
-                                  : "bg-gray-100 text-gray-800"
+                                  ? "border-red-200 bg-red-50 text-red-700"
+                                  : "border-line bg-surface text-gray-600"
                               }`}>
-                              {decision.decision === "passed" && "✅ Passed"}
-                              {decision.decision === "failed" && "❌ Failed"}
+                              {decision.decision === "passed" && "Passed"}
+                              {decision.decision === "failed" && "Failed"}
                               {decision.decision === "second_round" &&
-                                "🔄 Advanced to Round 2"}
+                                "Advanced to Round 2"}
                               {decision.decision === "third_round" &&
-                                "🎯 Advanced to Round 3"}
+                                "Advanced to Round 3"}
                             </span>
                           </div>
                           {decision.feedback && (
-                            <p className="text-sm text-gray-700 mt-1">
+                            <p className="mt-1 text-sm text-gray-700">
                               {decision.feedback}
                             </p>
                           )}
                           {decision.rating && (
-                            <div className="flex items-center mt-1">
-                              <span className="text-xs text-gray-600 mr-2">
+                            <div className="mt-1 flex items-center">
+                              <span className="mr-2 text-xs text-gray-500">
                                 Rating:
                               </span>
                               <div className="flex">
@@ -1767,7 +1768,7 @@ export default function InterviewManagement() {
                                     key={star}
                                     className={`text-xs ${
                                       star <= decision.rating
-                                        ? "text-yellow-400"
+                                        ? "text-amber-400"
                                         : "text-gray-300"
                                     }`}>
                                     ★
@@ -1776,7 +1777,7 @@ export default function InterviewManagement() {
                               </div>
                             </div>
                           )}
-                          <p className="text-xs text-gray-500 mt-1">
+                          <p className="mt-1 text-xs text-gray-500">
                             Decided on{" "}
                             <DualTime value={decision.decided_at} variant="compact" showRelative={false} />
                             {decision.decided_by_name &&
@@ -1789,76 +1790,79 @@ export default function InterviewManagement() {
               </div>
             )}
         </div>
-        <div className="flex flex-col space-y-2 ml-4">
+        <div className="flex shrink-0 flex-col gap-1.5">
           {canJoinInterview(interview) ? (
-            <button
+            <Button
+              variant="primary"
+              size="sm"
               onClick={() => {
                 console.log("Interview object:", interview);
                 console.log("Interview ID:", interview.id);
                 navigate(`/in/interview/${interview.id}`);
               }}
-              className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm animate-pulse"
             >
               {getJoinButtonText(interview)}
-            </button>
+            </Button>
           ) : (
-            <button
-              disabled
-              className="px-3 py-1 bg-gray-300 text-gray-500 rounded text-sm cursor-not-allowed"
-            >
+            <Button variant="secondary" size="sm" disabled>
               {getJoinButtonText(interview)}
-            </button>
+            </Button>
           )}
           {["scheduled", "in_progress", "completed"].includes(
             interview.status
           ) && (
             <>
-              <button
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={() => {
                   setSelectedInterview(interview);
                   setShowDecisionModal(true);
                 }}
-                className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
               >
-                🎯 Make Decision
-              </button>
-              <button
+                Make Decision
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={() => navigate(`/in/interview/${interview.id}/analysis`)}
-                className="px-3 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 text-sm"
               >
-                📊 Analysis
-              </button>
+                Analysis
+              </Button>
             </>
           )}
-          <button
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => {
               setSelectedInterview(interview);
               setShowEditModal(true);
             }}
-            className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 text-sm"
           >
             Edit
-          </button>
+          </Button>
           {!interview.ai_agent && (
-            <button
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => {
                 setSelectedInterview(interview);
                 setShowAssignAgentModal(true);
               }}
-              className="px-3 py-1 border border-purple-300 text-purple-600 rounded hover:bg-purple-50 text-sm"
             >
-              🤖 Assign AI
-            </button>
+              Assign AI
+            </Button>
           )}
-          <button
+          <Button
+            variant="danger"
+            size="sm"
             onClick={() => {
               setSelectedInterview(interview);
               setShowCancelModal(true);
             }}
-            className="px-3 py-1 border border-red-300 text-red-600 rounded hover:bg-red-50 text-sm"
           >
             Cancel
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -1866,18 +1870,16 @@ export default function InterviewManagement() {
 
   if (loading) {
     return (
-      <DashboardLayout
-        NavbarComponent={OrganizationNavbar}>
+      <OrgAppShell>
         <div className="flex justify-center items-center py-12">
           <div className="text-gray-500">Loading interviews...</div>
         </div>
-      </DashboardLayout>
+      </OrgAppShell>
     );
   }
 
   return (
-    <DashboardLayout
-      NavbarComponent={OrganizationNavbar}>
+    <OrgAppShell>
       {/* Error Message */}
       {error && (
         <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
@@ -1891,32 +1893,29 @@ export default function InterviewManagement() {
         </div>
       )}
 
-      <div className="relative overflow-hidden rounded-2xl bg-gray-900 text-white mb-6">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-transparent to-indigo-600/20" />
-        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3" />
-        <div className="relative p-6 md:p-8">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-            <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 border border-white/20 text-xs font-medium tracking-wide mb-3">INTERVIEWS</div>
-              <h1 className="text-3xl md:text-[2rem] font-bold leading-tight">Interview management</h1>
-              <p className="text-gray-300 mt-2 max-w-xl text-sm md:text-[15px]">Schedule and manage interviews with candidates.</p>
+      <div className="px-4 pb-4 pt-4">
+        <div className="rounded-xl border border-line bg-surface p-5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="min-w-0">
+              <h1 className="text-[24px] font-semibold leading-8 text-ink">Interviews</h1>
+              <p className="mt-0.5 text-[13px] text-gray-500">Schedule and manage interviews with candidates.</p>
             </div>
-            <button onClick={() => setShowScheduleModal(true)} className="inline-flex items-center justify-center gap-2 bg-white text-gray-900 px-5 py-3 text-sm font-medium hover:bg-gray-100 self-start lg:self-auto">
-              + Schedule interview
-            </button>
+            <Button variant="primary" size="sm" className="self-start lg:self-auto" onClick={() => setShowScheduleModal(true)}>
+              <FiCalendar className="h-3.5 w-3.5" /> Schedule interview
+            </Button>
           </div>
-          <div className="mt-6 grid grid-cols-3 gap-3 max-w-md">
-            <div className="bg-white/10 backdrop-blur border border-white/10 p-3 text-center">
-              <p className="text-xl font-bold">{interviews.length}</p>
-              <p className="text-xs text-gray-300 mt-1">Total</p>
+          <div className="mt-5 grid max-w-md grid-cols-3 gap-3">
+            <div className="rounded-xl border border-line bg-gray-50 p-3.5 text-center dark:bg-gray-25">
+              <p className="text-xl font-bold text-ink">{interviews.length}</p>
+              <p className="mt-0.5 text-xs text-gray-500">Total</p>
             </div>
-            <div className="bg-blue-500/20 backdrop-blur border border-blue-400/20 p-3 text-center">
-              <p className="text-xl font-bold text-blue-200">{interviews.filter((i) => i.status === "scheduled").length}</p>
-              <p className="text-xs text-blue-200 mt-1">Scheduled</p>
+            <div className="rounded-xl border border-line bg-gray-50 p-3.5 text-center dark:bg-gray-25">
+              <p className="text-xl font-bold text-ink">{interviews.filter((i) => i.status === "scheduled").length}</p>
+              <p className="mt-0.5 text-xs text-gray-500">Scheduled</p>
             </div>
-            <div className="bg-green-500/20 backdrop-blur border border-green-400/20 p-3 text-center">
-              <p className="text-xl font-bold text-green-200">{interviews.filter((i) => i.status === "completed").length}</p>
-              <p className="text-xs text-green-200 mt-1">Completed</p>
+            <div className="rounded-xl border border-line bg-brand/10 p-3.5 text-center">
+              <p className="text-xl font-bold text-brand-text">{interviews.filter((i) => i.status === "completed").length}</p>
+              <p className="mt-0.5 text-xs text-gray-500">Completed</p>
             </div>
           </div>
         </div>
@@ -1924,15 +1923,15 @@ export default function InterviewManagement() {
 
       {/* Selected Interviews Summary */}
       {selectedInterviews.length > 0 && (
-        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+        <div className="mx-4 mb-4 rounded-xl border border-line bg-surface p-3">
           <div className="flex items-center justify-between">
-            <span className="text-sm text-blue-800">
+            <span className="text-sm text-gray-600">
               {selectedInterviews.length} interview(s) selected
             </span>
             <div className="flex space-x-2">
               <button
                 onClick={() => setSelectedInterviews([])}
-                className="px-3 py-1 text-sm text-blue-600 hover:text-blue-800"
+                className="text-sm font-semibold text-ink hover:text-brand-text"
               >
                 Clear Selection
               </button>
@@ -1942,31 +1941,27 @@ export default function InterviewManagement() {
       )}
 
       {/* Filter Controls */}
-      <div className="mb-6 bg-gray-50 p-4 rounded-lg">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+      <div className="mx-4 mb-4 rounded-xl border border-line bg-surface p-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
           {/* Search Filter */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Search
-            </label>
-            <input
+            <label className="mb-1.5 block text-xs font-medium text-gray-600">Search</label>
+            <Input
               type="text"
               value={filterText}
               onChange={(e) => setFilterText(e.target.value)}
-              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
               placeholder="Search by ID, title, candidate name, or position..."
             />
           </div>
 
           {/* Status Filter */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Status
-            </label>
+            <label className="mb-1.5 block text-xs font-medium text-gray-600">Status</label>
             <select
+              aria-label="Status"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              className="h-9 w-full rounded-lg border border-line bg-surface px-3 text-sm text-ink outline-none transition-colors focus:border-brand focus:ring-4 focus:ring-[#E1E4E8]/50"
             >
               <option value="all">All Statuses</option>
               <option value="scheduled">Scheduled</option>
@@ -1979,13 +1974,12 @@ export default function InterviewManagement() {
 
           {/* Decision Filter */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Decision
-            </label>
+            <label className="mb-1.5 block text-xs font-medium text-gray-600">Decision</label>
             <select
+              aria-label="Decision"
               value={decisionFilter}
               onChange={(e) => setDecisionFilter(e.target.value)}
-              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              className="h-9 w-full rounded-lg border border-line bg-surface px-3 text-sm text-ink outline-none transition-colors focus:border-brand focus:ring-4 focus:ring-[#E1E4E8]/50"
             >
               <option value="all">All Decisions</option>
               <option value="pending">Pending Decision</option>
@@ -1998,75 +1992,72 @@ export default function InterviewManagement() {
 
           {/* Bulk Actions */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Actions
-            </label>
+            <label className="mb-1.5 block text-xs font-medium text-gray-600">Actions</label>
             <div className="flex space-x-2">
-              <button
+              <Button
+                variant="danger"
+                size="sm"
                 onClick={handleBulkDelete}
                 disabled={selectedInterviews.length === 0 || saving}
-                className={`px-2 py-2 rounded text-xs font-medium ${
-                  selectedInterviews.length > 0 && !saving
-                    ? "bg-red-600 text-white hover:bg-red-700"
-                    : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                }`}>
+              >
                 Delete ({selectedInterviews.length})
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={() => {
                   setFilterText("");
                   setStatusFilter("all");
                   setDecisionFilter("all");
                   setSelectedInterviews([]);
                 }}
-                className="px-2 py-2 bg-gray-600 text-white rounded text-xs font-medium hover:bg-gray-700"
               >
                 Clear Filters
-              </button>
+              </Button>
             </div>
           </div>
         </div>
 
         {/* Section Visibility Toggles */}
-        <div className="flex flex-wrap gap-2">
+        <div className="mt-4 flex flex-wrap gap-1.5">
           <button
             onClick={() => toggleSection("inProgress")}
-            className={`flex items-center gap-2 px-3 py-2 text-sm font-medium border transition-colors rounded-none ${
+            className={`inline-flex h-7 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-medium transition-colors ${
               showSections.inProgress
-                ? "bg-orange-600 text-white border-orange-600"
-                : "bg-white text-orange-700 border-orange-200 hover:bg-orange-50"
+                ? "border-gray-900 bg-gray-900 text-white dark:border-gray-50 dark:bg-gray-50 dark:text-ink"
+                : "border-line bg-surface text-ink hover:bg-gray-50"
             }`}>
-            <FiPlayCircle className="w-4 h-4" />
+            <FiPlayCircle className="h-3.5 w-3.5" />
             In Progress
           </button>
           <button
             onClick={() => toggleSection("scheduled")}
-            className={`flex items-center gap-2 px-3 py-2 text-sm font-medium border transition-colors rounded-none ${
+            className={`inline-flex h-7 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-medium transition-colors ${
               showSections.scheduled
-                ? "bg-blue-600 text-white border-blue-600"
-                : "bg-white text-blue-700 border-blue-200 hover:bg-blue-50"
+                ? "border-gray-900 bg-gray-900 text-white dark:border-gray-50 dark:bg-gray-50 dark:text-ink"
+                : "border-line bg-surface text-ink hover:bg-gray-50"
             }`}>
-            <FiCalendar className="w-4 h-4" />
+            <FiCalendar className="h-3.5 w-3.5" />
             Scheduled
           </button>
           <button
             onClick={() => toggleSection("completed")}
-            className={`flex items-center gap-2 px-3 py-2 text-sm font-medium border transition-colors rounded-none ${
+            className={`inline-flex h-7 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-medium transition-colors ${
               showSections.completed
-                ? "bg-green-600 text-white border-green-600"
-                : "bg-white text-green-700 border-green-200 hover:bg-green-50"
+                ? "border-gray-900 bg-gray-900 text-white dark:border-gray-50 dark:bg-gray-50 dark:text-ink"
+                : "border-line bg-surface text-ink hover:bg-gray-50"
             }`}>
-            <FiCheckCircle className="w-4 h-4" />
+            <FiCheckCircle className="h-3.5 w-3.5" />
             Completed
           </button>
           <button
             onClick={() => toggleSection("cancelled")}
-            className={`flex items-center gap-2 px-3 py-2 text-sm font-medium border transition-colors rounded-none ${
+            className={`inline-flex h-7 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-medium transition-colors ${
               showSections.cancelled
-                ? "bg-red-600 text-white border-red-600"
-                : "bg-white text-red-700 border-red-200 hover:bg-red-50"
+                ? "border-gray-900 bg-gray-900 text-white dark:border-gray-50 dark:bg-gray-50 dark:text-ink"
+                : "border-line bg-surface text-ink hover:bg-gray-50"
             }`}>
-            <FiXCircle className="w-4 h-4" />
+            <FiXCircle className="h-3.5 w-3.5" />
             Cancelled/No Show
           </button>
         </div>
@@ -2075,24 +2066,24 @@ export default function InterviewManagement() {
       {/* Section: In Progress Interviews */}
       {showSections.inProgress && (
         <>
-          <div className="flex items-center gap-3 mb-4">
-            <span className="w-1 h-6 rounded-full bg-orange-500 shrink-0" />
-            <FiPlayCircle className="w-5 h-5 text-orange-600 shrink-0" />
-            <h2 className="text-lg font-semibold text-gray-900 whitespace-nowrap">
+          <div className="flex flex-wrap items-center gap-3 px-4 mb-4">
+            <span className="h-6 w-1 shrink-0 rounded-full bg-line" />
+            <FiPlayCircle className="h-5 w-5 shrink-0 text-gray-500" />
+            <h2 className="whitespace-nowrap text-sm font-semibold text-ink">
               Current/In Progress Interviews
             </h2>
-            <span className="text-xs font-medium bg-orange-50 text-orange-700 border border-orange-200 px-2 py-0.5 rounded-full shrink-0">
+            <span className="shrink-0 rounded-full border border-line bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-25">
               {inProgress.length}
             </span>
-            <div className="flex-1 border-t border-gray-200" />
+            <div className="flex-1 border-t border-line" />
             {inProgress.length > 0 && (
-              <label className="flex items-center text-sm text-gray-600 shrink-0">
+              <label className="flex shrink-0 items-center text-sm text-gray-600">
                 <input
                   type="checkbox"
                   onChange={(e) =>
                     handleSelectAll(inProgress, e.target.checked)
                   }
-                  className="mr-2"
+                  className="mr-2 h-5 w-5 accent-brand"
                 />
                 Select All
               </label>
@@ -2100,14 +2091,14 @@ export default function InterviewManagement() {
           </div>
           <div className="space-y-4 mb-6">
             {inProgress.length === 0 ? (
-              <div className="border border-dashed border-gray-300 bg-gray-50/50 px-4 py-6 text-center text-sm text-gray-500">
+              <div className="rounded-xl border border-dashed border-line bg-gray-50/50 px-4 py-6 text-center text-sm text-gray-500 dark:bg-gray-25/50">
                 No interviews in progress.
               </div>
             ) : (
               inProgress.map((interview) => (
-                <Card key={interview.id}>
+                <div key={interview.id} className="rounded-xl border border-line bg-surface p-4 card-hover">
                   {renderInterviewCard(interview, true)}
-                </Card>
+                </div>
               ))
             )}
           </div>
@@ -2117,22 +2108,22 @@ export default function InterviewManagement() {
       {/* Section: Scheduled Interviews */}
       {showSections.scheduled && (
         <>
-          <div className="flex items-center gap-3 mb-4 mt-8">
-            <span className="w-1 h-6 rounded-full bg-blue-500 shrink-0" />
-            <FiCalendar className="w-5 h-5 text-blue-600 shrink-0" />
-            <h2 className="text-lg font-semibold text-gray-900 whitespace-nowrap">
+          <div className="flex flex-wrap items-center gap-3 px-4 mb-4 mt-8">
+            <span className="h-6 w-1 shrink-0 rounded-full bg-line" />
+            <FiCalendar className="h-5 w-5 shrink-0 text-gray-500" />
+            <h2 className="whitespace-nowrap text-sm font-semibold text-ink">
               Scheduled Interviews
             </h2>
-            <span className="text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded-full shrink-0">
+            <span className="shrink-0 rounded-full border border-line bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-25">
               {scheduled.length}
             </span>
-            <div className="flex-1 border-t border-gray-200" />
+            <div className="flex-1 border-t border-line" />
             {scheduled.length > 0 && (
-              <label className="flex items-center text-sm text-gray-600 shrink-0">
+              <label className="flex shrink-0 items-center text-sm text-gray-600">
                 <input
                   type="checkbox"
                   onChange={(e) => handleSelectAll(scheduled, e.target.checked)}
-                  className="mr-2"
+                  className="mr-2 h-5 w-5 accent-brand"
                 />
                 Select All
               </label>
@@ -2140,14 +2131,14 @@ export default function InterviewManagement() {
           </div>
           <div className="space-y-4 mb-6">
             {scheduled.length === 0 ? (
-              <div className="border border-dashed border-gray-300 bg-gray-50/50 px-4 py-6 text-center text-sm text-gray-500">
+              <div className="rounded-xl border border-dashed border-line bg-gray-50/50 px-4 py-6 text-center text-sm text-gray-500 dark:bg-gray-25/50">
                 No scheduled interviews.
               </div>
             ) : (
               scheduled.map((interview) => (
-                <Card key={interview.id}>
+                <div key={interview.id} className="rounded-xl border border-line bg-surface p-4 card-hover">
                   {renderInterviewCard(interview, true)}
-                </Card>
+                </div>
               ))
             )}
           </div>
@@ -2157,22 +2148,22 @@ export default function InterviewManagement() {
       {/* Section: Completed Interviews */}
       {showSections.completed && (
         <>
-          <div className="flex items-center gap-3 mb-4 mt-8">
-            <span className="w-1 h-6 rounded-full bg-green-500 shrink-0" />
-            <FiCheckCircle className="w-5 h-5 text-green-600 shrink-0" />
-            <h2 className="text-lg font-semibold text-gray-900 whitespace-nowrap">
+          <div className="flex flex-wrap items-center gap-3 px-4 mb-4 mt-8">
+            <span className="h-6 w-1 shrink-0 rounded-full bg-line" />
+            <FiCheckCircle className="h-5 w-5 shrink-0 text-gray-500" />
+            <h2 className="whitespace-nowrap text-sm font-semibold text-ink">
               Completed Interviews
             </h2>
-            <span className="text-xs font-medium bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 rounded-full shrink-0">
+            <span className="shrink-0 rounded-full border border-line bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-25">
               {completed.length}
             </span>
-            <div className="flex-1 border-t border-gray-200" />
+            <div className="flex-1 border-t border-line" />
             {completed.length > 0 && (
-              <label className="flex items-center text-sm text-gray-600 shrink-0">
+              <label className="flex shrink-0 items-center text-sm text-gray-600">
                 <input
                   type="checkbox"
                   onChange={(e) => handleSelectAll(completed, e.target.checked)}
-                  className="mr-2"
+                  className="mr-2 h-5 w-5 accent-brand"
                 />
                 Select All
               </label>
@@ -2180,14 +2171,14 @@ export default function InterviewManagement() {
           </div>
           <div className="space-y-4 mb-6">
             {completed.length === 0 ? (
-              <div className="border border-dashed border-gray-300 bg-gray-50/50 px-4 py-6 text-center text-sm text-gray-500">
+              <div className="rounded-xl border border-dashed border-line bg-gray-50/50 px-4 py-6 text-center text-sm text-gray-500 dark:bg-gray-25/50">
                 No completed interviews.
               </div>
             ) : (
               completed.map((interview) => (
-                <Card key={interview.id}>
+                <div key={interview.id} className="rounded-xl border border-line bg-surface p-4 card-hover">
                   {renderInterviewCard(interview, true)}
-                </Card>
+                </div>
               ))
             )}
           </div>
@@ -2197,22 +2188,22 @@ export default function InterviewManagement() {
       {/* Section: Cancelled/No Show Interviews */}
       {showSections.cancelled && (
         <>
-          <div className="flex items-center gap-3 mb-4 mt-8">
-            <span className="w-1 h-6 rounded-full bg-red-500 shrink-0" />
-            <FiXCircle className="w-5 h-5 text-red-600 shrink-0" />
-            <h2 className="text-lg font-semibold text-gray-900 whitespace-nowrap">
+          <div className="flex flex-wrap items-center gap-3 px-4 mb-4 mt-8">
+            <span className="h-6 w-1 shrink-0 rounded-full bg-line" />
+            <FiXCircle className="h-5 w-5 shrink-0 text-gray-500" />
+            <h2 className="whitespace-nowrap text-sm font-semibold text-ink">
               Cancelled/No Show Interviews
             </h2>
-            <span className="text-xs font-medium bg-red-50 text-red-700 border border-red-200 px-2 py-0.5 rounded-full shrink-0">
+            <span className="shrink-0 rounded-full border border-line bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-25">
               {cancelled.length}
             </span>
-            <div className="flex-1 border-t border-gray-200" />
+            <div className="flex-1 border-t border-line" />
             {cancelled.length > 0 && (
-              <label className="flex items-center text-sm text-gray-600 shrink-0">
+              <label className="flex shrink-0 items-center text-sm text-gray-600">
                 <input
                   type="checkbox"
                   onChange={(e) => handleSelectAll(cancelled, e.target.checked)}
-                  className="mr-2"
+                  className="mr-2 h-5 w-5 accent-brand"
                 />
                 Select All
               </label>
@@ -2220,14 +2211,14 @@ export default function InterviewManagement() {
           </div>
           <div className="space-y-4 mb-6">
             {cancelled.length === 0 ? (
-              <div className="border border-dashed border-gray-300 bg-gray-50/50 px-4 py-6 text-center text-sm text-gray-500">
+              <div className="rounded-xl border border-dashed border-line bg-gray-50/50 px-4 py-6 text-center text-sm text-gray-500 dark:bg-gray-25/50">
                 No cancelled or no-show interviews.
               </div>
             ) : (
               cancelled.map((interview) => (
-                <Card key={interview.id}>
+                <div key={interview.id} className="rounded-xl border border-line bg-surface p-4 card-hover">
                   {renderInterviewCard(interview, true)}
-                </Card>
+                </div>
               ))
             )}
           </div>
@@ -2290,6 +2281,6 @@ export default function InterviewManagement() {
         saving={saving}
         interview={selectedInterview}
       />
-    </DashboardLayout>
+    </OrgAppShell>
   );
 }

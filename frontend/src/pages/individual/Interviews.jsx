@@ -1,43 +1,44 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import DashboardLayout from "../../components/layout/DashboardLayout";
+import { AppShell, CenterBar } from "../../components/layout/AppShell";
 import MenteeLoader from "../../components/ui/MenteeLoader";
+import AnimatedTabBar from "../../components/motion/AnimatedTabBar";
 import { getBackendUrl, getAuthHeaders } from "../../utils/auth";
 import { parseUTC } from "../../utils/timezone";
 import DualTime from "../../components/ui/DualTime";
 import {
-  FiCalendar,
-  FiClock,
-  FiVideo,
-  FiPhone,
-  FiMessageSquare,
-  FiCpu,
-  FiBriefcase,
-  FiCheckCircle,
-  FiXCircle,
-  FiPlayCircle,
-  FiStar,
-  FiSearch,
-  FiX,
-  FiEye,
-  FiBarChart2,
-} from "react-icons/fi";
+  Calendar,
+  Clock,
+  Video,
+  Phone,
+  MessageSquare,
+  Cpu,
+  Briefcase,
+  CheckCircle2,
+  XCircle,
+  Play,
+  Star,
+  Search,
+  X,
+  Eye,
+  BarChart3,
+} from "lucide-react";
 
 function typeMeta(type) {
   switch (type) {
     case "ai_video":
-      return { icon: FiCpu, label: "AI Video" };
+      return { icon: Cpu, label: "AI video" };
     case "human_video":
     case "video":
-      return { icon: FiVideo, label: "Video" };
+      return { icon: Video, label: "Video" };
     case "phone":
-      return { icon: FiPhone, label: "Phone" };
+      return { icon: Phone, label: "Phone" };
     case "text":
-      return { icon: FiMessageSquare, label: "Text" };
+      return { icon: MessageSquare, label: "Text" };
     case "in-person":
-      return { icon: FiBriefcase, label: "On-site" };
+      return { icon: Briefcase, label: "On-site" };
     default:
-      return { icon: FiCalendar, label: type || "Interview" };
+      return { icon: Calendar, label: type ? type.replace(/_/g, " ") : "Interview" };
   }
 }
 
@@ -60,12 +61,28 @@ function joinLabel(iv) {
 
 function statusChip(iv) {
   if (iv.status === "completed" || iv.final_decision === "passed")
-    return <span className="text-[10px] font-semibold bg-green-50 text-green-700 border border-green-200 px-1.5 py-px rounded">Completed</span>;
+    return (
+      <span className="rounded-full border border-brand/20 bg-brand/10 px-2.5 py-0.5 text-[11px] font-semibold text-brand-text dark:border-brand/30 dark:bg-brand/15">
+        Completed
+      </span>
+    );
   if (iv.status === "cancelled" || iv.final_decision === "rejected")
-    return <span className="text-[10px] font-semibold bg-red-50 text-red-700 border border-red-200 px-1.5 py-px rounded">Cancelled</span>;
+    return (
+      <span className="rounded-full border border-red-200 bg-red-50 px-2.5 py-0.5 text-[11px] font-semibold text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-400">
+        Cancelled
+      </span>
+    );
   if (canJoin(iv))
-    return <span className="text-[10px] font-semibold bg-green-600 text-white px-1.5 py-px rounded animate-pulse">Join now</span>;
-  return <span className="text-[10px] font-semibold bg-gray-100 text-gray-600 border border-gray-200 px-1.5 py-px rounded">Scheduled</span>;
+    return (
+      <span className="animate-pulse rounded-full bg-brand px-2.5 py-0.5 text-[11px] font-semibold text-white shadow-s5">
+        Join now
+      </span>
+    );
+  return (
+    <span className="rounded-full border border-line bg-gray-50 px-2.5 py-0.5 text-[11px] font-semibold text-secondary dark:border-gray-800 dark:bg-gray-25 dark:text-gray-600">
+      Scheduled
+    </span>
+  );
 }
 
 export default function Interviews() {
@@ -123,63 +140,57 @@ export default function Interviews() {
   }, [history, search]);
 
   return (
-    <DashboardLayout >
-      <div className="w-full max-w-3xl mx-auto space-y-2.5">
-        <div>
-          <h1 className="text-base font-bold text-gray-900 tracking-tight">Interviews</h1>
-          <p className="text-[11px] text-gray-500 mt-0.5">
-            {upcoming.length} scheduled · {history.length} in history
-          </p>
-        </div>
+    <AppShell>
+      <CenterBar
+        title="Interviews"
+        subtitle={`${upcoming.length} scheduled · ${history.length} in history`}
+      />
+      <div className="w-full max-w-4xl mx-auto px-4 pb-12 pt-2 space-y-4">
+        {/* Internal tabs with sliding indicator */}
+        <AnimatedTabBar
+          id="interviews-scheduled-history"
+          className="w-full"
+          tabs={[
+            { id: "scheduled", label: `Scheduled (${upcoming.length})`, icon: Calendar },
+            { id: "history", label: `History (${history.length})`, icon: Clock },
+          ]}
+          active={tab}
+          onChange={setTab}
+        />
 
-        {/* Internal tabs */}
-        <div className="flex gap-1.5 bg-white border border-gray-200 rounded-lg p-1 shadow-sm">
-          {[
-            { id: "scheduled", label: `Scheduled (${upcoming.length})`, icon: FiCalendar },
-            { id: "history", label: `History (${history.length})`, icon: FiClock },
-          ].map((t) => {
-            const Icon = t.icon;
-            const isActive = tab === t.id;
-            return (
-              <button
-                key={t.id}
-                onClick={() => setTab(t.id)}
-                className={`flex-1 inline-flex items-center justify-center gap-1.5 py-1.5 text-xs font-semibold rounded-md transition-colors ${
-                  isActive ? "bg-gray-900 text-white" : "text-gray-500 hover:bg-gray-50"
-                }`}>
-                <Icon className="w-3.5 h-3.5" /> {t.label}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Search */}
+        {/* Filter input */}
         <div className="relative">
-          <FiSearch className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 w-3.5 h-3.5" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary/60 h-4 w-4" strokeWidth={1.75} />
           <input
             type="text"
             placeholder="Filter by title, organization, position…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-8 pr-8 py-1.5 bg-white border border-gray-200 rounded-lg text-xs text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-500 shadow-sm"
+            className="w-full rounded-xl border border-line bg-surface py-2.5 pl-9 pr-9 text-xs text-ink outline-none transition-colors placeholder:text-secondary/50 focus:border-brand focus:ring-2 focus:ring-brand/20 dark:bg-gray-25/50"
           />
           {search && (
-            <button onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 rounded text-gray-500">
-              <FiX className="w-3.5 h-3.5" />
+            <button
+              onClick={() => setSearch("")}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 hover:bg-canvas rounded-lg text-secondary transition-colors"
+              aria-label="Clear filter"
+            >
+              <X className="h-3.5 w-3.5" strokeWidth={1.75} />
             </button>
           )}
         </div>
 
         {loading ? (
-          <div className="bg-white border border-gray-200 rounded-lg p-6 text-center shadow-sm">
+          <div className="rounded-xl border border-line bg-surface p-10 text-center shadow-s5 dark:bg-gray-25/50">
             <MenteeLoader size={52} text="Loading interviews…" />
           </div>
         ) : tab === "scheduled" ? (
           scheduledList.length === 0 ? (
-            <div className="bg-white border border-gray-200 rounded-lg p-8 text-center shadow-sm">
-              <FiCalendar className="w-7 h-7 text-gray-300 mx-auto mb-2" />
-              <p className="text-sm font-semibold text-gray-900">No scheduled interviews</p>
-              <p className="text-xs text-gray-500 mt-0.5">Once an organization schedules you, it appears here.</p>
+            <div className="rounded-xl border border-line bg-surface p-12 text-center shadow-s5 dark:bg-gray-25/50">
+              <div className="h-12 w-12 rounded-xl bg-canvas border border-line flex items-center justify-center mx-auto mb-3 dark:bg-gray-25">
+                <Calendar className="h-6 w-6 text-secondary/60" strokeWidth={1.75} />
+              </div>
+              <p className="text-sm font-semibold text-ink">No scheduled interviews</p>
+              <p className="text-xs text-secondary mt-1">Once an organization schedules you, it appears here.</p>
             </div>
           ) : (
             scheduledList.map((iv) => {
@@ -187,35 +198,62 @@ export default function Interviews() {
               const TypeIcon = meta.icon;
               const joinable = canJoin(iv);
               return (
-                <div key={iv.id} className="bg-white border border-gray-200 rounded-lg shadow-sm p-3">
-                  <div className="flex items-start gap-2.5">
-                    <div className="w-9 h-9 rounded-md bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
-                      <TypeIcon className="w-4 h-4 text-blue-600" />
+                <div
+                  key={iv.id}
+                  className="rounded-xl border border-line bg-surface p-4 sm:p-5 shadow-s5 transition-all hover:border-brand/40 dark:bg-gray-25/60 dark:hover:border-brand/50"
+                >
+                  <div className="flex items-start gap-3.5">
+                    <div className="h-10 w-10 rounded-xl bg-canvas border border-line flex items-center justify-center shrink-0 dark:bg-gray-25">
+                      <TypeIcon className="h-4 w-4 text-secondary" strokeWidth={1.75} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <h3 className="text-[13px] font-semibold text-gray-900 leading-tight truncate">{iv.title}</h3>
-                        {iv.current_round && <span className="text-[10px] bg-blue-600 text-white px-1.5 py-px rounded">R{iv.current_round}</span>}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="text-sm font-semibold text-ink leading-snug truncate">{iv.title}</h3>
+                        {iv.current_round && (
+                          <span className="rounded-full bg-brand px-2 py-0.5 text-[11px] font-semibold text-white shadow-s5 font-mono">
+                            Round {iv.current_round}
+                          </span>
+                        )}
                         {statusChip(iv)}
                       </div>
-                      <p className="text-[11px] text-gray-500 truncate mt-0.5">
-                        {iv.organization || "Unknown org"} · {iv.scheduled_at ? <DualTime value={iv.scheduled_at_iso || iv.scheduled_at} otherTimezone={iv.organization_timezone} otherLabel={iv.organization} variant="compact" /> : "Unscheduled"}
+                      <p className="text-xs text-secondary truncate mt-1">
+                        {iv.organization || "Unknown organization"} · {iv.scheduled_at ? (
+                          <DualTime
+                            value={iv.scheduled_at_iso || iv.scheduled_at}
+                            otherTimezone={iv.organization_timezone}
+                            otherLabel={iv.organization}
+                            variant="compact"
+                          />
+                        ) : (
+                          "Unscheduled"
+                        )}
                       </p>
-                      {iv.post_title && <p className="text-[11px] text-blue-600 truncate mt-px">{iv.post_title}</p>}
+                      {iv.post_title && (
+                        <p className="text-xs text-brand-text font-medium truncate mt-0.5">{iv.post_title}</p>
+                      )}
                     </div>
                   </div>
-                  <div className="flex gap-1.5 mt-2 pt-2 border-t border-gray-50">
+                  <div className="flex flex-wrap items-center gap-2 mt-3.5 pt-3 border-t border-line">
                     {joinable ? (
-                      <button onClick={() => navigate(`/in/interview/${iv.id}`)} className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-600 text-white text-[11px] font-semibold hover:bg-blue-700 rounded-md animate-pulse">
-                        <FiPlayCircle className="w-3 h-3" /> {joinLabel(iv)}
+                      <button
+                        onClick={() => navigate(`/in/interview/${iv.id}`)}
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-brand px-3.5 py-1.5 text-xs font-semibold text-white shadow-s5 hover:bg-brand/90 transition-colors animate-pulse"
+                      >
+                        <Play className="h-3.5 w-3.5" strokeWidth={1.75} />
+                        <span>{joinLabel(iv)}</span>
                       </button>
                     ) : (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-100 text-gray-500 text-[11px] font-medium rounded-md">
-                        <FiClock className="w-3 h-3" /> {joinLabel(iv)}
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-canvas border border-line text-secondary text-xs font-medium rounded-xl dark:bg-gray-25">
+                        <Clock className="h-3.5 w-3.5 text-secondary/70" strokeWidth={1.75} />
+                        <span>{joinLabel(iv)}</span>
                       </span>
                     )}
-                    <button onClick={() => navigate(`/in/interviews/${iv.id}`)} className="inline-flex items-center gap-1 px-2.5 py-1 bg-white border border-gray-200 text-gray-600 text-[11px] font-medium hover:bg-gray-50 rounded-md">
-                      <FiEye className="w-3 h-3" /> Prepare
+                    <button
+                      onClick={() => navigate(`/in/interviews/${iv.id}`)}
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-line bg-surface px-3 py-1.5 text-xs font-medium text-ink shadow-s5 hover:bg-gray-100 dark:hover:bg-gray-25 dark:bg-gray-25/50 transition-colors"
+                    >
+                      <Eye className="h-3.5 w-3.5 text-secondary" strokeWidth={1.75} />
+                      <span>Prepare</span>
                     </button>
                   </div>
                 </div>
@@ -223,49 +261,87 @@ export default function Interviews() {
             })
           )
         ) : historyList.length === 0 ? (
-          <div className="bg-white border border-gray-200 rounded-lg p-8 text-center shadow-sm">
-            <FiClock className="w-7 h-7 text-gray-300 mx-auto mb-2" />
-            <p className="text-sm font-semibold text-gray-900">No interview history</p>
-            <p className="text-xs text-gray-500 mt-0.5">Completed interviews will appear here.</p>
+          <div className="rounded-xl border border-line bg-surface p-12 text-center shadow-s5 dark:bg-gray-25/50">
+            <div className="h-12 w-12 rounded-xl bg-canvas border border-line flex items-center justify-center mx-auto mb-3 dark:bg-gray-25">
+              <Clock className="h-6 w-6 text-secondary/60" strokeWidth={1.75} />
+            </div>
+            <p className="text-sm font-semibold text-ink">No interview history</p>
+            <p className="text-xs text-secondary mt-1">Completed interviews will appear here.</p>
           </div>
         ) : (
           historyList.map((iv) => {
             const passed = iv.final_decision === "passed" || iv.status === "completed";
             return (
-              <div key={iv.id} className="bg-white border border-gray-200 rounded-lg shadow-sm p-3">
-                <div className="flex items-start gap-2.5">
-                  <div className={`w-9 h-9 rounded-md border flex items-center justify-center shrink-0 ${passed ? "bg-green-50 border-green-200" : "bg-gray-50 border-gray-200"}`}>
-                    {passed
-                      ? <FiCheckCircle className="w-4 h-4 text-green-600" />
-                      : iv.status === "cancelled" || iv.final_decision === "rejected"
-                        ? <FiXCircle className="w-4 h-4 text-red-500" />
-                        : <FiClock className="w-4 h-4 text-gray-400" />}
+              <div
+                key={iv.id}
+                className="rounded-xl border border-line bg-surface p-4 sm:p-5 shadow-s5 transition-all hover:border-brand/40 dark:bg-gray-25/60 dark:hover:border-brand/50"
+              >
+                <div className="flex items-start gap-3.5">
+                  <div
+                    className={`h-10 w-10 rounded-xl border flex items-center justify-center shrink-0 ${
+                      passed
+                        ? "border-brand/20 bg-brand/10 dark:border-brand/30 dark:bg-brand/15"
+                        : iv.status === "cancelled" || iv.final_decision === "rejected"
+                        ? "border-red-200 bg-red-50 dark:border-red-500/30 dark:bg-red-500/10"
+                        : "border-line bg-canvas dark:bg-gray-25"
+                    }`}
+                  >
+                    {passed ? (
+                      <CheckCircle2 className="h-4 w-4 text-brand-text" strokeWidth={1.75} />
+                    ) : iv.status === "cancelled" || iv.final_decision === "rejected" ? (
+                      <XCircle className="h-4 w-4 text-red-500" strokeWidth={1.75} />
+                    ) : (
+                      <Clock className="h-4 w-4 text-secondary" strokeWidth={1.75} />
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <h3 className="text-[13px] font-semibold text-gray-900 leading-tight truncate">{iv.title}</h3>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="text-sm font-semibold text-ink leading-snug truncate">{iv.title}</h3>
                       {statusChip(iv)}
                     </div>
-                    <p className="text-[11px] text-gray-500 truncate mt-0.5">
-                      {iv.organization || "Unknown org"} · {iv.scheduled_at ? <DualTime value={iv.scheduled_at_iso || iv.scheduled_at} otherTimezone={iv.organization_timezone} otherLabel={iv.organization} variant="compact" /> : ""}
+                    <p className="text-xs text-secondary truncate mt-1">
+                      {iv.organization || "Unknown organization"} · {iv.scheduled_at ? (
+                        <DualTime
+                          value={iv.scheduled_at_iso || iv.scheduled_at}
+                          otherTimezone={iv.organization_timezone}
+                          otherLabel={iv.organization}
+                          variant="compact"
+                        />
+                      ) : (
+                        ""
+                      )}
                     </p>
                     {iv.rating ? (
-                      <p className="flex items-center gap-0.5 mt-1">
+                      <p className="flex items-center gap-1 mt-1.5">
                         {[1, 2, 3, 4, 5].map((s) => (
-                          <FiStar key={s} className={`w-3 h-3 ${s <= iv.rating ? "fill-amber-500 text-amber-500" : "text-gray-300"}`} />
+                          <Star
+                            key={s}
+                            className={`h-3.5 w-3.5 ${
+                              s <= iv.rating ? "fill-amber-500 text-amber-500" : "text-gray-300 dark:text-gray-600"
+                            }`}
+                            strokeWidth={1.75}
+                          />
                         ))}
-                        <span className="text-[11px] text-gray-500 ml-1">{iv.rating}/5</span>
+                        <span className="text-xs font-mono text-secondary ml-1">{iv.rating}/5</span>
                       </p>
                     ) : null}
                   </div>
                 </div>
-                <div className="flex gap-1.5 mt-2 pt-2 border-t border-gray-50">
-                  <button onClick={() => navigate(`/in/interviews/${iv.id}`)} className="inline-flex items-center gap-1 px-2.5 py-1 bg-white border border-gray-200 text-gray-600 text-[11px] font-medium hover:bg-gray-50 rounded-md">
-                    <FiEye className="w-3 h-3" /> Details
+                <div className="flex flex-wrap items-center gap-2 mt-3.5 pt-3 border-t border-line">
+                  <button
+                    onClick={() => navigate(`/in/interviews/${iv.id}`)}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-line bg-surface px-3 py-1.5 text-xs font-medium text-ink shadow-s5 hover:bg-gray-100 dark:hover:bg-gray-25 dark:bg-gray-25/50 transition-colors"
+                  >
+                    <Eye className="h-3.5 w-3.5 text-secondary" strokeWidth={1.75} />
+                    <span>Details</span>
                   </button>
                   {(iv.status === "completed" || iv.rating) && (
-                    <button onClick={() => navigate(`/in/interviews/${iv.id}/analysis`)} className="inline-flex items-center gap-1 px-2.5 py-1 bg-white border border-gray-200 text-blue-600 text-[11px] font-medium hover:bg-blue-50 rounded-md">
-                      <FiBarChart2 className="w-3 h-3" /> Analysis
+                    <button
+                      onClick={() => navigate(`/in/interviews/${iv.id}/analysis`)}
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-brand/30 bg-surface px-3 py-1.5 text-xs font-medium text-brand-text shadow-s5 hover:bg-brand/10 dark:bg-gray-25/50 transition-colors"
+                    >
+                      <BarChart3 className="h-3.5 w-3.5" strokeWidth={1.75} />
+                      <span>Analysis</span>
                     </button>
                   )}
                 </div>
@@ -274,6 +350,6 @@ export default function Interviews() {
           })
         )}
       </div>
-    </DashboardLayout>
+    </AppShell>
   );
 }

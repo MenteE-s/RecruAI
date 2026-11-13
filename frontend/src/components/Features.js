@@ -1,197 +1,362 @@
 import React from "react";
+import {
+  Award,
+  BarChart2,
+  Bell,
+  Briefcase,
+  CheckCircle2,
+  Cpu,
+  FileText,
+  Layers,
+  PlusCircle,
+  Search,
+  Send,
+  User,
+  Users,
+} from "lucide-react";
+
+/* ─── Feature data ─────────────────────────────────────────── */
 
 const forJobSeekers = [
   {
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-      </svg>
-    ),
-    title: "Find Your Perfect Job",
-    description: "AI-matched jobs across Pakistan, UAE, Saudi Arabia, Qatar & the Gulf. Tell us your skills — we find roles you'll love.",
+    icon: Briefcase,
+    title: "Find your perfect job",
+    description:
+      "AI-matched roles across Pakistan, UAE, Saudi Arabia, Qatar & the Gulf based on verified capabilities.",
   },
   {
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-      </svg>
-    ),
-    title: "CV Optimization with AI",
-    description: "Upload your CV and get instant AI rewrites, ATS scores, keywords for Pakistan & Gulf employers, and one-click improvements.",
+    icon: FileText,
+    title: "CV optimization with AI",
+    description:
+      "Upload your CV for real-time ATS scoring, keyword alignment for Gulf employers, and actionable fixes.",
   },
   {
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-      </svg>
-    ),
-    title: "Build Strong Profile",
-    description: "Showcase your experience, skills, education, and achievements. Let organizations find you.",
+    icon: User,
+    title: "Verified skill profile",
+    description:
+      "Showcase experience, assessments, and verified credentials so employers find and contact you directly.",
   },
   {
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-      </svg>
-    ),
-    title: "Practice Mock Interviews",
-    description: "Take unlimited AI-powered mock interviews. Get real-time feedback on your answers, body language, and confidence.",
+    icon: Cpu,
+    title: "Practice mock interviews",
+    description:
+      "Run realistic AI-powered mock interviews with instant feedback on clarity, structure, and technical depth.",
   },
   {
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-      </svg>
-    ),
-    title: "Track Interview Results",
-    description: "View detailed analytics from past interviews. See your scores, strengths, and areas to improve.",
+    icon: BarChart2,
+    title: "Track interview analytics",
+    description:
+      "Review detailed performance scorecards, speech clarity ratings, and personalized improvement roadmaps.",
   },
   {
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-      </svg>
-    ),
-    title: "Hired Flag & Status",
-    description: "Get flagged as 'Hired' with details on who hired you and when. Track your career milestones.",
+    icon: Award,
+    title: "Career milestones and badges",
+    description:
+      "Showcase verified achievements and track your progress from initial application to final offer.",
   },
   {
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-      </svg>
-    ),
-    title: "Job Alerts & Invitations",
-    description: "Receive alerts for matching jobs. Get invited directly by organizations for interviews.",
+    icon: Bell,
+    title: "Job alerts and invitations",
+    description:
+      "Receive targeted alerts when matching roles open, and receive direct interview invites from verified teams.",
   },
 ];
 
 const forOrganizations = [
   {
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-      </svg>
-    ),
-    title: "Post Jobs",
-    description: "Create and publish job listings. Reach thousands of qualified candidates instantly.",
+    icon: PlusCircle,
+    title: "Post and distribute jobs",
+    description:
+      "Publish job posts reaching thousands of qualified software engineers, designers, and domain specialists.",
   },
   {
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-      </svg>
-    ),
-    title: "Search Candidates",
-    description: "Browse profiles, filter by skills and experience. Find the perfect match for your role.",
+    icon: Search,
+    title: "Semantic candidate search",
+    description:
+      "Query candidate vectors using natural language and skill requirements without rigid keyword filters.",
   },
   {
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-      </svg>
-    ),
-    title: "Send Invitations",
-    description: "Invite candidates directly through the platform. Schedule and manage interviews effortlessly.",
+    icon: Send,
+    title: "Direct interview invites",
+    description:
+      "Invite pre-screened talent into automated video or live interview rooms with single-click scheduling.",
   },
   {
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-      </svg>
-    ),
-    title: "AI Screening",
-    description: "Automated initial screening with AI. Evaluate candidates before the first human interview.",
+    icon: Cpu,
+    title: "Automated AI screening",
+    description:
+      "Standardize initial candidate evaluations with unbiased AI question sets and comprehensive reports.",
   },
   {
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-      </svg>
-    ),
-    title: "Manage Pipeline",
-    description: "Track candidates from screening to onboarding. Collaborate with your hiring team.",
+    icon: Layers,
+    title: "Pipeline and team ATS",
+    description:
+      "Collaborative kanban pipelines, team scoring rubrics, and automated status transitions in one view.",
   },
   {
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-      </svg>
-    ),
-    title: "Flag Hired Candidates",
-    description: "Mark candidates as hired with timestamps. Build your talent pool for future roles.",
+    icon: CheckCircle2,
+    title: "Offer and onboarding tracking",
+    description:
+      "Track candidate acceptances, timestamp milestones, and build high-retention regional talent networks.",
   },
 ];
 
-const Features = () => {
+/* ─── Mini illustration: AI Job Matching ───────────────────────────────── */
+
+const JobMatchIllustration = () => {
+  const matches = [
+    { pct: 95, label: "Senior React engineer", color: "bg-brand" },
+    { pct: 87, label: "Full-stack developer", color: "bg-brand/70" },
+    { pct: 82, label: "Frontend engineer", color: "bg-brand/50" },
+  ];
+
   return (
-    <section id="features" className="py-24 bg-white">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
-          <div className="inline-flex items-center px-3 py-1 bg-blue-50 border border-blue-100 text-sm font-medium text-blue-700 mb-4">
-            Platform Features
+    <div className="mt-5 rounded-xl border border-line dark:border-gray-800 bg-surface dark:bg-gray-25 p-4 space-y-3">
+      {/* header row */}
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-[11px] font-semibold text-ink">AI match score</span>
+        <span className="text-[10px] text-gray-500 dark:text-gray-500">Today · Gulf region</span>
+      </div>
+
+      {matches.map(({ pct, label, color }) => (
+        <div key={pct} className="space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-medium text-ink">{label}</span>
+            <span className="text-[11px] font-mono tabular-nums font-semibold text-brand-text">{pct}%</span>
           </div>
-          <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
-            Asia&apos;s Best Job Portal for{" "}
-            <span className="text-blue-600">Job Seekers</span>{" "}
-            &{" "}
-            <span className="text-blue-600">Organizations</span>
+          <div className="h-1.5 w-full rounded-full bg-gray-100 dark:bg-gray-50/20 overflow-hidden">
+            <div
+              className={`h-full rounded-full ${color}`}
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+        </div>
+      ))}
+
+      {/* filler rows */}
+      <div className="pt-1 space-y-2">
+        {[62, 48].map((w) => (
+          <div key={w} className="flex items-center gap-2">
+            <div className="h-1.5 rounded-full bg-gray-100 dark:bg-gray-50/20" style={{ width: `${w}%` }} />
+            <div className="h-1.5 w-8 rounded-full bg-gray-100 dark:bg-gray-50/20 ml-auto" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+/* ─── Mini illustration: Semantic Candidate Search ─────────────────────── */
+
+const SemanticSearchIllustration = () => {
+  const candidates = [
+    { initials: "SA", color: "bg-brand", skills: ["React", "Node.js"], match: "96%" },
+    { initials: "MK", color: "bg-brand",    skills: ["Python", "ML"],      match: "91%" },
+    { initials: "FQ", color: "bg-gray-600",   skills: ["Go", "DevOps"],      match: "88%" },
+  ];
+
+  return (
+    <div className="mt-5 rounded-xl border border-line dark:border-gray-800 bg-surface dark:bg-gray-25 p-4 space-y-2.5">
+      {/* search bar mock */}
+      <div className="flex items-center gap-2 rounded-lg border border-line dark:border-gray-800 bg-gray-50/80 dark:bg-gray-50/10 px-3 py-2">
+        <Search className="h-3.5 w-3.5 text-gray-500 dark:text-gray-500 shrink-0" strokeWidth={1.8} />
+        <span className="text-[11px] text-gray-500 dark:text-gray-500 truncate">
+          Senior engineer, React, remote Gulf
+        </span>
+      </div>
+
+      {/* candidate rows — 12px row padding */}
+      {candidates.map(({ initials, color, skills, match }) => (
+        <div
+          key={initials}
+          className="flex items-center gap-3 rounded-lg border border-line dark:border-gray-800 bg-surface dark:bg-gray-50/20 px-3 py-3"
+        >
+          {/* avatar */}
+          <div
+            className={`w-7 h-7 rounded-full ${color} flex items-center justify-center shrink-0`}
+          >
+            <span className="text-[9px] font-mono font-bold text-white">{initials}</span>
+          </div>
+
+          {/* skills */}
+          <div className="flex gap-1.5 flex-wrap flex-1 min-w-0">
+            {skills.map((s) => (
+              <span
+                key={s}
+                className="inline-flex items-center rounded-md border border-brand/30 bg-brand/10 dark:bg-brand/15 px-1.5 py-0.5 text-[9px] font-semibold text-brand-text"
+              >
+                {s}
+              </span>
+            ))}
+          </div>
+
+          {/* match badge */}
+          <span className="text-[10px] font-mono tabular-nums font-semibold text-brand-text shrink-0">
+            {match}
+          </span>
+        </div>
+      ))}
+
+      {/* filler row */}
+      <div className="flex items-center gap-3 px-3 py-2">
+        <div className="w-7 h-7 rounded-full bg-gray-100 dark:bg-gray-50/20 shrink-0" />
+        <div className="flex gap-1.5 flex-1">
+          <div className="h-4 w-10 rounded-md bg-gray-100 dark:bg-gray-50/20" />
+          <div className="h-4 w-14 rounded-md bg-gray-100 dark:bg-gray-50/20" />
+        </div>
+        <div className="h-3 w-6 rounded bg-gray-100 dark:bg-gray-50/20" />
+      </div>
+    </div>
+  );
+};
+
+/* ─── Shared: small feature tile ───────────────────────────────────────── */
+
+const SmallTile = ({ icon: Icon, title, description, accent = false }) => (
+  <div className="flex flex-col gap-3 rounded-2xl border border-line dark:border-gray-800 bg-surface dark:bg-gray-25 shadow-s5 p-5 hover:border-brand/30 transition-colors">
+    <div
+      className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+        accent
+          ? "bg-brand/10 border border-brand/20 text-brand-text"
+          : "bg-gray-100 dark:bg-gray-50/20 border border-line dark:border-gray-800 text-ink"
+      }`}
+    >
+      <Icon className="h-4 w-4" strokeWidth={1.8} />
+    </div>
+    <div>
+      <div className="text-sm font-semibold text-ink mb-1">{title}</div>
+      <div className="text-xs text-gray-500 dark:text-gray-500 leading-relaxed">
+        {description}
+      </div>
+    </div>
+  </div>
+);
+
+/* ─── Main component ────────────────────────────────────────────────────── */
+
+const Features = () => {
+  /* Split each array: index 0 is the "hero" tile, the rest go into the sub-grid */
+  const seekerHero = forJobSeekers[0]; // "Find your perfect job" / AI match
+  const seekerRest = forJobSeekers.slice(1);
+
+  const orgHero = forOrganizations[1]; // "Semantic candidate search"
+  const orgRest = [...forOrganizations.slice(0, 1), ...forOrganizations.slice(2)];
+
+  return (
+    <section id="features" className="py-20 sm:py-24 bg-surface dark:bg-gray-0 border-t border-line dark:border-gray-800">
+      <div className="max-w-[1120px] mx-auto px-4 sm:px-6 lg:px-8">
+
+        {/* Section header */}
+        <div className="text-center mb-14">
+          <div className="mb-4 inline-flex items-center rounded-full border border-brand/20 bg-brand/10 px-3 py-1 text-xs font-semibold text-brand-text">
+            Platform capabilities
+          </div>
+          <h2 className="text-3xl sm:text-4xl font-bold text-ink mb-4">
+            Built for{" "}
+            <span className="text-brand-text">job seekers</span>
+            {" "}and{" "}
+            <span className="text-brand-text">organizations</span>
           </h2>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            From CV optimization to perfect job matching to AI interviews — built for Pakistan, the Gulf & beyond
+          <p className="text-base sm:text-lg text-gray-600 dark:text-gray-500 max-w-2xl mx-auto leading-relaxed">
+            From CV optimization to semantic candidate matching and AI mock interviews — engineered for Pakistan and the Gulf.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          {/* For Job Seekers */}
-          <div>
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 bg-blue-600 flex items-center justify-center text-white">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
+        {/* Two-column bento layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+          {/* ── For Job Seekers ── */}
+          <div className="flex flex-col gap-4">
+
+            {/* Column label */}
+            <div className="flex items-center gap-2.5 mb-1">
+              <div className="w-8 h-8 bg-brand text-white flex items-center justify-center rounded-xl shadow-s5 shrink-0">
+                <User className="h-4 w-4" strokeWidth={1.8} />
               </div>
-              <h3 className="text-xl font-bold text-gray-900">For Job Seekers</h3>
+              <div>
+                <div className="text-sm font-bold text-ink">For job seekers</div>
+                <div className="text-[11px] text-gray-500 dark:text-gray-500">Everything you need to advance your career</div>
+              </div>
             </div>
-            <div className="space-y-4">
-              {forJobSeekers.map((feature, index) => (
-                <div key={index} className="flex gap-4 p-4 border border-gray-200 hover:border-blue-200 hover:shadow-sm transition-all">
-                  <div className="w-10 h-10 bg-blue-50 flex items-center justify-center text-blue-600 flex-shrink-0">
-                    {feature.icon}
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-gray-900 mb-1">{feature.title}</h4>
-                    <p className="text-sm text-gray-600">{feature.description}</p>
+
+            {/* Hero tile — AI Job Matching */}
+            <div className="rounded-2xl border border-line dark:border-gray-800 bg-surface dark:bg-gray-25 shadow-s5 p-5">
+              {/* tile icon + title */}
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center text-brand-text shrink-0">
+                  <seekerHero.icon className="h-4 w-4" strokeWidth={1.8} />
+                </div>
+                <div>
+                  <div className="text-sm font-semibold text-ink">{seekerHero.title}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-500 leading-relaxed mt-0.5">
+                    {seekerHero.description}
                   </div>
                 </div>
+              </div>
+
+              {/* Product illustration */}
+              <JobMatchIllustration />
+            </div>
+
+            {/* Sub-grid: remaining seeker features */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {seekerRest.map((f, i) => (
+                <SmallTile
+                  key={i}
+                  icon={f.icon}
+                  title={f.title}
+                  description={f.description}
+                  accent
+                />
               ))}
             </div>
           </div>
 
-          {/* For Organizations */}
-          <div>
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 bg-gray-900 flex items-center justify-center text-white">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                </svg>
+          {/* ── For Organizations ── */}
+          <div className="flex flex-col gap-4">
+
+            {/* Column label */}
+            <div className="flex items-center gap-2.5 mb-1">
+              <div className="w-8 h-8 bg-gray-100 dark:bg-gray-50/20 border border-line dark:border-gray-800 flex items-center justify-center rounded-xl shadow-s5 shrink-0">
+                <Users className="h-4 w-4 text-ink" strokeWidth={1.8} />
               </div>
-              <h3 className="text-xl font-bold text-gray-900">For Organizations</h3>
+              <div>
+                <div className="text-sm font-bold text-ink">For organizations</div>
+                <div className="text-[11px] text-gray-500 dark:text-gray-500">Smarter recruitment pipelines without manual overhead</div>
+              </div>
             </div>
-            <div className="space-y-4">
-              {forOrganizations.map((feature, index) => (
-                <div key={index} className="flex gap-4 p-4 border border-gray-200 hover:border-gray-400 hover:shadow-sm transition-all">
-                  <div className="w-10 h-10 bg-gray-100 flex items-center justify-center text-gray-700 flex-shrink-0">
-                    {feature.icon}
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-gray-900 mb-1">{feature.title}</h4>
-                    <p className="text-sm text-gray-600">{feature.description}</p>
+
+            {/* Hero tile — Semantic Candidate Search */}
+            <div className="rounded-2xl border border-line dark:border-gray-800 bg-surface dark:bg-gray-25 shadow-s5 p-5">
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-xl bg-gray-100 dark:bg-gray-50/20 border border-line dark:border-gray-800 flex items-center justify-center text-ink shrink-0">
+                  <orgHero.icon className="h-4 w-4" strokeWidth={1.8} />
+                </div>
+                <div>
+                  <div className="text-sm font-semibold text-ink">{orgHero.title}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-500 leading-relaxed mt-0.5">
+                    {orgHero.description}
                   </div>
                 </div>
+              </div>
+
+              {/* Product illustration */}
+              <SemanticSearchIllustration />
+            </div>
+
+            {/* Sub-grid: remaining org features */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {orgRest.map((f, i) => (
+                <SmallTile
+                  key={i}
+                  icon={f.icon}
+                  title={f.title}
+                  description={f.description}
+                />
               ))}
             </div>
           </div>
+
         </div>
       </div>
     </section>

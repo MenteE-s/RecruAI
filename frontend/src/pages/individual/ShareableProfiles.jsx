@@ -1,7 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
-import DashboardLayout from "../../components/layout/DashboardLayout";
+import { AppShell, CenterBar } from "../../components/layout/AppShell";
+import { Button } from "../../components/ui/Button";
+import { Input } from "../../components/ui/Input";
+import { Avatar } from "../../components/ui/Avatar";
+import EmptyState from "../../components/ui/EmptyState";
+import { StatusTag } from "../../components/jobs/JobBits";
 import {
-
   getBackendUrl,
   getAuthHeaders,
   getUploadUrl,
@@ -22,30 +26,29 @@ import {
   FiLink,
   FiCalendar,
   FiUser,
+  FiFileText,
+  FiBriefcase,
+  FiBookOpen,
+  FiTarget,
+  FiFolder,
 } from "react-icons/fi";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
+import Modal from "./components/Modal";
 
 const formatDate = (dateString) => {
   if (!dateString) return "Never";
   return new Date(dateString).toLocaleDateString();
 };
 
-const Modal = ({ isOpen, onClose, children, title }) => {
-  if (!isOpen) return null;
-  return (
-    <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true">
-      <div className="bg-white w-full max-w-2xl max-h-[90vh] overflow-hidden border border-gray-200">
-        {title && (
-          <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100">
-            <h2 className="text-sm font-semibold text-gray-900" id="modal-title">{title}</h2>
-            <button onClick={onClose} className="p-1.5 hover:bg-gray-100 text-gray-500" aria-label="Close modal"><FiX className="w-4 h-4" /></button>
-          </div>
-        )}
-        <div className="overflow-y-auto max-h-[80vh] p-6">{children}</div>
-      </div>
-    </div>
-  );
-};
+const VISIBILITY_FIELDS = [
+  { key: "is_public", label: "Make public", desc: "Anyone with link can view", icon: FiGlobe },
+  { key: "show_contact_info", label: "Contact info", desc: "Email & phone", icon: FiUser },
+  { key: "show_resume", label: "Resume", desc: "Allow download", icon: FiFileText },
+  { key: "show_experience", label: "Experience", desc: "Work history", icon: FiBriefcase },
+  { key: "show_education", label: "Education", desc: "Schools & degrees", icon: FiBookOpen },
+  { key: "show_skills", label: "Skills", desc: "Your stack", icon: FiTarget },
+  { key: "show_projects", label: "Projects", desc: "Portfolio", icon: FiFolder },
+];
 
 const ProfileModal = ({ isOpen, onClose, profile, onSave }) => {
   const [formData, setFormData] = useState({
@@ -127,44 +130,64 @@ const ProfileModal = ({ isOpen, onClose, profile, onSave }) => {
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={`${profile ? "Edit" : "Create"} shareable profile`}>
+    <Modal isOpen={isOpen} onClose={onClose}>
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="text-base font-semibold text-ink">{profile ? "Edit" : "Create"} shareable profile</h2>
+        <button onClick={onClose} className="text-gray-500 hover:text-gray-600" aria-label="Close modal">
+          <FiX size={20} />
+        </button>
+      </div>
       <form onSubmit={handleSubmit} className="space-y-5">
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1.5">Profile URL slug *</label>
+          <label className="mb-1.5 block text-xs font-medium text-gray-600">Profile URL slug *</label>
           <div className="flex">
-            <span className="inline-flex items-center px-3 bg-gray-100 border border-r-0 border-gray-200 text-sm text-gray-500">recruai.com/</span>
+            <span className="inline-flex items-center rounded-l-lg border border-r-0 border-line bg-gray-50 px-3 text-sm text-gray-500 dark:bg-gray-25">
+              recruai.com/
+            </span>
             <div className="relative flex-1">
-              <FiLink className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <input type="text" value={formData.slug} onChange={handleSlugChange} className="w-full pl-9 pr-8 py-2.5 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white" placeholder="your-name" required />
+              <FiLink className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+              <Input
+                type="text"
+                value={formData.slug}
+                onChange={handleSlugChange}
+                placeholder="your-name"
+                required
+                className="rounded-l-none pl-9 text-sm"
+              />
               <div className="absolute right-2.5 top-1/2 -translate-y-1/2">
-                {checkingSlug && <span className="text-xs text-blue-600">…</span>}
-                {!checkingSlug && slugAvailable === true && <FiCheck className="w-4 h-4 text-green-600" />}
-                {!checkingSlug && slugAvailable === false && <FiX className="w-4 h-4 text-red-600" />}
+                {checkingSlug && <span className="text-xs text-gray-500">…</span>}
+                {!checkingSlug && slugAvailable === true && <FiCheck className="h-4 w-4 text-brand-text" />}
+                {!checkingSlug && slugAvailable === false && <FiX className="h-4 w-4 text-red-600" />}
               </div>
             </div>
           </div>
-          {slugAvailable === false && <p className="text-xs text-red-600 mt-1.5">This slug is already taken</p>}
-          {slugAvailable === true && <p className="text-xs text-green-600 mt-1.5">Available</p>}
+          {slugAvailable === false && <p className="mt-1.5 text-xs text-red-600">This slug is already taken</p>}
+          {slugAvailable === true && <p className="mt-1.5 text-xs text-brand-text">Available</p>}
         </div>
 
         <div>
-          <h3 className="text-xs font-semibold text-gray-900 uppercase tracking-wider mb-3">Visibility</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {[
-              { key: "is_public", label: "Make public", desc: "Anyone with link can view", icon: FiGlobe },
-              { key: "show_contact_info", label: "Contact info", desc: "Email & phone", icon: FiUser },
-              { key: "show_resume", label: "Resume", desc: "Allow download", icon: FiEye },
-              { key: "show_experience", label: "Experience", desc: "Work history", icon: FiCalendar },
-              { key: "show_education", label: "Education", desc: "Schools & degrees", icon: FiCalendar },
-              { key: "show_skills", label: "Skills", desc: "Your stack", icon: FiCheck },
-              { key: "show_projects", label: "Projects", desc: "Portfolio", icon: FiShare2 },
-            ].map((field) => {
+          <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Visibility</h3>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {VISIBILITY_FIELDS.map((field) => {
               const Icon = field.icon;
+              const checked = formData[field.key];
               return (
-                <label key={field.key} className={`flex gap-3 p-3 border cursor-pointer transition-colors ${formData[field.key] ? "bg-blue-50 border-blue-200" : "bg-white border-gray-200 hover:bg-gray-50"}`}>
-                  <input type="checkbox" checked={formData[field.key]} onChange={(e) => setFormData({ ...formData, [field.key]: e.target.checked })} className="mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-900 flex items-center gap-1.5"><Icon className="w-3.5 h-3.5 text-gray-400" />{field.label}</p>
+                <label
+                  key={field.key}
+                  className={`flex cursor-pointer gap-3 rounded-xl border p-3 transition-colors ${
+                    checked ? "border-brand bg-brand/5" : "border-line bg-surface hover:bg-gray-50 dark:hover:bg-gray-25"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={(e) => setFormData({ ...formData, [field.key]: e.target.checked })}
+                    className="mt-1 h-4 w-4 rounded border-line accent-brand"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="flex items-center gap-1.5 text-sm font-medium text-ink">
+                      <Icon className="h-3.5 w-3.5 text-gray-500" strokeWidth={1.7} /> {field.label}
+                    </p>
                     <p className="text-xs text-gray-500">{field.desc}</p>
                   </div>
                 </label>
@@ -174,17 +197,25 @@ const ProfileModal = ({ isOpen, onClose, profile, onSave }) => {
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1.5">Expiry date (optional)</label>
+          <label className="mb-1.5 block text-xs font-medium text-gray-600">Expiry date (optional)</label>
           <div className="relative max-w-xs">
-            <FiCalendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <input type="date" value={formData.expires_at} onChange={(e) => setFormData({ ...formData, expires_at: e.target.value })} className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white" min={new Date().toISOString().split("T")[0]} />
+            <FiCalendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+            <Input
+              type="date"
+              value={formData.expires_at}
+              onChange={(e) => setFormData({ ...formData, expires_at: e.target.value })}
+              min={new Date().toISOString().split("T")[0]}
+              className="pl-9 text-sm"
+            />
           </div>
-          <p className="text-xs text-gray-500 mt-1">Leave empty for no expiry</p>
+          <p className="mt-1 text-xs text-gray-500">Leave empty for no expiry</p>
         </div>
 
-        <div className="flex justify-end gap-2 pt-4 border-t border-gray-100">
-          <button type="button" onClick={onClose} className="px-5 py-2.5 bg-white border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
-          <button type="submit" disabled={saving || slugAvailable === false} className="px-6 py-2.5 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">{saving ? "Saving…" : profile ? "Update" : "Create profile"}</button>
+        <div className="flex justify-end gap-2 border-t border-line pt-4">
+          <Button variant="secondary" type="button" onClick={onClose}>Cancel</Button>
+          <Button variant="dark" type="submit" disabled={saving || slugAvailable === false}>
+            {saving ? "Saving…" : profile ? "Update" : "Create profile"}
+          </Button>
         </div>
       </form>
     </Modal>
@@ -212,44 +243,50 @@ const AnalyticsModal = ({ isOpen, onClose, profile }) => {
   useEffect(() => { if (isOpen && profile) loadAnalytics(); }, [isOpen, profile, loadAnalytics]);
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Profile analytics">
+    <Modal isOpen={isOpen} onClose={onClose}>
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="text-base font-semibold text-ink">Profile analytics</h2>
+        <button onClick={onClose} className="text-gray-500 hover:text-gray-600" aria-label="Close modal">
+          <FiX size={20} />
+        </button>
+      </div>
       <div className="space-y-6">
         <div className="grid grid-cols-2 gap-3">
-          <div className="bg-gray-900 text-white p-4 text-center">
-            <p className="text-2xl font-bold">{summary.total_views}</p>
-            <p className="text-xs text-gray-300 mt-1">Total views</p>
+          <div className="rounded-xl bg-gray-900 p-4 text-center text-white">
+            <p className="text-2xl font-bold font-mono tabular-nums">{summary.total_views}</p>
+            <p className="mt-1 text-xs text-gray-300">Total views</p>
           </div>
-          <div className="bg-white border border-gray-200 p-4 text-center">
-            <p className="text-2xl font-bold text-blue-600">{summary.unique_visitors}</p>
-            <p className="text-xs text-gray-500 mt-1">Unique visitors</p>
+          <div className="rounded-xl border border-line bg-surface p-4 text-center">
+            <p className="text-2xl font-bold text-brand-text font-mono tabular-nums">{summary.unique_visitors}</p>
+            <p className="mt-1 text-xs text-gray-500">Unique visitors</p>
           </div>
         </div>
-        <div className="border border-gray-200 overflow-hidden">
-          <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
-            <p className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Recent views</p>
+        <div className="overflow-hidden rounded-xl border border-line">
+          <div className="border-b border-line bg-gray-50 px-4 py-2 dark:bg-gray-25">
+            <p className="text-xs font-semibold uppercase tracking-wider text-gray-600">Recent views</p>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-white border-b border-gray-200">
-                  <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                  <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500 uppercase">IP</th>
-                  <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500 uppercase hidden sm:table-cell">Agent</th>
-                  <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500 uppercase hidden md:table-cell">Referrer</th>
+                <tr className="border-b border-line bg-surface">
+                  <th className="px-4 py-2.5 text-left text-xs font-medium uppercase text-gray-500">Date</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-medium uppercase text-gray-500">IP</th>
+                  <th className="hidden px-4 py-2.5 text-left text-xs font-medium uppercase text-gray-500 sm:table-cell">Agent</th>
+                  <th className="hidden px-4 py-2.5 text-left text-xs font-medium uppercase text-gray-500 md:table-cell">Referrer</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-line">
                 {loading ? (
-                  <tr><td colSpan="4" className="px-4 py-8 text-center text-gray-500 text-sm">Loading…</td></tr>
+                  <tr><td colSpan="4" className="px-4 py-8 text-center text-sm text-gray-500">Loading…</td></tr>
                 ) : analytics.length === 0 ? (
-                  <tr><td colSpan="4" className="px-4 py-8 text-center text-gray-500 text-sm">No views yet</td></tr>
+                  <tr><td colSpan="4" className="px-4 py-8 text-center text-sm text-gray-500">No views yet</td></tr>
                 ) : (
                   analytics.map((item) => (
-                    <tr key={item.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-2.5 text-xs text-gray-700 whitespace-nowrap">{formatDate(item.viewed_at)}</td>
+                    <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-25">
+                      <td className="whitespace-nowrap px-4 py-2.5 text-xs text-gray-700 font-mono tabular-nums">{formatDate(item.viewed_at)}</td>
                       <td className="px-4 py-2.5 text-xs text-gray-600">{item.ip_address || "—"}</td>
-                      <td className="px-4 py-2.5 text-xs text-gray-600 max-w-[160px] truncate hidden sm:table-cell">{item.user_agent || "—"}</td>
-                      <td className="px-4 py-2.5 text-xs text-gray-600 max-w-[120px] truncate hidden md:table-cell">{item.referrer || "Direct"}</td>
+                      <td className="hidden max-w-[160px] truncate px-4 py-2.5 text-xs text-gray-600 sm:table-cell">{item.user_agent || "—"}</td>
+                      <td className="hidden max-w-[120px] truncate px-4 py-2.5 text-xs text-gray-600 md:table-cell">{item.referrer || "Direct"}</td>
                     </tr>
                   ))
                 )}
@@ -311,85 +348,105 @@ const ShareableProfiles = () => {
     } catch { toast.error("Failed to update"); }
   };
 
+  const flagChips = (profile) => {
+    const flags = [
+      { on: profile.show_contact_info, label: "Contact" },
+      { on: profile.show_resume, label: "Resume" },
+      { on: profile.show_experience, label: "Experience" },
+      { on: profile.show_education, label: "Education" },
+      { on: profile.show_skills, label: "Skills" },
+      { on: profile.show_projects, label: "Projects" },
+    ];
+    return flags.filter((f) => f.on).map((f) => <StatusTag key={f.label}>{f.label}</StatusTag>);
+  };
+
   if (loading) {
     return (
-      <DashboardLayout >
-        <div className="space-y-4 mt-6">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-[320px] bg-gray-200 animate-pulse rounded-lg" />
-            <div className="h-9 w-24 bg-gray-100 animate-pulse rounded" />
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[1, 2, 3].map((i) => <div key={i} className="bg-white border border-gray-200 h-48 animate-pulse" />)}
+      <AppShell rail={<div />}>
+        <CenterBar title="Shareable profiles" />
+        <div className="space-y-4 px-4 py-4">
+          <div className="h-10 w-[320px] animate-pulse rounded-xl bg-gray-200 dark:bg-gray-25" />
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {[1, 2, 3].map((i) => <div key={i} className="h-48 animate-pulse rounded-xl border border-line bg-surface" />)}
           </div>
         </div>
-      </DashboardLayout>
+      </AppShell>
     );
   }
 
   return (
-    <DashboardLayout >
-      {/* Filter */}
-      <div className="flex items-center gap-3 mb-4 mt-6">
-        <div className="relative flex-1 max-w-xl min-w-[260px]">
-          <FiShare2 className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-          <span className="w-full block pl-10 pr-3 py-2.5 bg-white border border-gray-200 text-sm text-gray-700 font-medium">Shareable profiles</span>
-        </div>
-        <div className="flex items-center gap-2 text-xs text-gray-500 shrink-0">
-          <span>{profiles.length} profiles</span>
-          <button onClick={() => setShowCreateModal(true)} className="text-blue-600 hover:text-blue-700 font-medium ml-1">New</button>
-        </div>
+    <AppShell rail={<div />}>
+      <CenterBar
+        title="Shareable Profiles"
+        actions={
+          <Button variant="secondary" size="sm" onClick={() => setShowCreateModal(true)}>
+            <FiPlus className="h-3.5 w-3.5" strokeWidth={2} /> New profile
+          </Button>
+        }
+      />
+
+      <div className="px-4 pb-1 pt-3">
+        <p className="text-[11px] text-gray-500"><span className="font-mono tabular-nums">{profiles.length}</span> profiles · links share only what you allow</p>
       </div>
 
       {profiles.length === 0 ? (
-        <div className="bg-white border border-gray-200 p-12 text-center">
-          <div className="w-14 h-14 bg-gray-100 flex items-center justify-center mx-auto mb-4"><FiShare2 className="w-7 h-7 text-gray-400" /></div>
-          <h3 className="text-lg font-semibold text-gray-900">No profiles yet</h3>
-          <p className="text-sm text-gray-500 mt-1 max-w-md mx-auto">Create your first shareable profile to get a public link you can send to recruiters.</p>
-          <button onClick={() => setShowCreateModal(true)} className="mt-6 inline-flex items-center gap-2 bg-gray-900 text-white px-5 py-2.5 text-sm font-medium hover:bg-black transition-colors"><FiPlus className="w-4 h-4" /> Create profile</button>
-        </div>
+        <EmptyState
+          icon={FiShare2}
+          title="No profiles yet"
+          body="Create your first shareable profile to get a public link you can send to recruiters."
+          action={null}
+        />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 px-4 py-4 md:grid-cols-2 lg:grid-cols-3">
           {profiles.map((profile) => (
-            <div key={profile.id} className="bg-white border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all flex flex-col">
-              <div className="bg-gray-900 px-5 py-4 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-white truncate pr-2">/{profile.slug}</h3>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <span className={`inline-flex items-center gap-1 text-xs px-2 py-1 border ${profile.is_public ? "bg-white/10 text-white border-white/20" : "bg-gray-700 text-gray-300 border-gray-600"}`}>{profile.is_public ? <FiGlobe className="w-3 h-3" /> : <FiLock className="w-3 h-3" />}{profile.is_public ? "Public" : "Private"}</span>
-                  <span className={`w-2 h-2 rounded-full ${profile.is_active ? "bg-green-400" : "bg-gray-500"}`} title={profile.is_active ? "Active" : "Inactive"} />
+            <div key={profile.id} className="flex flex-col rounded-xl border border-line bg-surface">
+              <div className="flex items-center justify-between border-b border-line px-4 py-3">
+                <h3 className="truncate pr-2 text-sm font-semibold text-ink">/{profile.slug}</h3>
+                <div className="flex shrink-0 items-center gap-2">
+                  <StatusTag>{profile.is_public ? <><FiGlobe className="h-3 w-3" /> Public</> : <><FiLock className="h-3 w-3" /> Private</>}</StatusTag>
+                  <span className={`h-2 w-2 rounded-full ${profile.is_active ? "bg-brand" : "bg-gray-400"}`} title={profile.is_active ? "Active" : "Inactive"} />
                 </div>
               </div>
-              <div className="p-5 flex-1">
-                <div className="flex gap-3 mb-4">
+              <div className="flex-1 p-4">
+                <div className="mb-4 flex items-center gap-3">
                   {profile.user?.profile_picture ? (
-                    <img src={getUploadUrl(profile.user.profile_picture)} alt={profile.user.name} className="w-10 h-10 rounded-full object-cover border border-gray-200 shrink-0" />
+                    <img src={getUploadUrl(profile.user.profile_picture)} alt={profile.user.name} className="h-10 w-10 shrink-0 rounded-full border border-line object-cover" />
                   ) : (
-                    <div className="w-10 h-10 rounded-full bg-gray-900 text-white flex items-center justify-center text-sm font-bold shrink-0">{profile.user?.name?.charAt(0)?.toUpperCase() || "?"}</div>
+                    <Avatar name={profile.user?.name || "?"} size="lg" />
                   )}
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold text-gray-900 truncate">{profile.user?.name || "Unnamed"}</p>
-                    <p className="text-xs text-gray-500 flex items-center gap-1"><FiEye className="w-3 h-3" />{profile.view_count} views • {profile.is_active ? <span className="text-green-600">Active</span> : <span className="text-gray-500">Inactive</span>}</p>
+                    <p className="truncate text-sm font-semibold text-ink">{profile.user?.name || "Unnamed"}</p>
+                    <p className="flex items-center gap-1 text-xs text-gray-500">
+                      <FiEye className="h-3 w-3" /> <span className="font-mono tabular-nums">{profile.view_count}</span> views · {profile.is_active ? <span className="text-brand-text">Active</span> : <span className="text-gray-500">Inactive</span>}
+                    </p>
                   </div>
                 </div>
-                <div className="space-y-1.5 text-xs mb-4">
-                  <div className="flex justify-between"><span className="text-gray-500">Expires</span><span className="font-medium text-gray-900">{formatDate(profile.expires_at)}</span></div>
-                  <div className="flex justify-between"><span className="text-gray-500">Created</span><span className="font-medium text-gray-900">{formatDate(profile.created_at)}</span></div>
+                <div className="mb-4 space-y-1.5 text-xs">
+                  <div className="flex justify-between"><span className="text-gray-500">Expires</span><span className="font-medium text-ink">{formatDate(profile.expires_at)}</span></div>
+                  <div className="flex justify-between"><span className="text-gray-500">Created</span><span className="font-medium text-ink">{formatDate(profile.created_at)}</span></div>
                 </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {profile.show_contact_info && <span className="text-xs bg-blue-50 text-blue-700 border border-blue-200 px-2 py-1">Contact</span>}
-                  {profile.show_experience && <span className="text-xs bg-gray-50 text-gray-700 border border-gray-200 px-2 py-1">Experience</span>}
-                  {profile.show_education && <span className="text-xs bg-purple-50 text-purple-700 border border-purple-200 px-2 py-1">Education</span>}
-                  {profile.show_skills && <span className="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-2 py-1">Skills</span>}
-                  {profile.show_projects && <span className="text-xs bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-1">Projects</span>}
-                  {profile.show_resume && <span className="text-xs bg-green-50 text-green-700 border border-green-200 px-2 py-1">Resume</span>}
-                </div>
+                <div className="flex flex-wrap gap-1.5">{flagChips(profile)}</div>
               </div>
-              <div className="px-3 py-3 bg-gray-50 border-t border-gray-100 flex flex-wrap gap-1.5">
-                <button onClick={() => copyProfileLink(profile.slug)} className="inline-flex items-center gap-1.5 text-xs bg-white border border-gray-200 px-2.5 py-1.5 hover:bg-gray-50 font-medium"><FiCopy className="w-3 h-3" /> Copy</button>
-                <button onClick={() => { setAnalyticsProfile(profile); setShowAnalyticsModal(true); }} className="inline-flex items-center gap-1.5 text-xs bg-blue-600 text-white px-2.5 py-1.5 hover:bg-blue-700 font-medium"><FiBarChart2 className="w-3 h-3" /> Stats</button>
-                <button onClick={() => setEditingProfile(profile)} className="inline-flex items-center gap-1.5 text-xs bg-white border border-gray-200 px-2.5 py-1.5 hover:bg-gray-50 font-medium"><FiEdit2 className="w-3 h-3" /> Edit</button>
-                <button onClick={() => toggleProfileStatus(profile)} className={`inline-flex items-center gap-1.5 text-xs border px-2.5 py-1.5 font-medium ${profile.is_active ? "bg-white text-red-600 border-red-200 hover:bg-red-50" : "bg-white text-green-600 border-green-200 hover:bg-green-50"}`}>{profile.is_active ? <><FiEyeOff className="w-3 h-3" /> Off</> : <><FiEye className="w-3 h-3" /> On</>}</button>
-                <button onClick={() => handleDeleteProfile(profile)} className="inline-flex items-center gap-1.5 text-xs bg-white border border-red-200 text-red-600 px-2.5 py-1.5 hover:bg-red-50 font-medium"><FiTrash2 className="w-3 h-3" /> Delete</button>
+              <div className="flex flex-wrap gap-1.5 border-t border-line bg-gray-50 px-3 py-3 dark:bg-gray-25">
+                <Button variant="secondary" size="sm" onClick={() => copyProfileLink(profile.slug)}>
+                  <FiCopy className="h-3.5 w-3.5" /> Copy
+                </Button>
+                <Button variant="secondary" size="sm" onClick={() => { setAnalyticsProfile(profile); setShowAnalyticsModal(true); }}>
+                  <FiBarChart2 className="h-3.5 w-3.5" /> Stats
+                </Button>
+                <Button variant="secondary" size="sm" onClick={() => setEditingProfile(profile)}>
+                  <FiEdit2 className="h-3.5 w-3.5" /> Edit
+                </Button>
+                <Button
+                  variant={profile.is_active ? "danger" : "secondary"}
+                  size="sm"
+                  onClick={() => toggleProfileStatus(profile)}
+                >
+                  {profile.is_active ? <><FiEyeOff className="h-3.5 w-3.5" /> Off</> : <><FiEye className="h-3.5 w-3.5" /> On</>}
+                </Button>
+                <Button variant="danger" size="sm" onClick={() => handleDeleteProfile(profile)}>
+                  <FiTrash2 className="h-3.5 w-3.5" /> Delete
+                </Button>
               </div>
             </div>
           ))}
@@ -399,7 +456,7 @@ const ShareableProfiles = () => {
       <ProfileModal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} onSave={loadProfiles} />
       <ProfileModal isOpen={!!editingProfile} onClose={() => setEditingProfile(null)} profile={editingProfile} onSave={loadProfiles} />
       <AnalyticsModal isOpen={showAnalyticsModal} onClose={() => setShowAnalyticsModal(false)} profile={analyticsProfile} />
-    </DashboardLayout>
+    </AppShell>
   );
 };
 

@@ -1,13 +1,71 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { FiArrowRight, FiCheckCircle, FiEye, FiEyeOff, FiLock } from "react-icons/fi";
+import {
+  ArrowRight,
+  CheckCircle2,
+  Eye,
+  EyeOff,
+  Lock,
+  AlertCircle,
+  ShieldCheck,
+} from "lucide-react";
 import AuthLayout from "../components/auth/AuthLayout";
 import { getBackendUrl } from "../utils/auth";
 
 const inputCls =
-  "block w-full rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-neutral-900 placeholder-gray-400 outline-none transition focus:border-neutral-900 focus:bg-white focus:ring-2 focus:ring-neutral-900/10";
+  "block w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink placeholder-gray-400 outline-none transition-all focus:border-brand focus:ring-2 focus:ring-brand/20 shadow-s5";
 const labelCls =
-  "mb-1.5 block text-xs font-bold uppercase tracking-wider text-neutral-500";
+  "mb-1.5 block text-xs font-bold uppercase tracking-wider text-gray-500";
+
+/* ── Stageshow illustration: ResetPassword right panel ──────────────────── */
+function ResetPasswordIllustration() {
+  return (
+    <div className="my-6 space-y-3.5">
+      {/* Window card */}
+      <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4.5 sm:p-5 shadow-2xl backdrop-blur-md">
+        {/* Window chrome header */}
+        <div className="mb-4 flex items-center justify-between border-b border-white/10 pb-3">
+          <div className="flex items-center gap-1.5">
+            <span className="h-2.5 w-2.5 rounded-full bg-rose-500/80" />
+            <span className="h-2.5 w-2.5 rounded-full bg-amber-500/80" />
+            <span className="h-2.5 w-2.5 rounded-full bg-emerald-500/80" />
+          </div>
+          <span className="text-[11px] font-mono tracking-tight text-gray-500">recruai.app/reset-password</span>
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/40 bg-brand/15 px-2.5 py-0.5 text-[11px] font-semibold text-brand-text">
+            <span className="h-1.5 w-1.5 rounded-full bg-brand animate-pulse" />
+            Verified
+          </span>
+        </div>
+
+        {/* Security preview card */}
+        <div className="rounded-xl border border-white/10 bg-black/50 p-4 space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand/20 border border-brand/30 text-xs font-bold text-brand-text">
+                <ShieldCheck className="h-4 w-4 text-brand-text" strokeWidth={2} />
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-xs font-bold text-white">Session security</p>
+                <p className="text-[11px] text-gray-500">All older sessions revoked</p>
+              </div>
+            </div>
+            <span className="shrink-0 rounded-md border border-brand/30 bg-brand/15 px-2 py-0.5 font-mono text-[11px] font-bold text-brand-text tabular-nums">
+              Bcrypt · SHA-256
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between border-t border-white/10 pt-2.5 text-[11px] text-gray-500">
+            <span className="inline-flex items-center gap-1.5 text-gray-300">
+              <CheckCircle2 className="h-3.5 w-3.5 text-brand-text" strokeWidth={2} />
+              <span>Rotated credentials</span>
+            </span>
+            <span className="font-mono text-[10px] text-gray-500">Instant sign-in ready</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function ResetPassword() {
   const [email, setEmail] = useState(() => {
@@ -70,55 +128,59 @@ export default function ResetPassword() {
 
   if (success) {
     return (
-      <AuthLayout>
-        <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
-          <FiCheckCircle className="h-6 w-6" />
+      <AuthLayout preview={<ResetPasswordIllustration />}>
+        <div className="mx-auto mb-5 flex h-10 w-10 items-center justify-center rounded-2xl border border-brand/25 bg-brand/10 text-brand-text shadow-s5">
+          <CheckCircle2 className="h-4 w-4 text-brand-text" strokeWidth={2} />
         </div>
-        <h1 className="text-center text-3xl font-extrabold tracking-tight">
+        <h1 className="text-center text-3xl font-extrabold tracking-tight text-ink">
           Password reset
         </h1>
-        <p className="mt-3 text-center text-sm leading-relaxed text-neutral-500">
+        <p className="mt-2 text-center text-sm leading-relaxed text-gray-500">
           Your password has been updated. For security, every older session has
           been signed out.
         </p>
 
         <Link
           to="/signin?reset=success"
-          className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-neutral-900 py-3 text-sm font-bold text-white transition hover:bg-black"
+          className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl border border-brand bg-brand py-3 text-sm font-semibold text-white shadow-s5 transition hover:bg-brand/90 active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
         >
-          Sign in with your new password <FiArrowRight className="h-4 w-4" />
+          <span>Sign in with your new password</span>
+          <ArrowRight className="h-4 w-4" strokeWidth={2} />
         </Link>
       </AuthLayout>
     );
   }
 
   return (
-    <AuthLayout>
-      <p className="text-xs font-bold uppercase tracking-[0.2em] text-neutral-400">
+    <AuthLayout preview={<ResetPasswordIllustration />}>
+      <p className="text-xs font-bold uppercase tracking-[0.2em] text-gray-500">
         Account recovery
       </p>
-      <h1 className="mt-2 text-3xl font-extrabold tracking-tight sm:text-4xl">
+      <h1 className="mt-1.5 text-3xl font-extrabold tracking-tight sm:text-4xl text-ink">
         Choose a new password
       </h1>
-      <p className="mt-2 text-sm leading-relaxed text-neutral-500">
+      <p className="mt-2 text-sm leading-relaxed text-gray-500">
         Enter the code from your email and set a new password.
       </p>
 
       {error && (
-        <div className="mt-5 rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm font-medium text-red-700">
-          {error}
-          {invalidCode && (
-            <Link
-              to={`/forgot-password?email=${encodeURIComponent(email)}`}
-              className="mt-1 block font-semibold underline underline-offset-2"
-            >
-              Request a new code
-            </Link>
-          )}
+        <div className="mt-5 flex items-start gap-2.5 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3.5 text-sm font-medium text-rose-700 dark:text-rose-300 shadow-s5">
+          <AlertCircle className="h-4 w-4 shrink-0 text-rose-600 dark:text-rose-400 mt-0.5" strokeWidth={2} />
+          <div className="flex-1">
+            {error}
+            {invalidCode && (
+              <Link
+                to={`/forgot-password?email=${encodeURIComponent(email)}`}
+                className="mt-2 inline-block font-semibold text-brand-text underline underline-offset-2 hover:no-underline"
+              >
+                Request a new code
+              </Link>
+            )}
+          </div>
         </div>
       )}
 
-      <form onSubmit={submit} className="mt-6 space-y-4">
+      <form onSubmit={submit} className="mt-6 space-y-3.5">
         <div>
           <label htmlFor="reset-email" className={labelCls}>
             Email
@@ -141,7 +203,7 @@ export default function ResetPassword() {
           </label>
           <input
             id="reset-code"
-            className={`${inputCls} tracking-[0.35em]`}
+            className={`${inputCls} text-center font-mono text-base tracking-[0.35em]`}
             value={code}
             onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
             inputMode="numeric"
@@ -170,17 +232,17 @@ export default function ResetPassword() {
             <button
               type="button"
               onClick={() => setShowPassword((s) => !s)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 transition-colors hover:text-neutral-900"
+              className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 transition-colors hover:text-ink hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
               aria-label={showPassword ? "Hide password" : "Show password"}
             >
               {showPassword ? (
-                <FiEyeOff className="h-5 w-5" />
+                <EyeOff className="h-4 w-4" strokeWidth={2} />
               ) : (
-                <FiEye className="h-5 w-5" />
+                <Eye className="h-4 w-4" strokeWidth={2} />
               )}
             </button>
           </div>
-          <p className="mt-1.5 text-xs text-neutral-400">
+          <p className="mt-1.5 text-xs text-gray-500">
             At least 8 characters, with uppercase, lowercase, and a number.
           </p>
         </div>
@@ -190,7 +252,7 @@ export default function ResetPassword() {
             Confirm new password
           </label>
           <div className="relative">
-            <FiLock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+            <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" strokeWidth={2} />
             <input
               id="reset-confirm-password"
               className={`${inputCls} pl-10`}
@@ -205,7 +267,7 @@ export default function ResetPassword() {
         </div>
 
         <button
-          className="w-full rounded-lg bg-neutral-900 py-3 text-sm font-bold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-60"
+          className="w-full rounded-xl border border-brand bg-brand py-3 text-sm font-semibold text-white shadow-s5 transition hover:bg-brand/90 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
           disabled={loading}
           type="submit"
         >
@@ -213,11 +275,11 @@ export default function ResetPassword() {
         </button>
       </form>
 
-      <p className="mt-5 text-center text-sm text-neutral-500">
+      <p className="mt-5 text-center text-sm text-gray-500">
         Need a new code?{" "}
         <Link
           to={`/forgot-password?email=${encodeURIComponent(email)}`}
-          className="font-semibold text-neutral-900 underline underline-offset-4 hover:no-underline"
+          className="font-semibold text-ink underline underline-offset-4 hover:no-underline"
         >
           Send another
         </Link>

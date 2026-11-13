@@ -1,9 +1,13 @@
+import { OrgAppShell } from "../../components/layout/OrgAppShell";
 import React, { useCallback, useState, useEffect } from "react";
-import DashboardLayout from "../../components/layout/DashboardLayout";
 import { verifyTokenWithServer, getBackendUrl, getAuthHeaders } from "../../utils/auth";
 import { useToast } from "../../components/ui/ToastContext";
 import { formatDate } from "../../utils/timezone";
-import { FiCpu, FiPlus, FiEdit2, FiTrash2, FiPlay, FiCalendar, FiAlertCircle } from "react-icons/fi";
+import { ProfileSection } from "../../components/profile/ProfileSection";
+import { Button } from "../../components/ui/Button";
+import EmptyState from "../../components/ui/EmptyState";
+import { Avatar } from "../../components/ui/Avatar";
+import { FiCpu, FiPlus, FiEdit2, FiTrash2, FiPlay, FiCalendar, FiAlertCircle, FiX } from "react-icons/fi";
 
 export default function AIAgents() {
   const { showToast } = useToast();
@@ -80,168 +84,196 @@ export default function AIAgents() {
   };
   const resetForm = () => { setFormData({ name: "", industry: "", description: "", system_prompt: "", custom_instructions: "", is_active: true }); setEditingAgent(null); setShowCreateForm(false); };
   const industries = ["Software Engineering", "Data Science", "Product Management", "Marketing", "Sales", "Design", "Finance", "Human Resources", "Operations", "Customer Success"];
-  const getInitials = (name) => name ? name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase() : "AI";
+
+  const fieldCls = "w-full rounded-xl border border-line bg-surface px-3 py-2.5 text-sm text-ink outline-none transition-colors placeholder:text-gray-500 focus:border-brand focus:ring-4 focus:ring-[#E1E4E8]/50";
+  const chipCls = "inline-flex items-center rounded-full border border-line bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-600 dark:bg-gray-25";
+  const statusChip = (active) =>
+    active
+      ? "bg-brand/10 text-brand-text border-brand/20"
+      : "bg-gray-50 text-gray-600 border-line dark:bg-gray-25";
 
   return (
-    <DashboardLayout >
-      {/* Hero */}
-      <div className="relative overflow-hidden rounded-2xl bg-gray-900 text-white mb-6">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-transparent to-indigo-600/20" />
-        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3" />
-        <div className="relative p-6 md:p-8">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-            <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 border border-white/20 text-xs font-medium tracking-wide mb-3">
-                <FiCpu className="w-3.5 h-3.5" />
-                AI AGENTS
-              </div>
-              <h1 className="text-3xl md:text-[2rem] font-bold leading-tight">AI interview agents</h1>
-              <p className="text-gray-300 mt-2 max-w-xl text-sm md:text-[15px]">Train and customize AI agents to conduct interviews for your organization.</p>
+    <OrgAppShell>
+      {/* Header */}
+      <div className="px-4 pb-4 pt-4">
+        <div className="rounded-xl border border-line bg-surface p-5 card-hover">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="min-w-0">
+              <h1 className="text-[24px] font-semibold leading-8 text-ink">AI agents</h1>
+              <p className="mt-0.5 text-[13px] text-gray-500">Train and customize AI agents to conduct interviews for your organization.</p>
             </div>
-            <div className="flex flex-col gap-3 lg:w-[380px]">
+            <div className="flex flex-col gap-3">
               <div className="grid grid-cols-3 gap-3">
-                <div className="bg-white/10 backdrop-blur border border-white/10 p-4 text-center">
-                  <p className="text-2xl font-bold">{agents.length}</p>
-                  <p className="text-xs text-gray-300 mt-1">Agents</p>
+                <div className="rounded-xl border border-line bg-gray-50 p-3.5 text-center dark:bg-gray-25">
+                  <p className="text-lg font-bold text-ink">{agents.length}</p>
+                  <p className="mt-0.5 text-[11px] text-gray-500">Agents</p>
                 </div>
-                <div className="bg-green-500/20 backdrop-blur border border-green-400/20 p-4 text-center">
-                  <p className="text-2xl font-bold text-green-200">{agents.filter((a) => a.is_active).length}</p>
-                  <p className="text-xs text-green-200 mt-1">Active</p>
+                <div className="rounded-xl border border-brand/20 bg-brand/10 p-3.5 text-center">
+                  <p className="text-lg font-bold text-brand-text">{agents.filter((a) => a.is_active).length}</p>
+                  <p className="mt-0.5 text-[11px] text-gray-500">Active</p>
                 </div>
-                <div className="bg-white/10 backdrop-blur border border-white/10 p-4 text-center">
-                  <p className="text-2xl font-bold">∞</p>
-                  <p className="text-xs text-gray-300 mt-1">Interviews</p>
+                <div className="rounded-xl border border-line bg-gray-50 p-3.5 text-center dark:bg-gray-25">
+                  <p className="text-lg font-bold text-ink">∞</p>
+                  <p className="mt-0.5 text-[11px] text-gray-500">Interviews</p>
                 </div>
               </div>
-              <button onClick={() => setShowCreateForm(!showCreateForm)} className="w-full inline-flex items-center justify-center gap-2 bg-white text-gray-900 px-5 py-3 text-sm font-medium hover:bg-gray-100 transition-colors">
-                <FiPlus className="w-4 h-4" /> {showCreateForm ? "Cancel" : "New AI agent"}
-              </button>
+              <Button variant={showCreateForm ? "secondary" : "primary"} onClick={() => setShowCreateForm(!showCreateForm)}>
+                <FiPlus className="h-4 w-4" /> {showCreateForm ? "Cancel" : "New AI agent"}
+              </Button>
             </div>
           </div>
         </div>
       </div>
 
       {orgError && (
-        <div className="mb-6 bg-red-50 border border-red-200 px-4 py-3 flex items-center gap-2 text-sm text-red-700">
-          <FiAlertCircle className="w-5 h-5 shrink-0" />{orgError}
+        <div className="mx-4 mb-4 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-400">
+          <FiAlertCircle className="h-5 w-5 shrink-0" />{orgError}
         </div>
       )}
 
       {showCreateForm && (
-        <div className="bg-white border border-gray-200 mb-6">
-          <div className="px-6 py-4 border-b border-gray-100">
-            <h3 className="text-sm font-semibold text-gray-900">{editingAgent ? "Edit AI agent" : "Create new AI agent"}</h3>
-            <p className="text-xs text-gray-500 mt-1">Define how your AI interviewer behaves.</p>
-          </div>
-          <form onSubmit={handleSubmit} className="p-6 space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1.5">Agent name *</label>
-                <div className="relative">
-                  <FiCpu className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <input type="text" required value={formData.name} onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))} placeholder="e.g. Senior Software Engineer Interviewer" className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white" />
+        <div className="px-4 pb-4">
+          <ProfileSection>
+            <div className="border-b border-line pb-4">
+              <h2 className="text-sm font-semibold text-ink">{editingAgent ? "Edit AI agent" : "Create new AI agent"}</h2>
+              <p className="mt-0.5 text-xs text-gray-500">Define how your AI interviewer behaves.</p>
+            </div>
+            <form onSubmit={handleSubmit} className="space-y-4 pt-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-gray-600">Agent name *</label>
+                  <div className="relative">
+                    <FiCpu className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+                    <input type="text" required value={formData.name} onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))} placeholder="e.g. Senior Software Engineer Interviewer" className={`${fieldCls} pl-9`} />
+                  </div>
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-gray-600">Industry *</label>
+                  <select required value={formData.industry} onChange={(e) => setFormData((p) => ({ ...p, industry: e.target.value }))} className={fieldCls}>
+                    <option value="">Select industry</option>
+                    {industries.map((ind) => <option key={ind} value={ind}>{ind}</option>)}
+                  </select>
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1.5">Industry *</label>
-                <select required value={formData.industry} onChange={(e) => setFormData((p) => ({ ...p, industry: e.target.value }))} className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white">
-                  <option value="">Select industry</option>
-                  {industries.map((ind) => <option key={ind} value={ind}>{ind}</option>)}
-                </select>
+                <label className="mb-1.5 block text-xs font-medium text-gray-600">Description</label>
+                <textarea rows={2} value={formData.description} onChange={(e) => setFormData((p) => ({ ...p, description: e.target.value }))} placeholder="Brief description of what this agent specializes in…" className={`${fieldCls} resize-none`} />
               </div>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1.5">Description</label>
-              <textarea rows={2} value={formData.description} onChange={(e) => setFormData((p) => ({ ...p, description: e.target.value }))} placeholder="Brief description of what this agent specializes in…" className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white resize-none" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1.5">Base system prompt</label>
-              <textarea rows={3} value={formData.system_prompt} onChange={(e) => setFormData((p) => ({ ...p, system_prompt: e.target.value }))} placeholder="Optional instructions for tone, detail level, or priorities…" className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white resize-none" />
-              <p className="text-xs text-gray-400 mt-1">Customizes the agent's tone and priorities.</p>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1.5">Custom instructions</label>
-              <textarea rows={3} value={formData.custom_instructions} onChange={(e) => setFormData((p) => ({ ...p, custom_instructions: e.target.value }))} placeholder="e.g. Focus on React experience, emphasize problem-solving…" className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white resize-none" />
-            </div>
-            <label className="flex items-center gap-2 p-3 bg-gray-50 border border-gray-200 cursor-pointer">
-              <input type="checkbox" checked={formData.is_active} onChange={(e) => setFormData((p) => ({ ...p, is_active: e.target.checked }))} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
-              <span className="text-sm text-gray-700">Agent is active and can conduct interviews</span>
-            </label>
-            <div className="flex gap-3">
-              <button type="submit" className="px-6 py-2.5 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700">{editingAgent ? "Update agent" : "Create agent"}</button>
-              <button type="button" onClick={resetForm} className="px-5 py-2.5 bg-white border border-gray-200 text-sm font-medium hover:bg-gray-50">Cancel</button>
-            </div>
-          </form>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-gray-600">Base system prompt</label>
+                <textarea rows={3} value={formData.system_prompt} onChange={(e) => setFormData((p) => ({ ...p, system_prompt: e.target.value }))} placeholder="Optional instructions for tone, detail level, or priorities…" className={`${fieldCls} resize-none`} />
+                <p className="mt-1 text-xs text-gray-500">Customizes the agent's tone and priorities.</p>
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-gray-600">Custom instructions</label>
+                <textarea rows={3} value={formData.custom_instructions} onChange={(e) => setFormData((p) => ({ ...p, custom_instructions: e.target.value }))} placeholder="e.g. Focus on React experience, emphasize problem-solving…" className={`${fieldCls} resize-none`} />
+              </div>
+              <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-line bg-gray-50 p-3 dark:bg-gray-25">
+                <input type="checkbox" checked={formData.is_active} onChange={(e) => setFormData((p) => ({ ...p, is_active: e.target.checked }))} className="h-4 w-4 rounded border-line text-brand-text focus:ring-4 focus:ring-[#E1E4E8]/50" />
+                <span className="text-sm text-gray-700 dark:text-gray-600">Agent is active and can conduct interviews</span>
+              </label>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="primary" type="submit">{editingAgent ? "Update agent" : "Create agent"}</Button>
+                <Button variant="secondary" type="button" onClick={resetForm}>Cancel</Button>
+              </div>
+            </form>
+          </ProfileSection>
         </div>
       )}
 
-      <div className="bg-white border border-gray-200">
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-gray-900">Your agents • {agents.length}</h3>
-          <span className="text-xs text-gray-500">{agents.filter((a) => a.is_active).length} active</span>
-        </div>
-        {loading ? (
-          <div className="p-12 flex justify-center"><div className="animate-spin h-8 w-8 border-2 border-gray-200 border-t-blue-600 rounded-full" /></div>
-        ) : agents.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="w-14 h-14 bg-gray-100 flex items-center justify-center mx-auto mb-3"><FiCpu className="w-7 h-7 text-gray-400" /></div>
-            <p className="text-sm font-medium text-gray-900">No AI agents yet</p>
-            <p className="text-xs text-gray-500 mt-1 max-w-md mx-auto">Create your first AI interviewer to automate interviews for specific roles.</p>
+      <div className="px-4 pb-4">
+        <ProfileSection>
+          <div className="flex items-center justify-between gap-3 border-b border-line pb-4">
+            <h2 className="text-sm font-semibold text-ink">Your agents • {agents.length}</h2>
+            <span className="rounded-full border border-line bg-gray-50 px-2.5 py-1 text-xs font-semibold text-gray-600 dark:bg-gray-25">{agents.filter((a) => a.is_active).length} active</span>
           </div>
-        ) : (
-          <div className="divide-y divide-gray-100">
-            {agents.map((agent) => (
-              <div key={agent.id} className="p-5 hover:bg-gray-50 transition-colors">
-                <div className="flex gap-4">
-                  <div className="hidden sm:flex w-11 h-11 bg-gray-900 text-white items-center justify-center text-sm font-bold shrink-0">{getInitials(agent.name)}</div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h4 className="text-[15px] font-semibold text-gray-900">{agent.name}</h4>
-                      <span className={`text-xs font-medium border px-2 py-0.5 ${agent.is_active ? "bg-green-50 text-green-700 border-green-200" : "bg-gray-100 text-gray-600 border-gray-200"}`}>{agent.is_active ? "Active" : "Inactive"}</span>
-                      <span className="text-xs bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5">{agent.industry}</span>
+          {loading ? (
+            <div className="grid grid-cols-1 gap-3 pt-4 md:grid-cols-2">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="h-36 animate-pulse rounded-xl border border-line bg-surface" />
+              ))}
+            </div>
+          ) : agents.length === 0 ? (
+            <EmptyState
+              icon={FiCpu}
+              title="No AI agents yet"
+              body="Create your first AI interviewer to automate interviews for specific roles."
+              action={null}
+            />
+          ) : (
+            <div className="divide-y divide-line pt-2">
+              {agents.map((agent) => (
+                <div key={agent.id} className="py-4 transition-colors hover:bg-gray-50 dark:hover:bg-gray-25">
+                  <div className="flex gap-3 sm:gap-4">
+                    <Avatar name={agent.name || "AI"} size="lg" />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="text-[15px] font-semibold text-ink">{agent.name}</h3>
+                        <span className={`rounded-full border px-2.5 py-0.5 text-xs font-medium ${statusChip(agent.is_active)}`}>{agent.is_active ? "Active" : "Inactive"}</span>
+                        <span className={chipCls}>{agent.industry}</span>
+                      </div>
+                      <p className="mt-1 line-clamp-2 text-sm text-gray-600 dark:text-gray-500">{agent.description || "No description"}</p>
+                      <p className="mt-1 flex items-center gap-1.5 text-xs text-gray-500"><FiCalendar className="h-3.5 w-3.5" /> Created {formatDate(agent.created_at)}</p>
+                      {agent.custom_instructions && (
+                        <div className="mt-2 rounded-xl border border-line bg-gray-50 p-2.5 dark:bg-gray-25">
+                          <p className="text-xs text-gray-600 dark:text-gray-500"><span className="font-medium text-ink">Custom:</span> {agent.custom_instructions}</p>
+                        </div>
+                      )}
                     </div>
-                    <p className="text-sm text-gray-600 mt-1 line-clamp-2">{agent.description || "No description"}</p>
-                    <p className="text-xs text-gray-500 mt-1 flex items-center gap-1"><FiCalendar className="w-3 h-3" /> Created {formatDate(agent.created_at)}</p>
-                    {agent.custom_instructions && <div className="mt-2 bg-blue-50 border border-blue-200 p-2"><p className="text-xs text-blue-700"><span className="font-medium">Custom:</span> {agent.custom_instructions}</p></div>}
+                    <div className="hidden shrink-0 flex-col gap-2 lg:flex lg:w-[140px]">
+                      <Button variant="primary" size="sm" className="w-full" onClick={() => setTestingAgent(agent)}>
+                        <FiPlay className="h-3.5 w-3.5" /> Test
+                      </Button>
+                      <Button variant="secondary" size="sm" className="w-full" onClick={() => handleEdit(agent)}>
+                        <FiEdit2 className="h-3.5 w-3.5" /> Edit
+                      </Button>
+                      <Button variant="danger" size="sm" className="w-full border border-red-200 hover:bg-red-50 dark:border-red-500/30" onClick={() => handleDelete(agent.id)}>
+                        <FiTrash2 className="h-3.5 w-3.5" /> Delete
+                      </Button>
+                    </div>
                   </div>
-                  <div className="hidden lg:flex flex-col gap-2 shrink-0 w-[140px]">
-                    <button onClick={() => setTestingAgent(agent)} className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-green-600 text-white text-xs font-medium hover:bg-green-700"><FiPlay className="w-3.5 h-3.5" /> Test</button>
-                    <button onClick={() => handleEdit(agent)} className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-white border border-gray-200 text-xs font-medium hover:bg-gray-50"><FiEdit2 className="w-3.5 h-3.5" /> Edit</button>
-                    <button onClick={() => handleDelete(agent.id)} className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-white border border-red-200 text-xs font-medium text-red-600 hover:bg-red-50"><FiTrash2 className="w-3.5 h-3.5" /> Delete</button>
+                  <div className="mt-3 flex gap-2 lg:hidden">
+                    <Button variant="primary" size="sm" className="flex-1" onClick={() => setTestingAgent(agent)}>
+                      <FiPlay className="h-3.5 w-3.5" /> Test
+                    </Button>
+                    <Button variant="secondary" size="sm" className="flex-1" onClick={() => handleEdit(agent)}>
+                      <FiEdit2 className="h-3.5 w-3.5" /> Edit
+                    </Button>
+                    <Button variant="danger" size="sm" className="border border-red-200 hover:bg-red-50 dark:border-red-500/30" onClick={() => handleDelete(agent.id)} aria-label={`Delete ${agent.name}`}>
+                      <FiTrash2 className="h-3.5 w-3.5" />
+                    </Button>
                   </div>
                 </div>
-                <div className="mt-3 flex lg:hidden gap-2">
-                  <button onClick={() => setTestingAgent(agent)} className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-green-600 text-white text-xs font-medium"><FiPlay className="w-3.5 h-3.5" /> Test</button>
-                  <button onClick={() => handleEdit(agent)} className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-white border border-gray-200 text-xs font-medium"><FiEdit2 className="w-3.5 h-3.5" /> Edit</button>
-                  <button onClick={() => handleDelete(agent.id)} className="px-3 py-2 bg-white border border-red-200 text-red-600"><FiTrash2 className="w-3.5 h-3.5" /></button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
+        </ProfileSection>
       </div>
 
       {testingAgent && (
-        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white w-full max-w-lg border border-gray-200">
-            <div className="px-6 py-4 border-b border-gray-100">
-              <h3 className="text-sm font-semibold text-gray-900">Test {testingAgent.name}</h3>
-              <p className="text-xs text-gray-500 mt-1">Send a message to see how the agent responds</p>
-            </div>
-            <div className="p-6 space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 p-4 backdrop-blur-sm" role="dialog" aria-modal="true">
+          <div className="relative w-full max-w-lg rounded-2xl border border-line bg-surface p-5 shadow-s15">
+            <button onClick={() => { setTestingAgent(null); setTestMessage(""); setTestResponse(""); }} className="absolute right-4 top-4 inline-flex h-8 w-8 items-center justify-center rounded-xl text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-600" aria-label="Close">
+              <FiX className="h-4 w-4" />
+            </button>
+            <h2 className="text-base font-semibold text-ink">Test {testingAgent.name}</h2>
+            <p className="mt-0.5 text-xs text-gray-500">Send a message to see how the agent responds</p>
+            <div className="mt-4 space-y-4">
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1.5">Test message</label>
-                <textarea rows={3} value={testMessage} onChange={(e) => setTestMessage(e.target.value)} placeholder="e.g. Tell me about your experience with React…" className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:bg-white resize-none" />
+                <label className="mb-1.5 block text-xs font-medium text-gray-600">Test message</label>
+                <textarea rows={3} value={testMessage} onChange={(e) => setTestMessage(e.target.value)} placeholder="e.g. Tell me about your experience with React…" className={`${fieldCls} resize-none`} />
               </div>
-              <button onClick={handleTestAgent} disabled={!testMessage.trim()} className="w-full px-4 py-2.5 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">Send test message</button>
-              {testResponse && <div className="bg-gray-50 border border-gray-200 p-4"><p className="text-xs font-medium text-gray-700 mb-1">Agent response:</p><p className="text-sm text-gray-700 whitespace-pre-wrap">{testResponse}</p></div>}
-            </div>
-            <div className="px-6 py-4 border-t border-gray-100 flex justify-end">
-              <button onClick={() => { setTestingAgent(null); setTestMessage(""); setTestResponse(""); }} className="px-5 py-2 bg-white border border-gray-200 text-sm font-medium hover:bg-gray-50">Close</button>
+              <Button variant="dark" className="w-full" onClick={handleTestAgent} disabled={!testMessage.trim()}>Send test message</Button>
+              {testResponse && (
+                <div className="rounded-xl border border-line bg-gray-50 p-4 dark:bg-gray-25">
+                  <p className="mb-1 text-xs font-medium text-gray-700 dark:text-gray-600">Agent response:</p>
+                  <p className="whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-600">{testResponse}</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
       )}
-    </DashboardLayout>
+    </OrgAppShell>
   );
 }

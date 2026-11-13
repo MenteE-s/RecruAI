@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import DashboardLayout from "../../components/layout/DashboardLayout";
+import { AppShell, CenterBar } from "../../components/layout/AppShell";
+import { RailCard, PeopleCard } from "../../components/layout/UtilityRail";
 import FollowButton from "../../components/ui/FollowButton";
 import MenteeLoader from "../../components/ui/MenteeLoader";
 import { getBackendUrl, getAuthHeaders, getUploadUrl, orgPath, postPath } from "../../utils/auth";
 import { getFollows } from "../../utils/follows";
-import { FiBell, FiMapPin, FiBriefcase, FiUsers } from "react-icons/fi";
+import { FiBell, FiMapPin, FiBriefcase, FiUsers, FiCheckCircle } from "react-icons/fi";
 
 function timeAgo(dateString) {
   if (!dateString) return "Recently";
@@ -80,7 +81,14 @@ export default function MyNetwork() {
             }
             map.get(orgId).count += 1;
           });
-          setDiscover([...map.values()].sort((a, b) => b.count - a.count).slice(0, 6));
+          const discoverList = [...map.values()]
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 6)
+            .map((c) => ({
+              ...c,
+              sub: `${c.count} open role${c.count === 1 ? "" : "s"}${c.location ? ` · ${c.location}` : ""}`,
+            }));
+          setDiscover(discoverList);
         }
       } catch (e) {
         console.error("Error loading network:", e);
@@ -100,47 +108,84 @@ export default function MyNetwork() {
       .slice(0, 5);
   }, [follows]);
 
+  const railContent = (
+    <>
+      <PeopleCard
+        title="Companies you may know"
+        people={discover}
+        empty="No suggestions yet — follow companies to personalize this."
+        onView={(c) => c.id && navigate(orgPath(c))}
+      />
+      <RailCard title="New from your network">
+        {networkJobs.length === 0 ? (
+          <p className="py-2 text-center text-[11px] text-gray-500 dark:text-gray-500">No new openings yet.</p>
+        ) : (
+          <ul className="flex flex-col">
+            {networkJobs.slice(0, 4).map((j) => (
+              <li key={`rail-net-${j.id}`}>
+                <button
+                  type="button"
+                  onClick={() => navigate(postPath(j))}
+                  className="group flex w-full flex-col rounded-xl px-2.5 py-2 text-left transition-colors hover:bg-gray-100 dark:hover:bg-gray-25"
+                >
+                  <span className="truncate text-[13px] font-semibold text-ink group-hover:text-brand-text">{j.title}</span>
+                  <span className="truncate text-[11px] text-gray-500 dark:text-gray-500">
+                    {j.organization?.name || ""} · {timeAgo(j.created_at)}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </RailCard>
+    </>
+  );
+
   return (
-    <DashboardLayout >
-      <div className="w-full max-w-3xl mx-auto space-y-3">
-        <div>
-          <h1 className="text-base font-bold text-gray-900 tracking-tight">My Network</h1>
-          <p className="text-[11px] text-gray-500 mt-0.5">
-            {loading ? "Loading…" : `${follows.length} compan${follows.length === 1 ? "y" : "ies"} followed`}
-          </p>
-        </div>
+    <AppShell rail={railContent}>
+      <CenterBar title="Network" subtitle={loading ? undefined : `${follows.length} compan${follows.length === 1 ? "y" : "ies"} followed`} />
+      <div className="w-full max-w-3xl mx-auto space-y-3.5 px-4 pb-6 pt-4">
 
         {loading ? (
-          <div className="bg-white border border-gray-200 rounded-lg p-6 text-center shadow-sm">
+          <div className="rounded-xl border border-line bg-surface p-6 text-center shadow-s5">
             <MenteeLoader size={52} text="Loading network…" />
           </div>
         ) : (
           <>
             {/* New from your network — 1 latest job per followed company */}
             {networkJobs.length > 0 && (
-              <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-3">
-                <h2 className="text-xs font-bold text-gray-900">New from your network</h2>
-                <div className="mt-1 divide-y divide-gray-100">
+              <div className="rounded-xl border border-line bg-surface p-4 shadow-s5">
+                <h2 className="text-sm font-semibold text-ink">New from your network</h2>
+                <div className="mt-2 divide-y divide-line">
                   {networkJobs.map((j) => (
                     <button
                       key={`net-${j.id}`}
+                      type="button"
                       onClick={() => navigate(postPath(j))}
-                      className="w-full flex items-center gap-2.5 py-2 text-left group"
+                      className="group flex w-full items-center gap-3 py-2.5 text-left rounded-lg px-2 -mx-2 transition-colors hover:bg-gray-50/70 dark:hover:bg-gray-25/40"
                     >
                       {j.organization?.profile_image ? (
-                        <img src={getUploadUrl(j.organization.profile_image)} alt="" loading="lazy" decoding="async" className="w-8 h-8 rounded-md object-cover border border-gray-200 shrink-0" />
+                        <img
+                          src={getUploadUrl(j.organization.profile_image)}
+                          alt=""
+                          loading="lazy"
+                          decoding="async"
+                          className="h-9 w-9 shrink-0 rounded-xl border border-line object-cover"
+                        />
                       ) : (
-                        <div className="w-8 h-8 rounded-md bg-gray-900 text-white flex items-center justify-center text-[11px] font-bold shrink-0">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gray-900 text-xs font-bold text-white dark:bg-gray-800">
                           {initials(j.organization?.name)}
                         </div>
                       )}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[13px] font-semibold text-gray-900 group-hover:text-blue-600 group-hover:underline leading-tight truncate">{j.title}</p>
-                        <p className="text-[11px] text-gray-400 truncate mt-px">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[13px] font-semibold leading-tight text-ink group-hover:text-brand-text group-hover:underline">
+                          {j.title}
+                        </p>
+                        <p className="mt-0.5 truncate text-[11px] text-gray-500 dark:text-gray-500">
                           {j.organization?.name || ""} · {timeAgo(j.created_at)}
                         </p>
                       </div>
-                      <span className="text-[11px] font-medium text-blue-600 shrink-0">View</span>
+                      <span className="shrink-0 text-xs font-semibold text-brand-text group-hover:underline">View</span>
                     </button>
                   ))}
                 </div>
@@ -148,37 +193,44 @@ export default function MyNetwork() {
             )}
 
             {/* Followed company cards */}
-            <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-3">
-              <h2 className="text-xs font-bold text-gray-900">Companies you follow</h2>
+            <div className="rounded-xl border border-line bg-surface p-4 shadow-s5">
+              <h2 className="text-sm font-semibold text-ink">Companies you follow</h2>
               {follows.length === 0 ? (
-                <div className="text-center py-5">
-                  <FiUsers className="w-7 h-7 text-gray-300 mx-auto mb-2" />
-                  <p className="text-[13px] font-semibold text-gray-900">No companies yet</p>
-                  <p className="text-xs text-gray-500 mt-0.5">Follow companies to see their latest job here.</p>
+                <div className="py-6 text-center">
+                  <FiUsers className="mx-auto mb-2 h-7 w-7 text-gray-300 dark:text-gray-600 stroke-[1.6]" />
+                  <p className="text-[13px] font-semibold text-ink">No companies yet</p>
+                  <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-500">Follow companies to see their latest jobs here.</p>
                 </div>
               ) : (
-                <div className="mt-2 space-y-2.5">
+                <div className="mt-3 space-y-3">
                   {follows.map((f) => {
                     const org = f.organization || {};
                     const job = f.latest_post;
                     return (
-                      <div key={f.id} className="border border-gray-200 rounded-lg p-3">
-                        <div className="flex items-center gap-2.5">
+                      <div key={f.id} className="rounded-xl border border-line bg-surface p-3.5 shadow-s5 transition-colors hover:border-brand/35">
+                        <div className="flex items-center gap-3">
                           {org.profile_image ? (
-                            <img src={getUploadUrl(org.profile_image)} alt={org.name} loading="lazy" decoding="async" className="w-9 h-9 rounded-md object-cover border border-gray-200 shrink-0" />
+                            <img
+                              src={getUploadUrl(org.profile_image)}
+                              alt={org.name}
+                              loading="lazy"
+                              decoding="async"
+                              className="h-10 w-10 shrink-0 rounded-xl border border-line object-cover"
+                            />
                           ) : (
-                            <div className="w-9 h-9 rounded-md bg-gray-900 text-white flex items-center justify-center text-xs font-bold shrink-0">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gray-900 text-xs font-bold text-white dark:bg-gray-800">
                               {initials(org.name)}
                             </div>
                           )}
-                          <div className="flex-1 min-w-0">
+                          <div className="min-w-0 flex-1">
                             <button
+                              type="button"
                               onClick={() => org.id && navigate(orgPath(org))}
-                              className="text-[13px] font-semibold text-gray-900 hover:text-blue-600 hover:underline truncate block max-w-full"
+                              className="block max-w-full truncate text-[13px] font-semibold text-ink hover:text-brand-text hover:underline"
                             >
                               {org.name || "Unknown"}
                             </button>
-                            <p className="text-[11px] text-gray-400 truncate">
+                            <p className="truncate text-[11px] text-gray-500 dark:text-gray-500">
                               {(f.open_roles ?? 0)} open role{(f.open_roles ?? 0) === 1 ? "" : "s"}
                             </p>
                           </div>
@@ -186,18 +238,23 @@ export default function MyNetwork() {
                         </div>
                         {job ? (
                           <button
+                            type="button"
                             onClick={() => navigate(postPath(job))}
-                            className="mt-2 w-full text-left bg-gray-50 border border-gray-100 rounded-md px-2.5 py-2 hover:border-blue-200 group"
+                            className="group mt-2.5 w-full rounded-xl border border-line bg-gray-50/70 px-3 py-2 text-left transition-colors hover:border-brand/30 dark:bg-gray-25/50"
                           >
-                            <p className="text-xs font-semibold text-gray-900 group-hover:text-blue-600 truncate">{job.title}</p>
-                            <p className="text-[11px] text-gray-500 truncate mt-px flex items-center gap-1">
-                              {job.location && <span className="inline-flex items-center gap-0.5"><FiMapPin className="w-3 h-3" />{job.location}</span>}
+                            <p className="truncate text-xs font-semibold text-ink group-hover:text-brand-text">{job.title}</p>
+                            <p className="mt-0.5 flex items-center gap-1.5 truncate text-[11px] text-gray-500 dark:text-gray-500">
+                              {job.location && (
+                                <span className="inline-flex items-center gap-1">
+                                  <FiMapPin className="h-3 w-3 text-gray-500 stroke-[1.8]" /> {job.location}
+                                </span>
+                              )}
                               {job.employment_type && <span>· {job.employment_type}</span>}
                               <span>· {timeAgo(job.created_at)}</span>
                             </p>
                           </button>
                         ) : (
-                          <p className="mt-2 text-[11px] text-gray-400">No active jobs right now.</p>
+                          <p className="mt-2 text-[11px] text-gray-500 dark:text-gray-500">No active jobs right now.</p>
                         )}
                       </div>
                     );
@@ -207,33 +264,39 @@ export default function MyNetwork() {
             </div>
 
             {/* Recent notifications */}
-            <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-3">
+            <div className="rounded-xl border border-line bg-surface p-4 shadow-s5">
               <div className="flex items-center justify-between">
-                <h2 className="text-xs font-bold text-gray-900 flex items-center gap-1.5">
-                  <FiBell className="w-3.5 h-3.5 text-gray-400" /> Recent notifications
+                <h2 className="flex items-center gap-2 text-sm font-semibold text-ink">
+                  <FiBell className="h-4 w-4 text-gray-500 stroke-[1.8]" /> Recent notifications
                 </h2>
-                <Link to="/notifications" className="text-[11px] font-semibold text-blue-600 hover:underline">
+                <Link to="/notifications" className="text-xs font-semibold text-brand-text hover:underline">
                   View all →
                 </Link>
               </div>
-              <div className="mt-1 divide-y divide-gray-100">
+              <div className="mt-2 divide-y divide-line">
                 {notifications.length === 0 && (
-                  <p className="text-[11px] text-gray-400 py-2">You're all caught up.</p>
+                  <p className="py-3 text-xs text-gray-500 dark:text-gray-500">You're all caught up.</p>
                 )}
                 {notifications.slice(0, 5).map((n) => (
-                  <div key={n.id} className="py-2 flex gap-2">
+                  <div key={n.id} className="flex items-start gap-2.5 py-2.5">
                     {n.organization?.profile_image ? (
-                      <img src={getUploadUrl(n.organization.profile_image)} alt="" loading="lazy" decoding="async" className="w-7 h-7 rounded-md object-cover border border-gray-200 shrink-0" />
+                      <img
+                        src={getUploadUrl(n.organization.profile_image)}
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
+                        className="h-8 w-8 shrink-0 rounded-xl border border-line object-cover"
+                      />
                     ) : n.organization ? (
-                      <div className="w-7 h-7 rounded-md bg-gray-900 text-white flex items-center justify-center text-[10px] font-bold shrink-0">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gray-900 text-[10px] font-bold text-white dark:bg-gray-800">
                         {(n.organization.name || "?").charAt(0).toUpperCase()}
                       </div>
                     ) : !n.is_read ? (
-                      <span className="w-1.5 h-1.5 rounded-full bg-blue-600 mt-1.5 shrink-0" />
+                      <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand" />
                     ) : null}
-                    <div className="min-w-0">
-                      <p className="text-xs font-semibold text-gray-900 leading-tight truncate">{n.title || "Notification"}</p>
-                      <p className="text-[11px] text-gray-500 leading-snug line-clamp-1 mt-px">{n.message || ""}</p>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs font-semibold leading-tight text-ink">{n.title || "Notification"}</p>
+                      <p className="mt-0.5 line-clamp-1 text-[11px] leading-snug text-gray-500 dark:text-gray-500">{n.message || ""}</p>
                     </div>
                   </div>
                 ))}
@@ -242,27 +305,38 @@ export default function MyNetwork() {
 
             {/* Discover more companies */}
             {discover.length > 0 && (
-              <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-3">
-                <h2 className="text-xs font-bold text-gray-900">Discover companies</h2>
-                <p className="text-[10px] text-gray-400">Hiring now · not followed yet</p>
-                <div className="mt-1 divide-y divide-gray-100">
+              <div className="rounded-xl border border-line bg-surface p-4 shadow-s5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-sm font-semibold text-ink">Discover companies</h2>
+                    <p className="mt-0.5 text-[11px] text-gray-500 dark:text-gray-500">Hiring now · not followed yet</p>
+                  </div>
+                </div>
+                <div className="mt-2 divide-y divide-line">
                   {discover.map((c) => (
-                    <div key={`discover-${c.id}`} className="flex items-center gap-2.5 py-2">
+                    <div key={`discover-${c.id}`} className="flex items-center gap-3 py-2.5">
                       {c.image ? (
-                        <img src={getUploadUrl(c.image)} alt={c.name} loading="lazy" decoding="async" className="w-8 h-8 rounded-md object-cover border border-gray-200 shrink-0" />
+                        <img
+                          src={getUploadUrl(c.image)}
+                          alt={c.name}
+                          loading="lazy"
+                          decoding="async"
+                          className="h-9 w-9 shrink-0 rounded-xl border border-line object-cover"
+                        />
                       ) : (
-                        <div className="w-8 h-8 rounded-md bg-gray-900 text-white flex items-center justify-center text-[11px] font-bold shrink-0">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gray-900 text-xs font-bold text-white dark:bg-gray-800">
                           {initials(c.name)}
                         </div>
                       )}
-                      <div className="flex-1 min-w-0">
+                      <div className="min-w-0 flex-1">
                         <button
+                          type="button"
                           onClick={() => navigate(orgPath(c))}
-                          className="text-[13px] font-semibold text-gray-900 hover:text-blue-600 hover:underline truncate block max-w-full text-left"
+                          className="block max-w-full truncate text-left text-[13px] font-semibold text-ink hover:text-brand-text hover:underline"
                         >
                           {c.name}
                         </button>
-                        <p className="text-[11px] text-gray-400 truncate">
+                        <p className="truncate text-[11px] text-gray-500 dark:text-gray-500">
                           {c.count} open role{c.count === 1 ? "" : "s"}
                           {c.location ? ` · ${c.location}` : ""}
                         </p>
@@ -284,19 +358,31 @@ export default function MyNetwork() {
             )}
 
             {/* Saved / applied shortcuts */}
-            <div className="grid grid-cols-2 gap-2.5">
-              <button onClick={() => navigate("/in/jobs")} className="bg-white border border-gray-200 rounded-lg shadow-sm p-3 text-left hover:border-blue-200 transition-colors">
-                <p className="text-xs font-bold text-gray-900 flex items-center gap-1.5"><FiBriefcase className="w-3.5 h-3.5 text-gray-400" /> Saved jobs</p>
-                <p className="text-[11px] text-blue-600 font-medium mt-1">View →</p>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => navigate("/in/jobs")}
+                className="group rounded-xl border border-line bg-surface p-4 text-left shadow-s5 transition-all hover:border-brand/40 hover:shadow-s10"
+              >
+                <p className="flex items-center gap-2 text-xs font-bold text-ink group-hover:text-brand-text">
+                  <FiBriefcase className="h-4 w-4 text-gray-500 transition-colors group-hover:text-brand-text stroke-[1.8]" /> Saved jobs
+                </p>
+                <p className="mt-1.5 text-[11px] font-semibold text-brand-text">View saved roles →</p>
               </button>
-              <button onClick={() => navigate("/in/jobs?tab=applied")} className="bg-white border border-gray-200 rounded-lg shadow-sm p-3 text-left hover:border-blue-200 transition-colors">
-                <p className="text-xs font-bold text-gray-900">Applied jobs</p>
-                <p className="text-[11px] text-blue-600 font-medium mt-1">View →</p>
+              <button
+                type="button"
+                onClick={() => navigate("/in/jobs?tab=applied")}
+                className="group rounded-xl border border-line bg-surface p-4 text-left shadow-s5 transition-all hover:border-brand/40 hover:shadow-s10"
+              >
+                <p className="flex items-center gap-2 text-xs font-bold text-ink group-hover:text-brand-text">
+                  <FiCheckCircle className="h-4 w-4 text-gray-500 transition-colors group-hover:text-brand-text stroke-[1.8]" /> Applied jobs
+                </p>
+                <p className="mt-1.5 text-[11px] font-semibold text-brand-text">View applications →</p>
               </button>
             </div>
           </>
         )}
       </div>
-    </DashboardLayout>
+    </AppShell>
   );
 }

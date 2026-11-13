@@ -54,11 +54,11 @@ function Tile({ trackRef, label, empty, emptyIcon }) {
   if (empty) {
     return (
       <div className="relative bg-gray-900 rounded-xl overflow-hidden border border-gray-700 flex flex-col min-h-0">
-        <div className="flex-1 min-h-0 flex flex-col items-center justify-center text-gray-400 p-4 text-center">
+        <div className="flex-1 min-h-0 flex flex-col items-center justify-center text-gray-500 p-4 text-center">
           <div className="w-14 h-14 bg-gray-800 rounded-full flex items-center justify-center mb-2">{emptyIcon}</div>
           <p className="text-sm text-gray-300">{label}</p>
         </div>
-        <div className="px-3 py-1.5 bg-gray-900 border-t border-gray-800 text-xs text-gray-400">{label}</div>
+        <div className="px-3 py-1.5 bg-gray-900 border-t border-gray-800 text-xs text-gray-500">{label}</div>
       </div>
     );
   }
@@ -88,7 +88,7 @@ function VideoStage({ hideLocal }) {
 
   if (!showLocal && !remote) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-gray-950 text-gray-400 p-8 text-center">
+      <div className="flex-1 flex items-center justify-center bg-gray-950 text-gray-500 p-8 text-center">
         <div>
           <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-3">
             <FiVideo className="w-8 h-8" />
@@ -141,7 +141,7 @@ function ControlsBar({ onLeave, micOn, camOn, toggleMic, toggleCam }) {
             : "bg-red-600 text-white border-red-600 hover:bg-red-700"
         }`}
         title={micOn ? "Mute mic" : "Unmute mic"}>
-        {micOn ? <FiMic className="w-4 h-4" /> : <FiMicOff className="w-4 h-4" />}
+        {micOn ? <FiMic className="h-4 w-4" /> : <FiMicOff className="h-4 w-4" />}
       </button>
 
       <button
@@ -152,7 +152,7 @@ function ControlsBar({ onLeave, micOn, camOn, toggleMic, toggleCam }) {
             : "bg-red-600 text-white border-red-600 hover:bg-red-700"
         }`}
         title={camOn ? "Turn off camera" : "Turn on camera"}>
-        {camOn ? <FiVideo className="w-4 h-4" /> : <FiVideoOff className="w-4 h-4" />}
+        {camOn ? <FiVideo className="h-4 w-4" /> : <FiVideoOff className="h-4 w-4" />}
       </button>
 
       <div className="w-px h-8 bg-gray-700 mx-2" />
@@ -161,7 +161,7 @@ function ControlsBar({ onLeave, micOn, camOn, toggleMic, toggleCam }) {
         className="!rounded-full !bg-red-600 hover:!bg-red-700 !text-white !border-red-600 !px-6 !py-2 font-medium flex items-center gap-2"
       >
         <>
-          <FiPhoneOff className="w-4 h-4" /> Leave
+          <FiPhoneOff className="h-4 w-4" /> Leave
         </>
       </DisconnectButton>
 
@@ -223,68 +223,68 @@ function RightPanel({ interviewId }) {
   };
 
   return (
-    <div className="w-full lg:w-[360px] bg-white border-l border-gray-200 flex flex-col min-h-0 shrink-0">
+    <div className="w-full lg:w-[360px] bg-surface border-l border-line flex flex-col min-h-0 shrink-0">
       {/* Tabs */}
-      <div className="flex border-b border-gray-200 shrink-0">
-        <button onClick={() => setTab("chat")} className={`flex-1 px-4 py-3 text-sm font-medium flex items-center justify-center gap-2 ${tab === "chat" ? "text-blue-600 border-b-2 border-blue-600 bg-blue-50/50" : "text-gray-500 hover:text-gray-700"}`}>
-          <FiMessageSquare className="w-4 h-4" /> Chat
+      <div className="flex border-b border-line shrink-0">
+        <button onClick={() => setTab("chat")} className={`flex-1 px-4 py-3 text-sm font-medium flex items-center justify-center gap-2 ${tab === "chat" ? "text-brand-text border-b-2 border-brand bg-brand/5" : "text-gray-500 hover:text-gray-700"}`}>
+          <FiMessageSquare className="h-4 w-4" /> Chat
         </button>
-        <button onClick={() => setTab("notes")} className={`flex-1 px-4 py-3 text-sm font-medium flex items-center justify-center gap-2 ${tab === "notes" ? "text-blue-600 border-b-2 border-blue-600 bg-blue-50/50" : "text-gray-500 hover:text-gray-700"}`}>
-          <FiFileText className="w-4 h-4" /> Notes
+        <button onClick={() => setTab("notes")} className={`flex-1 px-4 py-3 text-sm font-medium flex items-center justify-center gap-2 ${tab === "notes" ? "text-brand-text border-b-2 border-brand bg-brand/5" : "text-gray-500 hover:text-gray-700"}`}>
+          <FiFileText className="h-4 w-4" /> Notes
         </button>
       </div>
 
       {tab === "chat" ? (
         <>
-          <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50 min-h-0">
+          <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50 min-h-0 dark:bg-gray-25">
             {messages.length === 0 ? (
               <div className="text-center py-8">
-                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                  <FiMessageSquare className="w-5 h-5 text-blue-600" />
+                <div className="w-10 h-10 bg-brand/10 rounded-full flex items-center justify-center mx-auto mb-2">
+                  <FiMessageSquare className="w-5 h-5 text-brand-text" />
                 </div>
                 <p className="text-sm text-gray-500">No messages yet</p>
-                <p className="text-xs text-gray-400 mt-1">Say hello to start the conversation</p>
+                <p className="text-xs text-gray-500 mt-1">Say hello to start the conversation</p>
               </div>
             ) : (
               messages.map((m) => (
-                <div key={m.id} className="bg-white border border-gray-200 rounded-lg p-3">
+                <div key={m.id} className="bg-surface border border-line rounded-xl p-3">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs font-medium text-gray-700">{m.sender_name || (m.sender_type === "user" ? "Candidate" : "Interviewer")}</span>
-                    <span className="text-[10px] text-gray-400">
+                    <span className="text-[10px] text-gray-500">
                       {m.created_at ? new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""}
                     </span>
                   </div>
-                  <p className="text-sm text-gray-800 whitespace-pre-wrap break-words">{m.content}</p>
+                  <p className="text-sm text-ink whitespace-pre-wrap break-words">{m.content}</p>
                 </div>
               ))
             )}
             <div ref={chatEndRef} />
           </div>
-          <div className="p-3 border-t border-gray-200 bg-white shrink-0">
+          <div className="p-3 border-t border-line bg-surface shrink-0">
             <div className="flex gap-2">
               <input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
                 placeholder="Type a message..."
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="flex-1 rounded-xl border border-line bg-surface px-3 py-2 text-sm text-ink outline-none transition-colors placeholder:text-gray-500 focus:border-brand focus:ring-4 focus:ring-[#E1E4E8]/50"
               />
-              <button onClick={sendMessage} disabled={!input.trim() || sending} className="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1">
+              <button onClick={sendMessage} disabled={!input.trim() || sending} className="flex items-center gap-1 rounded-xl border border-brand bg-brand-action px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-brand/90 disabled:opacity-50 disabled:cursor-not-allowed">
                 <FiSend className="w-3.5 h-3.5" /> Send
               </button>
             </div>
           </div>
         </>
       ) : (
-        <div className="flex-1 flex flex-col p-4 bg-gray-50 min-h-0">
+        <div className="flex-1 flex flex-col p-4 bg-gray-50 min-h-0 dark:bg-gray-25">
           <p className="text-xs text-gray-500 mb-2">Private — only you see this. Auto-saved.</p>
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Key points, questions, strengths, concerns..."
-            className="flex-1 w-full p-3 border border-gray-300 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white min-h-[140px]"
+            className="flex-1 w-full min-h-[140px] resize-none rounded-xl border border-line bg-surface p-3 text-sm text-ink outline-none transition-colors placeholder:text-gray-500 focus:border-brand focus:ring-4 focus:ring-[#E1E4E8]/50"
           />
-          <p className="text-[11px] text-gray-400 mt-2">{notes.length} chars</p>
+          <p className="text-[11px] text-gray-500 mt-2">{notes.length} chars</p>
         </div>
       )}
     </div>
@@ -374,7 +374,7 @@ function VideoRoomInner({ interviewId, interview, onLeave }) {
         <div className="flex items-center justify-between px-4 py-3 bg-gray-900 text-white border-b border-gray-800 shrink-0">
           <div className="min-w-0">
             <h2 className="text-sm font-semibold truncate">{interview?.title || "Video Interview"}</h2>
-            <p className="text-xs text-gray-400 truncate">
+            <p className="text-xs text-gray-500 truncate">
               {interview?.organization || ""}{interview?.post_title ? ` · ${interview.post_title}` : ""}
             </p>
           </div>
@@ -439,9 +439,9 @@ export default function VideoRoom({ interviewId, interview, onLeave }) {
 
   if (loadingToken) {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center bg-gray-50">
+      <div className="min-h-[60vh] flex items-center justify-center bg-surface">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto mb-3" />
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-brand mx-auto mb-3" />
           <p className="text-sm text-gray-600">Preparing video room...</p>
         </div>
       </div>
@@ -450,11 +450,11 @@ export default function VideoRoom({ interviewId, interview, onLeave }) {
 
   if (error) {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center bg-gray-50 p-6">
-        <div className="bg-white p-6 rounded-lg shadow max-w-md w-full text-center border border-gray-200">
+      <div className="min-h-[60vh] flex items-center justify-center bg-surface p-6">
+        <div className="w-full max-w-md rounded-xl border border-line bg-surface p-6 text-center shadow-s15">
           <p className="text-red-600 text-sm mb-3">{error}</p>
           <p className="text-xs text-gray-500 mb-4">Video requires LiveKit on the backend and UDP 50000-50050 + 3478 open.</p>
-          <button onClick={fetchToken} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">Retry</button>
+          <button onClick={fetchToken} className="rounded-xl border border-brand bg-brand-action px-4 py-2 text-sm text-white transition-colors hover:bg-brand/90">Retry</button>
         </div>
       </div>
     );
@@ -462,22 +462,22 @@ export default function VideoRoom({ interviewId, interview, onLeave }) {
 
   if (!joined) {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 p-6">
-        <div className="bg-white p-6 rounded-xl shadow-lg max-w-lg w-full border border-gray-200">
-          <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center mx-auto mb-4">
+      <div className="min-h-[60vh] flex items-center justify-center bg-surface p-6">
+        <div className="w-full max-w-lg rounded-xl border border-line bg-surface p-6 shadow-s15">
+          <div className="w-12 h-12 bg-brand rounded-xl flex items-center justify-center mx-auto mb-4">
             <FiVideo className="w-6 h-6 text-white" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 text-center">Join video interview</h3>
+          <h3 className="text-lg font-semibold text-ink text-center">Join video interview</h3>
           <p className="text-sm text-gray-600 text-center mt-1">
             {interview?.title || "Interview"} · {interview?.duration_minutes || 30} min
           </p>
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mt-5">
-            <p className="text-sm font-medium text-amber-800 flex items-center gap-2">
+          <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-3 dark:border-amber-500/30 dark:bg-amber-500/10">
+            <p className="text-sm font-medium text-amber-800 flex items-center gap-2 dark:text-amber-300">
               <span className="w-2 h-2 bg-red-600 rounded-full animate-pulse" /> This call is recorded
             </p>
-            <p className="text-xs text-amber-700 mt-1">By joining you consent to recording. Visible only to participants and hiring managers.</p>
+            <p className="text-xs text-amber-700 mt-1 dark:text-amber-400">By joining you consent to recording. Visible only to participants and hiring managers.</p>
             <label className="flex items-start gap-2 mt-3 text-sm cursor-pointer">
-              <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-0.5" />
+              <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-0.5 accent-brand" />
               <span>I understand and consent to recording</span>
             </label>
           </div>
@@ -485,15 +485,15 @@ export default function VideoRoom({ interviewId, interview, onLeave }) {
             <button
               disabled={!consent}
               onClick={() => setJoined(true)}
-              className="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center gap-2"
+              className="flex-1 flex items-center justify-center gap-2 rounded-xl border border-brand bg-brand-action px-4 py-2.5 font-medium text-white transition-colors hover:bg-brand/90 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <FiVideo className="w-4 h-4" /> Join with camera & mic
+              <FiVideo className="h-4 w-4" /> Join with camera & mic
             </button>
-            <button onClick={onLeave} className="px-4 py-2.5 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 text-sm">
+            <button onClick={onLeave} className="rounded-xl border border-line bg-surface px-4 py-2.5 text-sm transition-colors hover:bg-gray-50">
               Cancel
             </button>
           </div>
-          <p className="text-xs text-gray-400 mt-3 text-center">Browser will ask for camera/mic permission after you join.</p>
+          <p className="text-xs text-gray-500 mt-3 text-center">Browser will ask for camera/mic permission after you join.</p>
         </div>
       </div>
     );

@@ -1,7 +1,10 @@
+import { OrgAppShell } from "../../components/layout/OrgAppShell";
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import DashboardLayout from "../../components/layout/DashboardLayout";
 import { getBackendUrl, getUploadUrl, getAuthHeaders } from "../../utils/auth";
+import { Button, ButtonLink } from "../../components/ui/Button";
+import { Avatar } from "../../components/ui/Avatar";
+import { ProfileSkillChip } from "../../components/profile/ProfileBits";
 import { FiMail, FiBriefcase, FiAward, FiBook, FiCode, FiFolder, FiFileText, FiHeart, FiGlobe, FiStar, FiArrowLeft, FiMapPin, FiCalendar, FiEdit2, FiCheckCircle } from "react-icons/fi";
 import EmploymentBadge, { employmentMeta } from "../../components/ui/EmploymentStatus";
 
@@ -10,8 +13,8 @@ import EmploymentBadge, { employmentMeta } from "../../components/ui/EmploymentS
 // against lowercase literals (which is what this used to do, and why a
 // normalized "Expert" rendered as an empty grey bar).
 const LEVEL_BAR_CLASS = {
-  expert: "bg-green-600 w-full",
-  advanced: "bg-blue-600 w-4/5",
+  expert: "bg-brand w-full",
+  advanced: "bg-brand w-4/5",
   intermediate: "bg-amber-500 w-3/5",
   beginner: "bg-gray-400 w-2/5",
 };
@@ -52,8 +55,6 @@ export default function UserProfile() {
 
   const toggleLike = async (targetUserId) => {
     if (!currentUser) return;
-    // Normalize: URL params are strings, API ids are numbers — the Set must
-    // use one type or has()/delete() silently miss (stale heart until refresh).
     const key = String(targetUserId);
     const wasLiked = likedProfiles.has(key);
     setLikedProfiles((prev) => { const n = new Set(prev); if (wasLiked) n.delete(key); else n.add(key); return n; });
@@ -76,140 +77,150 @@ export default function UserProfile() {
 
   if (loading) {
     return (
-      <DashboardLayout >
-        <div className="space-y-4">
-          <div className="rounded-2xl bg-gray-900 h-64 animate-pulse" />
+      <OrgAppShell>
+        <div className="space-y-4 px-4 py-4">
+          <div className="h-40 animate-pulse rounded-xl border border-line bg-surface" />
           <div className="grid grid-cols-3 gap-4">
-            <div className="bg-white border border-gray-200 h-64 animate-pulse" />
-            <div className="bg-white border border-gray-200 h-64 animate-pulse col-span-2" />
+            <div className="h-64 animate-pulse rounded-xl border border-line bg-surface" />
+            <div className="h-64 animate-pulse rounded-xl border border-line bg-surface col-span-2" />
           </div>
         </div>
-      </DashboardLayout>
+      </OrgAppShell>
     );
   }
   if (error) {
     return (
-      <DashboardLayout >
-        <div className="max-w-4xl mx-auto p-6">
-          <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 mb-4"><FiArrowLeft className="w-4 h-4" /> Back</button>
-          <div className="bg-white border border-gray-200 p-12 text-center">
+      <OrgAppShell>
+        <div className="mx-4 mt-4 max-w-4xl p-6">
+          <button onClick={() => navigate(-1)} className="mb-4 flex items-center gap-1.5 text-sm text-gray-600 hover:text-ink"><FiArrowLeft className="h-4 w-4" /> Back</button>
+          <div className="rounded-xl border border-line bg-surface p-12 text-center">
             <p className="text-sm text-red-600">{error}</p>
-            <button onClick={() => navigate(-1)} className="mt-4 px-4 py-2 bg-gray-900 text-white text-sm">Go back</button>
+            <Button variant="secondary" size="sm" className="mt-4" onClick={() => navigate(-1)}>Go back</Button>
           </div>
         </div>
-      </DashboardLayout>
+      </OrgAppShell>
     );
   }
 
   const { user, experiences, educations, skills, projects, publications, awards, certifications, languages, social_media_links, team_member_info, is_team_member, hired_organizations } = profileData;
 
+  const cardCls = "rounded-xl border border-line bg-surface p-5";
+  const sectionTitle = "flex items-center gap-2 text-sm font-semibold text-ink";
+
   return (
-    <DashboardLayout >
+    <OrgAppShell>
       {/* Back + own-profile edit */}
-      <div className="flex items-center justify-between mb-4">
-        <button onClick={() => navigate(-1)} className="inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900"><FiArrowLeft className="w-4 h-4" /> Back</button>
+      <div className="flex items-center justify-between px-4 pt-4">
+        <button onClick={() => navigate(-1)} className="inline-flex items-center gap-1.5 text-sm text-gray-600 transition-colors hover:text-ink"><FiArrowLeft className="h-4 w-4" /> Back</button>
         {currentUser && String(currentUser.id) === String(userId) && (
-          <button onClick={() => navigate("/in/profile")} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 text-xs font-semibold text-blue-600 hover:bg-blue-50 rounded-md">
-            <FiEdit2 className="w-3.5 h-3.5" /> Edit my profile
-          </button>
+          <ButtonLink to="/in/profile" variant="secondary" size="sm">
+            <FiEdit2 className="h-3.5 w-3.5" /> Edit my profile
+          </ButtonLink>
         )}
       </div>
 
       {/* Hero */}
-      <div className="relative overflow-hidden bg-gray-900 text-white mb-6">
-        {user.banner && <img src={getUploadUrl(user.banner)} alt="banner" className="absolute inset-0 w-full h-full object-cover opacity-20" />}
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-transparent to-indigo-600/20" />
-        <div className="relative p-6 md:p-8 flex flex-col md:flex-row gap-6">
-          {user.profile_picture ? <img src={getUploadUrl(user.profile_picture)} alt={user.name} className={`w-24 h-24 rounded-full object-cover border-4 border-white/20 ring-4 ring-offset-2 ring-offset-transparent shrink-0 ${employmentMeta(user.employment_status).ring}`} /> : <div className={`w-24 h-24 rounded-full bg-white/20 flex items-center justify-center text-2xl font-bold shrink-0 ring-4 ring-offset-2 ring-offset-transparent ${employmentMeta(user.employment_status).ring}`}>{(user.name || user.email)[0].toUpperCase()}</div>}
-          <div className="flex-1 min-w-0">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <h1 className="text-2xl md:text-3xl font-bold">{user.name || user.email}</h1>
-                {user.headline && (
-                  <p className="text-gray-200 mt-1 text-sm md:text-[15px] font-medium">{user.headline}</p>
-                )}
-                <p className="text-gray-300 mt-1 flex flex-wrap items-center gap-2 text-sm">
-                  <EmploymentBadge status={user.employment_status} />
-                  <span className={`px-2 py-1 text-xs font-medium border ${is_team_member ? "bg-green-500/20 text-green-200 border-green-400/20" : "bg-amber-500/20 text-amber-200 border-amber-400/20"}`}>{is_team_member ? "In your team" : "Not in team"}</span>
-                  {team_member_info && <><span className="bg-white/10 border border-white/20 px-2 py-1 text-xs">{team_member_info.role}</span><span className="text-gray-400">Joined {formatDate(team_member_info.join_date)}</span></>}
-                </p>
-                <div className="flex flex-wrap gap-1.5 mt-2">
-                  {hired_organizations?.map((org, i) => <span key={i} className="bg-white text-gray-900 px-2 py-1 text-xs font-medium">Hired by {org.organization_name}</span>)}
-                </div>
+      <div className="px-4 pb-4 pt-4">
+        <div className="rounded-xl border border-line bg-surface p-5">
+          <div className="flex flex-col gap-5 md:flex-row">
+            {user.profile_picture ? (
+              <img src={getUploadUrl(user.profile_picture)} alt={user.name} className={`h-20 w-20 shrink-0 rounded-full border-4 border-surface object-cover shadow-s5 ${employmentMeta(user.employment_status).ring}`} />
+            ) : (
+              <div className={`shrink-0 ${employmentMeta(user.employment_status).ring}`}>
+                <Avatar name={user.name || user.email} size="3xl" />
               </div>
-              {currentUser && currentUser.id !== parseInt(userId) && (
-                <div className="flex gap-2">
-                  <button onClick={() => toggleLike(userId)} className={`p-2.5 ${likedProfiles.has(String(userId)) ? "bg-red-500 text-white" : "bg-white/10 border border-white/20 text-white hover:bg-white/20"}`}><FiHeart className={`w-5 h-5 ${likedProfiles.has(String(userId)) ? "fill-white" : ""}`} /></button>
-                  <button onClick={() => window.open(`/in/profile/${userId}`, "_blank")} className="p-2.5 bg-white/10 border border-white/20 text-white hover:bg-white/20"><FiGlobe className="w-5 h-5" /></button>
+            )}
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h1 className="text-[20px] font-semibold leading-7 text-ink">{user.name || user.email}</h1>
+                  {user.headline && (
+                    <p className="mt-1 text-[13px] font-medium text-gray-600">{user.headline}</p>
+                  )}
+                  <p className="mt-1 flex flex-wrap items-center gap-2 text-sm">
+                    <EmploymentBadge status={user.employment_status} />
+                    <span className={`rounded-full px-2 py-1 text-xs font-medium border ${is_team_member ? "bg-brand/10 text-brand-text border-transparent" : "bg-amber-50 text-amber-700 border-amber-200"}`}>{is_team_member ? "In your team" : "Not in team"}</span>
+                    {team_member_info && <><span className="rounded-lg border border-line bg-gray-50 px-2 py-1 text-xs text-gray-600 dark:bg-gray-25">{team_member_info.role}</span><span className="text-xs text-gray-500">Joined {formatDate(team_member_info.join_date)}</span></>}
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {hired_organizations?.map((org, i) => <span key={i} className="rounded-lg border border-line bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 dark:bg-gray-25">Hired by {org.organization_name}</span>)}
+                  </div>
                 </div>
-              )}
-            </div>
-            <div className="flex flex-wrap items-center gap-4 mt-4 text-sm text-gray-300">
-              <span className="flex items-center gap-1.5"><FiMail className="w-4 h-4 text-gray-400" />{user.email}</span>
-              {social_media_links?.slice(0, 3).map((link) => <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer" className="bg-white/10 border border-white/20 px-2 py-1 text-xs hover:bg-white/20">{link.platform}</a>)}
+                {currentUser && currentUser.id !== parseInt(userId) && (
+                  <div className="flex gap-2">
+                    <button onClick={() => toggleLike(userId)} className={`inline-flex h-9 w-9 items-center justify-center rounded-xl border transition-colors ${likedProfiles.has(String(userId)) ? "border-red-200 bg-red-50 text-red-600 hover:bg-red-100" : "border-line bg-surface text-gray-500 hover:bg-gray-50 hover:text-ink"}`} aria-label={likedProfiles.has(String(userId)) ? "Remove favorite" : "Mark as favorite"}>
+                      <FiHeart className={`h-4 w-4 ${likedProfiles.has(String(userId)) ? "fill-red-500 text-red-500" : ""}`} />
+                    </button>
+                    <button onClick={() => window.open(`/in/profile/${userId}`, "_blank")} className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-line bg-surface text-gray-500 transition-colors hover:bg-gray-50 hover:text-ink" aria-label="Open public profile">
+                      <FiGlobe className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-gray-500">
+                <span className="flex items-center gap-1.5"><FiMail className="h-4 w-4 text-gray-500" />{user.email}</span>
+                {social_media_links?.slice(0, 3).map((link) => <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer" className="rounded-lg border border-line bg-gray-50 px-2 py-1 text-xs text-gray-600 transition-colors hover:bg-gray-25 dark:bg-gray-25">{link.platform}</a>)}
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="space-y-6">
-          <div className="bg-white border border-gray-200 p-5">
-            <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2"><FiStar className="w-4 h-4 text-amber-500" /> Summary</h3>
+      <div className="grid grid-cols-1 gap-4 px-4 pb-4 lg:grid-cols-3">
+        <div className="space-y-4">
+          <div className={cardCls}>
+            <h3 className={sectionTitle}><FiStar className="h-4 w-4 text-amber-500" /> Summary</h3>
             <div className="mt-4 grid grid-cols-2 gap-3 text-center">
-              <div className="bg-gray-50 border border-gray-200 p-3"><p className="text-xl font-bold text-gray-900">{experiences?.length || 0}</p><p className="text-xs text-gray-500">Roles</p></div>
-              <div className="bg-gray-50 border border-gray-200 p-3"><p className="text-xl font-bold text-gray-900">{educations?.length || 0}</p><p className="text-xs text-gray-500">Degrees</p></div>
-              <div className="bg-gray-50 border border-gray-200 p-3"><p className="text-xl font-bold text-gray-900">{skills?.length || 0}</p><p className="text-xs text-gray-500">Skills</p></div>
-              <div className="bg-gray-50 border border-gray-200 p-3"><p className="text-xl font-bold text-gray-900">{projects?.length || 0}</p><p className="text-xs text-gray-500">Projects</p></div>
+              <div className="rounded-xl border border-line bg-gray-50 p-3 dark:bg-gray-25"><p className="text-xl font-bold text-ink">{experiences?.length || 0}</p><p className="text-xs text-gray-500">Roles</p></div>
+              <div className="rounded-xl border border-line bg-gray-50 p-3 dark:bg-gray-25"><p className="text-xl font-bold text-ink">{educations?.length || 0}</p><p className="text-xs text-gray-500">Degrees</p></div>
+              <div className="rounded-xl border border-line bg-gray-50 p-3 dark:bg-gray-25"><p className="text-xl font-bold text-ink">{skills?.length || 0}</p><p className="text-xs text-gray-500">Skills</p></div>
+              <div className="rounded-xl border border-line bg-gray-50 p-3 dark:bg-gray-25"><p className="text-xl font-bold text-ink">{projects?.length || 0}</p><p className="text-xs text-gray-500">Projects</p></div>
             </div>
           </div>
           {skills?.length > 0 && (
-            <div className="bg-white border border-gray-200 p-5">
-              <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2"><FiCode className="w-4 h-4 text-blue-600" /> Skills</h3>
+            <div className={cardCls}>
+              <h3 className={sectionTitle}><FiCode className="h-4 w-4 text-gray-500" /> Skills</h3>
               <div className="mt-4 space-y-3">
                 {skills.map((skill) => (
                   <div key={skill.id}>
                     <div className="flex justify-between text-sm">
-                      <span className="font-medium text-gray-900">
+                      <span className="font-medium text-ink">
                         {skill.name}
                         {skill.verified && (
-                          <span className="ml-1.5 inline-flex items-center gap-0.5 align-middle text-[10px] font-semibold text-green-700 bg-green-50 border border-green-200 px-1 py-px rounded" title={skill.evidence_source === "assessment" ? "Level confirmed by a skills assessment" : `Backed by ${String(skill.evidence_source || "").replace(/_/g, " ")}`}>
-                            <FiCheckCircle className="w-2.5 h-2.5" /> Verified
+                          <span className="ml-1.5 inline-flex items-center gap-0.5 rounded border border-line bg-brand/10 px-1 py-px align-middle text-[10px] font-semibold text-brand-text" title={skill.evidence_source === "assessment" ? "Level confirmed by a skills assessment" : `Backed by ${String(skill.evidence_source || "").replace(/_/g, "")}`}>
+                            <FiCheckCircle className="h-2.5 w-2.5" /> Verified
                           </span>
                         )}
                       </span>
-                      <span className="text-xs text-gray-500 capitalize">{skill.level}</span>
+                      <span className="text-xs capitalize text-gray-500">{skill.level}</span>
                     </div>
-                    {/* Levels are canonical Title-Case from the backend taxonomy
-                        (BEGINNER/EXPERT etc.), so compare case-insensitively
-                        rather than against lowercase literals. */}
-                    <div className="mt-1 h-1.5 bg-gray-100"><div className={`h-1.5 ${LEVEL_BAR_CLASS[(skill.level || "").toLowerCase()] || "bg-gray-400 w-2/5"}`} /></div>
+                    <div className="mt-1 h-1.5 rounded-full bg-gray-100"><div className={`h-1.5 rounded-full ${LEVEL_BAR_CLASS[(skill.level || "").toLowerCase()] || "bg-gray-400 w-2/5"}`} /></div>
                   </div>
                 ))}
               </div>
             </div>
           )}
           {languages?.length > 0 && (
-            <div className="bg-white border border-gray-200 p-5">
-              <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2"><FiGlobe className="w-4 h-4 text-green-600" /> Languages</h3>
-              <div className="mt-3 flex flex-wrap gap-1.5">{languages.map((lang) => <span key={lang.id} className="bg-green-50 text-green-700 border border-green-200 px-2 py-1 text-xs">{lang.name}{lang.proficiency_level && ` (${lang.proficiency_level})`}</span>)}</div>
+            <div className={cardCls}>
+              <h3 className={sectionTitle}><FiGlobe className="h-4 w-4 text-gray-500" /> Languages</h3>
+              <div className="mt-3 flex flex-wrap gap-1.5">{languages.map((lang) => <ProfileSkillChip key={lang.id} label={lang.name + (lang.proficiency_level ? ` (${lang.proficiency_level})` : "")} />)}</div>
             </div>
           )}
         </div>
 
-        <div className="lg:col-span-2 space-y-6">
+        <div className="space-y-4 lg:col-span-2">
           {experiences?.length > 0 && (
-            <div className="bg-white border border-gray-200 p-6">
-              <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2"><FiBriefcase className="w-4 h-4 text-blue-600" /> Experience</h3>
-              <div className="mt-4 space-y-6">
+            <div className={cardCls}>
+              <h3 className={sectionTitle}><FiBriefcase className="h-4 w-4 text-gray-500" /> Experience</h3>
+              <div className="mt-4 space-y-5">
                 {experiences.map((exp) => (
-                  <div key={exp.id} className="flex gap-4">
-                    <div className="w-10 h-10 bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0"><FiBriefcase className="w-5 h-5 text-blue-600" /></div>
-                    <div className="flex-1">
-                      <h4 className="text-sm font-semibold text-gray-900">{exp.title}</h4>
-                      <p className="text-sm text-blue-600">{exp.company}</p>
-                      <p className="text-xs text-gray-500 flex items-center gap-1 mt-1"><FiCalendar className="w-3 h-3" />{formatDateRange(exp.start_date, exp.end_date, exp.current_job)} {exp.location && <><FiMapPin className="w-3 h-3 ml-2" />{exp.location}</>}</p>
-                      {exp.description && <p className="text-sm text-gray-600 mt-2 leading-relaxed">{exp.description}</p>}
+                  <div key={exp.id} className="flex gap-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-line bg-gray-50 dark:bg-gray-25"><FiBriefcase className="h-4 w-4 text-gray-500" /></div>
+                    <div className="min-w-0 flex-1">
+                      <h4 className="text-[13px] font-semibold text-ink">{exp.title}</h4>
+                      <p className="text-[12px] text-gray-600">{exp.company}</p>
+                      <p className="mt-0.5 flex items-center gap-1 text-[11px] text-gray-500"><FiCalendar className="h-3 w-3" />{formatDateRange(exp.start_date, exp.end_date, exp.current_job)} {exp.location && <><FiMapPin className="ml-2 h-3 w-3" />{exp.location}</>}</p>
+                      {exp.description && <p className="mt-1.5 text-[12px] leading-5 text-gray-600">{exp.description}</p>}
                     </div>
                   </div>
                 ))}
@@ -217,16 +228,16 @@ export default function UserProfile() {
             </div>
           )}
           {educations?.length > 0 && (
-            <div className="bg-white border border-gray-200 p-6">
-              <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2"><FiBook className="w-4 h-4 text-purple-600" /> Education</h3>
+            <div className={cardCls}>
+              <h3 className={sectionTitle}><FiBook className="h-4 w-4 text-gray-500" /> Education</h3>
               <div className="mt-4 space-y-4">
                 {educations.map((edu) => (
-                  <div key={edu.id} className="flex gap-4">
-                    <div className="w-10 h-10 bg-purple-50 border border-purple-100 flex items-center justify-center shrink-0"><FiBook className="w-5 h-5 text-purple-600" /></div>
-                    <div>
-                      <h4 className="text-sm font-semibold text-gray-900">{edu.degree}</h4>
-                      <p className="text-sm text-purple-600">{edu.school} {edu.field_of_study && `• ${edu.field_of_study}`}</p>
-                      <p className="text-xs text-gray-500 mt-1">{formatDateRange(edu.start_date, edu.end_date)}</p>
+                  <div key={edu.id} className="flex gap-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-line bg-gray-50 dark:bg-gray-25"><FiBook className="h-4 w-4 text-gray-500" /></div>
+                    <div className="min-w-0">
+                      <h4 className="text-[13px] font-semibold text-ink">{edu.degree}</h4>
+                      <p className="text-[12px] text-gray-600">{edu.school} {edu.field_of_study && `• ${edu.field_of_study}`}</p>
+                      <p className="mt-0.5 text-[11px] text-gray-500">{formatDateRange(edu.start_date, edu.end_date)}</p>
                     </div>
                   </div>
                 ))}
@@ -234,32 +245,31 @@ export default function UserProfile() {
             </div>
           )}
           {projects?.length > 0 && (
-            <div className="bg-white border border-gray-200 p-6">
-              <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2"><FiFolder className="w-4 h-4 text-indigo-600" /> Projects</h3>
-              <div className="mt-4 grid sm:grid-cols-2 gap-3">
+            <div className={cardCls}>
+              <h3 className={sectionTitle}><FiFolder className="h-4 w-4 text-gray-500" /> Projects</h3>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 {projects.map((p) => (
-                  <div key={p.id} className="border border-gray-200 p-4 hover:bg-gray-50">
-                    <h4 className="text-sm font-medium text-gray-900">{p.name}</h4>
-                    <p className="text-xs text-gray-500 mt-1">{formatDateRange(p.start_date, p.end_date)}</p>
-                    {p.description && <p className="text-sm text-gray-600 mt-2 line-clamp-2">{p.description}</p>}
-                    {p.link && <a href={p.link} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:text-blue-700 mt-2 inline-block">View →</a>}
+                  <div key={p.id} className="rounded-xl border border-line p-4 transition-colors hover:bg-gray-50">
+                    <h4 className="text-[13px] font-semibold text-ink">{p.name}</h4>
+                    <p className="mt-0.5 text-[11px] text-gray-500">{formatDateRange(p.start_date, p.end_date)}</p>
+                    {p.description && <p className="mt-2 line-clamp-2 text-[12px] leading-5 text-gray-600">{p.description}</p>}
+                    {p.link && <a href={p.link} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-xs font-semibold text-ink hover:text-brand-text">View →</a>}
                   </div>
                 ))}
               </div>
             </div>
           )}
-          {/* Simplified other sections - keep original but styled */}
-          {[ 
-            { data: certifications, title: "Certifications", icon: FiAward, color: "text-yellow-600 bg-yellow-50 border-yellow-100" },
-            { data: awards, title: "Awards", icon: FiStar, color: "text-amber-600 bg-amber-50 border-amber-100" },
-            { data: publications, title: "Publications", icon: FiFileText, color: "text-emerald-600 bg-emerald-50 border-emerald-100" },
+          {[
+            { data: certifications, title: "Certifications", icon: FiAward },
+            { data: awards, title: "Awards", icon: FiStar },
+            { data: publications, title: "Publications", icon: FiFileText },
           ].map((section) => section.data?.length > 0 && (
-            <div key={section.title} className="bg-white border border-gray-200 p-6">
-              <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2"><section.icon className="w-4 h-4 text-gray-500" />{section.title}</h3>
+            <div key={section.title} className={cardCls}>
+              <h3 className={sectionTitle}><section.icon className="h-4 w-4 text-gray-500" />{section.title}</h3>
               <div className="mt-3 space-y-2">
                 {section.data.slice(0, 3).map((item) => (
                   <div key={item.id} className="text-sm">
-                    <p className="font-medium text-gray-900">{item.name || item.title}</p>
+                    <p className="font-medium text-ink">{item.name || item.title}</p>
                     <p className="text-xs text-gray-500">{item.organization || item.publisher || ""} • {formatDate(item.issue_date || item.publication_date)}</p>
                   </div>
                 ))}
@@ -268,6 +278,6 @@ export default function UserProfile() {
           ))}
         </div>
       </div>
-    </DashboardLayout>
+    </OrgAppShell>
   );
 }

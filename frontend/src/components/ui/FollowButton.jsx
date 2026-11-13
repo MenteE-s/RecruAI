@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { FiPlus, FiCheck } from "react-icons/fi";
+import { Plus, Check } from "lucide-react";
 import { followOrg, unfollowOrg, checkFollow } from "../../utils/follows";
 import { useToast } from "./ToastContext";
 
@@ -42,25 +42,31 @@ export default function FollowButton({ orgId, size = "sm", onChange }) {
 
   const cls =
     size === "xs"
-      ? "px-2 py-0.5 text-[11px]"
-      : "px-3 py-1.5 text-xs";
+      ? "px-2.5 py-1 text-xs"
+      : "px-3.5 py-1.5 text-xs";
 
   if (following) {
     return (
       <button
+        type="button"
         onClick={toggle}
         disabled={busy}
-        className={`inline-flex items-center gap-1 font-semibold rounded-full border border-gray-300 bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors disabled:opacity-60 ${cls}`}>
-        <FiCheck className="w-3.5 h-3.5" /> Following
+        className={`inline-flex items-center gap-1.5 font-medium rounded-xl border border-line bg-surface text-ink shadow-s5 hover:bg-gray-100 dark:hover:bg-gray-25/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 transition-all disabled:opacity-60 disabled:cursor-not-allowed ${cls}`}
+      >
+        <Check className="h-3.5 w-3.5 text-brand-text shrink-0" strokeWidth={2} />
+        <span>Following</span>
       </button>
     );
   }
   return (
     <button
+      type="button"
       onClick={toggle}
       disabled={busy}
-      className={`inline-flex items-center gap-1 font-semibold rounded-full border border-blue-600 text-blue-600 hover:bg-blue-50 transition-colors disabled:opacity-60 ${cls}`}>
-      <FiPlus className="w-3.5 h-3.5" /> Follow
+      className={`inline-flex items-center gap-1.5 font-medium rounded-xl border border-line bg-surface text-ink shadow-s5 hover:bg-gray-100 dark:hover:bg-gray-25/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 transition-all disabled:opacity-60 disabled:cursor-not-allowed ${cls}`}
+    >
+      <Plus className="h-3.5 w-3.5 shrink-0" strokeWidth={2} />
+      <span>Follow</span>
     </button>
   );
 }

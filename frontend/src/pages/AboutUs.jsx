@@ -1,320 +1,286 @@
 import React from "react";
+import { Link } from "react-router-dom";
+import {
+  CheckCircle2,
+  Zap,
+  Globe2,
+  ShieldCheck,
+  ArrowRight,
+  Target,
+  Building2,
+  Layers,
+} from "lucide-react";
 import RecruAINavbar from "../components/product/RecruAINavbar";
 import Footer from "../components/Footer";
 
+const milestones = [
+  { year: "2020", desc: "MenteE founded with core research into AI-driven recruitment matching" },
+  { year: "2021", desc: "RecruAI platform launched with initial semantic candidate ranking" },
+  { year: "2022", desc: "Expanded across Pakistan with 100+ partner organizations" },
+  { year: "2023", desc: "Released automated AI interview simulations and ATS resume scoring" },
+  { year: "2025", desc: "Crossed 25k+ interviews; expanded into UAE, Saudi Arabia, Qatar, and Bahrain" },
+];
+
+const values = [
+  {
+    icon: CheckCircle2,
+    title: "Fairness and merit",
+    desc: "Committed to unbiased, merit-based candidate ranking calibrated for regional talent dynamics.",
+  },
+  {
+    icon: Zap,
+    title: "Precision engineering",
+    desc: "Advancing dense vector embeddings and pgvector semantic pipelines for instant, accurate matching.",
+  },
+  {
+    icon: Globe2,
+    title: "Regional accessibility",
+    desc: "Empowering job seekers and organizations of every scale across Pakistan and the Gulf region.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Security and data trust",
+    desc: "Protecting candidate privacy and recruiter proprietary records with rigorous encryption standards.",
+  },
+];
+
+const team = [
+  {
+    name: "Adeel Sayyad",
+    role: "Founder & CEO",
+    initials: "AS",
+    bio: "Pioneering AI systems and scalable architectures for emerging market recruitment and career growth.",
+  },
+  {
+    name: "Fatima Raza",
+    role: "Head of Talent & Operations",
+    initials: "FR",
+    bio: "Senior talent acquisition leader with 10+ years managing Pakistan and GCC hiring pipelines.",
+  },
+  {
+    name: "Usman Tariq",
+    role: "Lead Machine Learning Engineer",
+    initials: "UT",
+    bio: "Specializing in semantic vector search, NLP interview scoring, and ranking systems.",
+  },
+];
+
+const stats = [
+  { value: "25,000+", label: "Interviews completed", sub: "Live & practice sessions" },
+  { value: "500+", label: "Partner organizations", sub: "Pakistan & GCC regions" },
+  { value: "95%", label: "Candidate satisfaction", sub: "Post-interview feedback" },
+];
+
 const AboutUs = () => {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-surface text-ink transition-colors">
       <RecruAINavbar />
 
       {/* Hero Section */}
-      <div className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h1 className="text-4xl md:text-6xl font-bold mb-6">
-              About MenteE
-            </h1>
-            <p className="text-xl md:text-2xl text-indigo-100 max-w-3xl mx-auto">
-              Pioneering AI innovation in recruitment and professional
-              development since 2020.
-            </p>
+      <section className="border-b border-line bg-surface py-16 sm:py-20">
+        <div className="max-w-[1120px] mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <div className="inline-flex items-center gap-2 rounded-full px-3 py-1 bg-brand/10 border border-brand/20 text-xs font-semibold text-brand-text mb-4">
+            <Building2 className="h-3.5 w-3.5" strokeWidth={1.8} />
+            <span>About MenteE &amp; RecruAI</span>
           </div>
-        </div>
-      </div>
-
-      {/* Mission Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl font-bold text-gray-900 mb-6">Our Mission</h2>
-          <p className="text-xl text-gray-600 max-w-4xl mx-auto">
-            To democratize access to fair, efficient, and intelligent
-            recruitment processes through cutting-edge AI technology, empowering
-            both job seekers and employers to achieve their goals in the modern
-            workplace.
+          <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-ink mb-4">
+            Pioneering AI recruitment for{" "}
+            <span className="text-brand-text">Pakistan &amp; the Gulf</span>
+          </h1>
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-500 max-w-2xl mx-auto leading-relaxed">
+            We build intelligent platforms that connect ambitious talent with forward-thinking organizations — fair, fast, and driven by verified skills.
           </p>
         </div>
+      </section>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
-          <div className="text-center">
-            <div className="text-4xl font-bold text-indigo-600 mb-2">
-              10,000+
+      <div className="max-w-[1120px] mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-16">
+        {/* Mission Statement */}
+        <section className="text-center mb-16">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-line bg-gray-100 dark:bg-gray-25 text-xs font-medium text-gray-600 dark:text-gray-500 mb-3">
+            <Target className="h-3.5 w-3.5 text-brand-text" strokeWidth={1.8} />
+            <span>Our mission</span>
+          </div>
+          <h2 className="text-2xl sm:text-3xl font-bold text-ink mb-4">Democratizing objective hiring</h2>
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-500 max-w-3xl mx-auto leading-relaxed">
+            To democratize access to intelligent, objective, and transparent recruitment. We replace manual friction with precision vector matching, ATS resume optimization, and realistic AI interview practice.
+          </p>
+        </section>
+
+        {/* Stats Grid */}
+        <section className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-16">
+          {stats.map((stat, idx) => (
+            <div
+              key={idx}
+              className="rounded-xl border border-line bg-surface p-6 text-center shadow-s5 transition-colors hover:border-brand/40"
+            >
+              <div className="font-mono tabular-nums text-3xl sm:text-4xl font-bold text-brand-text mb-1 tracking-tight">
+                {stat.value}
+              </div>
+              <div className="text-sm font-semibold text-ink mb-0.5">
+                {stat.label}
+              </div>
+              <div className="text-xs text-gray-500 dark:text-gray-500">
+                {stat.sub}
+              </div>
             </div>
-            <div className="text-gray-600">Successful Interviews</div>
-          </div>
-          <div className="text-center">
-            <div className="text-4xl font-bold text-indigo-600 mb-2">500+</div>
-            <div className="text-gray-600">Partner Companies</div>
-          </div>
-          <div className="text-center">
-            <div className="text-4xl font-bold text-indigo-600 mb-2">95%</div>
-            <div className="text-gray-600">User Satisfaction</div>
-          </div>
-        </div>
+          ))}
+        </section>
 
-        {/* Story Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mb-16">
+        {/* Story & Milestones + Faux UI Engine Preview */}
+        <section className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start mb-16">
           <div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-6">Our Story</h3>
-            <div className="space-y-4 text-gray-700">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-line bg-gray-100 dark:bg-gray-25 text-xs font-medium text-gray-600 dark:text-gray-500 mb-3">
+              <Layers className="h-3.5 w-3.5 text-brand-text" strokeWidth={1.8} />
+              <span>Our journey</span>
+            </div>
+            <h3 className="text-2xl font-bold text-ink mb-4">Built for real hiring friction</h3>
+            <div className="space-y-4 text-sm text-gray-600 dark:text-gray-500 leading-relaxed">
               <p>
-                Founded in 2020, MenteE emerged from a simple observation:
-                traditional recruitment processes were inefficient, biased, and
-                time-consuming for everyone involved. Our founders, a team of AI
-                researchers and HR professionals, saw an opportunity to
-                revolutionize the industry.
+                Founded in 2020 by MenteE, RecruAI began with a straightforward observation: traditional hiring processes were slow, fragmented, and full of hidden biases that left exceptional candidates overlooked.
               </p>
               <p>
-                What started as a research project quickly evolved into RecruAI,
-                a comprehensive platform that uses advanced machine learning
-                algorithms to streamline the entire recruitment lifecycle. From
-                initial screening to final interviews, our AI-powered tools
-                ensure fair, accurate, and efficient hiring decisions.
+                We engineered RecruAI as a full-stack recruitment ecosystem — combining deep semantic matching, instant ATS resume diagnostics, and AI-powered practice simulations. Today, our platform bridges talent across Karachi, Lahore, Islamabad, and expanding hubs in Dubai, Riyadh, and Doha.
               </p>
               <p>
-                Today, MenteE serves thousands of job seekers and hundreds of
-                companies worldwide, helping bridge the gap between talent and
-                opportunity in an increasingly competitive job market.
+                Whether you are a job seeker preparing for your next breakthrough or an organization building a high-performing team, RecruAI provides the clarity and tools to succeed.
               </p>
             </div>
-          </div>
-          <div className="bg-white p-8 rounded-lg shadow-lg">
-            <h4 className="text-xl font-semibold text-gray-900 mb-4">
-              Key Milestones
-            </h4>
-            <div className="space-y-3">
-              <div className="flex items-start">
-                <div className="w-3 h-3 bg-indigo-600 rounded-full mt-2 mr-3 flex-shrink-0"></div>
-                <div>
-                  <div className="font-medium text-gray-900">2020</div>
-                  <div className="text-gray-600">
-                    MenteE founded with initial AI research
-                  </div>
+
+            {/* Stageshow Mini Engine Spec Card */}
+            <div className="mt-6 rounded-xl border border-line bg-surface p-5 shadow-s5">
+              <div className="flex items-center justify-between pb-3 border-b border-line mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-brand" />
+                  <span className="text-xs font-semibold text-ink">Semantic matching engine</span>
                 </div>
+                <span className="font-mono text-[11px] text-gray-500 dark:text-gray-500">all-MiniLM-L6-v2</span>
               </div>
-              <div className="flex items-start">
-                <div className="w-3 h-3 bg-indigo-600 rounded-full mt-2 mr-3 flex-shrink-0"></div>
-                <div>
-                  <div className="font-medium text-gray-900">2021</div>
-                  <div className="text-gray-600">
-                    RecruAI platform launched with core features
-                  </div>
+              <div className="space-y-2 text-xs">
+                <div className="flex items-center justify-between py-1.5 px-3 rounded-lg bg-gray-100 dark:bg-gray-25 border border-line">
+                  <span className="text-gray-600 dark:text-gray-600">Vector dimension</span>
+                  <span className="font-mono tabular-nums font-semibold text-ink">384-d dense</span>
                 </div>
-              </div>
-              <div className="flex items-start">
-                <div className="w-3 h-3 bg-indigo-600 rounded-full mt-2 mr-3 flex-shrink-0"></div>
-                <div>
-                  <div className="font-medium text-gray-900">2022</div>
-                  <div className="text-gray-600">
-                    Expanded to 100+ enterprise clients
-                  </div>
+                <div className="flex items-center justify-between py-1.5 px-3 rounded-lg bg-gray-100 dark:bg-gray-25 border border-line">
+                  <span className="text-gray-600 dark:text-gray-600">Canonical skill taxonomy</span>
+                  <span className="font-mono tabular-nums font-semibold text-ink">137 skills / 215 aliases</span>
                 </div>
-              </div>
-              <div className="flex items-start">
-                <div className="w-3 h-3 bg-indigo-600 rounded-full mt-2 mr-3 flex-shrink-0"></div>
-                <div>
-                  <div className="font-medium text-gray-900">2023</div>
-                  <div className="text-gray-600">
-                    AI interview analysis feature released
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-start">
-                <div className="w-3 h-3 bg-indigo-600 rounded-full mt-2 mr-3 flex-shrink-0"></div>
-                <div>
-                  <div className="font-medium text-gray-900">2025</div>
-                  <div className="text-gray-600">
-                    Global expansion and advanced analytics
-                  </div>
+                <div className="flex items-center justify-between py-1.5 px-3 rounded-lg bg-gray-100 dark:bg-gray-25 border border-line">
+                  <span className="text-gray-600 dark:text-gray-600">Average search latency</span>
+                  <span className="font-mono tabular-nums font-semibold text-brand-text">24ms (pgvector)</span>
                 </div>
               </div>
             </div>
           </div>
-        </div>
+
+          {/* Milestones Card */}
+          <div className="rounded-xl border border-line bg-surface p-6 sm:p-7 shadow-s5">
+            <div className="flex items-center justify-between mb-6 pb-3 border-b border-line">
+              <h4 className="text-base font-semibold text-ink">
+                Company milestones
+              </h4>
+              <span className="font-mono text-xs text-brand-text font-medium">2020 — 2025</span>
+            </div>
+            <div className="space-y-5">
+              {milestones.map((item, idx) => (
+                <div key={idx} className="flex items-start gap-3.5">
+                  <div className="w-2.5 h-2.5 rounded-full bg-brand mt-1.5 shrink-0" />
+                  <div className="min-w-0">
+                    <span className="font-mono tabular-nums text-xs font-bold text-brand-text uppercase tracking-wider block mb-0.5">
+                      {item.year}
+                    </span>
+                    <span className="text-sm text-gray-600 dark:text-gray-500 leading-normal">
+                      {item.desc}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
 
         {/* Values Section */}
-        <div className="mb-16">
-          <h3 className="text-3xl font-bold text-gray-900 text-center mb-12">
-            Our Values
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg
-                  className="w-8 h-8 text-indigo-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-              </div>
-              <h4 className="text-xl font-semibold text-gray-900 mb-2">
-                Fairness
-              </h4>
-              <p className="text-gray-600">
-                Committed to unbiased, equitable recruitment processes for all
-                candidates.
-              </p>
-            </div>
-
-            <div className="text-center">
-              <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg
-                  className="w-8 h-8 text-indigo-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M13 10V3L4 14h7v7l9-11h-7z"
-                  />
-                </svg>
-              </div>
-              <h4 className="text-xl font-semibold text-gray-900 mb-2">
-                Innovation
-              </h4>
-              <p className="text-gray-600">
-                Pushing the boundaries of AI technology to improve recruitment
-                outcomes.
-              </p>
-            </div>
-
-            <div className="text-center">
-              <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg
-                  className="w-8 h-8 text-indigo-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"
-                  />
-                </svg>
-              </div>
-              <h4 className="text-xl font-semibold text-gray-900 mb-2">
-                Accessibility
-              </h4>
-              <p className="text-gray-600">
-                Making advanced recruitment tools accessible to businesses of
-                all sizes.
-              </p>
-            </div>
-
-            <div className="text-center">
-              <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg
-                  className="w-8 h-8 text-indigo-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-                  />
-                </svg>
-              </div>
-              <h4 className="text-xl font-semibold text-gray-900 mb-2">
-                Security
-              </h4>
-              <p className="text-gray-600">
-                Protecting user data with enterprise-grade security and privacy
-                measures.
-              </p>
-            </div>
+        <section className="mb-16">
+          <div className="text-center mb-10">
+            <h3 className="text-2xl sm:text-3xl font-bold text-ink mb-3">
+              Our core values
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-500 max-w-xl mx-auto">
+              Principles that guide our engineering, algorithms, and partnerships.
+            </p>
           </div>
-        </div>
-
-        {/* Team Section */}
-        <div className="mb-16">
-          <h3 className="text-3xl font-bold text-gray-900 text-center mb-12">
-            Leadership Team
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="w-32 h-32 bg-gradient-to-r from-indigo-500 to-blue-500 rounded-full mx-auto mb-4 flex items-center justify-center">
-                <span className="text-2xl font-bold text-white">JD</span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {values.map((val, idx) => (
+              <div
+                key={idx}
+                className="rounded-xl border border-line bg-surface p-6 text-center shadow-s5 transition-colors hover:border-brand/40"
+              >
+                <div className="w-11 h-11 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center mx-auto mb-4 text-brand-text">
+                  <val.icon className="h-5 w-5" strokeWidth={1.8} />
+                </div>
+                <h4 className="text-sm font-semibold text-ink mb-2">
+                  {val.title}
+                </h4>
+                <p className="text-xs text-gray-600 dark:text-gray-500 leading-relaxed">
+                  {val.desc}
+                </p>
               </div>
-              <h4 className="text-xl font-semibold text-gray-900">Jane Doe</h4>
-              <p className="text-indigo-600 font-medium">CEO & Co-Founder</p>
-              <p className="text-gray-600 mt-2">
-                Former AI researcher at Stanford with 10+ years in machine
-                learning.
-              </p>
-            </div>
-
-            <div className="text-center">
-              <div className="w-32 h-32 bg-gradient-to-r from-green-500 to-teal-500 rounded-full mx-auto mb-4 flex items-center justify-center">
-                <span className="text-2xl font-bold text-white">JS</span>
-              </div>
-              <h4 className="text-xl font-semibold text-gray-900">
-                John Smith
-              </h4>
-              <p className="text-indigo-600 font-medium">CTO & Co-Founder</p>
-              <p className="text-gray-600 mt-2">
-                Ex-Google engineer specializing in natural language processing.
-              </p>
-            </div>
-
-            <div className="text-center">
-              <div className="w-32 h-32 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full mx-auto mb-4 flex items-center justify-center">
-                <span className="text-2xl font-bold text-white">SA</span>
-              </div>
-              <h4 className="text-xl font-semibold text-gray-900">
-                Sarah Anderson
-              </h4>
-              <p className="text-indigo-600 font-medium">Head of Product</p>
-              <p className="text-gray-600 mt-2">
-                Former product lead at LinkedIn with expertise in HR tech.
-              </p>
-            </div>
+            ))}
           </div>
-        </div>
+        </section>
+
+        {/* Leadership Team */}
+        <section className="mb-16">
+          <div className="text-center mb-10">
+            <h3 className="text-2xl sm:text-3xl font-bold text-ink mb-3">
+              Leadership team
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-500 max-w-xl mx-auto">
+              Engineers, researchers, and operators building MenteE's recruitment systems.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {team.map((person, idx) => (
+              <div
+                key={idx}
+                className="rounded-xl border border-line bg-surface p-6 text-center shadow-s5 transition-colors hover:border-brand/40"
+              >
+                <div className="w-14 h-14 rounded-full border border-line bg-gray-100 dark:bg-gray-25 flex items-center justify-center mx-auto mb-4 font-mono font-bold text-base text-ink">
+                  {person.initials}
+                </div>
+                <h4 className="text-base font-semibold text-ink">{person.name}</h4>
+                <p className="text-xs font-semibold text-brand-text mb-2.5">{person.role}</p>
+                <p className="text-xs text-gray-600 dark:text-gray-500 leading-relaxed">
+                  {person.bio}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
 
         {/* CTA Section */}
-        <div className="bg-indigo-50 rounded-lg p-8 text-center">
-          <h3 className="text-2xl font-bold text-gray-900 mb-4">
-            Join Our Mission
+        <section className="rounded-xl border border-line bg-surface p-8 sm:p-10 text-center shadow-s5">
+          <h3 className="text-xl sm:text-2xl font-bold text-ink mb-3">
+            Join our mission
           </h3>
-          <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
-            We're always looking for talented individuals who share our passion
-            for revolutionizing recruitment. Whether you're an AI engineer, HR
-            professional, or business development expert, we'd love to hear from
-            you.
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-500 mb-6 max-w-xl mx-auto leading-relaxed">
+            Explore our open roles or connect with our team to help shape the next generation of AI-powered career systems.
           </p>
-          <a
-            href="mailto:careers@mentee.ai"
-            className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 transition-colors"
-          >
-            View Career Opportunities
-            <svg
-              className="ml-2 -mr-1 w-4 h-4"
-              fill="currentColor"
-              viewBox="0 0 20 20"
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <Link
+              to="/careers"
+              className="inline-flex items-center gap-2 rounded-xl bg-brand px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand/90 shadow-s5"
             >
-              <path
-                fillRule="evenodd"
-                d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </a>
-        </div>
+              <span>View open roles</span>
+              <ArrowRight className="h-4 w-4" strokeWidth={1.8} />
+            </Link>
+            <Link
+              to="/contact"
+              className="rounded-xl border border-line bg-surface px-6 py-2.5 text-sm font-medium text-ink transition-colors hover:bg-gray-100 dark:hover:bg-gray-25 shadow-s5"
+            >
+              Contact us
+            </Link>
+          </div>
+        </section>
       </div>
 
       <Footer />
